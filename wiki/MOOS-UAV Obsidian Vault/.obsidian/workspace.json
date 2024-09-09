@@ -1,0 +1,244 @@
+{
+  "main": {
+    "id": "9bfb93211c650d2f",
+    "type": "split",
+    "children": [
+      {
+        "id": "14cc0bb2f9c55280",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "59cb73fb96c5af25",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "Sandbox writing.md",
+                "mode": "source",
+                "source": false
+              }
+            }
+          },
+          {
+            "id": "c192c4b83c445d3d",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "Sandbox writing.md",
+                "mode": "source",
+                "source": false
+              }
+            }
+          },
+          {
+            "id": "da1775f066ee6410",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "QUESTIONS.md",
+                "mode": "source",
+                "source": false
+              }
+            }
+          },
+          {
+            "id": "54a30b488bf4b937",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "Sandbox writing.md",
+                "mode": "source",
+                "source": false
+              }
+            }
+          },
+          {
+            "id": "261c52b594810563",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "Loading missions.md",
+                "mode": "source",
+                "source": false
+              }
+            }
+          },
+          {
+            "id": "e1f736a1b460e80a",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "ArduPilot & MavProx.md",
+                "mode": "source",
+                "source": false
+              }
+            }
+          },
+          {
+            "id": "ad5f158372ea4bc4",
+            "type": "leaf",
+            "state": {
+              "type": "graph",
+              "state": {}
+            }
+          }
+        ],
+        "currentTab": 6
+      }
+    ],
+    "direction": "vertical"
+  },
+  "left": {
+    "id": "9783336cad41e8d3",
+    "type": "split",
+    "children": [
+      {
+        "id": "54673244bbd3aa1c",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "987add3a38fd0557",
+            "type": "leaf",
+            "state": {
+              "type": "file-explorer",
+              "state": {
+                "sortOrder": "alphabetical"
+              }
+            }
+          },
+          {
+            "id": "66dfd7105c2fc55c",
+            "type": "leaf",
+            "state": {
+              "type": "search",
+              "state": {
+                "query": "simula",
+                "matchingCase": false,
+                "explainSearch": false,
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical"
+              }
+            }
+          },
+          {
+            "id": "13467bfafb1b3c28",
+            "type": "leaf",
+            "state": {
+              "type": "bookmarks",
+              "state": {}
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300
+  },
+  "right": {
+    "id": "985a124631a6a0ce",
+    "type": "split",
+    "children": [
+      {
+        "id": "7698860ab5cdbb5e",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "82bd97a8e0850150",
+            "type": "leaf",
+            "state": {
+              "type": "backlink",
+              "state": {
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical",
+                "showSearch": false,
+                "searchQuery": "",
+                "backlinkCollapsed": false,
+                "unlinkedCollapsed": true
+              }
+            }
+          },
+          {
+            "id": "ef6ea8b157b6d6a5",
+            "type": "leaf",
+            "state": {
+              "type": "outgoing-link",
+              "state": {
+                "linksCollapsed": false,
+                "unlinkedCollapsed": true
+              }
+            }
+          },
+          {
+            "id": "a60a27c1e2156650",
+            "type": "leaf",
+            "state": {
+              "type": "tag",
+              "state": {
+                "sortOrder": "frequency",
+                "useHierarchy": true
+              }
+            }
+          },
+          {
+            "id": "3bdb39afc9402030",
+            "type": "leaf",
+            "state": {
+              "type": "outline",
+              "state": {}
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300,
+    "collapsed": true
+  },
+  "left-ribbon": {
+    "hiddenItems": {
+      "switcher:Open quick switcher": false,
+      "graph:Open graph view": false,
+      "canvas:Create new canvas": false,
+      "daily-notes:Open today's daily note": false,
+      "templates:Insert template": false,
+      "command-palette:Open command palette": false
+    }
+  },
+  "active": "987add3a38fd0557",
+  "lastOpenFiles": [
+    "Loading missions.md",
+    "Info/System architecture.md",
+    "QUESTIONS.md",
+    "If things fail.md",
+    "ArduPilot & MavProx.md",
+    "MavProxy.md",
+    "Sandbox writing.md",
+    "Testing.md",
+    "().md",
+    "Info/Dune.md",
+    "Info/LSTS.md",
+    "Info/Neptus.md",
+    "Info/attachments/Pasted image 20240903123843.png",
+    "Info/Skywalker X8.md",
+    "attachments/Pasted image 20240903114151.png",
+    "attachments",
+    "Info/attachments/Pasted image 20240903113410.png",
+    "Info/attachments/Pasted image 20240903113547.png",
+    "Info/attachments/Pasted image 20240903113855.png",
+    "Info/attachments/Pasted image 20240903113334.png",
+    "figures/Pasted image 20240829151142.png",
+    "Info/attachments/Pasted image 20240903113344.png",
+    "Info/Pasted image 20240903113257.png",
+    "Info/attachments",
+    "Info/Pasted image 20240903113217.png",
+    "Info",
+    "figures"
+  ]
+}
