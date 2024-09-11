@@ -85,7 +85,7 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "Troubleshooting.md",
+                "file": "Info/MAIN System architecture.md",
                 "mode": "source",
                 "source": false
               }
@@ -158,7 +158,7 @@
             "state": {
               "type": "backlink",
               "state": {
-                "file": "Troubleshooting.md",
+                "file": "Info/MAIN System architecture.md",
                 "collapseAll": false,
                 "extraContext": false,
                 "sortOrder": "alphabetical",
@@ -175,7 +175,7 @@
             "state": {
               "type": "outgoing-link",
               "state": {
-                "file": "Troubleshooting.md",
+                "file": "Info/MAIN System architecture.md",
                 "linksCollapsed": false,
                 "unlinkedCollapsed": true
               }
@@ -198,7 +198,7 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "Troubleshooting.md"
+                "file": "Info/MAIN System architecture.md"
               }
             }
           }
@@ -221,14 +221,14 @@
   },
   "active": "da26bb1516200fb8",
   "lastOpenFiles": [
+    "Info/Install, Build & Run MAVSDK.md",
+    "Info/MAIN System architecture.md",
+    "Troubleshooting.md",
     "Testing.md",
     "Sandbox writing.md",
     "Advantages of MOOS-IVP.md",
     "Info/ArduPilot & MavProx.md",
     "Info/Mission Planner info.md",
-    "Info/MAIN System architecture.md",
-    "Troubleshooting.md",
-    "Info/Install, Build & Run MAVSDK.md",
     "Info/Skywalker X8.md",
     "QUESTIONS.md",
     "Papers",
