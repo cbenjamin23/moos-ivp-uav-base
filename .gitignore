@@ -37,3 +37,9 @@
 *.txt
 logs
 terrain
+
+
+
+# captures from wireshark
+*.pcap
+*.pcapng

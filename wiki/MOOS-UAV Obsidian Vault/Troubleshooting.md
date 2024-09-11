@@ -9,7 +9,7 @@ Run the command
 This wil setup things again
 
 
-## Gazebo not running properly
+## Gazebo not running/ dying after start
 
 There might be a gazebo server/client running. Identify the PID with the command
 
@@ -21,3 +21,13 @@ For MissionPlanner:
 		ps aux | grep mono
 and then kill it using `kill <PID>`
 
+
+
+## How to search in files:
+
+	Example from dune
+	
+		> grep -ri “matrix” <path_to_dune_src>
+		- ./Maneuver/CoverArea/Task.cpp: Math::Matrix m_rows; // etc
+
+![[Pasted image 20240903114151.png]]

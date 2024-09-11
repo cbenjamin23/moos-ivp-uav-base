@@ -38,4 +38,4 @@ See slides p.34
 
 
 ## *Source Code* 
-navigation can be read from the presentation under [LSTS](LSTS), slide 30-34
+navigation can be read from the presentation under [LSTS](LSTS.md), slide 30-34
