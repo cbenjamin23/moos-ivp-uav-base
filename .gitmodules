@@ -1,3 +1,4 @@
 [submodule "MAVSDK"]
 	path = MAVSDK
 	url = git@github.com:Scarter668/MAVSDK.git
+	branch = v2.12.6-Ardupilot
