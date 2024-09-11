@@ -46,7 +46,7 @@ Read instructions [[MAIN System architecture]]
 
 Summary: 
 ```
-cd ~/MAVSDK;
+cd <path-to>/MAVSDK;
 cmake -DCMAKE_BUILD_TYPE=Debug -Bbuild/default -H. -DBUILD_SHARED_LIBS=ON -DSUPERBUILD=ON;
 sudo cmake --build build/default --target install;
 cd -
@@ -63,6 +63,7 @@ cmake -Bbuild -H.
 cmake --build build -j8
 ```
 
+*Notice* the configure step `cmake -Bbuild -H.` that should be called first and only once
 
 Summary:
 ```
