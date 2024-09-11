@@ -1,3 +1,5 @@
+## 1 - C++
+
 # Prerequisites
 *.d
 
@@ -30,14 +32,38 @@
 *.exe
 *.out
 *.app
+targ_*
 
-# uninteresting files under scripts
-*.bin
-*.tlog*
-*.txt
-logs
-terrain
 
+## 2 - MOOS
+
+# Log files
+*.alog
+*.blog
+*.ylog
+*.klog
+LOG*/
+XLOG*/
+
+*.moos++
+*._moos
+*._bhv
+.LastOpenedMOOSLogDirectory
+MOOSLog*/
+
+# Build dirs
+build/
+bin/
+lib/
+
+# Temp files (emacs, etc)
+*#
+*~
+.vscode/*
+
+**/log**
+
+.gitlab-ci.yml
 
 
 # captures from wireshark
