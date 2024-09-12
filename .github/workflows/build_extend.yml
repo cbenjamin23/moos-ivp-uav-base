@@ -14,7 +14,7 @@ jobs:
         working-directory: moos-ivp-extend
         run: |
           git submodule update --init --recursive
-          cd ~/moos-ivp-uav/MAVSDK;
+          cd MAVSDK;
           cmake -DCMAKE_BUILD_TYPE=Debug -Bbuild/default -H. -DBUILD_SHARED_LIBS=ON -DSUPERBUILD=ON; 
           sudo cmake --build build/default --target install;
         env:
