@@ -139,13 +139,15 @@ class GenRescue : public AppCastingMOOSApp
    bool                 m_skip_next_point;
 
    // For UAV
-  std::unique_ptr<Mavsdk> m_mavsdk_ptr;
+  std::shared_ptr<Mavsdk> m_mavsdk_ptr;
   std::unique_ptr<MissionRaw> m_mission_raw_ptr;
   std::unique_ptr<Action> m_action_ptr;
   std::unique_ptr<Telemetry> m_telemetry_ptr;
 
-   bool                m_do_fly_to_waypoint;
-   bool                m_do_takoff;
+  bool                  m_health_all_ok;
+
+  bool                m_do_fly_to_waypoint;
+  bool                m_do_takoff;
 
   double m_lat_deg_home;
   double m_lon_deg_home;

@@ -164,7 +164,7 @@ using namespace std;
 // Constructor()
 
 GenRescue::GenRescue()
-: m_mavsdk_ptr{std::make_unique<Mavsdk>(Mavsdk::Configuration{Mavsdk::ComponentType::GroundStation})}
+: m_mavsdk_ptr{std::make_shared<Mavsdk>(Mavsdk::Configuration{Mavsdk::ComponentType::GroundStation})}
 {
   m_visit_radius = 3;
   m_points_visited = vector<XYPoint>();
@@ -194,6 +194,8 @@ GenRescue::GenRescue()
 
   m_do_fly_to_waypoint = false;
   m_do_takoff = false;
+
+  m_health_all_ok = false;
 
 }
 
@@ -354,7 +356,26 @@ bool GenRescue::Iterate()
   AppCastingMOOSApp::Iterate();
   // Do your thing here!
 
-  if(m_do_takoff){
+  static bool is_armed = false;
+  
+  if(m_health_all_ok && !is_armed){
+    
+    m_action_ptr->arm_async([&](Action::Result result) {
+        MOOSTrace("Arming result: %d\n", result);
+        if (result == Action::Result::Success) {
+            is_armed = true;
+        } else {
+            stringstream ss;
+            ss << "Arming failed: " << result << '\n';
+            std::cout << ss.str();
+            reportRunWarning("Failed to arm");
+            MOOSTrace(ss.str().c_str());
+        }
+    }); 
+
+  }
+
+  if(m_do_takoff && is_armed){
     // send the takeoff command
     auto start_result = m_mission_raw_ptr->start_mission();
     if (start_result != MissionRaw::Result::Success) {
@@ -625,17 +646,24 @@ bool GenRescue::OnStartUp()
     reportConfigWarning("No scout name found in configuration file");
   }
 
-  ConnectionResult connection_result = m_mavsdk_ptr->add_any_connection("udp://:14550");
+
+  std::cout << "Vehicle name: " << m_vname << std::endl;
+
+  ConnectionResult connection_result = m_mavsdk_ptr->add_any_connection("udp://0.0.0.0:14550");
+
+  std::cout << "Connection result: " << connection_result << std::endl;
 
   if (connection_result != ConnectionResult::Success) {
     stringstream ss;
     ss << "Connection failed: " << connection_result << '\n';
+    MOOSTrace(ss.str().c_str());
+    std::cout << ss.str();
     reportRunWarning(ss.str());
   }
 
-
+  std::cout << "Waiting to discover system..." << std::endl;
   auto system = m_mavsdk_ptr->first_autopilot(3.0);
-  if (!system) {
+  if (!system.has_value()) {
     stringstream ss;
     ss << "Timed out waiting for system\n";
     reportRunWarning(ss.str()); 
@@ -691,6 +719,11 @@ bool GenRescue::OnStartUp()
     }
 
   m_mission_raw_ptr->set_current_mission_item(0);
+
+
+  m_telemetry_ptr->subscribe_health_all_ok([&, this](bool is_health_all_ok) {
+    this->m_health_all_ok = is_health_all_ok;
+  });
 
   return(true);
 }

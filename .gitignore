@@ -69,3 +69,11 @@ lib/
 # captures from wireshark
 *.pcap
 *.pcapng
+
+# mavproxy run files
+
+eeprom.bin
+*.tlog**
+terrain
+*.parm
+vpositions.txt
