@@ -1,0 +1,249 @@
+//*******************************************************
+// ShoreSide Configuration File
+
+ServerHost = localhost
+ServerPort = 9000
+Community  = shoreside
+
+#include plug_origin_warp.moos
+  
+//--------------------------------------------------------
+Processconfig = ANTLER
+{
+  MSBetweenLaunches = 200
+
+  Run = MOOSDB              @ NewConsole = false
+#ifdef LAUNCH_GUI yes
+  Run = pMarineViewer       @ NewConsole = false
+#endif
+
+  Run = pLogger             @ NewConsole = false
+  Run = pShare              @ NewConsole = false
+  Run = pHostInfo           @ NewConsole = false
+  Run = uProcessWatch       @ NewConsole = false
+  Run = uFldShoreBroker     @ NewConsole = false
+  Run = uFldNodeComms       @ NewConsole = false
+  Run = uFldCollisionDetect @ NewConsole = false
+  Run = pRealm              @ NewConsole = false
+  Run = uFldRescueMgr       @ NewConsole = false
+}
+
+#include plug_pHostInfo.moos
+#include plug_pShare.moos
+#include plug_uProcessWatch.moos
+
+//------------------------------------------
+// pRealm config block
+
+ProcessConfig = pRealm                                          
+{                                                               
+  AppTick   = 4
+  CommsTick = 4
+  
+  relcast_interval = 0.8
+  summary_interval = 2.0
+  wrap_length = 90
+  trunc_length = 270
+  msg_max_hist = 30
+                                                                
+  hist_var  = SWIMMER_ALERT_ABE
+  hist_var  = SWIMMER_ALERT_BEN
+                                                                
+	app_logging = true
+}
+	
+//------------------------------------------
+// uFldRescueMgr config block
+
+ProcessConfig = uFldRescueMgr
+{
+  AppTick   = 4
+  CommsTick = 4
+
+	app_logging = true
+
+	swim_file = $(SWIM_FILE)
+	
+	rescue_rng_min = 3
+	rescue_rng_max = 5
+	rescue_rng_pd  = 1.0
+
+	show_rescue_rng = true
+	rescue_rng_transparency = 0.1
+}
+
+//--------------------------------------------------
+// uFldNodeComms config block
+
+ProcessConfig = uFldNodeComms
+{
+  AppTick   = 2
+  CommsTick = 2
+
+  comms_range      = 500
+  critical_range   = 40
+  min_msg_interval = 0
+  max_msg_length   = 1000
+  view_node_rpt_pulses = true
+}
+
+//--------------------------------------------------
+// uFldShoreBroker config block
+
+ProcessConfig = uFldShoreBroker
+{
+  AppTick   = 1
+  CommsTick = 1
+
+  qbridge = DEPLOY, NODE_REPORT, NODE_MESSAGE, SURVEY
+  qbridge = STATION_KEEP, APPCAST_REQ, SWIMMER_ALERT
+  qbridge = MOOS_MANUAL_OVERIDE, SURVEY
+	qbridge = SURVEY_UPDATE, SCOUTED_SWIMMER
+  qbridge = NODE_COLOR_CHANGE
+  
+  bridge  = src=FLY_WAYPOINT
+  bridge  = src=DO_TAKEOFF
+  
+	bridge  = src=HEARTBEAT
+  bridge  = src=AVOID
+  bridge  = src=UFRM_LEADER
+  bridge  = src=UFRM_WINNER
+  bridge  = src=UFRM_FINISH
+  bridge  = src=FOUND_SWIMMER
+  bridge  = src=RESCUED_SWIMMER
+  bridge  = src=RESCUE_REGION
+ 
+  bridge  = src=RETURN_ALL, alias=RETURN
+  bridge  = src=RETURN_$V,  alias=RETURN
+}
+
+//--------------------------------------------------
+// pLogger config block
+
+ProcessConfig = pLogger
+{
+  AppTick       = 10
+  CommsTick     = 10
+  
+  File          = XLOG_SHORESIDE
+  PATH          = ./
+  AsyncLog      = true
+  FileTimeStamp = true
+
+	Log = MOB_ALERT @ 0 nosync
+	
+  // Log it all!!!!!
+  WildCardLogging = true 
+}
+
+
+//--------------------------------------------------------
+// uFldCollisionDetect config block
+
+ProcessConfig = uFldCollisionDetect
+{
+  AppTick    = 4
+  CommsTick  = 4
+
+  collision_range = 4
+  near_miss_range = 8
+  encounter_range = 20
+
+  encounter_flag = ENCOUNTER = $CPA                             
+  collision_flag = COLLISION = $CPA                             
+  near_miss_flag = NEAR_MISS = vname1=$V1,vname2=$V2,cpa=$CPA   
+
+  //delay_time_to_clear = 100   // seconds
+  //deploy_delay_time   = 5     // seconds
+  pulse_render = true
+  pulse_range  = 20
+  pulse_duration = 10
+
+	encounter_rings = false
+	
+  //publish_immediately = true
+}
+
+
+//--------------------------------------------------------
+// pMarineViewer config block
+
+ProcessConfig = pMarineViewer
+{
+  AppTick    = 4
+  CommsTick  = 4
+
+  //tiff_file            = forrest19.tif
+  tiff_file            = MIT_SP.tif
+  set_pan_x            = 46
+  set_pan_y            = -260
+  zoom                 = 1.5
+  vehicles_shape_scale = 1.0
+  vehicles_name_mode   = names+shortmode
+
+	beat_flag = HEARTBEAT=true
+	
+	procs_font_size = medium
+	nodes_font_size = medium
+	infocast_font_size = medium
+	
+  polygon_viewable_all    = true
+  polygon_viewable_labels = false
+  seglist_viewable_all    = true
+  seglist_viewable_labels = false
+  point_viewable_all    = true
+  point_viewable_labels = true
+
+  left_context[reg_swimmer]   = XSWIMMER_ALERT = type=reg,x=$[XPOS],y=$[YPOS]
+  left_context[reg_swimmer]   = SURVEY_ALL=true
+  left_context[reg_swimmer]   = RETURN_ALL=false
+	
+	left_context[unreg_swimmer]   = XSWIMMER_ALERT = type=unreg,x=$[XPOS],y=$[YPOS]
+  left_context[unreg_swimmer]   = SURVEY_ALL=true
+  left_context[unreg_swimmer]   = RETURN_ALL=false
+	
+	right_context[rescue]  = XFOUND_SWIMMER = x=$[XPOS],y=$[YPOS]
+ 
+  appcast_viewable     = true
+  appcast_color_scheme = indigo
+
+  action = menu_key=abe # DEPLOY_ABE=true
+  action = menu_key=abe # MOOS_MANUAL_OVERIDE_ABE=false
+  action = menu_key=abe # RETURN_ABE=false
+
+  action = menu_key=ben # DEPLOY_BEN=true
+  action = menu_key=ben # MOOS_MANUAL_OVERIDE_BEN=false
+  action = menu_key=ben # RETURN_BEN=false
+
+	action = BLOCK_HEARTBEAT = true
+	action = BLOCK_HEARTBEAT = false
+	
+  comms_pulse_viewable_all = true
+  range_pulse_viewable_all = false
+  node_pulse_viewable_all  = false
+
+  vehicles_name_mode = names
+
+  stale_report_thresh = 2
+  stale_remove_thresh = 20000
+
+  button_one   = DEPLOY  # DEPLOY_ALL=true 
+  button_one   = DEPLOY  # MOOS_MANUAL_OVERIDE_ALL=false 
+  button_one   = RETURN_ALL=false # SURVEY_ALL=true
+  button_one   = STATION_KEEP_ALL=false 
+
+  button_two   = RETURN   # RETURN_ALL=true  # SURVEY_ALL=false
+  button_three = STATION  # STATION_KEEP_ALL=true # SURVEY_ALL=false
+  button_four = ALLSTOP  # DEPLOY_ALL=false
+
+  button_five  = SHOW-OBJ  # URM_SHOW_OBJECTS=true
+  button_six   = HIDE-OBJ  # URM_SHOW_OBJECTS=false
+
+  button_seven = VANTAGE1  # PMV_CENTER=zoom=1.5,x=46,y=-260
+  button_eight = VANTAGE2  # PMV_CENTER=zoom=3.27,x=-3,y=-390
+
+  button_nine  = TKOFF  # DO_TAKEOFF=true
+  button_ten   = TOWYP # FLY_WAYPOINT=true
+	
+	}
+

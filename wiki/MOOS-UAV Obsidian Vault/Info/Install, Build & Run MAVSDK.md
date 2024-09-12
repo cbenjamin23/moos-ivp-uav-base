@@ -18,6 +18,8 @@ Clone from fork of official MAVSDK
 
 
 **CHECKOUT** the version `v2.12.6-Ardupilot`
+**NOTE:** MAVSDK only supports Mavlink 2 which is backwards compatible with Mavlink 1
+
 
 #### Install with moos
 
@@ -28,13 +30,13 @@ Read instructions [[MAIN System architecture]]
 [Official guide](https://mavsdk.mavlink.io/main/en/cpp/guide/build.html)
 
 - *Configuration step*
-		- In folder ~/MAVSDK/ run:
+		- In folder `~/MAVSDK/`run:
 	
-					cmake -DCMAKE_BUILD_TYPE=Debug -Bbuild/default -H. -DBUILD_SHARED_LIBS=ON 
+		cmake -DCMAKE_BUILD_TYPE=Debug -Bbuild/default -H. -DBUILD_SHARED_LIBS=ON 
 	
 	- If not restricted by memory/compute consider including:
-				
-					-DASAN=ON -DUBSAN=ON -DLSAN=ON
+	
+			-DASAN=ON -DUBSAN=ON -DLSAN=ON
 	- *Build step*
 	
 			cmake --build build/default -j16

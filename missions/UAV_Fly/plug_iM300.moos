@@ -1,0 +1,37 @@
+//--------------------------------------------------------
+// iM300 Config Block
+	
+ProcessConfig = iM300
+{
+  AppTick    = 10
+  CommsTick  = 10
+
+	comms_type = client
+  port       = 29500
+	ip_addr    = $(FSEAT_IP)
+
+	stale_thresh = 15
+	
+	max_rudder = 50
+	max_thrust = 100
+	drive_mode = normal
+	ignore_msg = $GPGLL, $GPGSV, $GPVTG, $GPZDA, $CPALT, $CPIMU
+	ignore_msg = $CPNVR, $GPGST, $CPRCM, $GNGLL, $GNGSV, $GNVTG,
+	ignore_msg = $GNZDA, $GLGSV, $GNGSA
+	ignore_checksum_errors = true
+
+	max_appcast_events = 8
+  // max_appcast_run_warnings = 10
+
+	// heading_source options are gps, imu, or auto where auto uses imu
+	// when available and not timed out as defined in the stale_thresh
+	// parameter
+  heading_source = auto    
+
+	// threshold in seconds, default is 1.5
+	stale_thresh = 5
+	
+	nav_prefix     = NAV
+	gps_prefix     = GPS
+	compass_prefix = COMPASS
+}

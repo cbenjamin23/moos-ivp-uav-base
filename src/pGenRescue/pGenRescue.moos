@@ -1,0 +1,49 @@
+//------------------------------------------------
+// pGenPath config block
+
+ProcessConfig = pGenPath
+{
+   AppTick   = 4
+   CommsTick = 4
+
+   visit_radius = 3   
+   pav90 = true
+
+   path_algorithm = adversary
+   look_ahead_steps = 2
+   adversary = ben // Hardcoded in the config file
+   path_update_period = 2
+   vname = $(VNAME)
+   scout_name = $(TMATE)
+
+
+   position_update_period = 6
+   still_radius = 3
+
+   
+}
+
+
+//------------------------------------------
+// pGenRescue config block
+
+ProcessConfig = pGenRescue
+{
+   visit_radius = 3
+   pav90 = true
+#ifdef VNAME abe
+   path_algorithm = look_ahead // look_ahead, greedy, adversary
+   look_ahead_steps = 2
+   adversary = ben
+   vname = abe
+   scout_name = cal
+
+#elseifdef VNAME ben
+  path_algorithm = greedy // look_ahead, greedy, adversary 
+   adversary = abe
+   vname = ben
+   scout_name = deb
+#else
+	// foo = maybe
+#endif
+}

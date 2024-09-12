@@ -2,8 +2,9 @@
 
 # ArduPilot
 
+The spesific parameter list used for ArduPilot Plane can be found in [here](https://ardupilot.org/plane/docs/parameters.html)  (web) of [here](https://autotest.ardupilot.org/Parameters/ArduPlane/apm.pdef.xml) (xml).
 
-
+For All parameter across all vehicles look [here](https://ardupilot.org/dev/docs/mavlink-get-set-params.html) which also informs about the Mavlink Interface with ArduPilot
 
 
 # MavProxy

@@ -85,32 +85,34 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "Info/MAIN System architecture.md",
+                "file": "Info/Install, Build & Run MAVSDK.md",
                 "mode": "source",
                 "backlinks": false,
                 "source": false
               }
-            }
+            },
+            "group": "7d0f20deae95a35f"
           }
         ],
         "currentTab": 6
       },
       {
-        "id": "04c7d625a342b3ae",
+        "id": "2d3d7cc85a9fbf6d",
         "type": "tabs",
         "children": [
           {
-            "id": "558c31f584aca8ce",
+            "id": "9c331c197feb6ec4",
             "type": "leaf",
             "state": {
               "type": "markdown",
               "state": {
-                "file": "Info/MAIN System architecture.md",
+                "file": "Info/Install, Build & Run MAVSDK.md",
                 "mode": "preview",
                 "backlinks": false,
                 "source": false
               }
-            }
+            },
+            "group": "7d0f20deae95a35f"
           }
         ]
       }
@@ -178,7 +180,7 @@
             "state": {
               "type": "backlink",
               "state": {
-                "file": "Info/MAIN System architecture.md",
+                "file": "Info/Install, Build & Run MAVSDK.md",
                 "collapseAll": false,
                 "extraContext": false,
                 "sortOrder": "alphabetical",
@@ -195,7 +197,7 @@
             "state": {
               "type": "outgoing-link",
               "state": {
-                "file": "Info/MAIN System architecture.md",
+                "file": "Info/Install, Build & Run MAVSDK.md",
                 "linksCollapsed": false,
                 "unlinkedCollapsed": true
               }
@@ -218,7 +220,7 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "Info/MAIN System architecture.md"
+                "file": "Info/Install, Build & Run MAVSDK.md"
               }
             }
           }
@@ -239,15 +241,15 @@
       "command-palette:Open command palette": false
     }
   },
-  "active": "558c31f584aca8ce",
+  "active": "da26bb1516200fb8",
   "lastOpenFiles": [
-    "Info/Install, Build & Run MAVSDK.md",
     "Info/MAIN System architecture.md",
+    "Info/ArduPilot & MavProx.md",
+    "Info/Install, Build & Run MAVSDK.md",
     "Troubleshooting.md",
     "Testing.md",
     "Sandbox writing.md",
     "Advantages of MOOS-IVP.md",
-    "Info/ArduPilot & MavProx.md",
     "Info/Mission Planner info.md",
     "Info/Skywalker X8.md",
     "QUESTIONS.md",

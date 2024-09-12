@@ -45,6 +45,9 @@ pAntler --MOOSTimeWarp=10 alpha.moos
 
 
 
+Add path to bin folder in moos-ivp-uav to bashrc
+
+
 ---
 
 

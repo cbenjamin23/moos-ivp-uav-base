@@ -1,0 +1,16 @@
+//------------------------------------------------
+// iM300Health config block
+
+ProcessConfig = iM300Health
+{
+   AppTick   = 4
+   CommsTick = 4
+   
+   StaleTime = 3.0         //  Time until messages are considered stale
+   MaxHeadingDelta = 5.0   //  Max Delta allowable between IMU and GPS
+
+   LowBattThresh  = 13.0
+   FullBattThresh = 14.4
+ 
+}
+
