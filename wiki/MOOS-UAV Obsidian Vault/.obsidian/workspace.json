@@ -244,8 +244,8 @@
   "active": "da26bb1516200fb8",
   "lastOpenFiles": [
     "Info/MAIN System architecture.md",
-    "Info/ArduPilot & MavProx.md",
     "Info/Install, Build & Run MAVSDK.md",
+    "Info/ArduPilot & MavProx.md",
     "Troubleshooting.md",
     "Testing.md",
     "Sandbox writing.md",

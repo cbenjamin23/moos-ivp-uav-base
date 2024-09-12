@@ -38,7 +38,7 @@ done
 mkdir -p build
 cd build
 
-cmake -DCMAKE_BUILD_TYPE=${BUILD_TYPE} ../ || exit 1
+cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=1 -DCMAKE_BUILD_TYPE=${BUILD_TYPE} ../ || exit 1
 
 make ${CMD_LINE_ARGS}
 cd ${INVOCATION_ABS_DIR}

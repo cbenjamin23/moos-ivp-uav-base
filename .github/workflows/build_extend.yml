@@ -9,6 +9,14 @@ jobs:
       - uses: actions/checkout@v2
         with:
           path: 'moos-ivp-extend'
+      - name: Init MAVSDK submodule
+        working-directory: moos-ivp-extend
+        run: |
+          git submodule update --init --recursive
+          cd ~/moos-ivp-uav/MAVSDK;
+          cmake -DCMAKE_BUILD_TYPE=Debug -Bbuild/default -H. -DBUILD_SHARED_LIBS=ON -DSUPERBUILD=ON; 
+          sudo cmake --build build/default --target install;
+
       - run: svn co https://oceanai.mit.edu/svn/moos-ivp-aro/trunk/ moos-ivp
       - name: Build MOOS-IvP
         working-directory: moos-ivp

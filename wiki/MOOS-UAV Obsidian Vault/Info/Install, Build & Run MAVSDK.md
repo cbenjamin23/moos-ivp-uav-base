@@ -32,8 +32,8 @@ Read instructions [[MAIN System architecture]]
 - *Configuration step*
 		- In folder `~/MAVSDK/`run:
 	
-		cmake -DCMAKE_BUILD_TYPE=Debug -Bbuild/default -H. -DBUILD_SHARED_LIBS=ON 
-	
+		cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=1 -DCMAKE_BUILD_TYPE=Debug -Bbuild/default -H. -DBUILD_SHARED_LIBS=ON 
+	The first flag `-DCMAKE_EXPORT_COMPILE_COMMANDS=1` is to generate a `compile_command.json` for IntelliSense Configuration in vscode 
 	- If not restricted by memory/compute consider including:
 	
 			-DASAN=ON -DUBSAN=ON -DLSAN=ON
@@ -49,12 +49,27 @@ Read instructions [[MAIN System architecture]]
 Summary: 
 ```
 cd <path-to>/MAVSDK;
-cmake -DCMAKE_BUILD_TYPE=Debug -Bbuild/default -H. -DBUILD_SHARED_LIBS=ON -DSUPERBUILD=ON;
+cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=1 -DCMAKE_BUILD_TYPE=Debug -Bbuild/default -H. -DBUILD_SHARED_LIBS=ON -DSUPERBUILD=ON;
 sudo cmake --build build/default --target install;
 cd -
 ```
 
 Flag info can be found in the official guide
+
+
+
+### Alias
+
+To build apps in moos and update the compile_commands from this repo and submodule MAVSKD for vscode to locate the apps.
+
+```
+alias bldm='bld;
+			mavsdk_build_install;
+			cd ~/moos-ivp-uav/scripts;
+			./merge_compile_commands.sh;
+			cd -'
+```
+
 
 ### Building an example/app
 
