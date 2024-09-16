@@ -20,6 +20,10 @@ MOOS_PORT="9000"
 PSHARE_PORT="9200"
 SWIM_FILE="mit_00.txt"
 
+
+LAT_ORIGIN=42.358456
+LON_ORIGIN=-71.087589
+
 #--------------------------------------------------------------
 #  Part 2: Check for and handle command-line arguments
 #--------------------------------------------------------------
@@ -130,6 +134,10 @@ if [ "${VERBOSE}" = "yes" ]; then
     echo "LAUNCH_GUI =    [${LAUNCH_GUI}]   "
     echo "----------------------------------"
     echo "SWIM_FILE =     [${SWIM_FILE}]    "
+    echo "----------------------------------"
+    echo "LatOrigin =     [${LAT_ORIGIN}]   "
+    echo "LonOrogin =     [${LON_ORIGIN}]   "
+    echo "----------------------------------"
     echo -n "Hit any key to continue launch "
     read ANSWER
 fi
@@ -145,7 +153,8 @@ fi
 nsplug meta_shoreside.moos targ_shoreside.moos $NSFLAGS WARP=$TIME_WARP \
        IP_ADDR=$IP_ADDR       PSHARE_PORT=$PSHARE_PORT     \
        MOOS_PORT=$MOOS_PORT   LAUNCH_GUI=$LAUNCH_GUI       \
-       SWIM_FILE=$SWIM_FILE
+       SWIM_FILE=$SWIM_FILE                                \
+       LatOrigin=$LAT_ORIGIN   LonOrigin=$LON_ORIGIN
 
 if [ ${JUST_MAKE} = "yes" ]; then
     echo "$ME: Files assembled; nothing launched; exiting per request."

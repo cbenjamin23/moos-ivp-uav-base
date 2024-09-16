@@ -1,9 +1,9 @@
 #!/bin/bash 
 #-------------------------------------------------------------- 
 #   Script: launch_vehicle.sh    
-#  Mission: rescue_baseline
-#   Author: Michael Benjamin   
-#   LastEd: April 2022
+#  Mission: UAV_Fly
+#   Author: Steve Carter Feujo Nomeny   
+#   LastEd: 2024
 #--------------------------------------------------------------
 #  Part 1: Declare global var defaults
 #-------------------------------------------------------------- 
@@ -13,6 +13,7 @@ JUST_MAKE="no"
 VERBOSE="no"
 AUTO_LAUNCHED="no"
 CMD_ARGS=""
+
 
 IP_ADDR="localhost"
 MOOS_PORT="9001"
@@ -29,6 +30,16 @@ SPEED="1.2"
 RETURN_POS="5,0"
 MAXSPD="2"
 
+
+LAT_ORIGIN=42.358456
+LON_ORIGIN=-71.087589
+# Ardupilot SITL
+
+ARDUPILOT_IP=127.0.0.1
+ARDUPILOT_PORT=14555
+
+
+
 #-------------------------------------------------------
 #  Part 2: Check for and handle command-line arguments
 #-------------------------------------------------------
@@ -44,9 +55,9 @@ for ARGI; do
 	echo "    Just make targ files, but do not launch      "
 	echo "  --verbose, -v                                  " 
 	echo "    Verbose output, confirm before launching     "
-        echo "  --auto, -a                                     "
-        echo "     Auto-launched by a script.                  "
-        echo "     Will not launch uMAC as the final step.     "
+    echo "  --auto, -a                                     "
+    echo "     Auto-launched by a script.                  "
+    echo "     Will not launch uMAC as the final step.     "
 	echo "                                                 "
 	echo "  --ip=<localhost>                               " 
 	echo "    Force pHostInfo to use this IP Address       "
@@ -64,6 +75,11 @@ for ARGI; do
 	echo "  --color=<yellow>                               " 
 	echo "    Color of the vehicle being launched          " 
 	echo "                                                 "
+    echo "  --ardupilot_ip=<127.0.0.1>                     "
+    echo "    IP of the ArduPilot autopilot                " 
+    echo "  --ardupilot_port=<14550>                       "
+    echo "    Port of the ArduPilot autopilot              "
+    echo "                                                 "
 	echo "  --start=<X,Y>     (default is 0,0)             " 
 	echo "    Start position chosen by script launching    "
 	echo "    this script (to ensure separation)           "
@@ -109,25 +125,28 @@ for ARGI; do
         SPEED="${ARGI#--speed=*}"
     elif [ "${ARGI:0:9}" = "--maxspd=" ]; then
         MAXSPD="${ARGI#--maxspd=*}"
-
+    elif [ "${ARGI:0:15}" = "--ardupilot_ip=" ]; then
+        ARDUPILOT_IP="${ARGI#--ardupilot_ip=*}"
+    elif [ "${ARGI:0:16}" = "--ardupilot_port=" ]; then
+        ARDUPILOT_PORT="${ARGI#--ardupilot_port=*}"
     else 
 	echo "$ME: Bad Arg:[$ARGI]. Exit Code 1."
 	exit 1
     fi
 done
 
-#--------------------------------------------------------------
-#  Part 3: If Heron hardware, set key info based on IP address
-#--------------------------------------------------------------
-if [ "${XMODE}" = "M300" ]; then
-    IP_ADDR=`get_heron_info.sh --ip`
-    FSEAT_IP=`get_heron_info.sh --fseat`
-    VNAME=`get_heron_info.sh --name`
-    if [ $? != 0 ]; then
-	echo "$ME: Problem getting Heron Info. Exit Code 2"
-	exit 2
-    fi
-fi
+# #--------------------------------------------------------------
+# #  Part 3: If Heron hardware, set key info based on IP address
+# #--------------------------------------------------------------
+# if [ "${XMODE}" = "M300" ]; then
+#     IP_ADDR=`get_heron_info.sh --ip`
+#     FSEAT_IP=`get_heron_info.sh --fseat`
+#     VNAME=`get_heron_info.sh --name`
+#     if [ $? != 0 ]; then
+# 	echo "$ME: Problem getting Heron Info. Exit Code 2"
+# 	exit 2
+#     fi
+# fi
      
 #---------------------------------------------------------------
 #  Part 4: If verbose, show vars and confirm before launching
@@ -153,6 +172,12 @@ if [ "${VERBOSE}" = "yes" ]; then
     echo "START_POS =     [${START_POS}]    "
     echo "SPEED =         [${SPEED}]        "
     echo "MAXSPD =        [${MAXSPD}]       "
+    echo "----------------------------------"
+    echo "LatOrigin =     [${LAT_ORIGIN}]    "
+    echo "LonOrogin =     [${LON_ORIGIN}]    "
+    echo "----------------------------------"
+    echo "ARDUPILOT_IP =  [${ARDUPILOT_IP}]  "
+    echo "ARDUPILOT_PORT =[${ARDUPILOT_PORT}]"
     echo -n "Hit any key to continue with launching"
     read ANSWER
 fi
@@ -172,10 +197,13 @@ nsplug meta_vehicle.moos targ_$VNAME.moos $NSFLAGS WARP=$TIME_WARP \
        SHORE_PSHARE=$SHORE_PSHARE   MOOS_PORT=$MOOS_PORT      \
        FSEAT_IP=$FSEAT_IP           XMODE=$XMODE              \
        MAXSPD=$MAXSPD               START_POS=$START_POS      \
-       COLOR=$COLOR
-       
+       COLOR=$COLOR                                           \
+       LatOrigin=$LAT_ORIGIN        LonOrigin=$LON_ORIGIN     \
+       AP_IP=$ARDUPILOT_IP          AP_PORT=$ARDUPILOT_PORT   # own defined variables
+
 nsplug meta_vehicle.bhv targ_$VNAME.bhv $NSFLAGS VNAME=$VNAME \
-       SPEED=$SPEED                 COLOR=$COLOR
+       SPEED=$SPEED                 COLOR=$COLOR              \
+       LatOrigin=$LAT_ORIGIN         LonOrogin=$LON_ORIGIN         # own defined variables
 
 if [ ${JUST_MAKE} = "yes" ]; then
     echo "$ME: Files assembled; nothing launched; exiting per request."

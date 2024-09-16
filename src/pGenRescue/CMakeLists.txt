@@ -9,9 +9,6 @@ SET(SRC
   main.cpp
 )
 
-# Finds MAVSDK when installed system wide.
-find_package(MAVSDK REQUIRED)
-
 
 ADD_EXECUTABLE(pGenRescue ${SRC})
 

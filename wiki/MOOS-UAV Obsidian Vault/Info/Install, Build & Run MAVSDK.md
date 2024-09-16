@@ -63,7 +63,8 @@ Flag info can be found in the official guide
 To build apps in moos and update the compile_commands from this repo and submodule MAVSKD for vscode to locate the apps.
 
 ```
-alias bldm='bld;
+alias bldm='sudo .;
+			bld;
 			mavsdk_build_install;
 			cd ~/moos-ivp-uav/scripts;
 			./merge_compile_commands.sh;

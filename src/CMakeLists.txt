@@ -14,6 +14,10 @@ INCLUDE_DIRECTORIES(${LOCAL_LIBRARY_DIRS})
 
 
 
+# Finds MAVSDK when installed system wide.
+find_package(MAVSDK REQUIRED)
+
+
 
 #============================================================================
 # List the subdirectories to build...
@@ -25,6 +29,7 @@ ADD_SUBDIRECTORY(pExampleApp)
 # ADD_SUBDIRECTORY(pPointAssign)
 # ADD_SUBDIRECTORY(pGenPath)
 ADD_SUBDIRECTORY(pGenRescue)
+ADD_SUBDIRECTORY(pArduBridge)
 # ADD_SUBDIRECTORY(lib_bhv_scout)
 
 ##############################################################################
