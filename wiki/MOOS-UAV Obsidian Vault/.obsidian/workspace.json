@@ -85,34 +85,34 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "Info/Install, Build & Run MAVSDK.md",
+                "file": "Info/MAIN System architecture.md",
                 "mode": "source",
                 "backlinks": false,
                 "source": false
               }
             },
-            "group": "7d0f20deae95a35f"
+            "group": "66fa2c9133dcf0ec"
           }
         ],
         "currentTab": 6
       },
       {
-        "id": "2d3d7cc85a9fbf6d",
+        "id": "821e164b3d11c07b",
         "type": "tabs",
         "children": [
           {
-            "id": "9c331c197feb6ec4",
+            "id": "7000d0c8a156708a",
             "type": "leaf",
             "state": {
               "type": "markdown",
               "state": {
-                "file": "Info/Install, Build & Run MAVSDK.md",
+                "file": "Info/MAIN System architecture.md",
                 "mode": "preview",
                 "backlinks": false,
                 "source": false
               }
             },
-            "group": "7d0f20deae95a35f"
+            "group": "66fa2c9133dcf0ec"
           }
         ]
       }
@@ -160,8 +160,7 @@
               "state": {}
             }
           }
-        ],
-        "currentTab": 1
+        ]
       }
     ],
     "direction": "horizontal",
@@ -181,7 +180,7 @@
             "state": {
               "type": "backlink",
               "state": {
-                "file": "Info/Install, Build & Run MAVSDK.md",
+                "file": "Info/MAIN System architecture.md",
                 "collapseAll": false,
                 "extraContext": false,
                 "sortOrder": "alphabetical",
@@ -198,7 +197,7 @@
             "state": {
               "type": "outgoing-link",
               "state": {
-                "file": "Info/Install, Build & Run MAVSDK.md",
+                "file": "Info/MAIN System architecture.md",
                 "linksCollapsed": false,
                 "unlinkedCollapsed": true
               }
@@ -221,7 +220,7 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "Info/Install, Build & Run MAVSDK.md"
+                "file": "Info/MAIN System architecture.md"
               }
             }
           }
@@ -242,10 +241,11 @@
       "command-palette:Open command palette": false
     }
   },
-  "active": "66dfd7105c2fc55c",
+  "active": "da26bb1516200fb8",
   "lastOpenFiles": [
-    "Info/MAIN System architecture.md",
     "Info/Install, Build & Run MAVSDK.md",
+    "Info/Odriod.md",
+    "Info/MAIN System architecture.md",
     "Info/ArduPilot & MavProx.md",
     "Troubleshooting.md",
     "Testing.md",

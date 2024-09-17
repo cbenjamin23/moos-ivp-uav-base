@@ -1,0 +1,155 @@
+
+## Config aliases
+
+# enable color support of ls and also add handy aliases
+if [ -x /usr/bin/dircolors ]; then
+    test -r ~/.dircolors && eval "$(dircolors -b ~/.dircolors)" || eval "$(dircolors -b)"
+    alias ls='ls --color=auto'
+    #alias dir='dir --color=auto'
+    #alias vdir='vdir --color=auto'
+
+    alias grep='grep --color=auto'
+    alias fgrep='fgrep --color=auto'
+    alias egrep='egrep --color=auto'
+fi
+
+# colored GCC warnings and errors
+#export GCC_COLORS='error=01;31:warning=01;35:note=01;36:caret=01;32:locus=01:quote=01'
+
+# some more ls aliases
+alias ll='ls -alF'
+alias la='ls -A'
+alias l='ls -CF'
+
+
+# Add an "alert" alias for long running commands.  Use like so:
+#   sleep 10; alert
+alias alert='notify-send --urgency=low -i "$([ $? = 0 ] && echo terminal || echo error)" "$(history|tail -n1|sed -e '\''s/^\s*[0-9]\+\s*//;s/[;&|]\s*alert$//'\'')"'
+
+
+
+
+
+
+##############################################
+#                                            #
+#          CUSTOM BASH ALIASES               #
+#                                            #
+##############################################
+
+
+#alias code= 'code --disable-gpu .'
+
+alias vnav_src='cd ~/vnav_ws/src/'
+
+
+
+
+## Convinience aliases
+alias resetNetworkManager='sudo iptables -P INPUT ACCEPT; sudo iptables -F INPUT ; sudo iptables -P OUTPUT ACCEPT; sudo iptables -F OUTPUT; sudo systemctl restart NetworkManager'
+
+alias codebashrc='code ~/.bashrc'
+alias codealias='code ~/.bash_aliases'
+
+alias sourcebashrc='source ~/.bashrc'
+
+
+
+###################### ArduPilot - START #########################################
+
+## update Mavproxy
+alias update_mavproxy="pip3 install --upgrade pymavlink MAVProxy --user"
+
+
+###################### ArduPilot - END #########################################
+
+
+
+
+###################### MOOS - START #########################################
+
+
+
+#-------------------------------------------------------
+# Misc Aliases
+#-------------------------------------------------------
+alias pingoe='ping oceanai.mit.edu'
+
+
+#-------------------------------------------------------
+# Suggestions for useful aliases
+#-------------------------------------------------------
+alias rm='rm -i'
+alias cp='cp -i'
+alias mv='mv -i'
+alias ls='ls --color=auto'
+alias ll='ls -hlG'
+alias cdd='cd ..'
+alias cddd='cd ../..'
+alias emacs='emacs --no-splash '
+alias nem='emacs -nw --no-splash '
+
+alias cll='./clean.sh'
+alias lll='ktm; cll; ./launch.sh'
+
+
+#-------------------------------------------------------
+# Some suggestions for MOOS-IvP aliases
+#-------------------------------------------------------
+alias cdm='cd ~/moos-ivp'
+alias cdmm='cdm; cd ivp/missions'
+alias cdmma='cdmm; cd s1_alpha'
+alias cdmis='cdm; cd ivp/src'
+
+alias cduav='cd ~/moos-ivp-uav/'
+
+# for moos-ivp-uav
+alias cdsrc='cd ~/moos-ivp-uav/src'
+alias cdmi='cd ~/moos-ivp-uav/missions'
+alias bld='cd ~/moos-ivp-uav; ./build.sh; cd -'
+
+
+alias build_all='cd ~/moos-ivp-2680; svn up; ./build.sh; cd -; 
+      cd ~/moos-ivp-scnomeny; ./build.sh; cd -; 
+      cd ~/moos-ivp; svn up; ./build.sh; cd -'
+
+
+
+
+
+# The Odroid computer
+
+alias pingo='ping 10.0.60.110'
+alias ssho='ssh odroid@10.0.60.110'
+alias ip_fw_o='sudo ~/usr/local/bin/setup_nat_ip_forwarding.sh'
+
+###################### MOOS - END #########################################
+
+
+
+
+
+
+###################### MAVSDK - START #########################################
+
+## update Mavproxy
+alias mavsdk_configure_build_install="cd ~/moos-ivp-uav/MAVSDK;
+                                        cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=1 -DCMAKE_BUILD_TYPE=Debug -Bbuild/default -H. -DBUILD_SHARED_LIBS=ON -DSUPERBUILD=ON; 
+                                        sudo cmake --build build/default --target install;
+                                        cd -"
+alias mavsdk_build_install="cd ~/moos-ivp-uav/MAVSDK;
+                            sudo cmake --build build/default --target install;
+                            cd -"
+alias run_mavapp="cmake --build build -j8; MAVSDK_CALLBACK_DEBUGGING=1 MAVSDK_COMMAND_DEBUGGING=1 MAVSDK_PARAMETER_DEBUGGING=1 ./build/fly_mission_ex udp://:14550"
+alias run_mavapp_log="cmake --build build -j8; MAVSDK_CALLBACK_DEBUGGING=1 MAVSDK_COMMAND_DEBUGGING=1 MAVSDK_PARAMETER_DEBUGGING=1 ./build/fly_mission_ex udp://:14550 > output.log 2>&1"
+
+
+alias bldm='sudo .;
+            bld; 
+            mavsdk_build_install;
+            cd ~/moos-ivp-uav/scripts;
+            ./merge_compile_commands.sh;
+            cd -'
+
+###################### MAVSDK - END #########################################
+

@@ -1,5 +1,8 @@
 #!/bin/bash
 
+
+cd ../missions/simulation
+
 # Start Gazebo in a new terminator window
 # terminator --new-tab -e "bash -l -c 'source ~/.profile; source ~/.bashrc; sleep 2;echo \$BASH_SOURCE; env; gz sim -v4 -r skywalker_x8_runway.sdf; exec bash'" &
 nohup gz sim -v4 -r skywalker_x8_runway.sdf &> /dev/null &
