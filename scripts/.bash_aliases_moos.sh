@@ -28,9 +28,6 @@ alias alert='notify-send --urgency=low -i "$([ $? = 0 ] && echo terminal || echo
 
 
 
-
-
-
 ##############################################
 #                                            #
 #          CUSTOM BASH ALIASES               #
@@ -38,15 +35,7 @@ alias alert='notify-send --urgency=low -i "$([ $? = 0 ] && echo terminal || echo
 ##############################################
 
 
-#alias code= 'code --disable-gpu .'
-
-alias vnav_src='cd ~/vnav_ws/src/'
-
-
-
-
 ## Convinience aliases
-alias resetNetworkManager='sudo iptables -P INPUT ACCEPT; sudo iptables -F INPUT ; sudo iptables -P OUTPUT ACCEPT; sudo iptables -F OUTPUT; sudo systemctl restart NetworkManager'
 
 alias codebashrc='code ~/.bashrc'
 alias codealias='code ~/.bash_aliases'
@@ -54,20 +43,7 @@ alias codealias='code ~/.bash_aliases'
 alias sourcebashrc='source ~/.bashrc'
 
 
-
-###################### ArduPilot - START #########################################
-
-## update Mavproxy
-alias update_mavproxy="pip3 install --upgrade pymavlink MAVProxy --user"
-
-
-###################### ArduPilot - END #########################################
-
-
-
-
 ###################### MOOS - START #########################################
-
 
 
 #-------------------------------------------------------
@@ -109,16 +85,11 @@ alias cdmi='cd ~/moos-ivp-uav/missions'
 alias bld='cd ~/moos-ivp-uav; ./build.sh; cd -'
 
 
-alias build_all='cd ~/moos-ivp-2680; svn up; ./build.sh; cd -; 
-      cd ~/moos-ivp-scnomeny; ./build.sh; cd -; 
-      cd ~/moos-ivp; svn up; ./build.sh; cd -'
-
-
-
+alias build_all='cd ~/moos-ivp; svn up; ./build.sh -m; cd -
+                 cd ~/moos-ivp-scnomeny; ./build.sh; cd -'; 
 
 
 # The Odroid computer
-
 alias pingo='ping 10.0.60.110'
 alias ssho='ssh odroid@10.0.60.110'
 alias ip_fw_o='sudo ~/usr/local/bin/setup_nat_ip_forwarding.sh'
@@ -132,7 +103,7 @@ alias ip_fw_o='sudo ~/usr/local/bin/setup_nat_ip_forwarding.sh'
 
 ###################### MAVSDK - START #########################################
 
-## update Mavproxy
+
 alias mavsdk_configure_build_install="cd ~/moos-ivp-uav/MAVSDK;
                                         cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=1 -DCMAKE_BUILD_TYPE=Debug -Bbuild/default -H. -DBUILD_SHARED_LIBS=ON -DSUPERBUILD=ON; 
                                         sudo cmake --build build/default --target install;
@@ -140,9 +111,6 @@ alias mavsdk_configure_build_install="cd ~/moos-ivp-uav/MAVSDK;
 alias mavsdk_build_install="cd ~/moos-ivp-uav/MAVSDK;
                             sudo cmake --build build/default --target install;
                             cd -"
-alias run_mavapp="cmake --build build -j8; MAVSDK_CALLBACK_DEBUGGING=1 MAVSDK_COMMAND_DEBUGGING=1 MAVSDK_PARAMETER_DEBUGGING=1 ./build/fly_mission_ex udp://:14550"
-alias run_mavapp_log="cmake --build build -j8; MAVSDK_CALLBACK_DEBUGGING=1 MAVSDK_COMMAND_DEBUGGING=1 MAVSDK_PARAMETER_DEBUGGING=1 ./build/fly_mission_ex udp://:14550 > output.log 2>&1"
-
 
 alias bldm='sudo .;
             bld; 
