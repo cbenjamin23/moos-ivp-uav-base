@@ -85,7 +85,7 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "Helpful definitions.md",
+                "file": "Troubleshooting.md",
                 "mode": "source",
                 "backlinks": false,
                 "source": false
@@ -106,7 +106,7 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "Helpful definitions.md",
+                "file": "Troubleshooting.md",
                 "mode": "preview",
                 "backlinks": false,
                 "source": false
@@ -180,7 +180,7 @@
             "state": {
               "type": "backlink",
               "state": {
-                "file": "Helpful definitions.md",
+                "file": "Troubleshooting.md",
                 "collapseAll": false,
                 "extraContext": false,
                 "sortOrder": "alphabetical",
@@ -197,7 +197,7 @@
             "state": {
               "type": "outgoing-link",
               "state": {
-                "file": "Helpful definitions.md",
+                "file": "Troubleshooting.md",
                 "linksCollapsed": false,
                 "unlinkedCollapsed": true
               }
@@ -220,7 +220,7 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "Helpful definitions.md"
+                "file": "Troubleshooting.md"
               }
             }
           }
@@ -243,13 +243,13 @@
   },
   "active": "da26bb1516200fb8",
   "lastOpenFiles": [
+    "Helpful definitions.md",
     "Info/Install, Build & Run MAVSDK.md",
     "Info/MAIN System architecture.md",
     "Info/Odriod.md",
     "Info/ArduPilot & MavProx.md",
     "Troubleshooting.md",
     "Testing.md",
-    "Helpful definitions.md",
     "Advantages of MOOS-IVP.md",
     "Info/Mission Planner info.md",
     "Info/Skywalker X8.md",

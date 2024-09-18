@@ -1,9 +1,9 @@
-/****************************************************************/
-/*   NAME: Steve Carter Feujo Nomeny                                             */
-/*   ORGN: MIT, Cambridge MA                                    */
-/*   FILE: ArduBridge_Info.cpp                               */
-/*   DATE: December 29th, 1963                                  */
-/****************************************************************/
+/************************************************************/
+/*    NAME: Steve Carter Feujo Nomeny                       */
+/*    ORGN: NTNU, MIT                                       */
+/*    FILE: ArduBridge_Info.cpp                             */
+/*    DATE: September 9th, 2024                             */
+/************************************************************/
 
 #include <cstdlib>
 #include <iostream>

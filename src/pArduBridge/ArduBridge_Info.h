@@ -1,9 +1,9 @@
-/****************************************************************/
-/*   NAME: Steve Carter Feujo Nomeny                                             */
-/*   ORGN: MIT, Cambridge MA                                    */
-/*   FILE: ArduBridge_Info.h                                      */
-/*   DATE: Dececmber 29th, 1963                                 */
-/****************************************************************/
+/************************************************************/
+/*    NAME: Steve Carter Feujo Nomeny                       */
+/*    ORGN: NTNU, MIT                                       */
+/*    FILE: ArduBridge_Info.h                               */
+/*    DATE: September 9th, 2024                             */
+/************************************************************/
 
 #ifndef ArduBridge_INFO_HEADER
 #define ArduBridge_INFO_HEADER
