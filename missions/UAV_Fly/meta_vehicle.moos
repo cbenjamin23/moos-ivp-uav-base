@@ -66,6 +66,8 @@ ProcessConfig = pArduBridge
                                                                 
   ArduPilotURL = $(AP_IP):$(AP_PORT)
   
+  // start_pos = $(START_POS), 180
+  // prefix    = NAV
                                                                 
 }
 
