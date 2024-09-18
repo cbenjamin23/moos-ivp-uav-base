@@ -18,14 +18,10 @@
 #include <mavsdk/plugins/mission_raw/mission_raw.h>
 #include <mavsdk/plugins/mavlink_passthrough/mavlink_passthrough.h>
 #include <mavsdk/plugins/param/param.h>
-#include <chrono>
-#include <functional>
-#include <future>
 #include <iostream>
-#include <ratio>
-#include <thread>
 
-using namespace mavsdk;
+#include <cli_arg.h>
+
 
 
 class ArduBridge : public AppCastingMOOSApp
@@ -50,14 +46,14 @@ class ArduBridge : public AppCastingMOOSApp
 
   private: // Configuration variables
 
-    std::string m_ArduPilot_url;
+    mavsdk::CliArg  m_cli_arg;
 
   private: // State variables
     // For UAV
-    std::shared_ptr<Mavsdk>     m_mavsdk_ptr;
-    std::unique_ptr<MissionRaw> m_mission_raw_ptr;
-    std::unique_ptr<Action>     m_action_ptr;
-    std::unique_ptr<Telemetry>  m_telemetry_ptr;
+    std::shared_ptr<mavsdk::Mavsdk>     m_mavsdk_ptr;
+    std::unique_ptr<mavsdk::MissionRaw> m_mission_raw_ptr;
+    std::unique_ptr<mavsdk::Action>     m_action_ptr;
+    std::unique_ptr<mavsdk::Telemetry>  m_telemetry_ptr;
 
     bool  m_health_all_ok;
     bool  m_do_fly_to_waypoint;
@@ -67,7 +63,7 @@ class ArduBridge : public AppCastingMOOSApp
     double m_lon_deg_home;
 };
 
-MissionRaw::MissionItem make_mission_item_wp(
+mavsdk::MissionRaw::MissionItem make_mission_item_wp(
     float latitude_deg1e7,
     float longitude_deg1e7,
     int32_t altitude_m,

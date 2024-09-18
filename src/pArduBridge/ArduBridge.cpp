@@ -16,10 +16,11 @@
 // Constructor()
 
 ArduBridge::ArduBridge()
-: m_mavsdk_ptr{std::make_shared<Mavsdk>(Mavsdk::Configuration{Mavsdk::ComponentType::GroundStation})},
+: m_mavsdk_ptr{std::make_shared<mavsdk::Mavsdk>(mavsdk::Mavsdk::Configuration{mavsdk::Mavsdk::ComponentType::GroundStation})},
   m_do_fly_to_waypoint{false},
   m_do_takeoff{false},
-  m_health_all_ok{false}
+  m_health_all_ok{false},
+  m_cli_arg{}
 {
 
 
@@ -92,9 +93,9 @@ bool ArduBridge::Iterate()
   
   if(m_health_all_ok && !is_armed){
     
-    m_action_ptr->arm_async([&](Action::Result result) {
+    m_action_ptr->arm_async([&](mavsdk::Action::Result result) {
         MOOSTrace("Arming result: %d\n", result);
-        if (result == Action::Result::Success) {
+        if (result == mavsdk::Action::Result::Success) {
             is_armed = true;
         } else {
             std::stringstream ss;
@@ -110,7 +111,7 @@ bool ArduBridge::Iterate()
   if(m_do_takeoff && is_armed){
     // send the takeoff command
     auto start_result = m_mission_raw_ptr->start_mission();
-    if (start_result != MissionRaw::Result::Success) {
+    if (start_result != mavsdk::MissionRaw::Result::Success) {
         std::cout << "start failed" << std::endl;
         reportRunWarning("Failed to start mission");
     }else{
@@ -128,7 +129,7 @@ bool ArduBridge::Iterate()
                          564 + 60,
                          0.0);
 
-    if(res != Action::Result::Success){
+    if(res != mavsdk::Action::Result::Success){
         std::cerr << "goto_location failed: " << res << '\n';
         reportRunWarning("goto_location failed");
     }else{
@@ -158,6 +159,9 @@ bool ArduBridge::OnStartUp()
 {
   AppCastingMOOSApp::OnStartUp();
 
+
+  std::string ardupilot_url;
+
   STRING_LIST sParams;
   m_MissionReader.EnableVerbatimQuoting(false);
   if(!m_MissionReader.GetConfiguration(GetAppName(), sParams))
@@ -172,7 +176,7 @@ bool ArduBridge::OnStartUp()
 
     bool handled = false;
     if(param == "ardupiloturl" || param == "url") {
-      m_ArduPilot_url = "udp://" + value;
+      ardupilot_url = "udp://" + value;
       handled = true;
     }
     else if(param == "bar") {
@@ -184,12 +188,12 @@ bool ArduBridge::OnStartUp()
 
   }
 
-  if(m_ArduPilot_url.empty()){
-    reportConfigWarning("No ArduPilot URL specified - Need to restart with a valid URL");
+  if (!m_cli_arg.parse(ardupilot_url)) {
+      reportConfigWarning("Invalid ArduPilot URL specified - Need to restart with a valid URL");
   }
   else{
     // Connect to autopilot
-    ConnectToUAV(m_ArduPilot_url);
+    ConnectToUAV(m_cli_arg.get_path());
   }
 
   
@@ -218,6 +222,14 @@ bool ArduBridge::buildReport()
   m_msgs << "File: pArduBridge                                      " << std::endl;
   m_msgs << "============================================" << std::endl;
 
+
+  m_msgs << " -------- Configuration Settings -----------" << std::endl;
+  m_msgs << "ArduPilot URL: " << m_cli_arg.get_path() << std::endl;
+  
+  
+  m_msgs << "-------------------------------------------" << std::endl;
+  
+
   ACTable actab(2);
   actab << "Setting | Value ";
   actab.addHeaderLines();
@@ -239,11 +251,11 @@ bool ArduBridge::ConnectToUAV(std::string url)
   }
   std::cout << "Connecting to the URL: " << url << std::endl;
 
-  ConnectionResult connection_result = m_mavsdk_ptr->add_any_connection(url);
+  mavsdk::ConnectionResult connection_result = m_mavsdk_ptr->add_any_connection(url);
 
   std::cout << "Connection result: " << connection_result << std::endl;
 
-  if (connection_result != ConnectionResult::Success) {
+  if (connection_result != mavsdk::ConnectionResult::Success) {
     std::stringstream ss;
     ss << "Connection failed: " << connection_result << '\n';
     MOOSTrace(ss.str().c_str());
@@ -260,19 +272,19 @@ bool ArduBridge::ConnectToUAV(std::string url)
   }
 
   // m_mission_raw = MissionRaw{system.value()};
-  m_mission_raw_ptr = std::make_unique<MissionRaw>(system.value());
-  m_action_ptr = std::make_unique<Action>(system.value());
-  m_telemetry_ptr = std::make_unique<Telemetry>(system.value());
+  m_mission_raw_ptr = std::make_unique<mavsdk::MissionRaw>(system.value());
+  m_action_ptr = std::make_unique<mavsdk::Action>(system.value());
+  m_telemetry_ptr = std::make_unique<mavsdk::Telemetry>(system.value());
 
 
   auto clear_result = m_mission_raw_ptr->clear_mission();
-  if (clear_result != MissionRaw::Result::Success) {
+  if (clear_result != mavsdk::MissionRaw::Result::Success) {
       std::cout << "clear failed" << std::endl;
       reportRunWarning("Failed to clear mission");
   }
 
   auto download_result = m_mission_raw_ptr->download_mission();
-  if (download_result.first != MissionRaw::Result::Success) {
+  if (download_result.first != mavsdk::MissionRaw::Result::Success) {
       std::cout << "Download failed" << std::endl;
       reportRunWarning("Failed to download mission");
   }
@@ -280,16 +292,13 @@ bool ArduBridge::ConnectToUAV(std::string url)
   // first point in case of ardupilot is always home
   auto mission_plan = download_result.second;
 
-  MissionRaw::MissionItem home_point = mission_plan[0];
+  mavsdk::MissionRaw::MissionItem home_point = mission_plan[0];
 
   std::stringstream ss;
   ss << "Home point: " << home_point << std::endl;
   ss << "-----------------------------------------------\n";
   MOOSDebugWrite(ss.str());
   ss.clear();
-
-  std::cout << "Home point: " << home_point << std::endl;
-  std::cout << "-----------------------------------------------" << std::endl;
 
   mission_plan.clear();
 
@@ -299,7 +308,7 @@ bool ArduBridge::ConnectToUAV(std::string url)
   create_missionPlan(mission_plan,  m_lat_deg_home, m_lon_deg_home);
 
   auto upload_result = m_mission_raw_ptr->upload_mission(mission_plan);
-    if (upload_result != MissionRaw::Result::Success) {
+    if (upload_result != mavsdk::MissionRaw::Result::Success) {
         std::cout << "upload failed" << std::endl;
         std::cout << "upload result: " << upload_result << std::endl;
         std::stringstream ss;
@@ -320,7 +329,7 @@ bool ArduBridge::ConnectToUAV(std::string url)
 
 
 
-MissionRaw::MissionItem make_mission_item_wp(
+mavsdk::MissionRaw::MissionItem make_mission_item_wp(
     float latitude_deg1e7,
     float longitude_deg1e7,
     int32_t altitude_m,
@@ -332,7 +341,7 @@ MissionRaw::MissionItem make_mission_item_wp(
 {
     // WARNING this is done in consideration of CLEAN!! mission
     static uint32_t seq_num = 0;
-    MissionRaw::MissionItem new_item{};
+    mavsdk::MissionRaw::MissionItem new_item{};
     new_item.seq = seq_num;
     new_item.frame = static_cast<uint32_t>(frame);
     new_item.command = static_cast<uint32_t>(command);
