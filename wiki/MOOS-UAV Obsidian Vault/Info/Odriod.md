@@ -1,4 +1,7 @@
 
+
+## SSH to odroid
+
 On my computer, the ifconfig yields
 
 ```

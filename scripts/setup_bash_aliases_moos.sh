@@ -113,8 +113,8 @@ alias mavsdk_build_install="cd ~/moos-ivp-uav/MAVSDK;
                             cd -"
 
 alias bldm='sudo .;
-            bld; 
             mavsdk_build_install;
+            bld; 
             cd ~/moos-ivp-uav/scripts;
             ./merge_compile_commands.sh;
             cd -'

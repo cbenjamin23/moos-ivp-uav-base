@@ -12,6 +12,14 @@ Clone the [repo](https://github.com/Scarter668/moos-ivp-uav.git) (with ssh) and 
 	git submodule update --init --recursive
 
 
+### Setup bash aliases
+
+The file `moos-ivp-uav/scripts/setup_bash_aliases_moos.sh` defines and sets up some useful aliases. 
+Make the file executable
+
+	chmod +x ~/moos-ivp-uav/scripts/setup_bash_aliases_moos.sh`
+
+and source it from your bashrc. 
 
 ## Install MOOS-IVP trunk
 
@@ -43,10 +51,9 @@ cd ./ivp/missions/s1_alpha;
 pAntler --MOOSTimeWarp=10 alpha.moos
 ```
 
+Add path to bin folder in moos-ivp-uav to bashrc: `PATH=$PATH:~/moos-ivp-uav/bin`
 
-
-Add path to bin folder in moos-ivp-uav to bashrc
-
+**NOTE**: When building moos-ivp, remember to use the `-m` flag to only build nongui apps: `.build.sh -m`
 
 ---
 
