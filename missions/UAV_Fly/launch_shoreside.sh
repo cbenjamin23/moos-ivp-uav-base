@@ -21,8 +21,9 @@ PSHARE_PORT="9200"
 SWIM_FILE="mit_00.txt"
 
 
-LAT_ORIGIN=42.358456
-LON_ORIGIN=-71.087589
+
+LAT_ORIGIN=-35.3632621 #42.358456
+LON_ORIGIN=149.1652374 #-71.087589
 
 #--------------------------------------------------------------
 #  Part 2: Check for and handle command-line arguments

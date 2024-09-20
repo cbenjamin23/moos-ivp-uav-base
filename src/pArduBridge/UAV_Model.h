@@ -23,40 +23,66 @@
 
 #include <functional>
 
+#include "WarningSystem.h"
+
+#include "XYPoint.h"
+
 class UAV_Model
 {
 public:
-  UAV_Model();
-  virtual  ~UAV_Model() {}
+    UAV_Model(WarningSystem &ws);
+    virtual  ~UAV_Model() {}
 
-  void   resetTime(double time);
+    bool   connectToUAV(std::string url);
+    
+    bool   goToLocation(double latitude_deg, double longitude_deg, float absolute_altitude_m, float yaw_deg) const;
+    bool   startMission() const;
+    bool   sendArmCommandIfHealthyAndNotArmed();
 
-  bool   connectToUAV(std::string url, const std::function<void(const std::string&)>& callbackDebug = nullptr);
-  
-  bool   goToLocation(double latitude_deg, double longitude_deg, float absolute_altitude_m, float yaw_deg, const std::function<void(const std::string&)>& callbackDebug = nullptr) const;
-  bool   startMission(const std::function<void(const std::string&)>& callbackDebug = nullptr) const;
-  bool   sendArmCommandIfHealthyAndNotArmed(const std::function<void(const std::string&)>& callbackDebug = nullptr);
+    bool   gatherTelemetry();
 
-  // Setters
-  bool   setParam(std::string, double);
+    // Setters
+    void   setCallbackMOOSTrace(const std::function<void(const std::string&)>& callback) {callbackMOOSTrace = callback ;}
+    void   setCallbackReportRunW(const std::function<void(const std::string&)>& callback) {callbackReportRunW = callback ;}
+    void   setCallbackRetractRunW(const std::function<void(const std::string&)>& callback) {callbackRetractRunW = callback ;}
+    void   registerWarningSystem(WarningSystem &ws) {m_warning_system = ws;}
 
-  void   setRudder(double v)          {m_rudder = v;}
-  void   setRudder(double, double);
-  void   setThrust(double v)          {m_thrust = v;}
-  void   setElevator(double v)        {m_elevator = v;}
 
-  bool   initPosition(const std::string&);
+    // bool   setParam(std::string, double);
+    // bool   initPosition(const std::string&);
 
-  // Getters
-  double     getThrust() const       {return(m_thrust);}
-  NodeRecord getNodeRecord() const   {return(m_record);}
+    // Getters
+    XYPoint   getHomeCoord() const {return(m_home_coord);}
+    double    getLatitude() const {return(m_position.latitude_deg);}
+    double    getLongitude() const {return(m_position.longitude_deg);}
+    double    getSpeed() const {return( sqrt(m_velocity_ned.north_m_s*m_velocity_ned.north_m_s
+                                               + m_velocity_ned.east_m_s*m_velocity_ned.east_m_s)
+                                               + m_velocity_ned.down_m_s*m_velocity_ned.down_m_s );}
+
+    double    getSpeedXY() const {return( sqrt(m_velocity_ned.north_m_s*m_velocity_ned.north_m_s
+                                               + m_velocity_ned.east_m_s*m_velocity_ned.east_m_s) );}
+    double    getHeading() const {return(m_attitude_ned.yaw_deg);}
+    double    getAltitudeAGL() const {return(m_position.relative_altitude_m);} 
+    double    getAltitudeMSL() const {return(m_position.absolute_altitude_m);}
+    
+    double    getRoll() const {return(m_attitude_ned.roll_deg);}
+    double    getPitch() const {return(m_attitude_ned.pitch_deg);}
 
 
  protected:
 
+    WarningSystem& m_warning_system;
+    // Callbacks for debug messages
+    std::function<void(const std::string&)> callbackMOOSTrace;
+    std::function<void(const std::string&)> callbackReportRunW;
+    std::function<void(const std::string&)> callbackRetractRunW;    
+
+    void MOOSTraceFromCallback(const std::string& msg) const {if(callbackMOOSTrace) callbackMOOSTrace(msg);};
+    void reportRunWarningFromCallback(const std::string& msg) const {if(callbackReportRunW) callbackReportRunW(msg);};
+    void retractRunWarningFromCallback(const std::string& msg) const {if(callbackRetractRunW) callbackRetractRunW(msg);};
+
 
  protected:
-
     std::shared_ptr<mavsdk::Mavsdk>     m_mavsdk_ptr;
     std::unique_ptr<mavsdk::MissionRaw> m_mission_raw_ptr;
     std::unique_ptr<mavsdk::Action>     m_action_ptr;
@@ -65,17 +91,18 @@ public:
     bool       m_health_all_ok;
     bool       m_is_armed;
   
-  
-    NodeRecord m_record;       // NAV_X, NAV_Y           
-  
+    
+    // Telemetry
+    mavsdk::Telemetry::Position m_position;       // NAV_X, NAV_Y           
+    mavsdk::Telemetry::EulerAngle m_attitude_ned;
+    mavsdk::Telemetry::VelocityNed m_velocity_ned;
+    
+    mavsdk::Telemetry::Battery m_battery;
+
     double     m_rudder;
 
 
-    bool       m_paused;
-    double     m_thrust;
-    double     m_elevator;
-
-
+    XYPoint   m_home_coord;
 
 
 
@@ -92,7 +119,7 @@ mavsdk::MissionRaw::MissionItem make_mission_item_wp(
     float p2 = 0,
     float p3 = 0);
     
-bool create_missionPlan(std::vector<mavsdk::MissionRaw::MissionItem>& mission_plan, float lat_deg_home = -35.359833, float lon_deg_home = 149.164703);
+bool create_missionPlan(std::vector<mavsdk::MissionRaw::MissionItem>& mission_plan, double lat_deg_home = -35.359833, double lon_deg_home = 149.164703);
 
 
 

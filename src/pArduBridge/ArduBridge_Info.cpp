@@ -75,6 +75,7 @@ void showExampleConfigAndExit()
   blk("  CommsTick = 4                                                 ");
   blk("                                                                ");
   blk("  ArduPilotURL/ ardupiloturl | url   = 0.0.0.0:1455                   ");    
+  blk("  Prefix   = NAV                                               ");    
   blk("                                                                ");
   blk("}                                                               ");
   blk("                                                                ");

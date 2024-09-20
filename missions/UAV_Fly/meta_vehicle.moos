@@ -24,12 +24,11 @@ Processconfig = ANTLER
   Run = uFldMessageHandler @ NewConsole = false
   Run = uTimerScript       @ NewConsole = false
   Run = pRealm             @ NewConsole = false
-  // Run = pGenRescue         @ NewConsole = false
-  Run = pArduBridge        @ NewConsole = false
+  // Run = pArduBridge        @ NewConsole = false
   Run = uProcessWatch      @ NewConsole = false
 
 #ifdef XMODE SIM
-  Run = uSimMarine      @ NewConsole = false
+  // Run = uSimMarine      @ NewConsole = false
 #elseifdef XMODE M300
   Run = iM300              @ NewConsole = false
   Run = iM300Health        @ NewConsole = false
@@ -66,8 +65,8 @@ ProcessConfig = pArduBridge
                                                                 
   ArduPilotURL = $(AP_IP):$(AP_PORT)
   
+  prefix    = NAV
   // start_pos = $(START_POS), 180
-  // prefix    = NAV
                                                                 
 }
 

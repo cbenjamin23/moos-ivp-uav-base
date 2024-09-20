@@ -12,13 +12,21 @@
 #include "MBUtils.h"
 #include "AngleUtils.h"
 
-using namespace std;
+
+#include "definitions.h"
+
 
 //------------------------------------------------------------------------
 // Constructor
 
-UAV_Model::UAV_Model():
+UAV_Model::UAV_Model(WarningSystem &ws):
   m_mavsdk_ptr{std::make_shared<mavsdk::Mavsdk>(mavsdk::Mavsdk::Configuration{mavsdk::Mavsdk::ComponentType::GroundStation})},
+
+  callbackMOOSTrace{nullptr},
+  callbackReportRunW{nullptr},
+  callbackRetractRunW{nullptr},
+  m_warning_system{ws},
+
   m_health_all_ok{false},
   m_is_armed{false}
 {
@@ -28,49 +36,43 @@ UAV_Model::UAV_Model():
   // Initalize the state variables
   m_rudder       = 0;
 
-  m_thrust       = 0;
-  m_elevator     = 0;
 
 }
 
-//------------------------------------------------------------------------
-// Procedure: resetTime()
-
-void UAV_Model::resetTime(double g_curr_time)
-{
-  m_record.setTimeStamp(g_curr_time);
-}
 
 //------------------------------------------------------------------------
 // Procedure: connectToUAV()
 
-bool UAV_Model::connectToUAV(string url, const std::function<void(const std::string&)>& callbackDebug)
+bool UAV_Model::connectToUAV(std::string url)
 {
   if(url.empty()){
     // reportRunWarning("No URL specified");
     return false;
   }
-  std::cout << "Connecting to the URL: " << url << std::endl;
+
+
+  MOOSTraceFromCallback("Connecting to the URL: " + url + "\n");
 
   mavsdk::ConnectionResult connection_result = m_mavsdk_ptr->add_any_connection(url);
-
-  std::cout << "Connection result: " << connection_result << std::endl;
 
   if (connection_result != mavsdk::ConnectionResult::Success) {
     std::stringstream ss;
     ss << "Connection failed: " << connection_result << '\n';
-    // MOOSTrace(ss.str().c_str());
-    std::cout << ss.str();
-    // reportRunWarning(ss.str());
+    MOOSTraceFromCallback(ss.str().c_str());
+
+    m_warning_system.monitorWarningForXseconds("Failed to connect to ArduPilot", WARNING_DURATION);
+
+    return false;
   }
 
-  std::cout << "Waiting to discover system..." << std::endl;
+
+
+  MOOSTraceFromCallback("Connecting to the URL: " + url + "\n");
+  MOOSTraceFromCallback("Waiting to discover system...\n");
+
   auto system = m_mavsdk_ptr->first_autopilot(3.0);
   if (!system.has_value()) {
-    std::stringstream ss;
-    ss << "Timed out waiting for system\n";
-    // reportRunWarning(ss.str());
-    callbackDebug(ss.str());
+    m_warning_system.monitorWarningForXseconds(WARNING_TIMED_OUT, WARNING_DURATION);
   }
 
   // m_mission_raw = MissionRaw{system.value()};
@@ -81,16 +83,12 @@ bool UAV_Model::connectToUAV(string url, const std::function<void(const std::str
 
   auto clear_result = m_mission_raw_ptr->clear_mission();
   if (clear_result != mavsdk::MissionRaw::Result::Success) {
-      std::cout << "clear failed" << std::endl;
-      // reportRunWarning("Failed to clear mission");
-      callbackDebug("Failed to clear mission");
+      m_warning_system.monitorWarningForXseconds("Failed to clear mission", WARNING_DURATION);
   }
 
   auto download_result = m_mission_raw_ptr->download_mission();
   if (download_result.first != mavsdk::MissionRaw::Result::Success) {
-      std::cout << "Download failed" << std::endl;
-      // reportRunWarning("Failed to download mission");
-      callbackDebug("Failed to download mission");
+      m_warning_system.monitorWarningForXseconds("Failed to download mission", WARNING_DURATION);
   }
 
   // first point in case of ardupilot is always home
@@ -101,26 +99,29 @@ bool UAV_Model::connectToUAV(string url, const std::function<void(const std::str
   std::stringstream ss;
   ss << "Home point: " << home_point << std::endl;
   ss << "-----------------------------------------------\n";
-  // MOOSDebugWrite(ss.str());
+  MOOSTraceFromCallback(ss.str());
+  std::cout << ss.str();
   ss.clear();
 
   mission_plan.clear();
 
-  double m_lat_deg_home = home_point.x * 1e-7;
-  double m_lon_deg_home = home_point.y * 1e-7;
 
-  create_missionPlan(mission_plan,  m_lat_deg_home, m_lon_deg_home);
+  m_home_coord.set_vx( home_point.x * 1e-7);
+  m_home_coord.set_vy( home_point.y * 1e-7);
+
+  std::cout << "Home point: " << m_home_coord.x() << ", " << m_home_coord.y() << std::endl;
+
+  create_missionPlan(mission_plan,  m_home_coord.x(), m_home_coord.y());
 
   auto upload_result = m_mission_raw_ptr->upload_mission(mission_plan);
     if (upload_result != mavsdk::MissionRaw::Result::Success) {
-        std::cout << "upload failed" << std::endl;
-        std::cout << "upload result: " << upload_result << std::endl;
+        m_warning_system.monitorWarningForXseconds("Mission upload failed", WARNING_DURATION);
         std::stringstream ss;
         ss << "Failed to upload mission" << std::endl;
         ss << "upload result: " << upload_result << std::endl;
-        // reportRunWarning(ss.str());
-        callbackDebug(ss.str());
+        MOOSTraceFromCallback(ss.str());
     }
+
 
   m_mission_raw_ptr->set_current_mission_item(0);
 
@@ -133,47 +134,48 @@ bool UAV_Model::connectToUAV(string url, const std::function<void(const std::str
 
 }
 
-bool UAV_Model::startMission(const std::function<void(const std::string&)>& callbackDebug) const{
+bool UAV_Model::startMission() const{
 
   if(!m_is_armed){
     // reportRunWarning("Not armed");
-    callbackDebug("Not armed");
+
+    m_warning_system.monitorCondition( WARNING_UAV_NOT_ARMED,
+                                      [&](){return !m_is_armed;}
+                                      );   
     return false;
   }
 
   auto start_result = m_mission_raw_ptr->start_mission();
 
   if (start_result != mavsdk::MissionRaw::Result::Success) {
-      std::cout << "start failed" << std::endl;
-      // reportRunWarning("Failed to start mission");
-      callbackDebug("Failed to start mission");
+      m_warning_system.monitorWarningForXseconds("Failed to start mission", WARNING_DURATION);
       return false;
-  }else{
-      std::cout << "Mission started" << std::endl;
-      // MOOSTrace("Mission started\n");
-      return true;
   }
-
+  
+  MOOSTraceFromCallback("Mission started\n");
+  return true;
+  
 }
 
 
-bool UAV_Model::goToLocation(double latitude_deg, double longitude_deg, float absolute_altitude_m, float yaw_deg, const std::function<void(const std::string&)>& callbackDebug) const{
-  auto res = m_action_ptr->goto_location(latitude_deg, longitude_deg, absolute_altitude_m, yaw_deg);
+bool UAV_Model::goToLocation(double latitude_deg, double longitude_deg, float absolute_altitude_m, float yaw_deg) const{
 
     // blocking //TODO modify so it is non
+  auto res = m_action_ptr->goto_location(latitude_deg, longitude_deg, absolute_altitude_m, yaw_deg);
+
 
   if(res != mavsdk::Action::Result::Success){
-        std::cerr << "goto_location failed: " << res << '\n';
-        // reportRunWarning("goto_location failed");
-        callbackDebug("goto_location failed");
-    }else{
-        std::cout << "goto_location succeeded" << '\n';
-        // MOOSTrace("goto_location succeeded\n");
-    }
+    m_warning_system.monitorWarningForXseconds("goto_location failed", WARNING_DURATION);
+    return false;
+  }
+
+  MOOSTraceFromCallback("goto_location succeeded\n");
+  
+  return true;
 }
 
 
-bool UAV_Model::sendArmCommandIfHealthyAndNotArmed(const std::function<void(const std::string&)>& callbackDebug){
+bool UAV_Model::sendArmCommandIfHealthyAndNotArmed(){
   
   if(m_health_all_ok && !m_is_armed){
     
@@ -185,9 +187,7 @@ bool UAV_Model::sendArmCommandIfHealthyAndNotArmed(const std::function<void(cons
             std::stringstream ss;
             ss << "Arming failed: " << result << '\n';
             std::cout << ss.str();
-            // reportRunWarning("Failed to arm");
-            callbackDebug(ss.str());
-            // MOOSTrace(ss.str().c_str());
+            m_warning_system.monitorWarningForXseconds(ss.str(), WARNING_DURATION);
         }
     }); 
 
@@ -196,94 +196,120 @@ bool UAV_Model::sendArmCommandIfHealthyAndNotArmed(const std::function<void(cons
   return false;
 }
 
-//------------------------------------------------------------------------
-// Procedure: setParam
 
-bool UAV_Model::setParam(string param, double value)
-{
-  param = stripBlankEnds(tolower(param));
-  if(param == "start_x") {
-    m_record.setX(value);
-  }
-  else if(param == "start_y") {
-    m_record.setY(value);
-  }
-  else if(param == "start_heading") {
-    m_record.setHeading(value);
-  }
-  else if(param == "start_speed") {
-    m_record.setSpeed(value);
-  }
-  else if(param == "start_depth") {
-    m_record.setDepth(value);
-    if(value < 0) {
-      m_record.setDepth(0);
-      return(false);
-    }
-  }
-  else
-    return(false);
-  return(true);
-}
 
-//------------------------------------------------------------------------
-// Procedure: setRudder()
+bool UAV_Model::gatherTelemetry(){
 
-void UAV_Model::setRudder(double desired_rudder, double tstamp)
-{
-  // Part 0: Copy the current rudder value to "previous" before overwriting
-  m_rudder = desired_rudder;
+  m_telemetry_ptr->subscribe_armed([&](bool is_armed) {
+    m_is_armed = is_armed;
+  });
+
+
+  m_telemetry_ptr->subscribe_position([&](mavsdk::Telemetry::Position position) {
+    m_position = position;
+  });
+
+  m_telemetry_ptr->subscribe_attitude_euler([&](mavsdk::Telemetry::EulerAngle attitude_ned) {
+    m_attitude_ned = attitude_ned;
+  });
+
+
+  m_telemetry_ptr->subscribe_velocity_ned([&](mavsdk::Telemetry::VelocityNed ground_speed) {
+    m_velocity_ned = ground_speed;
+  });
+
+
+  m_telemetry_ptr->subscribe_battery([&](mavsdk::Telemetry::Battery battery) {
+    m_battery = battery;
+  });
+
+
+  return true;
+
 
 }
 
 
 
-//------------------------------------------------------------------------
-// Procedure: initPosition
-//
-//  "x=20, y=-35, speed=2.2, heading=180, depth=20"
+// //------------------------------------------------------------------------
+// // Procedure: setParam
+
+// bool UAV_Model::setParam(std::string param, double value)
+// {
+//   param = stripBlankEnds(tolower(param));
+//   if(param == "start_x") {
+//     m_record.setX(value);
+//   }
+//   else if(param == "start_y") {
+//     m_record.setY(value);
+//   }
+//   else if(param == "start_heading") {
+//     m_record.setHeading(value);
+//   }
+//   else if(param == "start_speed") {
+//     m_record.setSpeed(value);
+//   }
+//   else if(param == "start_depth") {
+//     m_record.setDepth(value);
+//     if(value < 0) {
+//       m_record.setDepth(0);
+//       return(false);
+//     }
+//   }
+//   else
+//     return(false);
+//   return(true);
+// }
 
 
-bool UAV_Model::initPosition(const string& str)
-{
-  vector<string> svector = parseString(str, ',');
-  unsigned int i, vsize = svector.size();
-  for(i=0; i<vsize; i++) {
-    svector[i] = tolower(stripBlankEnds(svector[i]));
-    string param = biteStringX(svector[i], '=');
-    string value = svector[i];
 
-    // Support older style spec "5,10,180,2.0,0" - x,y,hdg,spd,dep
-    if(value == "") {
-      value = param;
-      if(i==0)      param = "x";
-      else if(i==1) param = "y";
-      else if(i==2) param = "heading";
-      else if(i==3) param = "speed";
-      else if(i==4) param = "depth";
-    }
 
-    double dval  = atof(value.c_str());
-    if(param == "x") {
-      m_record.setX(dval);
-    }
-    else if(param == "y") {
-      m_record.setY(dval);
-    }
-    else if((param == "heading") || (param=="deg") || (param=="hdg")) {
-      m_record.setHeading(dval);
-    }
-    else if((param == "speed") || (param == "spd")) {
-      m_record.setSpeed(dval);
-    }
-    else if((param == "depth") || (param == "dep")) {
-      m_record.setDepth(dval);
-    }
-    else
-      return(false);
-  }
-  return(true);
-}
+// //------------------------------------------------------------------------
+// // Procedure: initPosition
+// //
+// //  "x=20, y=-35, speed=2.2, heading=180, depth=20"
+
+
+// bool UAV_Model::initPosition(const std::string& str)
+// {
+//   std::vector<std::string> svector = parseString(str, ',');
+//   unsigned int i, vsize = svector.size();
+//   for(i=0; i<vsize; i++) {
+//     svector[i] = tolower(stripBlankEnds(svector[i]));
+//    std::string param = biteStringX(svector[i], '=');
+//    std::string value = svector[i];
+
+//     // Support older style spec "5,10,180,2.0,0" - x,y,hdg,spd,dep
+//     if(value == "") {
+//       value = param;
+//       if(i==0)      param = "x";
+//       else if(i==1) param = "y";
+//       else if(i==2) param = "heading";
+//       else if(i==3) param = "speed";
+//       else if(i==4) param = "depth";
+//     }
+
+//     double dval  = atof(value.c_str());
+//     if(param == "x") {
+//       m_record.setX(dval);
+//     }
+//     else if(param == "y") {
+//       m_record.setY(dval);
+//     }
+//     else if((param == "heading") || (param=="deg") || (param=="hdg")) {
+//       m_record.setHeading(dval);
+//     }
+//     else if((param == "speed") || (param == "spd")) {
+//       m_record.setSpeed(dval);
+//     }
+//     else if((param == "depth") || (param == "dep")) {
+//       m_record.setDepth(dval);
+//     }
+//     else
+//       return(false);
+//   }
+//   return(true);
+// }
 
 
 
@@ -324,7 +350,7 @@ mavsdk::MissionRaw::MissionItem make_mission_item_wp(
 
     return new_item;
 }
-bool create_missionPlan(std::vector<mavsdk::MissionRaw::MissionItem>& mission_plan, float lat_deg_home, float lon_deg_home){
+bool create_missionPlan(std::vector<mavsdk::MissionRaw::MissionItem>& mission_plan, double lat_deg_home, double lon_deg_home){
 
     // in case of ardupilot we want to set lat lon to 0, to use current position as takeoff position
     mission_plan.push_back(make_mission_item_wp( //0

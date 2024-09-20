@@ -61,6 +61,25 @@ INCLUDE_DIRECTORIES(${IVP_INCLUDE_DIRS})
 FILE(GLOB IVP_LIBRARY_DIRS ${MOOSIVP_SOURCE_TREE_BASE}/lib )
 LINK_DIRECTORIES(${IVP_LIBRARY_DIRS})
 
+
+# Display the include directories
+MESSAGE("IVP_SRC_DIR: ${MOOSIVP_SOURCE_TREE_BASE}")
+
+# Add the MOOSGeodesy include directory explicitly
+find_path(MOOSGEODESY_INCLUDE_DIR MOOSGeodesy.h
+         #  PATHS ${MOOSIVP_SOURCE_TREE_BASE}/MOOS_Jul0519/MOOSGeodesy/libMOOSGeodesy/include/MOOS/libMOOSGeodesy/
+          PATHS ${MOOSIVP_SOURCE_TREE_BASE}/MOOS/MOOSGeodesy/libMOOSGeodesy/include/
+                /usr/include/MOOS/libMOOSGeodesy
+                /usr/local/include/MOOS/libMOOSGeodesy
+                DOC "Path to MOOSGeodesy header"
+          NO_DEFAULT_PATH)
+
+if (MOOSGEODESY_INCLUDE_DIR)
+    include_directories(${MOOSGEODESY_INCLUDE_DIR})
+else()
+    message(FATAL_ERROR "MOOSGeodesy.h not found")
+endif()
+
 #======================================================================
 # Specify Compiler Flags
 #======================================================================

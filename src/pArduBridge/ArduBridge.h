@@ -10,8 +10,12 @@
 
 #include "MOOS/libMOOS/Thirdparty/AppCasting/AppCastingMOOSApp.h"
 
+#include "MOOSGeodesy.h"
+
+#include "WarningSystem.h"
 #include "UAV_Model.h"
 #include <cli_arg.h>
+
 
 
 
@@ -33,10 +37,25 @@ class ArduBridge : public AppCastingMOOSApp
   protected:
     void registerVariables();
 
+    void postTelemetryUpdate(const std::string& prefix );
+
+
 
   private: // Configuration variables
+    std::string  m_uav_prefix;
 
+    static inline std::map<mavsdk::CliArg::Protocol, std::string> protocol2str = {
+      {mavsdk::CliArg::Protocol::None, "None"},
+      {mavsdk::CliArg::Protocol::Udp, "Udp"},
+      {mavsdk::CliArg::Protocol::Tcp, "Tcp"},
+      {mavsdk::CliArg::Protocol::Serial, "Serial"}
+    };
     mavsdk::CliArg  m_cli_arg;
+
+  
+    bool         m_geo_ok;
+    CMOOSGeodesy m_geodesy;
+
 
   private: // State variables
     // For UAV
@@ -46,8 +65,8 @@ class ArduBridge : public AppCastingMOOSApp
     bool  m_do_fly_to_waypoint;
     bool  m_do_takeoff;
 
-    double m_lat_deg_home;
-    double m_lon_deg_home;
+    WarningSystem m_warning_system;
+
 };
 
 

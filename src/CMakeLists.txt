@@ -17,6 +17,8 @@ INCLUDE_DIRECTORIES(${LOCAL_LIBRARY_DIRS})
 # Finds MAVSDK when installed system wide.
 find_package(MAVSDK REQUIRED)
 
+# Find the MOOSGeodesy library
+find_package(MOOSGeodesy REQUIRED)
 
 
 #============================================================================
