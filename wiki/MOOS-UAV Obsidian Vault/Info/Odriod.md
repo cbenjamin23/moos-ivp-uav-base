@@ -85,9 +85,12 @@ Adapt the wifi interfaces to your specific interface.
 
 Use command:
 
-	./launch_vehicle.sh --shore=10.0.60.1 --shore_pshare=9200 --ip=10.0.60.110 --pshare=9201 -v
+	./launch_vehicle.sh --shore=10.0.60.1 --shore_pshare=9200 --ip=10.0.60.110 --pshare=9201 --vname=skywalker -v
 
+and
+
+	MAVSDK_CALLBACK_DEBUGGING=1 MAVSDK_COMMAND_DEBUGGING=1 MAVSDK_PARAMETER_DEBUGGING=1 pArduBridge targ_skywalker.moos
 
 ## Launching Groundstation
 
-	./launch_shoreside.sh --ip=10.0.60.1 --pshare=9200 -v
+	./launch_shoreside.sh --ip=10.0.60.1 --pshare=9200 --vname=all:skywalker -v
