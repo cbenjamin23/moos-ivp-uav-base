@@ -76,3 +76,18 @@ sudo iptables -A FORWARD -i enx4865ee197242 -o enx00e04c680055 -m state --state 
 ```
 
 Adapt the wifi interfaces to your specific interface.
+
+
+# Launching System
+
+
+## Launching vehicle
+
+Use command:
+
+	./launch_vehicle.sh --shore=10.0.60.1 --shore_pshare=9200 --ip=10.0.60.110 --pshare=9201 -v
+
+
+## Launching Groundstation
+
+	./launch_shoreside.sh --ip=10.0.60.1 --pshare=9200 -v

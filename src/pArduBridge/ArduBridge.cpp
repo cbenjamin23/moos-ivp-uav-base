@@ -197,7 +197,11 @@ bool ArduBridge::OnStartUp()
     else if(param == "prefix"){
       handled = setNonWhiteVarOnString(m_uav_prefix, value);
     }
+    else if(param == "serial_port"){
+      ardupilot_url = "serial://" + value;
+      handled = true;
 
+    }
     if(!handled)
       reportUnhandledConfigWarning(orig);
 
@@ -224,6 +228,8 @@ bool ArduBridge::OnStartUp()
   }
  
 
+  std::cout << "ArduPilot URL is: " << ardupilot_url << std::endl;
+  
   if (!m_cli_arg.parse(ardupilot_url)) {
       reportConfigWarning("Invalid ArduPilot URL specified - Need to restart with a valid URL");
   }

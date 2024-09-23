@@ -85,7 +85,7 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "Info/ArduPilot & MavProx.md",
+                "file": "Info/Odriod.md",
                 "mode": "source",
                 "backlinks": false,
                 "source": false
@@ -106,7 +106,7 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "Info/ArduPilot & MavProx.md",
+                "file": "Info/Odriod.md",
                 "mode": "preview",
                 "backlinks": false,
                 "source": false
@@ -160,8 +160,7 @@
               "state": {}
             }
           }
-        ],
-        "currentTab": 1
+        ]
       }
     ],
     "direction": "horizontal",
@@ -181,7 +180,7 @@
             "state": {
               "type": "backlink",
               "state": {
-                "file": "Info/ArduPilot & MavProx.md",
+                "file": "Info/Odriod.md",
                 "collapseAll": false,
                 "extraContext": false,
                 "sortOrder": "alphabetical",
@@ -198,7 +197,7 @@
             "state": {
               "type": "outgoing-link",
               "state": {
-                "file": "Info/ArduPilot & MavProx.md",
+                "file": "Info/Odriod.md",
                 "linksCollapsed": false,
                 "unlinkedCollapsed": true
               }
@@ -221,7 +220,7 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "Info/ArduPilot & MavProx.md"
+                "file": "Info/Odriod.md"
               }
             }
           }
@@ -244,9 +243,9 @@
   },
   "active": "7000d0c8a156708a",
   "lastOpenFiles": [
+    "Info/ArduPilot & MavProx.md",
     "Info/Install, Build & Run MAVSDK.md",
     "Info/MAIN System architecture.md",
-    "Info/ArduPilot & MavProx.md",
     "Troubleshooting.md",
     "Helpful definitions.md",
     "Info/Odriod.md",
