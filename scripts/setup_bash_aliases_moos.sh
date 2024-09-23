@@ -121,3 +121,40 @@ alias bldm='sudo .;
 
 ###################### MAVSDK - END #########################################
 
+
+
+####################### PATHS - START #########################################
+
+#-------------------------------------------------------
+# Set the Shell Path
+#-------------------------------------------------------
+PATH=$PATH:/bin
+PATH=$PATH:/snap/bin
+PATH=$PATH:/usr/bin
+PATH=$PATH:/usr/local/bin
+PATH=$PATH:/opt/homebrew/bin
+PATH=$PATH:/opt/local/bin
+PATH=$PATH:/usr/X11/bin
+PATH=$PATH:/sbin
+PATH=$PATH:/usr/sbin
+PATH=$PATH:~/moos-ivp
+PATH=$PATH:~/moos-ivp/bin
+PATH=$PATH:~/moos-ivp/scripts
+PATH=$PATH:~/moos-ivp-uav/bin 
+
+export PATH
+
+
+#-------------------------------------------------------
+# IvP Helm Behavior directories
+#-------------------------------------------------------
+if [[ ! -z $IVP_BEHAVIOR_DIRS ]]; then
+    export IVP_BEHAVIOR_DIRS=$IVP_BEHAVIOR_DIRS:~/moos-ivp/lib
+else
+    export IVP_BEHAVIOR_DIRS=~/moos-ivp/lib
+fi
+IVP_BEHAVIOR_DIRS=$IVP_BEHAVIOR_DIRS:~/moos-ivp-uav/lib
+
+export IVP_BEHAVIOR_DIRS
+
+####################### PATHS - END #########################################
