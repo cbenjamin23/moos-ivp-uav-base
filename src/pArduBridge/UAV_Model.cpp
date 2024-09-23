@@ -273,7 +273,9 @@ bool UAV_Model::getParameter(Parameters param_enum)
 
     // Check if the result was successful
     if (result != mavsdk::Param::Result::Success) {
-        m_warning_system.monitorWarningForXseconds("Parameter retrieval failed", WARNING_DURATION);
+        std::stringstream ss;
+        ss << "Parameter retrieval failed: " << result << '\n';
+        m_warning_system.monitorWarningForXseconds(ss.str() , WARNING_DURATION);
         return false;
     }
 
@@ -320,7 +322,9 @@ bool UAV_Model::commandSetParameter(Parameters param_enum, double value) const
 
     // Check if the result was successful
     if (result != mavsdk::Param::Result::Success) {
-        m_warning_system.monitorWarningForXseconds("Parameter setting failed", WARNING_DURATION);
+        std::stringstream ss;
+        ss << "Parameter setting failed: " << result << '\n';
+        m_warning_system.monitorWarningForXseconds( ss.str(), WARNING_DURATION);
         return false;
     }
 

@@ -8,7 +8,7 @@ ProcessConfig = pArduBridge
 #ifdef 0                                                           
   ArduPilotURL = $(AP_IP):$(AP_PORT)
 #else
-  serial_port = /dev/ttySAC0:57600
+  serial_port = /dev/ttySAC0:115200
   // baudrate = 57600
 #endif
 
