@@ -65,6 +65,7 @@ class ArduBridge : public AppCastingMOOSApp
     bool  m_do_fly_to_waypoint;
     bool  m_do_takeoff;
     std::pair<bool, double> m_do_change_speed_pair;
+    bool  m_do_reset_speed;
 
     WarningSystem m_warning_system;
 

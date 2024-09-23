@@ -105,12 +105,12 @@ alias ip_fw_o='sudo ~/usr/local/bin/setup_nat_ip_forwarding.sh'
 
 
 alias mavsdk_configure_build_install="cd ~/moos-ivp-uav/MAVSDK;
-                                        cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=1 -DCMAKE_BUILD_TYPE=Debug -Bbuild/default -H. -DBUILD_SHARED_LIBS=ON -DSUPERBUILD=ON; 
+                                        cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=1 -DCMAKE_BUILD_TYPE=Debug -Bbuild/default -H. -DBUILD_SHARED_LIBS=ON -DSUPERBUILD=ON -DBUILD_TESTS=OFF; 
                                         sudo cmake --build build/default --target install;
                                         cd -"
 alias mavsdk_build_install="cd ~/moos-ivp-uav/MAVSDK;
                             sudo cmake --build build/default --target install;
-                            cd -"
+                            cd -"   
 
 alias bldm='sudo .;
             mavsdk_build_install;

@@ -68,7 +68,7 @@ MESSAGE("IVP_SRC_DIR: ${MOOSIVP_SOURCE_TREE_BASE}")
 # Add the MOOSGeodesy include directory explicitly
 find_path(MOOSGEODESY_INCLUDE_DIR MOOSGeodesy.h
          #  PATHS ${MOOSIVP_SOURCE_TREE_BASE}/MOOS_Jul0519/MOOSGeodesy/libMOOSGeodesy/include/MOOS/libMOOSGeodesy/
-          PATHS ${MOOSIVP_SOURCE_TREE_BASE}/MOOS/MOOSGeodesy/libMOOSGeodesy/include/
+          PATHS ${MOOSIVP_SOURCE_TREE_BASE}/MOOS/MOOSGeodesy/libMOOSGeodesy/include/MOOS/libMOOSGeodesy
                 /usr/include/MOOS/libMOOSGeodesy
                 /usr/local/include/MOOS/libMOOSGeodesy
                 DOC "Path to MOOSGeodesy header"

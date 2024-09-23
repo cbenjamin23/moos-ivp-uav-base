@@ -33,18 +33,25 @@ public:
     UAV_Model(WarningSystem &ws);
     virtual  ~UAV_Model() {}
 
-    bool   connectToUAV(std::string url);
+    bool connectToUAV(std::string url);
     
-    bool   startMission() const;
-            //async function
-    bool   sendArmCommandIfHealthyAndNotArmed() const;
+    bool startMission() const;
+         //async function
+    bool sendArmCommandIfHealthyAndNotArmed() const;
 
-    bool   subscribeToTelemetry();
+    bool subscribeToTelemetry();
 
-    void   pollAirspeedCruise();
+
+
+    // Polling functions 
+    bool   pollParameters(){return(pollMinAirSpeed() && pollMaxAirSpeed() && pollAirspeedCruise());}; 
+    bool   pollMinAirSpeed(){return(getParameter(Parameters::AIRSPEED_MIN));};
+    bool   pollMaxAirSpeed(){return(getParameter(Parameters::AIRSPEED_MAX));};
+    bool   pollAirspeedCruise(){return(getParameter(Parameters::AIRSPEED_CRUISE));};
+
+
     // Actions
-    
-    bool   commandAirSpeed(double speed) const;
+    bool   commandAndSetAirSpeed(double speed) const;
     bool   commandGroundSpeed(double speed) const {return(commandSpeed(speed, SPEED_TYPE::SPEED_TYPE_GROUNDSPEED));} //blocking functions
     bool   commandGoToLocation(mavsdk::Telemetry::Position& position) const;
             // async function
@@ -60,6 +67,7 @@ public:
     // Getters
     bool                            isHealthy() const {return(m_health_all_ok);}
     bool                            isArmed() const {return(m_is_armed);}
+    bool                            isInAir() const {return(m_in_air);}
     mavsdk::Telemetry::FlightMode   getFlightMode() const {return(m_flight_mode);}
 
 
@@ -85,6 +93,19 @@ public:
     double    getPitch() const {return(m_attitude_ned.pitch_deg);}
 
     
+protected:
+
+    enum class Parameters{ 
+      AIRSPEED_MIN,
+      AIRSPEED_MAX,
+      AIRSPEED_CRUISE
+    };
+
+    static inline std::map<Parameters, std::string> paramEnum2string = {
+      {Parameters::AIRSPEED_MIN, "AIRSPEED_MIN"},
+      {Parameters::AIRSPEED_MAX, "AIRSPEED_MAX"},
+      {Parameters::AIRSPEED_CRUISE, "AIRSPEED_CRUISE"}
+    };
 
 
  protected:
@@ -102,6 +123,9 @@ public:
     bool commandSpeed(double airspeed_m_s, SPEED_TYPE speed_type = SPEED_TYPE::SPEED_TYPE_GROUNDSPEED) const;
     bool commandArm() const;
 
+    bool getParameter(Parameters param_enum);
+    bool commandSetParameter(Parameters param_enum, double value) const;
+
 
 
 protected:
@@ -115,6 +139,8 @@ protected:
 
     bool m_health_all_ok;
     bool m_is_armed;
+    bool m_in_air;
+
   
     
     // Telemetry
@@ -128,9 +154,9 @@ protected:
     
 
     // Status
-    double m_target_airspeed_cruise;
-    double m_min_airspeed;
-    double m_max_airspeed;
+    double  m_target_airspeed_cruise;
+    int     m_min_airspeed;
+    int     m_max_airspeed;
 
     XYPoint   m_home_coord;
 

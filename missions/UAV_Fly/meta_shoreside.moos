@@ -102,7 +102,7 @@ ProcessConfig = uFldShoreBroker
   qbridge = NODE_COLOR_CHANGE
   
 
-  qbridge = CHANGE_SPEED, ARM_UAV
+  qbridge = CHANGE_SPEED, ARM_UAV, RESET_SPEED_MIN
 
   bridge  = src=FLY_WAYPOINT_$V,  alias=FLY_WAYPOINT
   bridge  = src=DO_TAKEOFF_$V,  alias=DO_TAKEOFF
@@ -247,6 +247,8 @@ ProcessConfig = pMarineViewer
   cmd = label=dec_airspd-1, var=CHANGE_SPEED, dval=-1, receivers=all:$(VNAMES)
   cmd = label=inc_airspd+5, var=CHANGE_SPEED, dval=5, receivers=all:$(VNAMES)
   cmd = label=dec_airspd-5, var=CHANGE_SPEED, dval=-5, receivers=all:$(VNAMES)
+
+  cmd = label=SPEED_TO_MIN, var=RESET_SPEED_MIN, sval=true, receivers=all:$(VNAMES)
 
 	}
 

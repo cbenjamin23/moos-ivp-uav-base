@@ -20,6 +20,8 @@ ArduBridge::ArduBridge()
 : m_do_fly_to_waypoint{false},
   m_do_takeoff{false},
   m_cli_arg{},
+  m_do_change_speed_pair{std::make_pair(false, 0)},
+  m_do_reset_speed{false},
   m_warning_system{
     [this](const std::string msg){this->reportRunWarning(msg);}, 
     [this](const std::string msg){this->retractRunWarning(msg);}, 
@@ -28,6 +30,8 @@ ArduBridge::ArduBridge()
 {
 
   m_uav_prefix = "UAV";
+  
+
 
 }
 
@@ -78,7 +82,9 @@ bool ArduBridge::OnNewMail(MOOSMSG_LIST &NewMail)
       }
 
     }
-
+    else if(key == "RESET_SPEED_MIN"){
+      setBooleanOnString(m_do_reset_speed, msg.GetString());
+    }
     else if(key != "APPCAST_REQ"){  // handled by AppCastingMOOSApp
       reportRunWarning("Unhandled Mail: " + key);
     }
@@ -105,13 +111,15 @@ bool ArduBridge::OnConnectToServer()
 bool ArduBridge::Iterate()
 {
   AppCastingMOOSApp::Iterate();
-  // Do your thing here!
  
+  static bool poll_parameters = true;
+
   if(m_do_takeoff ){
     // send the takeoff command
     auto start_result = m_uav_model.startMission();
     
     m_do_takeoff = false;
+    poll_parameters = true;
   }
 
   if(m_do_fly_to_waypoint){
@@ -125,24 +133,35 @@ bool ArduBridge::Iterate()
     auto res = m_uav_model.commandGoToLocation(dest);
 
     m_do_fly_to_waypoint = false;
+    poll_parameters = true;
   }
 
 
   if(m_do_change_speed_pair.first){
-    m_uav_model.commandAirSpeed(m_uav_model.getTargetAirSpeed() + m_do_change_speed_pair.second);
+    m_uav_model.commandAndSetAirSpeed(m_uav_model.getTargetAirSpeed() + m_do_change_speed_pair.second);
     reportEvent("Changed speed by " + doubleToString(m_do_change_speed_pair.second));
     m_do_change_speed_pair.second = 0;
     m_do_change_speed_pair.first = false;
 
-    m_uav_model.pollAirspeedCruise();
+    poll_parameters = true;
   }
 
 
+  if(m_do_reset_speed){
+    m_uav_model.commandAndSetAirSpeed(m_uav_model.getMinAirSpeed());
+    m_do_reset_speed = false;
+    poll_parameters = true;
+  }
 
   postTelemetryUpdate(m_uav_prefix);
 
 
   m_warning_system.checkConditions(); // Check for warnings and remove/raise them as needed
+
+  if(poll_parameters){
+    m_uav_model.pollParameters();
+    poll_parameters = false;
+  }
 
   AppCastingMOOSApp::PostReport();
   return(true);
@@ -235,6 +254,7 @@ void ArduBridge::registerVariables()
 
   Register("CHANGE_SPEED", 0);
   Register("ARM_UAV", 0);
+  Register("RESET_SPEED_MIN", 0);
 }
 
 
@@ -267,6 +287,7 @@ bool ArduBridge::buildReport()
   m_msgs << "------------------ " << std::endl;
   m_msgs << "           Is Armed: "  <<  boolToString(m_uav_model.isArmed()) << std::endl;
   m_msgs << "         Is Healthy: "  <<  boolToString(m_uav_model.isHealthy()) << std::endl;
+  m_msgs << "             In Air: "  <<  boolToString(m_uav_model.isInAir()) << std::endl;
   m_msgs << "        Flight Mode: "  <<  m_uav_model.getFlightMode() << std::endl;
 
   m_msgs << "\n\n";
@@ -299,8 +320,23 @@ bool ArduBridge::buildReport()
   m_msgs << "\n\n";
 
 
+  ACTable actb(2);
+  actb << "Parameters | Value ";
+  actb.addHeaderLines();
+  actb << "Min AirSpeed:" << m_uav_model.getMinAirSpeed();
+  actb << "Max AirSpeed:" << m_uav_model.getMaxAirSpeed();
+  actb << "Home Coord Lat:" << m_uav_model.getHomeCoord().x();
+  actb << "Home Coord Lon:" << m_uav_model.getHomeCoord().y();
+  m_msgs << actb.getFormattedString();
+  m_msgs << "\n\n" << std::endl;
+
+  m_msgs << "\n\n";
+  m_msgs << "-------------------------------------------" << std::endl;
+  m_msgs << "\n\n";
+
+
   ACTable actab(2);
-  actab << "Setting | Value ";
+  actab << "Debug | Value ";
   actab.addHeaderLines();
   actab << "Do set fly waypoint:" << boolToString(m_do_fly_to_waypoint);
   actab << "Do takeoff:" << boolToString(m_do_takeoff);

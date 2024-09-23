@@ -29,7 +29,8 @@ UAV_Model::UAV_Model(WarningSystem &ws):
   m_warning_system{ws},
 
   m_health_all_ok{false},
-  m_is_armed{false}
+  m_is_armed{false},
+  m_in_air{false}
 {
   // Initalize the configuration variables
 
@@ -141,7 +142,6 @@ bool UAV_Model::connectToUAV(std::string url)
         MOOSTraceFromCallback(ss.str());
     }
 
-
   m_mission_raw_ptr->set_current_mission_item(0);
 
   return true;
@@ -222,15 +222,12 @@ bool UAV_Model::subscribeToTelemetry(){
 
   m_telemetry_ptr->subscribe_flight_mode([&](mavsdk::Telemetry::FlightMode flight_mode) {
     m_flight_mode = flight_mode;
-  }); 
+  });
 
+  m_telemetry_ptr->subscribe_in_air([&](bool in_air) {
+    m_in_air = in_air;
+  });
 
-  // auto resp2 = mavPass.get_param_int("AIRSPEED_MIN", std::nullopt, false);
-  //   if (resp2.first != MavlinkPassthrough::Result::Success) {
-  //       std::cerr << "get_param_int failed: " << resp2.first << '\n';
-  //   } else {
-  //       std::cout << "AIRSPEED_MIN: " << resp2.second << '\n';
-  //   }
 
   // start a thread that get param every 5 seconds
   // std::thread get_param_thread([&, this](){
@@ -250,22 +247,98 @@ bool UAV_Model::subscribeToTelemetry(){
   return true;
 }
 
+bool UAV_Model::getParameter(Parameters param_enum)
+{
+  // Check if the parameter exists in the string-to-enum map
+    auto it = paramEnum2string.find(param_enum);
+    if (it == paramEnum2string.end()) {
+        m_warning_system.monitorWarningForXseconds("Parameter unknown: " + intToString(static_cast<int>(param_enum)), WARNING_DURATION);
+        return false;
+    }
+
+    std::string param_name = it->second;
+    mavsdk::Param::Result result;
+    double param_value = 0.0;  // Store the retrieved value (int or float as double)
+
+    // Determine whether to retrieve an integer or float parameter
+    if (param_enum == Parameters::AIRSPEED_CRUISE) {
+        auto res = m_param_ptr->get_param_float(param_name);
+        result = res.first;
+        param_value = res.second;  // Float value
+    } else {
+        auto res = m_param_ptr->get_param_int(param_name);
+        result = res.first;
+        param_value = static_cast<double>(res.second);  // Int value, cast to double
+    }
+
+    // Check if the result was successful
+    if (result != mavsdk::Param::Result::Success) {
+        m_warning_system.monitorWarningForXseconds("Parameter retrieval failed", WARNING_DURATION);
+        return false;
+    }
+
+    // Assign the value to the appropriate member based on the parameter
+    switch (param_enum) {
+        case Parameters::AIRSPEED_MIN:
+            m_min_airspeed = param_value;
+            break;
+        case Parameters::AIRSPEED_MAX:
+            m_max_airspeed = param_value;
+            break;
+        case Parameters::AIRSPEED_CRUISE:
+            m_target_airspeed_cruise = param_value;
+            break;
+        default:
+            m_warning_system.monitorWarningForXseconds("Unknown parameter", WARNING_DURATION);
+            return false;
+    }
+
+    return true;
+
+}
+
+bool UAV_Model::commandSetParameter(Parameters param_enum, double value) const
+{
+  // Check if the parameter exists in the string-to-enum map
+    auto it = paramEnum2string.find(param_enum);
+    if (it == paramEnum2string.end()) {
+        m_warning_system.monitorWarningForXseconds("Parameter unknown: " + intToString(static_cast<int>(param_enum)), WARNING_DURATION);
+        return false;
+    }
+
+    std::string param_name = it->second;
+    mavsdk::Param::Result result;
+
+    // Determine whether to set an integer or float parameter with a switch statement
+    
+    if (param_enum == Parameters::AIRSPEED_CRUISE) {
+        result = m_param_ptr->set_param_float(param_name, value);
+    } else {
+        result = m_param_ptr->set_param_int(param_name, static_cast<int>(value));
+    }
+
+
+    // Check if the result was successful
+    if (result != mavsdk::Param::Result::Success) {
+        m_warning_system.monitorWarningForXseconds("Parameter setting failed", WARNING_DURATION);
+        return false;
+    }
+
+    return true;
+}
+
 ///////////////////////////////////
 /////////////  COMMANDS  //////////
 ///////////////////////////////////
 
-bool   UAV_Model::commandAirSpeed(double speed) const {
+bool   UAV_Model::commandAndSetAirSpeed(double speed) const {
   
-  commandSpeed(speed, SPEED_TYPE::SPEED_TYPE_AIRSPEED);
-  
-  auto result = m_param_ptr->set_param_float("AIRSPEED_CRUISE", speed);
-  if (result != mavsdk::Param::Result::Success){
-    m_warning_system.monitorWarningForXseconds("Failed to set param AIRSPEED_CRUISE", WARNING_DURATION);
-    return false;
-  }
+  if(commandSpeed(speed, SPEED_TYPE::SPEED_TYPE_AIRSPEED)){
 
-  return true;
+    return commandSetParameter(Parameters::AIRSPEED_CRUISE, speed);
 
+  };
+  return false;
 }
 
 bool UAV_Model::commandArm() const{
@@ -318,7 +391,11 @@ bool UAV_Model::commandGoToLocation(mavsdk::Telemetry::Position& position) const
 
 bool UAV_Model::commandSpeed(double speed_m_s, SPEED_TYPE speed_type) const{
   
-  
+  if(!m_in_air){
+    m_warning_system.monitorWarningForXseconds("UAV is not in air! Cannot send speed", WARNING_DURATION);
+    return false;
+  }
+
   mavsdk::MavlinkPassthrough::CommandLong command_mode;
   command_mode.command = MAV_CMD_DO_CHANGE_SPEED;
   command_mode.target_sysid = m_system_ptr->get_system_id();
@@ -334,7 +411,7 @@ bool UAV_Model::commandSpeed(double speed_m_s, SPEED_TYPE speed_type) const{
 
   if(result != mavsdk::MavlinkPassthrough::Result::Success){
     std::stringstream ss;
-    ss << "command Speed failed: " << result <<  " with speedtype ";
+    ss << "command Speed error: " << result <<  " with speed " << speed_m_s << " and type ";
     switch (speed_type)
     {
     case SPEED_TYPE_AIRSPEED:
@@ -356,17 +433,6 @@ bool UAV_Model::commandSpeed(double speed_m_s, SPEED_TYPE speed_type) const{
 
 
   return true;
-}
-
-void UAV_Model::pollAirspeedCruise() 
-{
-  auto param_result = m_param_ptr->get_param_float("AIRSPEED_CRUISE");
-  if (param_result.first == mavsdk::Param::Result::Success){
-    m_target_airspeed_cruise = param_result.second;
-  }
-  else{
-    m_warning_system.monitorWarningForXseconds("Failed to get param AIRSPEED_CRUISE", WARNING_DURATION);
-  }
 }
 
 mavsdk::MissionRaw::MissionItem make_mission_item_wp(
