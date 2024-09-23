@@ -74,6 +74,7 @@ lib/
 
 eeprom.bin
 *.tlog**
+*.log**
 terrain
 *.parm
 vpositions.txt
