@@ -20,6 +20,9 @@ RANDSTART="true"
 VLAUNCH_ARGS="--auto --sim "
 SLAUNCH_ARGS="--auto "
 
+
+VNAME="skywalker"
+
 #-------------------------------------------------------
 #  Part 3: Check for and handle command-line arguments
 #-------------------------------------------------------
@@ -36,15 +39,8 @@ for ARGI; do
 	echo "    Just make the targ files, but do not launch.    " 
 	echo "  --norand                                          " 
 	echo "    Do not randomly generate vpositions.txt.        "
-	echo "  --swim_file=<mit_00.txt>                          " 
-	echo "    Set the swim file.                              "
-	echo "                                                    "
-	echo "  -1 :  Short for --swim_file=mit_01.txt            "
-	echo "  -2 :  Short for --swim_file=mit_02.txt            "
-	echo "  -3 :  Short for --swim_file=mit_03.txt            "
-	echo "  -4 :  Short for --swim_file=mit_04.txt            "
-	echo "  -5 :  Short for --swim_file=mit_05.txt            "
-	echo "  -6 :  Short for --swim_file=mit_06.txt            "
+    echo "  --vname=<skywalker>                                  " 
+	echo "    Name of the vehicle being launched           " 
 	exit 0;
     elif [ "${ARGI}" = "--verbose" -o "${ARGI}" = "-v" ]; then
 	VERBOSE="--verbose"
@@ -54,15 +50,8 @@ for ARGI; do
 	JUST_MAKE="-j"
     elif [ "${ARGI}" = "--norand" -o "${ARGI}" = "-r" ]; then
 	RANDSTART="false"
-
-    elif [ "${ARGI:0:12}" = "--swim_file=" ]; then
-        SLAUNCH_ARGS+=" ${ARGI}"
-    elif [ "${ARGI}" = "-1" -o "${ARGI}" = "-2" ]; then
-        SLAUNCH_ARGS+=" ${ARGI}"
-    elif [ "${ARGI}" = "-3" -o "${ARGI}" = "-4" ]; then
-        SLAUNCH_ARGS+=" ${ARGI}"
-    elif [ "${ARGI}" = "-5" -o "${ARGI}" = "-6" ]; then
-        SLAUNCH_ARGS+=" ${ARGI}"
+    elif [ "${ARGI:0:8}" = "--vname=" ]; then
+        VNAME="${ARGI#--vname=*}"
     else 
 	echo "$ME: Bad Arg: $ARGI. Exit Code 1."
 	exit 1
@@ -79,7 +68,9 @@ if [ "${RANDSTART}" = "true" -o  ! -f "vpositions.txt" ]; then
 fi
 
 # vehicle names are always deterministic in alphabetical order
-pickpos --amt=1 --vnames  > vnames.txt
+# pickpos --amt=1 --vnames  > vnames.txt
+echo $VNAME > vnames.txt
+
 
 VEHPOS=(`cat vpositions.txt`)
 VNAMES=(`cat vnames.txt`)
@@ -112,6 +103,7 @@ vecho "IX_VLAUNCH_ARGS: [$IX_VLAUNCH_ARGS]"
 # Part 6: Launch the Shoreside mission file
 #-------------------------------------------------------------
 SLAUNCH_ARGS+=" $JUST_MAKE"
+SLAUNCH_ARGS+=" --vnames=${VNAMES[*]} "
 vecho "Launching the shoreside. Args: $SLAUNCH_ARGS $TIME_WARP"
 
 ./launch_shoreside.sh $SLAUNCH_ARGS $VERBOSE $TIME_WARP 
@@ -124,7 +116,7 @@ fi
 #-------------------------------------------------------------
 # Part 7: Launch uMac until the mission is quit
 #-------------------------------------------------------------
-uMAC --paused targ_shoreside.moos
+uMAC targ_shoreside.moos
 
 kill -- -$$
 

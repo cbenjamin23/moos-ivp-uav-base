@@ -20,6 +20,7 @@ MOOS_PORT="9000"
 PSHARE_PORT="9200"
 SWIM_FILE="mit_00.txt"
 
+VNAMES=""
 
 
 LAT_ORIGIN=-35.3632621 #42.358456
@@ -52,16 +53,8 @@ for ARGI; do
 	echo "    Port number of this vehicle's MOOSDB port    "
 	echo "  --pshare=<9200>                                " 
 	echo "    Port number of this vehicle's pShare port    "
-	echo "                                                 "
-	echo "  --swim_file=<mit_00.txt>                       " 
-	echo "    Set the swim file                            "
-	echo "                                                 "
-	echo "  -1 :  Short for --swim_file=mit_01.txt         "
-	echo "  -2 :  Short for --swim_file=mit_02.txt         "
-	echo "  -3 :  Short for --swim_file=mit_03.txt         "
-	echo "  -4 :  Short for --swim_file=mit_04.txt         "
-	echo "  -5 :  Short for --swim_file=mit_05.txt         "
-	echo "  -6 :  Short for --swim_file=mit_06.txt         "
+    echo "  --vnames=<vnames>                            "
+    echo "    Colon-separate list of all vehicle names   "
 	exit 0;
     elif [ "${ARGI//[^0-9]/}" = "$ARGI" -a "$TIME_WARP" = 1 ]; then 
         TIME_WARP=$ARGI
@@ -80,23 +73,11 @@ for ARGI; do
 	MOOS_PORT="${ARGI#--mport=*}"
     elif [ "${ARGI:0:9}" = "--pshare=" ]; then
         PSHARE_PORT="${ARGI#--pshare=*}"
-
+    elif [ "${ARGI:0:9}" = "--vnames=" ]; then
+        VNAMES="${ARGI#--vnames=*}"
     elif [ "${ARGI:0:12}" = "--swim_file=" ]; then
         SWIM_FILE="${ARGI#--swim_file=*}"
-    elif [ "${ARGI}" = "-1" ]; then
-        SWIM_FILE="mit_01.txt"
-    elif [ "${ARGI}" = "-2" ]; then
-        SWIM_FILE="mit_02.txt"
-
-    elif [ "${ARGI}" = "-3" ]; then
-        SWIM_FILE="mit_03.txt"
-    elif [ "${ARGI}" = "-4" ]; then
-        SWIM_FILE="mit_04.txt"
-
-    elif [ "${ARGI}" = "-5" ]; then
-        SWIM_FILE="mit_05.txt"
-    elif [ "${ARGI}" = "-6" ]; then
-        SWIM_FILE="mit_06.txt"
+  
 
     else 
 	echo "$ME: Bad Arg: $ARGI. Exit Code 1."
@@ -134,7 +115,7 @@ if [ "${VERBOSE}" = "yes" ]; then
     echo "PSHARE_PORT =   [${PSHARE_PORT}]  "
     echo "LAUNCH_GUI =    [${LAUNCH_GUI}]   "
     echo "----------------------------------"
-    echo "SWIM_FILE =     [${SWIM_FILE}]    "
+    echo "VNAMES =        [${VNAMES}]       "
     echo "----------------------------------"
     echo "LatOrigin =     [${LAT_ORIGIN}]   "
     echo "LonOrogin =     [${LON_ORIGIN}]   "
@@ -154,7 +135,7 @@ fi
 nsplug meta_shoreside.moos targ_shoreside.moos $NSFLAGS WARP=$TIME_WARP \
        IP_ADDR=$IP_ADDR       PSHARE_PORT=$PSHARE_PORT     \
        MOOS_PORT=$MOOS_PORT   LAUNCH_GUI=$LAUNCH_GUI       \
-       SWIM_FILE=$SWIM_FILE                                \
+       VNAMES=$VNAMES                            \
        LatOrigin=$LAT_ORIGIN   LonOrigin=$LON_ORIGIN
 
 if [ ${JUST_MAKE} = "yes" ]; then

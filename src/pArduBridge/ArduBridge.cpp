@@ -52,8 +52,6 @@ bool ArduBridge::OnNewMail(MOOSMSG_LIST &NewMail)
 
 #if 0 // Keep these around just for template
     std::string comm  = msg.GetCommunity();
-    double dval  = msg.GetDouble();
-    std::string sval  = msg.GetString(); 
     std::string msrc  = msg.GetSource();
     double mtime = msg.GetTime();
     bool   mdbl  = msg.IsDouble();
@@ -66,10 +64,25 @@ bool ArduBridge::OnNewMail(MOOSMSG_LIST &NewMail)
     else if(key == "DO_TAKEOFF"){
       setBooleanOnString(m_do_takeoff, msg.GetString());
     }
+    else if(key == "CHANGE_SPEED"){
+      double dval  = msg.GetDouble();
+      m_do_change_speed_pair = std::make_pair(true, dval);
+    }
+    else if(key == "ARM_UAV"){
+      std::string sval  = msg.GetString(); 
+      
+      if(sval == "true" || sval == "TRUE" || sval == "True"){
+        m_uav_model.sendArmCommandIfHealthyAndNotArmed();
+      }else{
+        m_uav_model.commandDisarm();
+      }
+
+    }
 
     else if(key != "APPCAST_REQ"){  // handled by AppCastingMOOSApp
       reportRunWarning("Unhandled Mail: " + key);
     }
+
   
   }
 	
@@ -81,8 +94,8 @@ bool ArduBridge::OnNewMail(MOOSMSG_LIST &NewMail)
 
 bool ArduBridge::OnConnectToServer()
 {
-   registerVariables();
-   return(true);
+  registerVariables();
+  return(true);
 }
 
 //---------------------------------------------------------
@@ -93,10 +106,7 @@ bool ArduBridge::Iterate()
 {
   AppCastingMOOSApp::Iterate();
   // Do your thing here!
-
-  m_uav_model.sendArmCommandIfHealthyAndNotArmed();
  
-
   if(m_do_takeoff ){
     // send the takeoff command
     auto start_result = m_uav_model.startMission();
@@ -110,20 +120,22 @@ bool ArduBridge::Iterate()
     double m_lat_deg_home = m_uav_model.getHomeCoord().x();
     double m_lon_deg_home = m_uav_model.getHomeCoord().y();
     
-    auto res = m_uav_model.goToLocation(m_lat_deg_home+0.0011,
-                         m_lon_deg_home+0.0011,
-                         564 + 60,
-                         0.0);
+    mavsdk::Telemetry::Position dest = {m_lat_deg_home+0.0011, m_lon_deg_home+0.0011, 564 + 60};
 
-    std::cout << "goto_location : " << "lat: " << m_lat_deg_home+0.0011
-               << " lon: " << m_lon_deg_home+0.0011
-               << " alt: " << 564 + 60
-               << " yaw: " << 0.0 << '\n';
-
+    auto res = m_uav_model.commandGoToLocation(dest);
 
     m_do_fly_to_waypoint = false;
   }
 
+
+  if(m_do_change_speed_pair.first){
+    m_uav_model.commandAirSpeed(m_uav_model.getTargetAirSpeed() + m_do_change_speed_pair.second);
+    reportEvent("Changed speed by " + doubleToString(m_do_change_speed_pair.second));
+    m_do_change_speed_pair.second = 0;
+    m_do_change_speed_pair.first = false;
+
+    m_uav_model.pollAirspeedCruise();
+  }
 
 
 
@@ -172,24 +184,15 @@ bool ArduBridge::OnStartUp()
 
   }
 
-  if (!m_cli_arg.parse(ardupilot_url)) {
-      reportConfigWarning("Invalid ArduPilot URL specified - Need to restart with a valid URL");
-  }
-  else{
-    // Connect to autopilot
-    m_uav_model.connectToUAV(ardupilot_url);
-
-  }
-
-  
   // look for latitude, longitude global variables
   double latOrigin, longOrigin;
   if(!m_MissionReader.GetValue("LatOrigin", latOrigin)) {
-    MOOSTrace("pArduBridge: LatOrigin not set in *.moos file.\n");
+    MOOSTrace("pArduBridge: LatOrigin not set in " + GetMissionFileName() + " file.\n");
+    
     m_geo_ok = false;
   } 
   else if(!m_MissionReader.GetValue("LongOrigin", longOrigin)) {
-    MOOSTrace("pArduBridge: LongOrigin not set in *.moos file\n");
+    MOOSTrace("pArduBridge: LongOrigin not set in " + GetMissionFileName() + " file\n");
     m_geo_ok = false;      
   }
   else {
@@ -202,10 +205,22 @@ bool ArduBridge::OnStartUp()
   }
  
 
-  m_uav_model.gatherTelemetry();
+  if (!m_cli_arg.parse(ardupilot_url)) {
+      reportConfigWarning("Invalid ArduPilot URL specified - Need to restart with a valid URL");
+  }
+  else{
+    // Connect to autopilot
+    m_uav_model.connectToUAV(ardupilot_url);
+
+  }
+
+  m_uav_model.subscribeToTelemetry();
 
   registerVariables();	
   m_warning_system.checkConditions(); // Check for warnings and remove/raise them as needed
+  
+  
+  
   return(true);
 }
 
@@ -217,7 +232,9 @@ void ArduBridge::registerVariables()
   AppCastingMOOSApp::RegisterVariables();
   Register("FLY_WAYPOINT", 0);
   Register("DO_TAKEOFF", 0);
-  // Register("FOOBAR", 0);
+
+  Register("CHANGE_SPEED", 0);
+  Register("ARM_UAV", 0);
 }
 
 
@@ -246,6 +263,14 @@ bool ArduBridge::buildReport()
 
   m_msgs << " -------- UAV States -----------" << std::endl;
 
+  m_msgs << "UAV States: " << std::endl;
+  m_msgs << "------------------ " << std::endl;
+  m_msgs << "           Is Armed: "  <<  boolToString(m_uav_model.isArmed()) << std::endl;
+  m_msgs << "         Is Healthy: "  <<  boolToString(m_uav_model.isHealthy()) << std::endl;
+  m_msgs << "        Flight Mode: "  <<  m_uav_model.getFlightMode() << std::endl;
+
+  m_msgs << "\n\n";
+
   // ACTable actab1(2);
   // actab1 << " x  | Value ";
 
@@ -256,15 +281,18 @@ bool ArduBridge::buildReport()
   if(m_geo_ok) {
     m_geodesy.LatLong2LocalGrid(lat, lon, nav_y, nav_x);
   } 
-
+  
 
   m_msgs << "State Information: " << std::endl;
   m_msgs << "------------------ " << std::endl;
   m_msgs << "  (Latitude , Longditute): " <<  lat  << " , " << lon << std::endl;
   m_msgs << "                  (X , Y): " << nav_x << " , " << nav_y << std::endl;
   m_msgs << "           Altitude (AGL): " << m_uav_model.getAltitudeAGL() << std::endl;
-  m_msgs << "                 AirSpeed: " << m_uav_model.getSpeed() << std::endl;
-  m_msgs << " AirSpeed (xy projection): " << m_uav_model.getSpeedXY() << std::endl;
+  m_msgs << "          Depth / Z (AGL): " << -m_uav_model.getAltitudeAGL() << std::endl;
+  m_msgs << "          Target AirSpeed: " << m_uav_model.getTargetAirSpeed() << std::endl;
+  m_msgs << "                 AirSpeed: " << m_uav_model.getAirSpeed() << std::endl;
+  m_msgs << " AirSpeed (xy projection): " << m_uav_model.getAirSpeedXY() << std::endl;
+  m_msgs << "                 Heading: " << m_uav_model.getHeading() << std::endl;
 
   m_msgs << "\n\n";
   m_msgs << "-------------------------------------------" << std::endl;
@@ -308,9 +336,10 @@ void ArduBridge::postTelemetryUpdate(const std::string& prefix){
     Notify(prefix+"_Y", nav_y, m_curr_time);
   }  
 
-  Notify(prefix+"_SPEED", m_uav_model.getSpeed(), m_curr_time);
-  // Notify(prefix+"_DEPTH", m_uav_model.getDepth(), m_curr_time);
+  Notify(prefix+"_SPEED", m_uav_model.getAirSpeed(), m_curr_time);
+  
   Notify(prefix+"_ALTITUDE", m_uav_model.getAltitudeAGL(), m_curr_time);
+  Notify(prefix+"_DEPTH", -m_uav_model.getAltitudeAGL(), m_curr_time);
 
   // Notify(prefix+"_Z", -m_uav_model.getDepth(), m_curr_time);
 
@@ -323,7 +352,7 @@ void ArduBridge::postTelemetryUpdate(const std::string& prefix){
 
 
   // Notify(prefix+"_HEADING_OVER_GROUND", hog, m_curr_time);
-  Notify(prefix+"_SPEED_OVER_GROUND", m_uav_model.getSpeedXY(), m_curr_time);
+  Notify(prefix+"_SPEED_OVER_GROUND", m_uav_model.getAirSpeedXY(), m_curr_time);
   
 
 }

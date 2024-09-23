@@ -85,7 +85,7 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "Troubleshooting.md",
+                "file": "Info/ArduPilot & MavProx.md",
                 "mode": "source",
                 "backlinks": false,
                 "source": false
@@ -106,7 +106,7 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "Troubleshooting.md",
+                "file": "Info/ArduPilot & MavProx.md",
                 "mode": "preview",
                 "backlinks": false,
                 "source": false
@@ -143,7 +143,7 @@
             "state": {
               "type": "search",
               "state": {
-                "query": "alias",
+                "query": "param",
                 "matchingCase": false,
                 "explainSearch": false,
                 "collapseAll": false,
@@ -160,7 +160,8 @@
               "state": {}
             }
           }
-        ]
+        ],
+        "currentTab": 1
       }
     ],
     "direction": "horizontal",
@@ -180,7 +181,7 @@
             "state": {
               "type": "backlink",
               "state": {
-                "file": "Troubleshooting.md",
+                "file": "Info/ArduPilot & MavProx.md",
                 "collapseAll": false,
                 "extraContext": false,
                 "sortOrder": "alphabetical",
@@ -197,7 +198,7 @@
             "state": {
               "type": "outgoing-link",
               "state": {
-                "file": "Troubleshooting.md",
+                "file": "Info/ArduPilot & MavProx.md",
                 "linksCollapsed": false,
                 "unlinkedCollapsed": true
               }
@@ -220,7 +221,7 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "Troubleshooting.md"
+                "file": "Info/ArduPilot & MavProx.md"
               }
             }
           }
@@ -241,14 +242,14 @@
       "command-palette:Open command palette": false
     }
   },
-  "active": "da26bb1516200fb8",
+  "active": "7000d0c8a156708a",
   "lastOpenFiles": [
-    "Helpful definitions.md",
     "Info/Install, Build & Run MAVSDK.md",
     "Info/MAIN System architecture.md",
-    "Info/Odriod.md",
     "Info/ArduPilot & MavProx.md",
     "Troubleshooting.md",
+    "Helpful definitions.md",
+    "Info/Odriod.md",
     "Testing.md",
     "Advantages of MOOS-IVP.md",
     "Info/Mission Planner info.md",

@@ -23,9 +23,9 @@ Processconfig = ANTLER
   Run = uProcessWatch       @ NewConsole = false
   Run = uFldShoreBroker     @ NewConsole = false
   Run = uFldNodeComms       @ NewConsole = false
-  Run = uFldCollisionDetect @ NewConsole = false
+  // Run = uFldCollisionDetect @ NewConsole = false
   Run = pRealm              @ NewConsole = false
-  Run = uFldRescueMgr       @ NewConsole = false
+  // Run = uFldRescueMgr       @ NewConsole = false
 }
 
 #include plug_pHostInfo.moos
@@ -52,25 +52,25 @@ ProcessConfig = pRealm
 	app_logging = true
 }
 	
-//------------------------------------------
-// uFldRescueMgr config block
+// //------------------------------------------
+// // uFldRescueMgr config block
 
-ProcessConfig = uFldRescueMgr
-{
-  AppTick   = 4
-  CommsTick = 4
+// ProcessConfig = uFldRescueMgr
+// {
+//   AppTick   = 4
+//   CommsTick = 4
 
-	app_logging = true
+// 	app_logging = true
 
-	swim_file = $(SWIM_FILE)
+// 	swim_file = $(SWIM_FILE)
 	
-	rescue_rng_min = 3
-	rescue_rng_max = 5
-	rescue_rng_pd  = 1.0
+// 	rescue_rng_min = 3
+// 	rescue_rng_max = 5
+// 	rescue_rng_pd  = 1.0
 
-	show_rescue_rng = true
-	rescue_rng_transparency = 0.1
-}
+// 	show_rescue_rng = true
+// 	rescue_rng_transparency = 0.1
+// }
 
 //--------------------------------------------------
 // uFldNodeComms config block
@@ -101,17 +101,12 @@ ProcessConfig = uFldShoreBroker
 	qbridge = SURVEY_UPDATE, SCOUTED_SWIMMER
   qbridge = NODE_COLOR_CHANGE
   
-  bridge  = src=FLY_WAYPOINT
-  bridge  = src=DO_TAKEOFF
+
+  qbridge = CHANGE_SPEED, ARM_UAV
+
+  bridge  = src=FLY_WAYPOINT_$V,  alias=FLY_WAYPOINT
+  bridge  = src=DO_TAKEOFF_$V,  alias=DO_TAKEOFF
   
-	bridge  = src=HEARTBEAT
-  bridge  = src=AVOID
-  bridge  = src=UFRM_LEADER
-  bridge  = src=UFRM_WINNER
-  bridge  = src=UFRM_FINISH
-  bridge  = src=FOUND_SWIMMER
-  bridge  = src=RESCUED_SWIMMER
-  bridge  = src=RESCUE_REGION
  
   bridge  = src=RETURN_ALL, alias=RETURN
   bridge  = src=RETURN_$V,  alias=RETURN
@@ -137,32 +132,32 @@ ProcessConfig = pLogger
 }
 
 
-//--------------------------------------------------------
-// uFldCollisionDetect config block
+// //--------------------------------------------------------
+// // uFldCollisionDetect config block
 
-ProcessConfig = uFldCollisionDetect
-{
-  AppTick    = 4
-  CommsTick  = 4
+// ProcessConfig = uFldCollisionDetect
+// {
+//   AppTick    = 4
+//   CommsTick  = 4
 
-  collision_range = 4
-  near_miss_range = 8
-  encounter_range = 20
+//   collision_range = 4
+//   near_miss_range = 8
+//   encounter_range = 20
 
-  encounter_flag = ENCOUNTER = $CPA                             
-  collision_flag = COLLISION = $CPA                             
-  near_miss_flag = NEAR_MISS = vname1=$V1,vname2=$V2,cpa=$CPA   
+//   encounter_flag = ENCOUNTER = $CPA                             
+//   collision_flag = COLLISION = $CPA                             
+//   near_miss_flag = NEAR_MISS = vname1=$V1,vname2=$V2,cpa=$CPA   
 
-  //delay_time_to_clear = 100   // seconds
-  //deploy_delay_time   = 5     // seconds
-  pulse_render = true
-  pulse_range  = 20
-  pulse_duration = 10
+//   //delay_time_to_clear = 100   // seconds
+//   //deploy_delay_time   = 5     // seconds
+//   pulse_render = true
+//   pulse_range  = 20
+//   pulse_duration = 10
 
-	encounter_rings = false
+// 	encounter_rings = false
 	
-  //publish_immediately = true
-}
+//   //publish_immediately = true
+// }
 
 
 //--------------------------------------------------------
@@ -172,6 +167,9 @@ ProcessConfig = pMarineViewer
 {
   AppTick    = 4
   CommsTick  = 4
+
+  vehicles_shape_scale = 40.0
+  trails_point_size    = 5.0
 
   //tiff_file            = forrest19.tif
   tiff_file            = MIT_SP.tif
@@ -227,23 +225,28 @@ ProcessConfig = pMarineViewer
   stale_report_thresh = 2
   stale_remove_thresh = 20000
 
-  button_one   = DEPLOY  # DEPLOY_ALL=true 
-  button_one   = DEPLOY  # MOOS_MANUAL_OVERIDE_ALL=false 
-  button_one   = RETURN_ALL=false # SURVEY_ALL=true
-  button_one   = STATION_KEEP_ALL=false 
+  button_one   = ARM_ALL  # DEPLOY_ALL=true  # MOOS_MANUAL_OVERIDE_ALL=false 
+  button_one   = ARM_ALL  # ARM_UAV_ALL=true
 
-  button_two   = RETURN   # RETURN_ALL=true  # SURVEY_ALL=false
-  button_three = STATION  # STATION_KEEP_ALL=true # SURVEY_ALL=false
-  button_four = ALLSTOP  # DEPLOY_ALL=false
+  button_two   = DISARM_ALL   # ARM_UAV_ALL=false 
+  button_three = RTL_ALL  # STATION_KEEP_ALL=true # SURVEY_ALL=false
+  button_four = LOITER_ALL  # DEPLOY_ALL=false
 
-  button_five  = SHOW-OBJ  # URM_SHOW_OBJECTS=true
-  button_six   = HIDE-OBJ  # URM_SHOW_OBJECTS=false
+  button_5  = TKOFF_ALL  # DO_TAKEOFF=true
+  button_6   = TOWYP_ALL # FLY_WAYPOINT=true
 
-  button_seven = VANTAGE1  # PMV_CENTER=zoom=1.5,x=46,y=-260
-  button_eight = VANTAGE2  # PMV_CENTER=zoom=3.27,x=-3,y=-390
+	left_context[reg_waypoint]  = VIEW_POINT = x=$[XPOS],y=$[YPOS],label=next_wpt,vertex_size=4
 
-  button_nine  = TKOFF  # DO_TAKEOFF=true
-  button_ten   = TOWYP # FLY_WAYPOINT=true
-	
+  cmd = label=TAKEOFF, var=DO_TAKEOFF, sval=true, receivers=all:$(VNAMES)
+  cmd = label=TOWAYPOINT, var=FLY_WAYPOINT, sval=true, receivers=all:$(VNAMES)
+
+  cmd = label=ARM, var=ARM_UAV, sval=true, receivers=all:$(VNAMES)
+  cmd = label=DISARM, var=ARM_UAV, sval=false, receivers=all:$(VNAMES)
+
+  cmd = label=inc_airspd+1, var=CHANGE_SPEED, dval=1, receivers=all:$(VNAMES)
+  cmd = label=dec_airspd-1, var=CHANGE_SPEED, dval=-1, receivers=all:$(VNAMES)
+  cmd = label=inc_airspd+5, var=CHANGE_SPEED, dval=5, receivers=all:$(VNAMES)
+  cmd = label=dec_airspd-5, var=CHANGE_SPEED, dval=-5, receivers=all:$(VNAMES)
+
 	}
 

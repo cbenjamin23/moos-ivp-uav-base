@@ -21,7 +21,7 @@ PSHARE_PORT="9201"
 
 SHORE_IP="localhost"
 SHORE_PSHARE="9200"
-VNAME="abe"
+VNAME="skywalker"
 COLOR="yellow"
 XMODE="M300"
 
@@ -70,7 +70,7 @@ for ARGI; do
 	echo "    IP address location of shoreside             "
 	echo "  --shore_pshare=<9200>                          " 
 	echo "    Port on which shoreside pShare is listening  "
-	echo "  --vname=<abe>                                  " 
+	echo "  --vname=<skywalker>                            " 
 	echo "    Name of the vehicle being launched           " 
 	echo "  --color=<yellow>                               " 
 	echo "    Color of the vehicle being launched          " 

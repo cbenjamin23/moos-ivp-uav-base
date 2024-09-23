@@ -1,0 +1,13 @@
+//------------------------------------------
+// pArduBridge config block
+ProcessConfig = pArduBridge                              
+{                                                               
+  AppTick   = 4                                                 
+  CommsTick = 4                                                 
+                                                                
+  ArduPilotURL = $(AP_IP):$(AP_PORT)
+  
+  prefix    = NAV
+  // start_pos = $(START_POS), 180
+                                                                
+}

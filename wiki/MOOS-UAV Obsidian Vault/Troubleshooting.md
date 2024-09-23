@@ -17,8 +17,9 @@ There might be a gazebo server/client running. Identify the PID with the command
 and then kill it using `kill <PID>`
 
 For MissionPlanner: 
-		
+
 		ps aux | grep mono
+	
 and then kill it using `kill <PID>`
 
 

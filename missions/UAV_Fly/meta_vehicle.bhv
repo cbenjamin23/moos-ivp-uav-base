@@ -130,6 +130,8 @@ Behavior = BHV_Waypoint
 	point = 12,-8
 #elseifdef VNAME oak
 	point = 14,-10
+#elseifdef VNAME skywalker
+	point = 14,-10
 #else
 	point = $(START_POS)
 #endif

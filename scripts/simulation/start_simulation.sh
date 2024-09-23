@@ -11,7 +11,7 @@ terminator --new-tab -e "bash -c 'source ~/.profile; sim_vehicle.py -v ArduPlane
 # terminator --new-tab -e "bash -c 'source ~/.profile; sim_vehicle.py -v ArduPlane -A "--serial0=udpclient<127.0.0.1>:14550" --model JSON --add-param-file=$HOME/SITL_Models/Gazebo/config/skywalker_x8.param --console --map --no-mavproxy; exec bash'" &
 
 # Start Mission Planner in the background in a third terminator window
-terminator --new-tab -e "bash -c 'source ~/.profile; cd ~/Mission_Planner; mono MissionPlanner.exe; exec bash'" &
+#terminator --new-tab -e "bash -c 'source ~/.profile; cd ~/Mission_Planner; mono MissionPlanner.exe; exec bash'" &
 # cd ~/Mission_Planner
 # nohup mono MissionPlanner.exe &> /dev/null &
 # cd -

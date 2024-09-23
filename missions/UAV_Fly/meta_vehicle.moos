@@ -27,48 +27,26 @@ Processconfig = ANTLER
   // Run = pArduBridge        @ NewConsole = false
   Run = uProcessWatch      @ NewConsole = false
 
-#ifdef XMODE SIM
-  // Run = uSimMarine      @ NewConsole = false
-#elseifdef XMODE M300
-  Run = iM300              @ NewConsole = false
-  Run = iM300Health        @ NewConsole = false
-#endif
 
 	}
 
-#ifdef XMODE SIM
-#include plug_uSimMarine.moos
-#elseifdef XMODE M300
-#include plug_iM300.moos
-#include plug_iM300Health.moos
-#endif
+// #include plug_uSimMarine.moos
 
 #include plug_pShare.moos
 #include plug_pHostInfo.moos
 #include plug_uProcessWatch.moos
 
-//------------------------------------------
-// pGenRescue config block
+#include plug_pArduBridge.moos
 
-ProcessConfig = pGenRescue
-{
-  vname = $(VNAME)
-}
+// //------------------------------------------
+// // pGenRescue config block
+
+// ProcessConfig = pGenRescue
+// {
+//   vname = $(VNAME)
+// }
 
 
-//------------------------------------------
-// pArduBridge config block
-ProcessConfig = pArduBridge                              
-{                                                               
-  AppTick   = 4                                                 
-  CommsTick = 4                                                 
-                                                                
-  ArduPilotURL = $(AP_IP):$(AP_PORT)
-  
-  prefix    = NAV
-  // start_pos = $(START_POS), 180
-                                                                
-}
 
 //----------------------------------------------------
 // pHelmIvP config block
@@ -176,7 +154,7 @@ ProcessConfig = pNodeReporter
   AppTick     = 6
   CommsTick   = 6
   
-  platform_type = KAYAK
+  platform_type = GLIDER
 
 	platform_color = $(COLOR)
 }

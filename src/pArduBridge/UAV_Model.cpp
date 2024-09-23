@@ -12,6 +12,7 @@
 #include "MBUtils.h"
 #include "AngleUtils.h"
 
+#include "thread"
 
 #include "definitions.h"
 
@@ -34,8 +35,16 @@ UAV_Model::UAV_Model(WarningSystem &ws):
 
 
   // Initalize the state variables
-  m_rudder       = 0;
+  m_position = mavsdk::Telemetry::Position();
+  m_attitude_ned = mavsdk::Telemetry::EulerAngle();
+  m_velocity_ned = mavsdk::Telemetry::VelocityNed();
+  m_battery = mavsdk::Telemetry::Battery();
+  m_flight_mode = mavsdk::Telemetry::FlightMode::Unknown;
+  m_home_coord = XYPoint(0, 0);
 
+  m_target_airspeed_cruise = 0;
+  m_min_airspeed = 0;
+  m_max_airspeed = 0;
 
 }
 
@@ -75,11 +84,14 @@ bool UAV_Model::connectToUAV(std::string url)
     m_warning_system.monitorWarningForXseconds(WARNING_TIMED_OUT, WARNING_DURATION);
   }
 
-  // m_mission_raw = MissionRaw{system.value()};
-  m_mission_raw_ptr = std::make_unique<mavsdk::MissionRaw>(system.value());
-  m_action_ptr = std::make_unique<mavsdk::Action>(system.value());
-  m_telemetry_ptr = std::make_unique<mavsdk::Telemetry>(system.value());
+  m_system_ptr = system.value();
 
+  // m_mission_raw = MissionRaw{system.value()};
+  m_mission_raw_ptr = std::make_unique<mavsdk::MissionRaw>(m_system_ptr);
+  m_action_ptr = std::make_unique<mavsdk::Action>(m_system_ptr);
+  m_telemetry_ptr = std::make_unique<mavsdk::Telemetry>(m_system_ptr);
+  m_mavPass_ptr = std::make_unique<mavsdk::MavlinkPassthrough>(m_system_ptr);
+  m_param_ptr = std::make_unique<mavsdk::Param>(m_system_ptr);
 
   auto clear_result = m_mission_raw_ptr->clear_mission();
   if (clear_result != mavsdk::MissionRaw::Result::Success) {
@@ -109,7 +121,14 @@ bool UAV_Model::connectToUAV(std::string url)
   m_home_coord.set_vx( home_point.x * 1e-7);
   m_home_coord.set_vy( home_point.y * 1e-7);
 
-  std::cout << "Home point: " << m_home_coord.x() << ", " << m_home_coord.y() << std::endl;
+  if(home_point.frame == MAV_FRAME_GLOBAL){
+    m_home_coord.set_vz( home_point.z);
+  }else{
+    m_warning_system.monitorWarningForXseconds("Home point is not in global frame, but in frame" + intToString(home_point.frame) , WARNING_DURATION);
+  }
+
+
+  std::cout << "Home point: " << m_home_coord.x() << ", " << m_home_coord.y()  << " , " << home_point.z << std::endl;
 
   create_missionPlan(mission_plan,  m_home_coord.x(), m_home_coord.y());
 
@@ -125,13 +144,7 @@ bool UAV_Model::connectToUAV(std::string url)
 
   m_mission_raw_ptr->set_current_mission_item(0);
 
-
-  m_telemetry_ptr->subscribe_health_all_ok([&, this](bool is_health_all_ok) {
-    this->m_health_all_ok = is_health_all_ok;
-  });
-
   return true;
-
 }
 
 bool UAV_Model::startMission() const{
@@ -158,50 +171,32 @@ bool UAV_Model::startMission() const{
 }
 
 
-bool UAV_Model::goToLocation(double latitude_deg, double longitude_deg, float absolute_altitude_m, float yaw_deg) const{
-
-    // blocking //TODO modify so it is non
-  auto res = m_action_ptr->goto_location(latitude_deg, longitude_deg, absolute_altitude_m, yaw_deg);
 
 
-  if(res != mavsdk::Action::Result::Success){
-    m_warning_system.monitorWarningForXseconds("goto_location failed", WARNING_DURATION);
-    return false;
-  }
-
-  MOOSTraceFromCallback("goto_location succeeded\n");
-  
-  return true;
-}
 
 
-bool UAV_Model::sendArmCommandIfHealthyAndNotArmed(){
+bool UAV_Model::sendArmCommandIfHealthyAndNotArmed() const{
   
   if(m_health_all_ok && !m_is_armed){
-    
-    m_action_ptr->arm_async([&, this](mavsdk::Action::Result result) {
-        // MOOSTrace("Arming result: %d\n", result);
-        if (result == mavsdk::Action::Result::Success) {
-            m_is_armed = true;
-        } else {
-            std::stringstream ss;
-            ss << "Arming failed: " << result << '\n';
-            std::cout << ss.str();
-            m_warning_system.monitorWarningForXseconds(ss.str(), WARNING_DURATION);
-        }
-    }); 
-
+    commandArm();
     return true;
   }
+
+  m_warning_system.monitorWarningForXseconds("UAV is not healthy or is already armed", WARNING_DURATION);
   return false;
 }
 
 
 
-bool UAV_Model::gatherTelemetry(){
+bool UAV_Model::subscribeToTelemetry(){
 
   m_telemetry_ptr->subscribe_armed([&](bool is_armed) {
     m_is_armed = is_armed;
+  });
+
+
+  m_telemetry_ptr->subscribe_health_all_ok([&, this](bool is_health_all_ok) {
+    this->m_health_all_ok = is_health_all_ok;
   });
 
 
@@ -214,8 +209,8 @@ bool UAV_Model::gatherTelemetry(){
   });
 
 
-  m_telemetry_ptr->subscribe_velocity_ned([&](mavsdk::Telemetry::VelocityNed ground_speed) {
-    m_velocity_ned = ground_speed;
+  m_telemetry_ptr->subscribe_velocity_ned([&](mavsdk::Telemetry::VelocityNed vel) {
+    m_velocity_ned = vel;
   });
 
 
@@ -224,98 +219,155 @@ bool UAV_Model::gatherTelemetry(){
   });
 
 
-  return true;
 
+  m_telemetry_ptr->subscribe_flight_mode([&](mavsdk::Telemetry::FlightMode flight_mode) {
+    m_flight_mode = flight_mode;
+  }); 
+
+
+  // auto resp2 = mavPass.get_param_int("AIRSPEED_MIN", std::nullopt, false);
+  //   if (resp2.first != MavlinkPassthrough::Result::Success) {
+  //       std::cerr << "get_param_int failed: " << resp2.first << '\n';
+  //   } else {
+  //       std::cout << "AIRSPEED_MIN: " << resp2.second << '\n';
+  //   }
+
+  // start a thread that get param every 5 seconds
+  // std::thread get_param_thread([&, this](){
+  //   while(true){
+  //     std::this_thread::sleep_for(std::chrono::seconds(5));
+  //     auto param_result = m_param_ptr->get_param_int("AIRSPEED_CRUISE");
+  //     if(param_result.first == mavsdk::Param::Result::Success){
+  //       m_target_airspeed_cruise = param_result.second;
+  //       std::cout << "Arming require: " << param_result.second << std::endl;
+  //     }else{
+  //       this->m_warning_system.monitorWarningForXseconds("Failed to get param AIRSPEED_CRUISE", WARNING_DURATION);
+  //     }
+  //   }
+  // });
+
+
+  return true;
+}
+
+///////////////////////////////////
+/////////////  COMMANDS  //////////
+///////////////////////////////////
+
+bool   UAV_Model::commandAirSpeed(double speed) const {
+  
+  commandSpeed(speed, SPEED_TYPE::SPEED_TYPE_AIRSPEED);
+  
+  auto result = m_param_ptr->set_param_float("AIRSPEED_CRUISE", speed);
+  if (result != mavsdk::Param::Result::Success){
+    m_warning_system.monitorWarningForXseconds("Failed to set param AIRSPEED_CRUISE", WARNING_DURATION);
+    return false;
+  }
+
+  return true;
 
 }
 
+bool UAV_Model::commandArm() const{
+
+  m_action_ptr->arm_async([&, this](mavsdk::Action::Result result) {
+    // MOOSTrace("Arming result: %d\n", result);
+    if (result != mavsdk::Action::Result::Success) {
+        std::stringstream ss;
+        ss << "Arming failed: " << result << '\n';
+        std::cout << ss.str();
+        m_warning_system.monitorWarningForXseconds(ss.str(), WARNING_DURATION);
+    }
+  }); 
+
+  return true;
+}
+
+bool UAV_Model::commandDisarm() const{
+  
+    m_action_ptr->disarm_async([&, this](mavsdk::Action::Result result) {
+      // MOOSTrace("Disarming result: %d\n", result);
+      if (result != mavsdk::Action::Result::Success) {
+          std::stringstream ss;
+          ss << "Disarming failed: " << result << '\n';
+          std::cout << ss.str();
+          m_warning_system.monitorWarningForXseconds(ss.str(), WARNING_DURATION);
+      }
+    });
+
+    return true;
+}
+
+bool UAV_Model::commandGoToLocation(mavsdk::Telemetry::Position& position) const{
+
+  double loiter_direction = 0; // 0 for clockwise, 1 for counter clockwise
+  
+  // blocking //TODO modify so it is non
+  auto res = m_action_ptr->goto_location(position.latitude_deg, position.longitude_deg, position.absolute_altitude_m, loiter_direction);
 
 
-// //------------------------------------------------------------------------
-// // Procedure: setParam
+  if(res != mavsdk::Action::Result::Success){
+    m_warning_system.monitorWarningForXseconds("goto_location failed", WARNING_DURATION);
+    return false;
+  }
 
-// bool UAV_Model::setParam(std::string param, double value)
-// {
-//   param = stripBlankEnds(tolower(param));
-//   if(param == "start_x") {
-//     m_record.setX(value);
-//   }
-//   else if(param == "start_y") {
-//     m_record.setY(value);
-//   }
-//   else if(param == "start_heading") {
-//     m_record.setHeading(value);
-//   }
-//   else if(param == "start_speed") {
-//     m_record.setSpeed(value);
-//   }
-//   else if(param == "start_depth") {
-//     m_record.setDepth(value);
-//     if(value < 0) {
-//       m_record.setDepth(0);
-//       return(false);
-//     }
-//   }
-//   else
-//     return(false);
-//   return(true);
-// }
+  MOOSTraceFromCallback("goto_location succeeded\n");
+  
+  return true;
+}
 
+bool UAV_Model::commandSpeed(double speed_m_s, SPEED_TYPE speed_type) const{
+  
+  
+  mavsdk::MavlinkPassthrough::CommandLong command_mode;
+  command_mode.command = MAV_CMD_DO_CHANGE_SPEED;
+  command_mode.target_sysid = m_system_ptr->get_system_id();
+  command_mode.target_compid = MAV_COMP_ID_AUTOPILOT1; //system.value()->component_ids().front(); // assuming first component is autopilot
+  command_mode.param1 = speed_type;
+  command_mode.param2 = speed_m_s;
+  command_mode.param3 = -1; // -1 throttle no change
 
+  // blocking
+  auto result = m_mavPass_ptr->send_command_long(command_mode);
 
+  // auto res = m_action_ptr->set_takeoff_speed(speed_m_s);
 
-// //------------------------------------------------------------------------
-// // Procedure: initPosition
-// //
-// //  "x=20, y=-35, speed=2.2, heading=180, depth=20"
-
-
-// bool UAV_Model::initPosition(const std::string& str)
-// {
-//   std::vector<std::string> svector = parseString(str, ',');
-//   unsigned int i, vsize = svector.size();
-//   for(i=0; i<vsize; i++) {
-//     svector[i] = tolower(stripBlankEnds(svector[i]));
-//    std::string param = biteStringX(svector[i], '=');
-//    std::string value = svector[i];
-
-//     // Support older style spec "5,10,180,2.0,0" - x,y,hdg,spd,dep
-//     if(value == "") {
-//       value = param;
-//       if(i==0)      param = "x";
-//       else if(i==1) param = "y";
-//       else if(i==2) param = "heading";
-//       else if(i==3) param = "speed";
-//       else if(i==4) param = "depth";
-//     }
-
-//     double dval  = atof(value.c_str());
-//     if(param == "x") {
-//       m_record.setX(dval);
-//     }
-//     else if(param == "y") {
-//       m_record.setY(dval);
-//     }
-//     else if((param == "heading") || (param=="deg") || (param=="hdg")) {
-//       m_record.setHeading(dval);
-//     }
-//     else if((param == "speed") || (param == "spd")) {
-//       m_record.setSpeed(dval);
-//     }
-//     else if((param == "depth") || (param == "dep")) {
-//       m_record.setDepth(dval);
-//     }
-//     else
-//       return(false);
-//   }
-//   return(true);
-// }
+  if(result != mavsdk::MavlinkPassthrough::Result::Success){
+    std::stringstream ss;
+    ss << "command Speed failed: " << result <<  " with speedtype ";
+    switch (speed_type)
+    {
+    case SPEED_TYPE_AIRSPEED:
+      ss << "SPEED_TYPE_AIRSPEED";
+      break;
+    case SPEED_TYPE_GROUNDSPEED:
+      ss << "SPEED_TYPE_GROUNDSPEED";
+      break;
+    default:
+      ss << doubleToString(speed_type);
+      break;
+    }
+    m_warning_system.monitorWarningForXseconds( ss.str(), WARNING_DURATION);
+    return false;
+  }
 
 
+  MOOSTraceFromCallback("command Speed succeeded\n");
 
 
+  return true;
+}
 
-
+void UAV_Model::pollAirspeedCruise() 
+{
+  auto param_result = m_param_ptr->get_param_float("AIRSPEED_CRUISE");
+  if (param_result.first == mavsdk::Param::Result::Success){
+    m_target_airspeed_cruise = param_result.second;
+  }
+  else{
+    m_warning_system.monitorWarningForXseconds("Failed to get param AIRSPEED_CRUISE", WARNING_DURATION);
+  }
+}
 
 mavsdk::MissionRaw::MissionItem make_mission_item_wp(
     float latitude_deg1e7,
