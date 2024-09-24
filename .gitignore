@@ -78,5 +78,6 @@ eeprom.bin
 terrain
 *.parm
 vpositions.txt
+vnames.txt
 
 Backup_dunebuild/**

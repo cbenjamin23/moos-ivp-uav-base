@@ -27,6 +27,8 @@
 
 #include "XYPoint.h"
 
+#include "definitions.h"
+
 class UAV_Model
 {
 public:
@@ -44,9 +46,34 @@ public:
 
 
     // Polling functions 
-    bool   pollParameters(){return(pollMinAirSpeed() && pollMaxAirSpeed() && pollAirspeedCruise());}; 
+    bool   pollParameters(){
+      return( pollMaxAirSpeed() && pollMinAirSpeed() && pollAirspeedCruise());
+      }; 
     bool   pollMinAirSpeed(){return(getParameter(Parameters::AIRSPEED_MIN));};
-    bool   pollMaxAirSpeed(){return(getParameter(Parameters::AIRSPEED_MAX));};
+    bool   pollMaxAirSpeed(){
+      
+      return getParameter(Parameters::AIRSPEED_MAX);
+
+      m_action_ptr->get_maximum_speed_async(
+        [&](mavsdk::Action::Result result, float max_speed) {
+          
+          if(result != mavsdk::Action::Result::Success){
+            std::stringstream ss;  
+            ss << "Failed to get maximum speed: " << result;
+            m_warning_system.monitorWarningForXseconds(ss.str() , WARNING_DURATION );
+            return false;
+          }
+
+          m_max_airspeed = max_speed;
+          return true;
+        } 
+      );
+      
+      return true;
+      // getParameter(Parameters::AIRSPEED_MAX));
+      
+    };
+
     bool   pollAirspeedCruise(){return(getParameter(Parameters::AIRSPEED_CRUISE));};
 
 
@@ -102,9 +129,9 @@ protected:
     };
 
     static inline std::map<Parameters, std::string> paramEnum2string = {
-      {Parameters::AIRSPEED_MIN, "AIRSPEED_MIN"},
-      {Parameters::AIRSPEED_MAX, "AIRSPEED_MAX"},
-      {Parameters::AIRSPEED_CRUISE, "AIRSPEED_CRUISE"}
+      {Parameters::AIRSPEED_MIN, "ARSPD_FBW_MIN"},
+      {Parameters::AIRSPEED_MAX, "ARSPD_FBW_MAX"},
+      {Parameters::AIRSPEED_CRUISE, "TRIM_ARSPD_CM"}
     };
 
 
