@@ -6,6 +6,7 @@
 #include <string>
 
 #include <chrono>
+#include <mutex>
 
 class WarningSystem {
 public:
@@ -17,6 +18,7 @@ public:
         : MOOSReportCallback(MOOSReportCallback), MOOSRetractCallback(MOOSRetractCallback) {}
 
     void monitorWarningForXseconds(const std::string& warningKey, double seconds) {
+
         
          // Get the current time as the start time
         auto start_time = std::chrono::steady_clock::now();
@@ -37,6 +39,8 @@ public:
                           CallbackType reportCallback = nullptr, 
                           CallbackType retractCallback = nullptr) {
         
+            std::lock_guard<std::recursive_mutex> lock(warningMutex);
+
         if (reportCallback == nullptr) {
             reportCallback = MOOSReportCallback;
         }
@@ -48,6 +52,7 @@ public:
 
     // This method is called periodically (e.g., in a loop or timer)
     void checkConditions() {
+        std::lock_guard<std::recursive_mutex> lock(warningMutex);
         for (auto& [warningKey, conditionData] : monitoredConditions) {
             auto& condition = conditionData.condition;
             auto& reportCallback = conditionData.reportCallback;
@@ -68,6 +73,7 @@ private:
     CallbackType MOOSReportCallback;
     CallbackType MOOSRetractCallback;
 
+
     struct ConditionData {
         std::function<bool()> condition;
         CallbackType reportCallback;
@@ -76,5 +82,6 @@ private:
 
     std::unordered_map<std::string, ConditionData> monitoredConditions;
     std::unordered_map<std::string, bool> warningsActive;
+    std::recursive_mutex warningMutex;
 };
 

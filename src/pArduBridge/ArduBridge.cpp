@@ -10,7 +10,6 @@
 #include "ACTable.h"
 #include "ArduBridge.h"
 
-
 #include "definitions.h"
 
 //---------------------------------------------------------
@@ -22,11 +21,11 @@ ArduBridge::ArduBridge()
   m_cli_arg{},
   m_do_change_speed_pair{std::make_pair(false, 0)},
   m_do_reset_speed{false},
-  m_warning_system{
+  m_warning_system_ptr{ std::make_shared<WarningSystem>(
     [this](const std::string msg){this->reportRunWarning(msg);}, 
-    [this](const std::string msg){this->retractRunWarning(msg);}, 
+    [this](const std::string msg){this->retractRunWarning(msg);} ) 
     },
-  m_uav_model{m_warning_system}
+  m_uav_model{m_warning_system_ptr}
 {
 
   m_uav_prefix = "UAV";
@@ -138,7 +137,7 @@ bool ArduBridge::Iterate()
 
 
   if(m_do_change_speed_pair.first){
-    m_uav_model.commandAndSetAirSpeed(m_uav_model.getTargetAirSpeed() + m_do_change_speed_pair.second);
+    m_uav_model.commandAndSetAirSpeedAsync(m_uav_model.getTargetAirSpeed() + m_do_change_speed_pair.second);
     reportEvent("Changed speed by " + doubleToString(m_do_change_speed_pair.second));
     m_do_change_speed_pair.second = 0;
     m_do_change_speed_pair.first = false;
@@ -148,7 +147,7 @@ bool ArduBridge::Iterate()
 
 
   if(m_do_reset_speed){
-    m_uav_model.commandAndSetAirSpeed(m_uav_model.getMinAirSpeed());
+    m_uav_model.commandAndSetAirSpeedAsync(m_uav_model.getMinAirSpeed());
     m_do_reset_speed = false;
     poll_parameters = true;
   }
@@ -156,10 +155,10 @@ bool ArduBridge::Iterate()
   postTelemetryUpdate(m_uav_prefix);
 
 
-  m_warning_system.checkConditions(); // Check for warnings and remove/raise them as needed
+  m_warning_system_ptr->checkConditions(); // Check for warnings and remove/raise them as needed
 
   if(poll_parameters){
-    m_uav_model.pollParameters();
+    m_uav_model.pollAllParametersAsync();
     poll_parameters = false;
   }
 
@@ -175,13 +174,22 @@ bool ArduBridge::OnStartUp()
 {
   AppCastingMOOSApp::OnStartUp();
 
+
+  std::cout << "Starting up ArduBridge with mission file name: " << GetMissionFileName() << std::endl;
+  std::cout << "App name is: " << GetAppName() << std::endl;
+
+
+  bool is_connected = false;
   std::string ardupilot_url;
   std::pair<bool, std::string> url_protocol_pair{false, ""};
 
   STRING_LIST sParams;
+
   m_MissionReader.EnableVerbatimQuoting(false);
-  if(!m_MissionReader.GetConfiguration(GetAppName(), sParams))
+  if(!m_MissionReader.GetConfiguration(GetAppName(), sParams)){
+    std::cout << "No config block found for " << GetAppName() << std::endl;
     reportConfigWarning("No config block found for " + GetAppName());
+  }
 
   STRING_LIST::iterator p;
   for(p=sParams.begin(); p!=sParams.end(); p++) {
@@ -189,6 +197,7 @@ bool ArduBridge::OnStartUp()
     std::string line  = *p;
     std::string param = tolower(biteStringX(line, '='));
     std::string value = line;
+
 
     bool handled = false;
     if(param == "ardupiloturl" || param == "url") {
@@ -213,6 +222,7 @@ bool ArduBridge::OnStartUp()
       }
       
       handled = url_protocol_pair.first;
+      std::cout << "URL protocol set to: " << url_protocol_pair.second << std::endl;
 
     }
     if(!handled)
@@ -240,6 +250,9 @@ bool ArduBridge::OnStartUp()
     }
   }
 
+
+
+
   ardupilot_url = url_protocol_pair.second + ardupilot_url;
 
   std::cout << "ArduPilot URL is: " << ardupilot_url << std::endl;
@@ -256,14 +269,19 @@ bool ArduBridge::OnStartUp()
   }
   else{
     // Connect to autopilot
-    m_uav_model.connectToUAV(ardupilot_url);
+    is_connected = m_uav_model.connectToUAV(ardupilot_url);
 
+  }
+
+  if(!is_connected){
+    std::cout << "Failed to connect to ArduPilot" << std::endl;
+    return(false);
   }
 
   m_uav_model.subscribeToTelemetry();
 
   registerVariables();	
-  m_warning_system.checkConditions(); // Check for warnings and remove/raise them as needed
+  m_warning_system_ptr->checkConditions(); // Check for warnings and remove/raise them as needed
   
   
   
@@ -383,7 +401,7 @@ void ArduBridge::postTelemetryUpdate(const std::string& prefix){
   double lon = m_uav_model.getLongitude();
 
   if(!lat || !lon) {
-    m_warning_system.monitorWarningForXseconds("NAN Values at lat or long", 5);
+    m_warning_system_ptr->monitorWarningForXseconds("NAN Values at lat or long", 5);
     return;
   }
 

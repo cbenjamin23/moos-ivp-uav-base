@@ -67,7 +67,7 @@ class ArduBridge : public AppCastingMOOSApp
     std::pair<bool, double> m_do_change_speed_pair;
     bool  m_do_reset_speed;
 
-    WarningSystem m_warning_system;
+    std::shared_ptr<WarningSystem> m_warning_system_ptr;
 
 };
 

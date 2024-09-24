@@ -89,10 +89,10 @@ Use command:
 ./launch_vehicle.sh --shore=10.0.60.1 --shore_pshare=9200 --ip=10.0.60.110 --pshare=9201 --vname=skywalker -v
 ```
 
-and
+and (for more debugging add `MAVSDK_MESSAGE_HANDLER_DEBUGGING=1 `)
 
 ```bash
-MAVSDK_MESSAGE_HANDLER_DEBUGGING=1 MAVSDK_CALLBACK_DEBUGGING=1 MAVSDK_COMMAND_DEBUGGING=1 MAVSDK_PARAMETER_DEBUGGING=1 pArduBridge targ_skywalker.moos
+MAVSDK_CALLBACK_DEBUGGING=1 MAVSDK_COMMAND_DEBUGGING=1 MAVSDK_PARAMETER_DEBUGGING=1 pArduBridge targ_skywalker.moos
 ```
 
 ## Launching Groundstation

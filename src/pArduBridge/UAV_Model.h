@@ -32,7 +32,7 @@
 class UAV_Model
 {
 public:
-    UAV_Model(WarningSystem &ws);
+    UAV_Model(std::shared_ptr<WarningSystem> ws);
     virtual  ~UAV_Model() {}
 
     bool connectToUAV(std::string url);
@@ -46,39 +46,42 @@ public:
 
 
     // Polling functions 
-    bool   pollParameters(){
-      return( pollMaxAirSpeed() && pollMinAirSpeed() && pollAirspeedCruise());
-      }; 
-    bool   pollMinAirSpeed(){return(getParameter(Parameters::AIRSPEED_MIN));};
-    bool   pollMaxAirSpeed(){
-      
-      return getParameter(Parameters::AIRSPEED_MAX);
 
-      m_action_ptr->get_maximum_speed_async(
-        [&](mavsdk::Action::Result result, float max_speed) {
+    // Non-blocking function to poll all parameters
+    void   pollAllParametersAsync();
+    // bool   pollParameters(){
+    //   return( pollMaxAirSpeed() /*&& pollMinAirSpeed() && pollAirspeedCruise() */);
+    //   }; 
+    // bool   pollMinAirSpeed(){return(getParameter(Parameters::AIRSPEED_MIN));};
+    // bool   pollMaxAirSpeed(){
+      
+    //   // return getParameter(Parameters::AIRSPEED_MAX);
+
+    //   m_action_ptr->get_maximum_speed_async(
+    //     [&](mavsdk::Action::Result result, float max_speed) {
           
-          if(result != mavsdk::Action::Result::Success){
-            std::stringstream ss;  
-            ss << "Failed to get maximum speed: " << result;
-            m_warning_system.monitorWarningForXseconds(ss.str() , WARNING_DURATION );
-            return false;
-          }
+    //       if(result != mavsdk::Action::Result::Success){
+    //         std::stringstream ss;  
+    //         ss << "Failed to get maximum speed: " << result;
+    //         m_warning_system.monitorWarningForXseconds(ss.str() , WARNING_DURATION );
+    //         return false;
+    //       }
 
-          m_max_airspeed = max_speed;
-          return true;
-        } 
-      );
+    //       m_max_airspeed = max_speed;
+    //       return true;
+    //     } 
+    //   );
       
-      return true;
-      // getParameter(Parameters::AIRSPEED_MAX));
+    //   return true;
+    //   // getParameter(Parameters::AIRSPEED_MAX));
       
-    };
+    // };
 
-    bool   pollAirspeedCruise(){return(getParameter(Parameters::AIRSPEED_CRUISE));};
+    // bool   pollAirspeedCruise(){return(getParameter(Parameters::AIRSPEED_CRUISE));};
 
 
     // Actions
-    bool   commandAndSetAirSpeed(double speed) const;
+    bool   commandAndSetAirSpeedAsync(double speed) const;
     bool   commandGroundSpeed(double speed) const {return(commandSpeed(speed, SPEED_TYPE::SPEED_TYPE_GROUNDSPEED));} //blocking functions
     bool   commandGoToLocation(mavsdk::Telemetry::Position& position) const;
             // async function
@@ -88,7 +91,7 @@ public:
     void   setCallbackMOOSTrace(const std::function<void(const std::string&)>& callback) {callbackMOOSTrace = callback ;}
     void   setCallbackReportRunW(const std::function<void(const std::string&)>& callback) {callbackReportRunW = callback ;}
     void   setCallbackRetractRunW(const std::function<void(const std::string&)>& callback) {callbackRetractRunW = callback ;}
-    void   registerWarningSystem(WarningSystem &ws) {m_warning_system = ws;}
+    void   registerWarningSystem(std::shared_ptr<WarningSystem> ws) {m_warning_system_ptr = ws;}
 
 
     // Getters
@@ -102,9 +105,9 @@ public:
     double    getLatitude() const {return(m_position.latitude_deg);}
     double    getLongitude() const {return(m_position.longitude_deg);}
     
-    double    getMinAirSpeed() const {return(m_min_airspeed);}
-    double    getMaxAirSpeed() const {return(m_max_airspeed);}
-    double    getTargetAirSpeed() const {return(m_target_airspeed_cruise);}
+    double    getMinAirSpeed() const {return(m_polled_params.min_airspeed);}
+    double    getMaxAirSpeed() const {return(m_polled_params.max_airspeed);}
+    double    getTargetAirSpeed() const {return(m_polled_params.target_airspeed_cruise);}
     double    getAirSpeed() const {return( sqrt(m_velocity_ned.north_m_s*m_velocity_ned.north_m_s
                                                + m_velocity_ned.east_m_s*m_velocity_ned.east_m_s)
                                                + m_velocity_ned.down_m_s*m_velocity_ned.down_m_s );}
@@ -134,10 +137,19 @@ protected:
       {Parameters::AIRSPEED_CRUISE, "TRIM_ARSPD_CM"}
     };
 
+    // Structure to hold polled parameters
+    struct PolledParameters {
+        double min_airspeed = 0.0;
+        double max_airspeed = 0.0;
+        double target_airspeed_cruise = 0.0;
+
+        std::mutex param_mutex;  // Mutex for thread-safe access
+    };
+
 
  protected:
 
-    WarningSystem& m_warning_system;
+    std::shared_ptr<WarningSystem> m_warning_system_ptr;
     // Callbacks for debug messages
     std::function<void(const std::string&)> callbackMOOSTrace;
     std::function<void(const std::string&)> callbackReportRunW;
@@ -150,12 +162,12 @@ protected:
     bool commandSpeed(double airspeed_m_s, SPEED_TYPE speed_type = SPEED_TYPE::SPEED_TYPE_GROUNDSPEED) const;
     bool commandArm() const;
 
+    void setParameterAsync(Parameters param_enum, double value) const;
     bool getParameter(Parameters param_enum);
-    bool commandSetParameter(Parameters param_enum, double value) const;
+    void pollParameterInThread(const Parameters param_enum);
 
 
-
-protected:
+  protected:
     std::shared_ptr<mavsdk::System>             m_system_ptr;
     std::shared_ptr<mavsdk::Mavsdk>             m_mavsdk_ptr;
     std::unique_ptr<mavsdk::MissionRaw>         m_mission_raw_ptr;
@@ -180,10 +192,8 @@ protected:
     mavsdk::Telemetry::FlightMode m_flight_mode;
     
 
-    // Status
-    double  m_target_airspeed_cruise;
-    int     m_min_airspeed;
-    int     m_max_airspeed;
+    // Parameters
+    PolledParameters m_polled_params;
 
     XYPoint   m_home_coord;
 

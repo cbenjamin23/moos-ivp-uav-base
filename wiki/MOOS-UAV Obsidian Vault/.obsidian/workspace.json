@@ -85,7 +85,7 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "Info/ArduPilot & MavProx.md",
+                "file": "Info/Launching System.md",
                 "mode": "source",
                 "backlinks": false,
                 "source": false
@@ -106,7 +106,7 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "Info/ArduPilot & MavProx.md",
+                "file": "Info/Launching System.md",
                 "mode": "preview",
                 "backlinks": false,
                 "source": false
@@ -180,7 +180,7 @@
             "state": {
               "type": "backlink",
               "state": {
-                "file": "Info/ArduPilot & MavProx.md",
+                "file": "Info/Launching System.md",
                 "collapseAll": false,
                 "extraContext": false,
                 "sortOrder": "alphabetical",
@@ -197,7 +197,7 @@
             "state": {
               "type": "outgoing-link",
               "state": {
-                "file": "Info/ArduPilot & MavProx.md",
+                "file": "Info/Launching System.md",
                 "linksCollapsed": false,
                 "unlinkedCollapsed": true
               }
@@ -220,7 +220,7 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "Info/ArduPilot & MavProx.md"
+                "file": "Info/Launching System.md"
               }
             }
           }
@@ -241,17 +241,17 @@
       "command-palette:Open command palette": false
     }
   },
-  "active": "7000d0c8a156708a",
+  "active": "da26bb1516200fb8",
   "lastOpenFiles": [
-    "Info/MAIN System architecture.md",
-    "Info/ArduPilot & MavProx.md",
+    "Info/Launching System.md",
     "Info/Install, Build & Run MAVSDK.md",
-    "Info/Odriod.md",
+    "Info/MAIN System architecture.md",
+    "Info/Mission Planner info.md",
     "Troubleshooting.md",
+    "Info/ArduPilot & MavProx.md",
     "Helpful definitions.md",
     "Testing.md",
     "Advantages of MOOS-IVP.md",
-    "Info/Mission Planner info.md",
     "Info/Skywalker X8.md",
     "QUESTIONS.md",
     "Papers",

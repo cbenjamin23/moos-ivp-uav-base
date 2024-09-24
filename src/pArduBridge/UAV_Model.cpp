@@ -20,19 +20,20 @@
 //------------------------------------------------------------------------
 // Constructor
 
-UAV_Model::UAV_Model(WarningSystem &ws):
+UAV_Model::UAV_Model(std::shared_ptr<WarningSystem> ws):
   m_mavsdk_ptr{std::make_shared<mavsdk::Mavsdk>(mavsdk::Mavsdk::Configuration{mavsdk::Mavsdk::ComponentType::GroundStation})},
 
   callbackMOOSTrace{nullptr},
   callbackReportRunW{nullptr},
   callbackRetractRunW{nullptr},
-  m_warning_system{ws},
 
   m_health_all_ok{false},
   m_is_armed{false},
   m_in_air{false}
 {
   // Initalize the configuration variables
+
+  m_warning_system_ptr = ws;
 
 
   // Initalize the state variables
@@ -42,10 +43,6 @@ UAV_Model::UAV_Model(WarningSystem &ws):
   m_battery = mavsdk::Telemetry::Battery();
   m_flight_mode = mavsdk::Telemetry::FlightMode::Unknown;
   m_home_coord = XYPoint(0, 0);
-
-  m_target_airspeed_cruise = 0;
-  m_min_airspeed = 0;
-  m_max_airspeed = 0;
 
 }
 
@@ -75,7 +72,7 @@ bool UAV_Model::connectToUAV(std::string url)
     MOOSTraceFromCallback(ss.str().c_str());
 
     std::cout << ss.str() << std::endl;
-    m_warning_system.monitorWarningForXseconds(ss.str(), WARNING_DURATION);
+    m_warning_system_ptr->monitorWarningForXseconds(ss.str(), WARNING_DURATION);
 
     return false;
   }
@@ -88,7 +85,7 @@ bool UAV_Model::connectToUAV(std::string url)
 
   auto system = m_mavsdk_ptr->first_autopilot(3.0);
   if (!system.has_value()) {
-    m_warning_system.monitorWarningForXseconds(WARNING_TIMED_OUT, WARNING_DURATION);
+    m_warning_system_ptr->monitorWarningForXseconds(WARNING_TIMED_OUT, WARNING_DURATION);
   }
 
   m_system_ptr = system.value();
@@ -102,12 +99,12 @@ bool UAV_Model::connectToUAV(std::string url)
 
   auto clear_result = m_mission_raw_ptr->clear_mission();
   if (clear_result != mavsdk::MissionRaw::Result::Success) {
-      m_warning_system.monitorWarningForXseconds("Failed to clear mission", WARNING_DURATION);
+      m_warning_system_ptr->monitorWarningForXseconds("Failed to clear mission", WARNING_DURATION);
   }
 
   auto download_result = m_mission_raw_ptr->download_mission();
   if (download_result.first != mavsdk::MissionRaw::Result::Success) {
-      m_warning_system.monitorWarningForXseconds("Failed to download mission", WARNING_DURATION);
+      m_warning_system_ptr->monitorWarningForXseconds("Failed to download mission", WARNING_DURATION);
   }
 
   // first point in case of ardupilot is always home
@@ -131,7 +128,7 @@ bool UAV_Model::connectToUAV(std::string url)
   if(home_point.frame == MAV_FRAME_GLOBAL){
     m_home_coord.set_vz( home_point.z);
   }else{
-    m_warning_system.monitorWarningForXseconds("Home point is not in global frame, but in frame" + intToString(home_point.frame) , WARNING_DURATION);
+    m_warning_system_ptr->monitorWarningForXseconds("Home point is not in global frame, but in frame" + intToString(home_point.frame) , WARNING_DURATION);
   }
 
 
@@ -141,7 +138,7 @@ bool UAV_Model::connectToUAV(std::string url)
 
   auto upload_result = m_mission_raw_ptr->upload_mission(mission_plan);
     if (upload_result != mavsdk::MissionRaw::Result::Success) {
-        m_warning_system.monitorWarningForXseconds("Mission upload failed", WARNING_DURATION);
+        m_warning_system_ptr->monitorWarningForXseconds("Mission upload failed", WARNING_DURATION);
         std::stringstream ss;
         ss << "Failed to upload mission" << std::endl;
         ss << "upload result: " << upload_result << std::endl;
@@ -158,7 +155,7 @@ bool UAV_Model::startMission() const{
   if(!m_is_armed){
     // reportRunWarning("Not armed");
 
-    m_warning_system.monitorCondition( WARNING_UAV_NOT_ARMED,
+    m_warning_system_ptr->monitorCondition( WARNING_UAV_NOT_ARMED,
                                       [&](){return !m_is_armed;}
                                       );   
     return false;
@@ -167,7 +164,7 @@ bool UAV_Model::startMission() const{
   auto start_result = m_mission_raw_ptr->start_mission();
 
   if (start_result != mavsdk::MissionRaw::Result::Success) {
-      m_warning_system.monitorWarningForXseconds("Failed to start mission", WARNING_DURATION);
+      m_warning_system_ptr->monitorWarningForXseconds("Failed to start mission", WARNING_DURATION);
       return false;
   }
   
@@ -180,7 +177,6 @@ bool UAV_Model::startMission() const{
 
 
 
-
 bool UAV_Model::sendArmCommandIfHealthyAndNotArmed() const{
   
   if(m_health_all_ok && !m_is_armed){
@@ -188,7 +184,7 @@ bool UAV_Model::sendArmCommandIfHealthyAndNotArmed() const{
     return true;
   }
 
-  m_warning_system.monitorWarningForXseconds("UAV is not healthy or is already armed", WARNING_DURATION);
+  m_warning_system_ptr->monitorWarningForXseconds("UAV is not healthy or is already armed", WARNING_DURATION);
   return false;
 }
 
@@ -247,7 +243,7 @@ bool UAV_Model::subscribeToTelemetry(){
   //       m_target_airspeed_cruise = param_result.second;
   //       std::cout << "Arming require: " << param_result.second << std::endl;
   //     }else{
-  //       this->m_warning_system.monitorWarningForXseconds("Failed to get param AIRSPEED_CRUISE", WARNING_DURATION);
+  //       this->m_warning_system_ptr->monitorWarningForXseconds("Failed to get param AIRSPEED_CRUISE", WARNING_DURATION);
   //     }
   //   }
   // });
@@ -256,12 +252,51 @@ bool UAV_Model::subscribeToTelemetry(){
   return true;
 }
 
+
+///////////////////////////////////
+/////////////  POLLING  //////////
+///////////////////////////////////
+
+void UAV_Model::pollAllParametersAsync()
+{
+    // Start polling each parameter asynchronously
+    pollParameterInThread(Parameters::AIRSPEED_MIN);
+    pollParameterInThread(Parameters::AIRSPEED_MAX);
+    pollParameterInThread(Parameters::AIRSPEED_CRUISE);
+}
+
+void UAV_Model::pollParameterInThread(const Parameters param_enum)
+{
+    std::thread([this, param_enum]() {
+        // Get the parameter in a blocking manner, but inside a thread
+        if (this->getParameter(param_enum)) {
+            std::lock_guard<std::mutex> lock(m_polled_params.param_mutex);
+
+            // Store the result based on the parameter type
+            switch (param_enum) {
+                case Parameters::AIRSPEED_MIN:
+                    std::cout << "Min airspeed successfully polled: " << m_polled_params.min_airspeed << std::endl;
+                    break;
+                case Parameters::AIRSPEED_MAX:
+                    std::cout << "Max airspeed successfully polled: " << m_polled_params.max_airspeed << std::endl;
+                    break;
+                case Parameters::AIRSPEED_CRUISE:
+                    std::cout << "Cruise airspeed successfully polled: " << m_polled_params.target_airspeed_cruise << std::endl;
+                    break;
+                default:
+                    std::cout << "Unknown parameter polled" << std::endl;
+                    break;
+            }
+        }
+    }).detach();  // Detach to allow the thread to run independently
+}
+
 bool UAV_Model::getParameter(Parameters param_enum)
 {
-  // Check if the parameter exists in the string-to-enum map
+    // Check if the parameter exists in the string-to-enum map
     auto it = paramEnum2string.find(param_enum);
     if (it == paramEnum2string.end()) {
-        m_warning_system.monitorWarningForXseconds("Parameter unknown: " + intToString(static_cast<int>(param_enum)), WARNING_DURATION);
+        m_warning_system_ptr->monitorWarningForXseconds("Parameter unknown: " + intToString(static_cast<int>(param_enum)), WARNING_DURATION);
         return false;
     }
 
@@ -283,73 +318,79 @@ bool UAV_Model::getParameter(Parameters param_enum)
     // Check if the result was successful
     if (result != mavsdk::Param::Result::Success) {
         std::stringstream ss;
-        ss << "Parameter retrieval failed: " << param_name << "):" << result << '\n';
-        m_warning_system.monitorWarningForXseconds(ss.str() , WARNING_DURATION);
+        ss << "Parameter retrieval failed: " << param_name << ": " << result << '\n';
+        m_warning_system_ptr->monitorWarningForXseconds(ss.str(), WARNING_DURATION);
         return false;
     }
 
     // Assign the value to the appropriate member based on the parameter
+    std::lock_guard<std::mutex> lock(m_polled_params.param_mutex);  // Ensure thread-safe access
     switch (param_enum) {
         case Parameters::AIRSPEED_MIN:
-            m_min_airspeed = param_value;
+            m_polled_params.min_airspeed = static_cast<int>(std::round(param_value));
             break;
         case Parameters::AIRSPEED_MAX:
-            m_max_airspeed = param_value;
+            m_polled_params.max_airspeed = static_cast<int>(std::round(param_value));
             break;
         case Parameters::AIRSPEED_CRUISE:
-            m_target_airspeed_cruise = param_value;
+            m_polled_params.target_airspeed_cruise = param_value;
             break;
         default:
-            m_warning_system.monitorWarningForXseconds("Unknown parameter", WARNING_DURATION);
+            m_warning_system_ptr->monitorWarningForXseconds("Unknown parameter", WARNING_DURATION);
             return false;
     }
 
     return true;
-
 }
 
-bool UAV_Model::commandSetParameter(Parameters param_enum, double value) const
+void UAV_Model::setParameterAsync(Parameters param_enum, double value) const
 {
-  // Check if the parameter exists in the string-to-enum map
-    auto it = paramEnum2string.find(param_enum);
-    if (it == paramEnum2string.end()) {
-        m_warning_system.monitorWarningForXseconds("Parameter unknown: " + intToString(static_cast<int>(param_enum)), WARNING_DURATION);
-        return false;
-    }
+    // Run the parameter setting in a separate thread
+    std::thread([this, param_enum, value]() {
+        // Check if the parameter exists in the string-to-enum map
+        auto it = paramEnum2string.find(param_enum);
+        if (it == paramEnum2string.end()) {
+            m_warning_system_ptr->monitorWarningForXseconds("Parameter unknown: " + intToString(static_cast<int>(param_enum)), WARNING_DURATION);
+            return;
+        }
 
-    std::string param_name = it->second;
-    mavsdk::Param::Result result;
+        std::string param_name = it->second;
+        mavsdk::Param::Result result;
 
-    // Determine whether to set an integer or float parameter with a switch statement
-    
-    if (param_enum == Parameters::AIRSPEED_CRUISE) {
-        result = m_param_ptr->set_param_float(param_name, value);
-    } else {
-        result = m_param_ptr->set_param_int(param_name, static_cast<int>(value));
-    }
+        // Determine whether to set an integer or float parameter
+        if (param_enum == Parameters::AIRSPEED_CRUISE) {
+            result = m_param_ptr->set_param_float(param_name, value);
+        } else {
+            result = m_param_ptr->set_param_int(param_name, static_cast<int>(value));
+        }
 
+        // Check if the result was successful
+        if (result != mavsdk::Param::Result::Success) {
+            std::stringstream ss;
+            ss << "Parameter setting failed (" << param_name << "):" << result << '\n';
+            m_warning_system_ptr->monitorWarningForXseconds(ss.str(), WARNING_DURATION);
+            return;
+        }
 
-    // Check if the result was successful
-    if (result != mavsdk::Param::Result::Success) {
-        std::stringstream ss;
-        ss << "Parameter setting failed (" << param_name << "):" << result << '\n';
-        m_warning_system.monitorWarningForXseconds( ss.str(), WARNING_DURATION);
-        return false;
-    }
+        // Optionally, you can log or perform some action upon success
+        std::stringstream success_message;
+        success_message << "Parameter " << param_name << " set successfully.";
+        m_warning_system_ptr->monitorWarningForXseconds(success_message.str(), WARNING_DURATION);
 
-    return true;
+    }).detach();  // Detach to allow the thread to run independently
 }
 
 ///////////////////////////////////
 /////////////  COMMANDS  //////////
 ///////////////////////////////////
 
-bool   UAV_Model::commandAndSetAirSpeed(double speed) const {
+
+bool   UAV_Model::commandAndSetAirSpeedAsync(double speed) const {
   
   if(commandSpeed(speed, SPEED_TYPE::SPEED_TYPE_AIRSPEED)){
 
-    return commandSetParameter(Parameters::AIRSPEED_CRUISE, speed);
-
+    setParameterAsync(Parameters::AIRSPEED_CRUISE, speed);
+    return true;
   };
   return false;
 }
@@ -362,7 +403,7 @@ bool UAV_Model::commandArm() const{
         std::stringstream ss;
         ss << "Arming failed: " << result << '\n';
         std::cout << ss.str();
-        m_warning_system.monitorWarningForXseconds(ss.str(), WARNING_DURATION);
+        m_warning_system_ptr->monitorWarningForXseconds(ss.str(), WARNING_DURATION);
     }
   }); 
 
@@ -377,7 +418,7 @@ bool UAV_Model::commandDisarm() const{
           std::stringstream ss;
           ss << "Disarming failed: " << result << '\n';
           std::cout << ss.str();
-          m_warning_system.monitorWarningForXseconds(ss.str(), WARNING_DURATION);
+          m_warning_system_ptr->monitorWarningForXseconds(ss.str(), WARNING_DURATION);
       }
     });
 
@@ -393,7 +434,7 @@ bool UAV_Model::commandGoToLocation(mavsdk::Telemetry::Position& position) const
 
 
   if(res != mavsdk::Action::Result::Success){
-    m_warning_system.monitorWarningForXseconds("goto_location failed", WARNING_DURATION);
+    m_warning_system_ptr->monitorWarningForXseconds("goto_location failed", WARNING_DURATION);
     return false;
   }
 
@@ -405,7 +446,7 @@ bool UAV_Model::commandGoToLocation(mavsdk::Telemetry::Position& position) const
 bool UAV_Model::commandSpeed(double speed_m_s, SPEED_TYPE speed_type) const{
   
   if(!m_in_air){
-    m_warning_system.monitorWarningForXseconds("UAV is not in air! Cannot send speed", WARNING_DURATION);
+    m_warning_system_ptr->monitorWarningForXseconds("UAV is not in air! Cannot send speed", WARNING_DURATION);
     return false;
   }
 
@@ -437,7 +478,7 @@ bool UAV_Model::commandSpeed(double speed_m_s, SPEED_TYPE speed_type) const{
       ss << doubleToString(speed_type);
       break;
     }
-    m_warning_system.monitorWarningForXseconds( ss.str(), WARNING_DURATION);
+    m_warning_system_ptr->monitorWarningForXseconds( ss.str(), WARNING_DURATION);
     return false;
   }
 
