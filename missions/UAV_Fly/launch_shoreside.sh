@@ -56,32 +56,29 @@ for ARGI; do
     echo "  --vnames=<vnames>                            "
     echo "    Colon-separate list of all vehicle names   "
 	exit 0;
-    elif [ "${ARGI//[^0-9]/}" = "$ARGI" -a "$TIME_WARP" = 1 ]; then 
+    elif [[ "${ARGI//[^0-9]/}" == "$ARGI" && "$TIME_WARP" == "1" ]]; then
         TIME_WARP=$ARGI
-    elif [ "${ARGI}" = "--just_make" -o "${ARGI}" = "-j" ]; then
-	JUST_MAKE="yes"
-    elif [ "${ARGI}" = "--verbose" -o "${ARGI}" = "-v" ]; then
-	VERBOSE="yes"
-    elif [ "${ARGI}" = "--auto" -o "${ARGI}" = "-a" ]; then
+    elif [[ "${ARGI}" == "--just_make" || "${ARGI}" == "-j" ]]; then
+        JUST_MAKE="yes"
+    elif [[ "${ARGI}" == "--verbose" || "${ARGI}" == "-v" ]]; then
+        VERBOSE="yes"
+    elif [[ "${ARGI}" == "--auto" || "${ARGI}" == "-a" ]]; then
         AUTO_LAUNCHED="yes"
-    elif [ "${ARGI}" = "--nogui" -o "${ARGI}" = "-n" ]; then
+    elif [[ "${ARGI}" == "--nogui" || "${ARGI}" == "-n" ]]; then
         LAUNCH_GUI="no"
-
-    elif [ "${ARGI:0:5}" = "--ip=" ]; then
-        IP_ADDR="${ARGI#--ip=*}"
-    elif [ "${ARGI:0:7}" = "--mport" ]; then
-	MOOS_PORT="${ARGI#--mport=*}"
-    elif [ "${ARGI:0:9}" = "--pshare=" ]; then
-        PSHARE_PORT="${ARGI#--pshare=*}"
-    elif [ "${ARGI:0:9}" = "--vnames=" ]; then
-        VNAMES="${ARGI#--vnames=*}"
-    elif [ "${ARGI:0:12}" = "--swim_file=" ]; then
-        SWIM_FILE="${ARGI#--swim_file=*}"
-  
-
+    elif [[ "${ARGI}" == --ip=* ]]; then
+        IP_ADDR="${ARGI#--ip=}"
+    elif [[ "${ARGI}" == --mport=* ]]; then
+        MOOS_PORT="${ARGI#--mport=}"
+    elif [[ "${ARGI}" == --pshare=* ]]; then
+        PSHARE_PORT="${ARGI#--pshare=}"
+    elif [[ "${ARGI}" == --vnames=* ]]; then
+        VNAMES="${ARGI#--vnames=}"
+    elif [[ "${ARGI}" == --swim_file=* ]]; then
+        SWIM_FILE="${ARGI#--swim_file=}"
     else 
-	echo "$ME: Bad Arg: $ARGI. Exit Code 1."
-	exit 1
+        echo "$ME: Bad Arg: $ARGI. Exit Code 1."
+        exit 1
     fi
 done
 

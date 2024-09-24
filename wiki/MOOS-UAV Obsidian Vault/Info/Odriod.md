@@ -59,7 +59,7 @@ After this, enable forwarding to internet by calling the script
 
 containing  
 
-```
+```bash
 #!/bin/bash
 # Enable IP forwarding
 sudo sysctl -w net.ipv4.ip_forward=1
@@ -85,12 +85,18 @@ Adapt the wifi interfaces to your specific interface.
 
 Use command:
 
-	./launch_vehicle.sh --shore=10.0.60.1 --shore_pshare=9200 --ip=10.0.60.110 --pshare=9201 --vname=skywalker -v
+```bash
+./launch_vehicle.sh --shore=10.0.60.1 --shore_pshare=9200 --ip=10.0.60.110 --pshare=9201 --vname=skywalker -v
+```
 
 and
 
-	MAVSDK_CALLBACK_DEBUGGING=1 MAVSDK_COMMAND_DEBUGGING=1 MAVSDK_PARAMETER_DEBUGGING=1 pArduBridge targ_skywalker.moos
+```bash
+MAVSDK_MESSAGE_HANDLER_DEBUGGING=1 MAVSDK_CALLBACK_DEBUGGING=1 MAVSDK_COMMAND_DEBUGGING=1 MAVSDK_PARAMETER_DEBUGGING=1 pArduBridge targ_skywalker.moos
+```
 
 ## Launching Groundstation
 
-	./launch_shoreside.sh --ip=10.0.60.1 --pshare=9200 --vname=all:skywalker -v
+```bash
+./launch_shoreside.sh --ip=10.0.60.1 --pshare=9200 --vname=all:skywalker -v
+```

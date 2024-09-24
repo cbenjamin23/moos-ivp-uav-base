@@ -74,32 +74,40 @@ alias bldm='sudo .;
 
 ### Building an example/app
 
-This should be called in the folder where the .cpp`.cpp` file is defined (in MAVSDK)
-```
-cd examples/takeoff_and_land/
-cmake -Bbuild -H.
-cmake --build build -j8
+This should be called in the folder where the .cpp`.cpp` file is defined (in MAVSDK):
+
+
+Go to an example program: `cd examples/takeoff_and_land/`
+
+```bash
+cmake -Bbuild -H.;
+cmake --build build -j8;
 ```
 
 *Notice* the configure step `cmake -Bbuild -H.` that should be called first and only once
 
 Summary:
-```
+```bash
 cmake --build build -j8;
 MAVSDK_CALLBACK_DEBUGGING=1 MAVSDK_COMMAND_DEBUGGING=1 MAVSDK_PARAMETER_DEBUGGING=1 ./build/<app> <args> 
 ```
 
 where `<app>` is you MAVSDK app, eg. `fly_mission_ex`, `<arg>` is the argument of the application, eg. `udp://:14550`. To redirect the output to a file append the following `> output.log 2>&1`.
 
+*Additional debug var:* `MAVSDK_MESSAGE_HANDLER_DEBUGGING=1 `
+
 *EX:*
 
-```
+```bash
 cmake --build build -j8; 
 MAVSDK_CALLBACK_DEBUGGING=1 MAVSDK_COMMAND_DEBUGGING=1 MAVSDK_PARAMETER_DEBUGGING=1 ./build/fly_mission_ex udp://:14550 > output.log 2>&1
 ```
 
-
-
+or 
+```bash
+cmake --build build -j8; 
+MAVSDK_CALLBACK_DEBUGGING=1 MAVSDK_COMMAND_DEBUGGING=1 MAVSDK_PARAMETER_DEBUGGING=1 ./build/fly_mission_ex serial:///dev/ttySAC0:115200
+```
 
 
 

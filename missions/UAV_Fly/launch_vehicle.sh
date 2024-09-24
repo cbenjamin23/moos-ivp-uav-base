@@ -23,7 +23,7 @@ SHORE_IP="localhost"
 SHORE_PSHARE="9200"
 VNAME="skywalker"
 COLOR="yellow"
-XMODE="M300"
+XMODE="REAL"
 
 START_POS="0,0"  
 SPEED="1.2"
@@ -37,6 +37,7 @@ LON_ORIGIN=149.1652374 #-71.087589
 
 ARDUPILOT_IP=0.0.0.0
 ARDUPILOT_PORT=14550
+ARDUPILOT_PROTOCOL=udp
 
 
 
@@ -75,10 +76,12 @@ for ARGI; do
 	echo "  --color=<yellow>                               " 
 	echo "    Color of the vehicle being launched          " 
 	echo "                                                 "
-    echo "  --ardupilot_ip=<127.0.0.1>                     "
+    echo "  --ap_ip=<0.0.0.0>                     "
     echo "    IP of the ArduPilot autopilot                " 
-    echo "  --ardupilot_port=<14550>                       "
+    echo "  --ap_port=<14550>                       "
     echo "    Port of the ArduPilot autopilot              "
+    echo "  --ap_protocol=<udp>                       "
+    echo "    Protocol for coms with ArduPilot autopilot   "
     echo "                                                 "
 	echo "  --start=<X,Y>     (default is 0,0)             " 
 	echo "    Start position chosen by script launching    "
@@ -90,48 +93,46 @@ for ARGI; do
 	echo "                                                 "
 	echo "  --sim,   -s  : This is simultion not robot     "
 	exit 0;
-    elif [ "${ARGI//[^0-9]/}" = "$ARGI" -a "$TIME_WARP" = 1 ]; then 
+    elif [[ "${ARGI//[^0-9]/}" == "$ARGI" && "$TIME_WARP" == "1" ]]; then
         TIME_WARP=$ARGI
-    elif [ "${ARGI}" = "--just_make" -o "${ARGI}" = "-j" ]; then
-	JUST_MAKE="yes"
-    elif [ "${ARGI}" = "--verbose" -o "${ARGI}" = "-v" ]; then
+    elif [[ "${ARGI}" == "--just_make" || "${ARGI}" == "-j" ]]; then
+        JUST_MAKE="yes"
+    elif [[ "${ARGI}" == "--verbose" || "${ARGI}" == "-v" ]]; then
         VERBOSE="yes"
-    elif [ "${ARGI}" = "--auto" -o "${ARGI}" = "-a" ]; then
-        AUTO_LAUNCHED="yes" 
-
-    elif [ "${ARGI:0:5}" = "--ip=" ]; then
-        IP_ADDR="${ARGI#--ip=*}"
-    elif [ "${ARGI:0:7}" = "--mport" ]; then
-	MOOS_PORT="${ARGI#--mport=*}"
-    elif [ "${ARGI:0:9}" = "--pshare=" ]; then
-        PSHARE_PORT="${ARGI#--pshare=*}"
-
-    elif [ "${ARGI:0:8}" = "--shore=" ]; then
-        SHORE_IP="${ARGI#--shore=*}"
-    elif [ "${ARGI:0:15}" = "--shore_pshare=" ]; then
-        SHORE_PSHARE="${ARGI#--shore_pshare=*}"
-    elif [ "${ARGI:0:8}" = "--vname=" ]; then
-        VNAME="${ARGI#--vname=*}"
-    elif [ "${ARGI:0:8}" = "--color=" ]; then
-        COLOR="${ARGI#--color=*}"
-	
-    elif [ "${ARGI}" = "--sim" -o "${ARGI}" = "-s" ]; then
+    elif [[ "${ARGI}" == "--auto" || "${ARGI}" == "-a" ]]; then
+        AUTO_LAUNCHED="yes"
+    elif [[ "${ARGI}" == --ip=* ]]; then
+        IP_ADDR="${ARGI#--ip=}"
+    elif [[ "${ARGI}" == --mport=* ]]; then
+        MOOS_PORT="${ARGI#--mport=}"
+    elif [[ "${ARGI}" == --pshare=* ]]; then
+        PSHARE_PORT="${ARGI#--pshare=}"
+    elif [[ "${ARGI}" == --shore=* ]]; then
+        SHORE_IP="${ARGI#--shore=}"
+    elif [[ "${ARGI}" == --shore_pshare=* ]]; then
+        SHORE_PSHARE="${ARGI#--shore_pshare=}"
+    elif [[ "${ARGI}" == --vname=* ]]; then
+        VNAME="${ARGI#--vname=}"
+    elif [[ "${ARGI}" == --color=* ]]; then
+        COLOR="${ARGI#--color=}"
+    elif [[ "${ARGI}" == "--sim" || "${ARGI}" == "-s" ]]; then
         XMODE="SIM"
         echo "Simulation mode ON."
-
-    elif [ "${ARGI:0:8}" = "--start=" ]; then
-        START_POS="${ARGI#--start=*}"
-    elif [ "${ARGI:0:8}" = "--speed=" ]; then
-        SPEED="${ARGI#--speed=*}"
-    elif [ "${ARGI:0:9}" = "--maxspd=" ]; then
-        MAXSPD="${ARGI#--maxspd=*}"
-    elif [ "${ARGI:0:15}" = "--ardupilot_ip=" ]; then
-        ARDUPILOT_IP="${ARGI#--ardupilot_ip=*}"
-    elif [ "${ARGI:0:16}" = "--ardupilot_port=" ]; then
-        ARDUPILOT_PORT="${ARGI#--ardupilot_port=*}"
-    else 
-	echo "$ME: Bad Arg:[$ARGI]. Exit Code 1."
-	exit 1
+    elif [[ "${ARGI}" == --start=* ]]; then
+        START_POS="${ARGI#--start=}"
+    elif [[ "${ARGI}" == --speed=* ]]; then
+        SPEED="${ARGI#--speed=}"
+    elif [[ "${ARGI}" == --maxspd=* ]]; then
+        MAXSPD="${ARGI#--maxspd=}"
+    elif [[ "${ARGI}" == --ap_ip=* ]]; then
+        ARDUPILOT_IP="${ARGI#--ap_ip=}"
+    elif [[ "${ARGI}" == --ap_port=* ]]; then
+        ARDUPILOT_PORT="${ARGI#--ap_port=}"
+    elif [[ "${ARGI}" == --ap_protocol=* ]]; then
+        ARDUPILOT_PROTOCOL="${ARGI#--ap_protocol=}"
+    else
+        echo "$ME: Bad Arg:[$ARGI]. Exit Code 1."
+        exit 1
     fi
 done
 
@@ -178,6 +179,7 @@ if [ "${VERBOSE}" = "yes" ]; then
     echo "----------------------------------"
     echo "ARDUPILOT_IP =  [${ARDUPILOT_IP}]  "
     echo "ARDUPILOT_PORT =[${ARDUPILOT_PORT}]"
+    echo "ARDUPILOT_PROTOCOL =[${ARDUPILOT_PROTOCOL}]"
     echo -n "Hit any key to continue with launching"
     read ANSWER
 fi
@@ -199,7 +201,8 @@ nsplug meta_vehicle.moos targ_$VNAME.moos $NSFLAGS WARP=$TIME_WARP \
        MAXSPD=$MAXSPD               START_POS=$START_POS      \
        COLOR=$COLOR                                           \
        LatOrigin=$LAT_ORIGIN        LonOrigin=$LON_ORIGIN     \
-       AP_IP=$ARDUPILOT_IP          AP_PORT=$ARDUPILOT_PORT   # own defined variables
+       AP_IP=$ARDUPILOT_IP          AP_PORT=$ARDUPILOT_PORT   \
+       AP_PROTOCOL=$ARDUPILOT_PROTOCOL                        # own defined variables
 
 nsplug meta_vehicle.bhv targ_$VNAME.bhv $NSFLAGS VNAME=$VNAME \
        SPEED=$SPEED                 COLOR=$COLOR              \

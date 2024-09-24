@@ -65,7 +65,7 @@ Add path to bin folder in moos-ivp-uav to bashrc: `PATH=$PATH:~/moos-ivp-uav/bin
 ## ArduPilot (to run arduplane) with MavProxy
 - ~/ardupilot/
 - [Install guide](https://ardupilot.org/dev/docs/building-setup-linux.html#building-setup-linux)
-	- **CHECKOUT** version `Plane-4.5` (branch)
+	- **CHECKOUT** version `Plane-4.1.2` (branch)
 - [More info](ArduPilot%20&%20MavProx.md)
 ## ardupilot_gazebo (*gazebo Harmonic*)
 - Install the [Gazebo Harmonic](https://gazebosim.org/docs/harmonic/install_ubuntu/) simulator binary:

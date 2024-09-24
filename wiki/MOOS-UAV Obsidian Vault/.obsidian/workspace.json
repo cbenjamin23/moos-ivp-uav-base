@@ -85,7 +85,7 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "Info/Odriod.md",
+                "file": "Info/ArduPilot & MavProx.md",
                 "mode": "source",
                 "backlinks": false,
                 "source": false
@@ -106,7 +106,7 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "Info/Odriod.md",
+                "file": "Info/ArduPilot & MavProx.md",
                 "mode": "preview",
                 "backlinks": false,
                 "source": false
@@ -143,7 +143,7 @@
             "state": {
               "type": "search",
               "state": {
-                "query": "param",
+                "query": "plane",
                 "matchingCase": false,
                 "explainSearch": false,
                 "collapseAll": false,
@@ -180,7 +180,7 @@
             "state": {
               "type": "backlink",
               "state": {
-                "file": "Info/Odriod.md",
+                "file": "Info/ArduPilot & MavProx.md",
                 "collapseAll": false,
                 "extraContext": false,
                 "sortOrder": "alphabetical",
@@ -197,7 +197,7 @@
             "state": {
               "type": "outgoing-link",
               "state": {
-                "file": "Info/Odriod.md",
+                "file": "Info/ArduPilot & MavProx.md",
                 "linksCollapsed": false,
                 "unlinkedCollapsed": true
               }
@@ -220,7 +220,7 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "Info/Odriod.md"
+                "file": "Info/ArduPilot & MavProx.md"
               }
             }
           }
@@ -243,12 +243,12 @@
   },
   "active": "7000d0c8a156708a",
   "lastOpenFiles": [
+    "Info/MAIN System architecture.md",
     "Info/ArduPilot & MavProx.md",
     "Info/Install, Build & Run MAVSDK.md",
-    "Info/MAIN System architecture.md",
+    "Info/Odriod.md",
     "Troubleshooting.md",
     "Helpful definitions.md",
-    "Info/Odriod.md",
     "Testing.md",
     "Advantages of MOOS-IVP.md",
     "Info/Mission Planner info.md",

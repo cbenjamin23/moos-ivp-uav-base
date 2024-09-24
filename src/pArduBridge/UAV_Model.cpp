@@ -63,18 +63,24 @@ bool UAV_Model::connectToUAV(std::string url)
 
   MOOSTraceFromCallback("Connecting to the URL: " + url + "\n");
 
+  std::cout << "Connecting to the URL: " << url << std::endl;
   mavsdk::ConnectionResult connection_result = m_mavsdk_ptr->add_any_connection(url);
+
+  std::cout << "getting results" << std::endl;
+
 
   if (connection_result != mavsdk::ConnectionResult::Success) {
     std::stringstream ss;
     ss << "Connection failed: " << connection_result << '\n';
     MOOSTraceFromCallback(ss.str().c_str());
 
-    m_warning_system.monitorWarningForXseconds("Failed to connect to ArduPilot", WARNING_DURATION);
+    std::cout << ss.str() << std::endl;
+    m_warning_system.monitorWarningForXseconds(ss.str(), WARNING_DURATION);
 
     return false;
   }
 
+  std::cout << "Connected to UAV\n";
 
 
   MOOSTraceFromCallback("Connecting to the URL: " + url + "\n");
@@ -227,6 +233,9 @@ bool UAV_Model::subscribeToTelemetry(){
   m_telemetry_ptr->subscribe_in_air([&](bool in_air) {
     m_in_air = in_air;
   });
+
+
+
 
 
   // start a thread that get param every 5 seconds

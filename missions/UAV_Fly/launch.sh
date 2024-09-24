@@ -21,13 +21,17 @@ VLAUNCH_ARGS="--auto --sim "
 SLAUNCH_ARGS="--auto "
 
 
+ARDUPILOT_IP=0.0.0.0
+ARDUPILOT_PORT=14550
+ARDUPILOT_PROTOCOL=udp
+
 VNAME="skywalker"
 
 #-------------------------------------------------------
 #  Part 3: Check for and handle command-line arguments
 #-------------------------------------------------------
 for ARGI; do
-    if [ "${ARGI}" = "--help" -o "${ARGI}" = "-h" ]; then
+    if [[ "${ARGI}" == "--help" || "${ARGI}" == "-h" ]]; then
 	echo "$ME: [OPTIONS] [time_warp]                          "
 	echo "                                                    "
 	echo "Options:                                            "
@@ -41,20 +45,32 @@ for ARGI; do
 	echo "    Do not randomly generate vpositions.txt.        "
     echo "  --vname=<skywalker>                                  " 
 	echo "    Name of the vehicle being launched           " 
+    echo "  --ap_ip=<0.0.0.0>                     "
+    echo "    IP of the ArduPilot autopilot                " 
+    echo "  --ap_port=<14550>                       "
+    echo "    Port of the ArduPilot autopilot              "
+    echo "  --ap_protocol=<udp>                       "
+    echo "    Protocol for coms with ArduPilot autopilot   "
 	exit 0;
-    elif [ "${ARGI}" = "--verbose" -o "${ARGI}" = "-v" ]; then
-	VERBOSE="--verbose"
-    elif [ "${ARGI//[^0-9]/}" = "$ARGI" -a "$TIME_WARP" = 1 ]; then 
+    elif [[ "${ARGI}" == "--verbose" || "${ARGI}" == "-v" ]]; then
+        VERBOSE="--verbose"
+    elif [[ "${ARGI//[^0-9]/}" == "$ARGI" && "$TIME_WARP" == "1" ]]; then 
         TIME_WARP=$ARGI
-    elif [ "${ARGI}" = "--just_make" -o "${ARGI}" = "-j" ]; then
-	JUST_MAKE="-j"
-    elif [ "${ARGI}" = "--norand" -o "${ARGI}" = "-r" ]; then
-	RANDSTART="false"
-    elif [ "${ARGI:0:8}" = "--vname=" ]; then
-        VNAME="${ARGI#--vname=*}"
-    else 
-	echo "$ME: Bad Arg: $ARGI. Exit Code 1."
-	exit 1
+    elif [[ "${ARGI}" == "--just_make" || "${ARGI}" == "-j" ]]; then
+        JUST_MAKE="-j"
+    elif [[ "${ARGI}" == "--norand" || "${ARGI}" == "-r" ]]; then
+        RANDSTART="false"
+    elif [[ "${ARGI}" == --vname=* ]]; then
+        VNAME="${ARGI#--vname=}"
+    elif [[ "${ARGI}" == --ap_ip=* ]]; then
+        ARDUPILOT_IP="${ARGI#--ap_ip=}"
+    elif [[ "${ARGI}" == --ap_port=* ]]; then
+        ARDUPILOT_PORT="${ARGI#--ap_port=}"
+    elif [[ "${ARGI}" == --ap_protocol=* ]]; then
+        ARDUPILOT_PROTOCOL="${ARGI#--ap_protocol=}"
+    else
+        echo "$ME: Bad Arg: $ARGI. Exit Code 1."
+        exit 1
     fi
 done
 
@@ -93,6 +109,7 @@ IX_VLAUNCH_ARGS+=" --start=$START "
 IX_VLAUNCH_ARGS+=" --vname=$VNAME                "
 IX_VLAUNCH_ARGS+=" --mport=$MOOS_PORT --pshare=$PSHARE_PORT "
 IX_VLAUNCH_ARGS+=" $TIME_WARP $VERBOSE $JUST_MAKE"
+IX_VLAUNCH_ARGS+=" --ap_ip=$ARDUPILOT_IP --ap_port=$ARDUPILOT_PORT --ap_protocol=$ARDUPILOT_PROTOCOL"
 
 vecho "Launching: $VNAME"
 vecho "IX_VLAUNCH_ARGS: [$IX_VLAUNCH_ARGS]"

@@ -5,12 +5,10 @@ ProcessConfig = pArduBridge
   AppTick   = 4                                                 
   CommsTick = 4                                                 
 
-#ifdef 0                                                           
+  // serial_port = /dev/ttySAC0:115200
+
   ArduPilotURL = $(AP_IP):$(AP_PORT)
-#else
-  serial_port = /dev/ttySAC0:115200
-  // baudrate = 57600
-#endif
+  url_protocol = $(AP_PROTOCOL)
 
 
   prefix    = NAV

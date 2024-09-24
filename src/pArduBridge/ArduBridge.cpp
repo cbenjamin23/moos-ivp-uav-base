@@ -176,6 +176,7 @@ bool ArduBridge::OnStartUp()
   AppCastingMOOSApp::OnStartUp();
 
   std::string ardupilot_url;
+  std::pair<bool, std::string> url_protocol_pair{false, ""};
 
   STRING_LIST sParams;
   m_MissionReader.EnableVerbatimQuoting(false);
@@ -191,15 +192,27 @@ bool ArduBridge::OnStartUp()
 
     bool handled = false;
     if(param == "ardupiloturl" || param == "url") {
-      ardupilot_url = "udp://" + value;
+      ardupilot_url = value;
       handled = true;
     }
     else if(param == "prefix"){
       handled = setNonWhiteVarOnString(m_uav_prefix, value);
     }
-    else if(param == "serial_port"){
-      ardupilot_url = "serial://" + value;
-      handled = true;
+    else if(param == "url_protocol"){
+      if(value == "tcp"){
+        url_protocol_pair.first = true;
+        url_protocol_pair.second = "tcp://";
+      }
+      else if(value == "udp"){
+        url_protocol_pair.first = true;
+        url_protocol_pair.second = "udp://" ;
+      }
+      else if(value == "serial"){
+        url_protocol_pair.first = true;
+        url_protocol_pair.second = "serial:///dev/" ;
+      }
+      
+      handled = url_protocol_pair.first;
 
     }
     if(!handled)
@@ -226,12 +239,20 @@ bool ArduBridge::OnStartUp()
       m_geo_ok = false;
     }
   }
- 
+
+  ardupilot_url = url_protocol_pair.second + ardupilot_url;
 
   std::cout << "ArduPilot URL is: " << ardupilot_url << std::endl;
   
   if (!m_cli_arg.parse(ardupilot_url)) {
+    
+    if(!url_protocol_pair.first){
+      reportConfigWarning("URL protocol not set - Need to restart with a valid URL prefix");
+      std::cout << "URL protocol not set - Need to restart with a valid URL prefix" << std::endl;
+    }
+    else{
       reportConfigWarning("Invalid ArduPilot URL specified - Need to restart with a valid URL");
+    }
   }
   else{
     // Connect to autopilot
