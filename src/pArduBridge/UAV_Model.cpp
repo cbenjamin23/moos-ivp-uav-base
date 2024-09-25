@@ -63,7 +63,7 @@ bool UAV_Model::connectToUAV(std::string url)
   std::cout << "Connecting to the URL: " << url << std::endl;
   mavsdk::ConnectionResult connection_result = m_mavsdk_ptr->add_any_connection(url);
 
-  std::cout << "getting results" << std::endl;
+
 
 
   if (connection_result != mavsdk::ConnectionResult::Success) {
@@ -128,6 +128,7 @@ bool UAV_Model::connectToUAV(std::string url)
   if(home_point.frame == MAV_FRAME_GLOBAL){
     m_home_coord.set_vz( home_point.z);
   }else{
+    std::cout << "Home point is not in global frame, but in frame" << home_point.frame << std::endl;
     m_warning_system_ptr->monitorWarningForXseconds("Home point is not in global frame, but in frame" + intToString(home_point.frame) , WARNING_DURATION);
   }
 
@@ -204,6 +205,9 @@ bool UAV_Model::subscribeToTelemetry(){
 
   m_telemetry_ptr->subscribe_position([&](mavsdk::Telemetry::Position position) {
     m_position = position;
+    
+    m_in_air = (m_position.relative_altitude_m >= IN_AIR_HIGHT_THRESHOLD);
+    
   });
 
   m_telemetry_ptr->subscribe_attitude_euler([&](mavsdk::Telemetry::EulerAngle attitude_ned) {
@@ -226,27 +230,15 @@ bool UAV_Model::subscribeToTelemetry(){
     m_flight_mode = flight_mode;
   });
 
-  m_telemetry_ptr->subscribe_in_air([&](bool in_air) {
-    m_in_air = in_air;
-  });
 
-
-
-
-
-  // start a thread that get param every 5 seconds
-  // std::thread get_param_thread([&, this](){
-  //   while(true){
-  //     std::this_thread::sleep_for(std::chrono::seconds(5));
-  //     auto param_result = m_param_ptr->get_param_int("AIRSPEED_CRUISE");
-  //     if(param_result.first == mavsdk::Param::Result::Success){
-  //       m_target_airspeed_cruise = param_result.second;
-  //       std::cout << "Arming require: " << param_result.second << std::endl;
-  //     }else{
-  //       this->m_warning_system_ptr->monitorWarningForXseconds("Failed to get param AIRSPEED_CRUISE", WARNING_DURATION);
-  //     }
-  //   }
+  // gives wrong data
+  // m_telemetry_ptr->subscribe_in_air([&](bool in_air) {
+  //   m_in_air = in_air;
   // });
+
+
+
+
 
 
   return true;
@@ -259,125 +251,104 @@ bool UAV_Model::subscribeToTelemetry(){
 
 void UAV_Model::pollAllParametersAsync()
 {
-    // Start polling each parameter asynchronously
-    pollParameterInThread(Parameters::AIRSPEED_MIN);
-    pollParameterInThread(Parameters::AIRSPEED_MAX);
-    pollParameterInThread(Parameters::AIRSPEED_CRUISE);
+
+  getParameterAsync(Parameters::AIRSPEED_TARGET_CRUISE);
+  getParameterAsync(Parameters::AIRSPEED_MAX);
+  getParameterAsync(Parameters::AIRSPEED_MIN);
+  
 }
 
-void UAV_Model::pollParameterInThread(const Parameters param_enum)
+bool UAV_Model::getParameterAsync(Parameters param_enum)
 {
-    std::thread([this, param_enum]() {
-        // Get the parameter in a blocking manner, but inside a thread
-        if (this->getParameter(param_enum)) {
-            std::lock_guard<std::mutex> lock(m_polled_params.param_mutex);
-
-            // Store the result based on the parameter type
-            switch (param_enum) {
-                case Parameters::AIRSPEED_MIN:
-                    std::cout << "Min airspeed successfully polled: " << m_polled_params.min_airspeed << std::endl;
-                    break;
-                case Parameters::AIRSPEED_MAX:
-                    std::cout << "Max airspeed successfully polled: " << m_polled_params.max_airspeed << std::endl;
-                    break;
-                case Parameters::AIRSPEED_CRUISE:
-                    std::cout << "Cruise airspeed successfully polled: " << m_polled_params.target_airspeed_cruise << std::endl;
-                    break;
-                default:
-                    std::cout << "Unknown parameter polled" << std::endl;
-                    break;
-            }
-        }
-    }).detach();  // Detach to allow the thread to run independently
-}
-
-bool UAV_Model::getParameter(Parameters param_enum)
-{
-    // Check if the parameter exists in the string-to-enum map
-    auto it = paramEnum2string.find(param_enum);
-    if (it == paramEnum2string.end()) {
-        m_warning_system_ptr->monitorWarningForXseconds("Parameter unknown: " + intToString(static_cast<int>(param_enum)), WARNING_DURATION);
-        return false;
-    }
-
-    std::string param_name = it->second;
-    mavsdk::Param::Result result;
-    double param_value = 0.0;  // Store the retrieved value (int or float as double)
-
-    // Determine whether to retrieve an integer or float parameter
-    if (param_enum == Parameters::AIRSPEED_CRUISE) {
-        auto res = m_param_ptr->get_param_float(param_name);
-        result = res.first;
-        param_value = res.second;  // Float value
-    } else {
-        auto res = m_param_ptr->get_param_int(param_name);
-        result = res.first;
-        param_value = static_cast<double>(res.second);  // Int value, cast to double
-    }
-
-    // Check if the result was successful
-    if (result != mavsdk::Param::Result::Success) {
-        std::stringstream ss;
-        ss << "Parameter retrieval failed: " << param_name << ": " << result << '\n';
-        m_warning_system_ptr->monitorWarningForXseconds(ss.str(), WARNING_DURATION);
-        return false;
-    }
-
-    // Assign the value to the appropriate member based on the parameter
-    std::lock_guard<std::mutex> lock(m_polled_params.param_mutex);  // Ensure thread-safe access
-    switch (param_enum) {
-        case Parameters::AIRSPEED_MIN:
-            m_polled_params.min_airspeed = static_cast<int>(std::round(param_value));
-            break;
-        case Parameters::AIRSPEED_MAX:
-            m_polled_params.max_airspeed = static_cast<int>(std::round(param_value));
-            break;
-        case Parameters::AIRSPEED_CRUISE:
-            m_polled_params.target_airspeed_cruise = param_value;
-            break;
-        default:
-            m_warning_system_ptr->monitorWarningForXseconds("Unknown parameter", WARNING_DURATION);
-            return false;
-    }
-
-    return true;
-}
-
-void UAV_Model::setParameterAsync(Parameters param_enum, double value) const
-{
-    // Run the parameter setting in a separate thread
-    std::thread([this, param_enum, value]() {
-        // Check if the parameter exists in the string-to-enum map
-        auto it = paramEnum2string.find(param_enum);
-        if (it == paramEnum2string.end()) {
-            m_warning_system_ptr->monitorWarningForXseconds("Parameter unknown: " + intToString(static_cast<int>(param_enum)), WARNING_DURATION);
+    switch (param_enum)
+    {
+    case Parameters::AIRSPEED_TARGET_CRUISE:
+      m_action_ptr->get_target_speed_async([this](mavsdk::Action::Result result, float target_speed) {
+        if (result != mavsdk::Action::Result::Success) {
+            std::stringstream ss;
+            ss << "Failed to get target speed: " << result;
+            m_warning_system_ptr->monitorWarningForXseconds(ss.str(), WARNING_DURATION);
             return;
         }
-
-        std::string param_name = it->second;
-        mavsdk::Param::Result result;
-
-        // Determine whether to set an integer or float parameter
-        if (param_enum == Parameters::AIRSPEED_CRUISE) {
-            result = m_param_ptr->set_param_float(param_name, value);
-        } else {
-            result = m_param_ptr->set_param_int(param_name, static_cast<int>(value));
-        }
-
-        // Check if the result was successful
-        if (result != mavsdk::Param::Result::Success) {
+        std::cout << "target speed: " << target_speed << std::endl;
+        m_polled_params.target_airspeed_cruise = target_speed;
+      });
+      break;
+      
+    case Parameters::AIRSPEED_MAX:
+      m_action_ptr->get_maximum_speed_async([this](mavsdk::Action::Result result, float max_speed) {
+        if (result != mavsdk::Action::Result::Success) {
             std::stringstream ss;
-            ss << "Parameter setting failed (" << param_name << "):" << result << '\n';
+            ss << "Failed to get maximum speed: " << result;
             m_warning_system_ptr->monitorWarningForXseconds(ss.str(), WARNING_DURATION);
             return;
         }
 
-        // Optionally, you can log or perform some action upon success
-        std::stringstream success_message;
-        success_message << "Parameter " << param_name << " set successfully.";
-        m_warning_system_ptr->monitorWarningForXseconds(success_message.str(), WARNING_DURATION);
+        m_polled_params.max_airspeed = static_cast<int>(std::round(max_speed));
+      });
+      break;
+    case Parameters::AIRSPEED_MIN:
+      m_action_ptr->get_minimum_speed_async([this](mavsdk::Action::Result result, float min_speed) {
+        if (result != mavsdk::Action::Result::Success) {
+            std::stringstream ss;
+            ss << "Failed to get minimum speed: " << result;
+            m_warning_system_ptr->monitorWarningForXseconds(ss.str(), WARNING_DURATION);
+            return;
+        }
 
-    }).detach();  // Detach to allow the thread to run independently
+        m_polled_params.min_airspeed = static_cast<int>(std::round(min_speed));
+      });
+      break;
+    default:
+      m_warning_system_ptr->monitorWarningForXseconds("Parameter unknown: " + intToString(static_cast<int>(param_enum)), WARNING_DURATION);
+      return false;
+
+    }
+    return true;
+}
+
+bool UAV_Model::setParameterAsync(Parameters param_enum, double value) const
+{
+
+    switch (param_enum)
+    {
+      case Parameters::AIRSPEED_TARGET_CRUISE:
+        m_action_ptr->set_target_speed_async(value, [this](mavsdk::Action::Result result) {
+          if (result != mavsdk::Action::Result::Success) {
+              std::stringstream ss;
+              ss << "Failed to set target speed: " << result;
+              m_warning_system_ptr->monitorWarningForXseconds(ss.str(), WARNING_DURATION);
+              return;
+          }
+        });
+        break;
+      case Parameters::AIRSPEED_MAX:
+        m_action_ptr->set_maximum_speed_async(value, [this](mavsdk::Action::Result result) {
+          if (result != mavsdk::Action::Result::Success) {
+              std::stringstream ss;
+              ss << "Failed to set maximum speed: " << result;
+              m_warning_system_ptr->monitorWarningForXseconds(ss.str(), WARNING_DURATION);
+              return;
+          }
+        });
+        break;
+      case Parameters::AIRSPEED_MIN:
+        m_action_ptr->set_minimum_speed_async(value, [this](mavsdk::Action::Result result) {
+          if (result != mavsdk::Action::Result::Success) {
+              std::stringstream ss;
+              ss << "Failed to set minimum speed: " << result;
+              m_warning_system_ptr->monitorWarningForXseconds(ss.str(), WARNING_DURATION);
+              return;
+          }
+        });
+        break;  
+    default:
+      m_warning_system_ptr->monitorWarningForXseconds("Parameter unknown: " + intToString(static_cast<int>(param_enum)), WARNING_DURATION);
+      return false;
+      break;
+    }
+
+    return true;
 }
 
 ///////////////////////////////////
@@ -385,11 +356,11 @@ void UAV_Model::setParameterAsync(Parameters param_enum, double value) const
 ///////////////////////////////////
 
 
-bool   UAV_Model::commandAndSetAirSpeedAsync(double speed) const {
+bool UAV_Model::commandAndSetAirSpeedAsync(double speed) const { 
   
-  if(commandSpeed(speed, SPEED_TYPE::SPEED_TYPE_AIRSPEED)){
+  if(commandSpeed(speed, SPEED_TYPE::SPEED_TYPE_GROUNDSPEED)){ // Fails with airspeed
 
-    setParameterAsync(Parameters::AIRSPEED_CRUISE, speed);
+    setParameterAsync(Parameters::AIRSPEED_TARGET_CRUISE, speed);
     return true;
   };
   return false;

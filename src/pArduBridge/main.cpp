@@ -50,28 +50,25 @@ int main(int argc, char *argv[])
 
     ArduBridge ArduBridge;
 
-    // Retrieve the current working directory using getcwd
-    char current_path[PATH_MAX];
-    if (getcwd(current_path, sizeof(current_path)) != NULL) {
-        std::string current_path_str(current_path);
-
-        // Construct the full path for the log file
-        std::string log_file_path = current_path_str + "/output.log";
-
-        // Set the log file with the full path
-        mavsdk::set_log_file(log_file_path);
-
-        // Example log output
-        mavsdk::get_log_stream() << "This is a test log entry." << std::endl;
-        std::cout << "This is a test log entry." << std::endl;
-
-        // Ensure the output is flushed to the file
-        // mavsdk::get_log_stream().flush();
-    } else {
-        std::cerr << "Error retrieving current working directory" << std::endl;
+    
+    // Get the home directory from the environment variable
+    const char* home_dir = getenv("HOME");
+    if (home_dir == nullptr) {
+        std::cerr << "Error: Could not get the home directory." << std::endl;
         return 1;
     }
+    // Construct the full path for the log file
+    std::string save_path = std::string(home_dir) + "/moos-ivp-uav/missions/MavlinkLog.log";
+    std::cout << "Log file path: " << save_path << std::endl;
+    
+    // Set the log file with the full path
+    mavsdk::set_log_file(save_path);
 
+    // Example log output
+    mavsdk::get_log_stream() << "This is a test log entry." << std::endl;
+    std::cout << "This is a test log entry." << std::endl;
+
+    
     ArduBridge.Run(run_command.c_str(), mission_file.c_str());
 
     return(0);

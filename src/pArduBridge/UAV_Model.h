@@ -32,9 +32,10 @@
 class UAV_Model
 {
 public:
-    UAV_Model(std::shared_ptr<WarningSystem> ws);
+    UAV_Model(std::shared_ptr<WarningSystem> ws = nullptr);
     virtual  ~UAV_Model() {}
 
+    void registerWarningSystem(std::shared_ptr<WarningSystem> ws) {m_warning_system_ptr = ws;}
     bool connectToUAV(std::string url);
     
     bool startMission() const;
@@ -49,36 +50,6 @@ public:
 
     // Non-blocking function to poll all parameters
     void   pollAllParametersAsync();
-    // bool   pollParameters(){
-    //   return( pollMaxAirSpeed() /*&& pollMinAirSpeed() && pollAirspeedCruise() */);
-    //   }; 
-    // bool   pollMinAirSpeed(){return(getParameter(Parameters::AIRSPEED_MIN));};
-    // bool   pollMaxAirSpeed(){
-      
-    //   // return getParameter(Parameters::AIRSPEED_MAX);
-
-    //   m_action_ptr->get_maximum_speed_async(
-    //     [&](mavsdk::Action::Result result, float max_speed) {
-          
-    //       if(result != mavsdk::Action::Result::Success){
-    //         std::stringstream ss;  
-    //         ss << "Failed to get maximum speed: " << result;
-    //         m_warning_system.monitorWarningForXseconds(ss.str() , WARNING_DURATION );
-    //         return false;
-    //       }
-
-    //       m_max_airspeed = max_speed;
-    //       return true;
-    //     } 
-    //   );
-      
-    //   return true;
-    //   // getParameter(Parameters::AIRSPEED_MAX));
-      
-    // };
-
-    // bool   pollAirspeedCruise(){return(getParameter(Parameters::AIRSPEED_CRUISE));};
-
 
     // Actions
     bool   commandAndSetAirSpeedAsync(double speed) const;
@@ -91,7 +62,6 @@ public:
     void   setCallbackMOOSTrace(const std::function<void(const std::string&)>& callback) {callbackMOOSTrace = callback ;}
     void   setCallbackReportRunW(const std::function<void(const std::string&)>& callback) {callbackReportRunW = callback ;}
     void   setCallbackRetractRunW(const std::function<void(const std::string&)>& callback) {callbackRetractRunW = callback ;}
-    void   registerWarningSystem(std::shared_ptr<WarningSystem> ws) {m_warning_system_ptr = ws;}
 
 
     // Getters
@@ -125,16 +95,22 @@ public:
     
 protected:
 
+    // enum class Parameters{ 
+    //   AIRSPEED_MIN,
+    //   AIRSPEED_MAX,
+    //   AIRSPEED_CRUISE
+    // };
+
+    // static inline std::map<Parameters, std::string> paramEnum2string = {
+    //   {Parameters::AIRSPEED_MIN, "ARSPD_FBW_MIN"},
+    //   {Parameters::AIRSPEED_MAX, "ARSPD_FBW_MAX"},
+    //   {Parameters::AIRSPEED_CRUISE, "TRIM_ARSPD_CM"}
+    // };
+
     enum class Parameters{ 
       AIRSPEED_MIN,
       AIRSPEED_MAX,
-      AIRSPEED_CRUISE
-    };
-
-    static inline std::map<Parameters, std::string> paramEnum2string = {
-      {Parameters::AIRSPEED_MIN, "ARSPD_FBW_MIN"},
-      {Parameters::AIRSPEED_MAX, "ARSPD_FBW_MAX"},
-      {Parameters::AIRSPEED_CRUISE, "TRIM_ARSPD_CM"}
+      AIRSPEED_TARGET_CRUISE
     };
 
     // Structure to hold polled parameters
@@ -143,7 +119,7 @@ protected:
         double max_airspeed = 0.0;
         double target_airspeed_cruise = 0.0;
 
-        std::mutex param_mutex;  // Mutex for thread-safe access
+        // std::mutex param_mutex;  // Mutex for thread-safe access
     };
 
 
@@ -162,9 +138,8 @@ protected:
     bool commandSpeed(double airspeed_m_s, SPEED_TYPE speed_type = SPEED_TYPE::SPEED_TYPE_GROUNDSPEED) const;
     bool commandArm() const;
 
-    void setParameterAsync(Parameters param_enum, double value) const;
-    bool getParameter(Parameters param_enum);
-    void pollParameterInThread(const Parameters param_enum);
+    bool setParameterAsync(Parameters param_enum, double value) const;
+    bool getParameterAsync(Parameters param_enum);
 
 
   protected:
@@ -197,8 +172,10 @@ protected:
 
     XYPoint   m_home_coord;
 
-    
 
+
+    const int IN_AIR_HIGHT_THRESHOLD = 5; // meters
+    
 
 };
 

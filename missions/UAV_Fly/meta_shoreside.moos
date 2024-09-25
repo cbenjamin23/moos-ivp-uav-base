@@ -103,9 +103,9 @@ ProcessConfig = uFldShoreBroker
   
 
   qbridge = CHANGE_SPEED, ARM_UAV, RESET_SPEED_MIN
+  qbridge = RETURN_TO_LAUNCH, LOITER
 
-  bridge  = src=FLY_WAYPOINT_$V,  alias=FLY_WAYPOINT
-  bridge  = src=DO_TAKEOFF_$V,  alias=DO_TAKEOFF
+  qbridge = DO_TAKEOFF, FLY_WAYPOINT
   
  
   bridge  = src=RETURN_ALL, alias=RETURN
@@ -229,11 +229,12 @@ ProcessConfig = pMarineViewer
   button_one   = ARM_ALL  # ARM_UAV_ALL=true
 
   button_two   = DISARM_ALL   # ARM_UAV_ALL=false 
-  button_three = RTL_ALL  # STATION_KEEP_ALL=true # SURVEY_ALL=false
-  button_four = LOITER_ALL  # DEPLOY_ALL=false
 
-  button_5  = TKOFF_ALL  # DO_TAKEOFF=true
-  button_6   = TOWYP_ALL # FLY_WAYPOINT=true
+  button_three = RTL_ALL  # RETURN_TO_LAUNCH_ALL=true 
+  button_four = LOITER_ALL  # LOITER_ALL=true
+
+  button_5  = TKOFF_ALL  # DO_TAKEOFF_ALL=true
+  button_6  = TOWYP_ALL # FLY_WAYPOINT_ALL=true
 
 	left_context[reg_waypoint]  = VIEW_POINT = x=$[XPOS],y=$[YPOS],label=next_wpt,vertex_size=4
 
@@ -243,10 +244,13 @@ ProcessConfig = pMarineViewer
   cmd = label=ARM, var=ARM_UAV, sval=true, receivers=all:$(VNAMES)
   cmd = label=DISARM, var=ARM_UAV, sval=false, receivers=all:$(VNAMES)
 
-  cmd = label=inc_airspd+1, var=CHANGE_SPEED, dval=1, receivers=all:$(VNAMES)
-  cmd = label=dec_airspd-1, var=CHANGE_SPEED, dval=-1, receivers=all:$(VNAMES)
-  cmd = label=inc_airspd+5, var=CHANGE_SPEED, dval=5, receivers=all:$(VNAMES)
-  cmd = label=dec_airspd-5, var=CHANGE_SPEED, dval=-5, receivers=all:$(VNAMES)
+  cmd = label=RTL, var=RETURN_TO_LAUNCH, sval=true, receivers=all:$(VNAMES)
+  cmd = label=LOITER/HOLD, var=LOITER, sval=true, receivers=all:$(VNAMES)
+
+  cmd = label=AIRSPD+1, var=CHANGE_SPEED, dval=1, receivers=all:$(VNAMES)
+  cmd = label=AIRSPD-1, var=CHANGE_SPEED, dval=-1, receivers=all:$(VNAMES)
+  cmd = label=AIRSPD+5, var=CHANGE_SPEED, dval=5, receivers=all:$(VNAMES)
+  cmd = label=AIRSPD-5, var=CHANGE_SPEED, dval=-5, receivers=all:$(VNAMES)
 
   cmd = label=SPEED_TO_MIN, var=RESET_SPEED_MIN, sval=true, receivers=all:$(VNAMES)
 

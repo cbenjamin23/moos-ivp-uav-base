@@ -24,9 +24,9 @@ ArduBridge::ArduBridge()
   m_warning_system_ptr{ std::make_shared<WarningSystem>(
     [this](const std::string msg){this->reportRunWarning(msg);}, 
     [this](const std::string msg){this->retractRunWarning(msg);} ) 
-    },
-  m_uav_model{m_warning_system_ptr}
+  }
 {
+  m_uav_model.registerWarningSystem(m_warning_system_ptr);
 
   m_uav_prefix = "UAV";
   
@@ -124,10 +124,10 @@ bool ArduBridge::Iterate()
   if(m_do_fly_to_waypoint){
     // send the fly to waypoint command
     
-    double m_lat_deg_home = m_uav_model.getHomeCoord().x();
-    double m_lon_deg_home = m_uav_model.getHomeCoord().y();
+    double lat_deg_home = m_uav_model.getHomeCoord().x();
+    double lon_deg_home = m_uav_model.getHomeCoord().y();
     
-    mavsdk::Telemetry::Position dest = {m_lat_deg_home+0.0011, m_lon_deg_home+0.0011, 564 + 60};
+    mavsdk::Telemetry::Position dest = {lat_deg_home+0.0011, lon_deg_home+0.0011, 564 + 60};
 
     auto res = m_uav_model.commandGoToLocation(dest);
 
@@ -137,8 +137,9 @@ bool ArduBridge::Iterate()
 
 
   if(m_do_change_speed_pair.first){
-    m_uav_model.commandAndSetAirSpeedAsync(m_uav_model.getTargetAirSpeed() + m_do_change_speed_pair.second);
-    reportEvent("Changed speed by " + doubleToString(m_do_change_speed_pair.second));
+    double new_speed = m_uav_model.getTargetAirSpeed() + m_do_change_speed_pair.second;
+    m_uav_model.commandAndSetAirSpeedAsync(new_speed);
+    reportEvent("Trying to changed speed to " + doubleToString(new_speed));
     m_do_change_speed_pair.second = 0;
     m_do_change_speed_pair.first = false;
 
@@ -322,11 +323,6 @@ bool ArduBridge::buildReport()
 
   
   m_msgs << "-------------------------------------------" << std::endl;
-  
-  m_msgs << "\n\n";
-
-
-  m_msgs << " -------- UAV States -----------" << std::endl;
 
   m_msgs << "UAV States: " << std::endl;
   m_msgs << "------------------ " << std::endl;
@@ -335,12 +331,6 @@ bool ArduBridge::buildReport()
   m_msgs << "             In Air: "  <<  boolToString(m_uav_model.isInAir()) << std::endl;
   m_msgs << "        Flight Mode: "  <<  m_uav_model.getFlightMode() << std::endl;
 
-  m_msgs << "\n\n";
-
-  // ACTable actab1(2);
-  // actab1 << " x  | Value ";
-
-
   double lat = m_uav_model.getLatitude();
   double lon = m_uav_model.getLongitude();
   double nav_x, nav_y;
@@ -348,22 +338,17 @@ bool ArduBridge::buildReport()
     m_geodesy.LatLong2LocalGrid(lat, lon, nav_y, nav_x);
   } 
   
-
   m_msgs << "State Information: " << std::endl;
   m_msgs << "------------------ " << std::endl;
   m_msgs << "  (Latitude , Longditute): " <<  lat  << " , " << lon << std::endl;
   m_msgs << "                  (X , Y): " << nav_x << " , " << nav_y << std::endl;
-  m_msgs << "           Altitude (AGL): " << m_uav_model.getAltitudeAGL() << std::endl;
-  m_msgs << "          Depth / Z (AGL): " << -m_uav_model.getAltitudeAGL() << std::endl;
-  m_msgs << "          Target AirSpeed: " << m_uav_model.getTargetAirSpeed() << std::endl;
-  m_msgs << "                 AirSpeed: " << m_uav_model.getAirSpeed() << std::endl;
-  m_msgs << " AirSpeed (xy projection): " << m_uav_model.getAirSpeedXY() << std::endl;
-  m_msgs << "                 Heading: " << m_uav_model.getHeading() << std::endl;
+  m_msgs << "           Altitude (AGL): " << m_uav_model.getAltitudeAGL() << "( Depth/Z: " << -m_uav_model.getAltitudeAGL() << " m)" << std::endl;
+  m_msgs << "          Target Airspeed: " << m_uav_model.getTargetAirSpeed() <<  " m/s" << std::endl;
+  m_msgs << "                 AirSpeed: " << m_uav_model.getAirSpeed() <<  " m/s" <<std::endl;
+  m_msgs << " AirSpeed (xy projection): " << m_uav_model.getAirSpeedXY() <<  " m/s" << std::endl;
+  m_msgs << "                 Heading: " << m_uav_model.getHeading() <<  " deg" << std::endl;
 
-  m_msgs << "\n\n";
   m_msgs << "-------------------------------------------" << std::endl;
-  m_msgs << "\n\n";
-
 
   ACTable actb(2);
   actb << "Parameters | Value ";
@@ -375,9 +360,7 @@ bool ArduBridge::buildReport()
   m_msgs << actb.getFormattedString();
   m_msgs << "\n\n" << std::endl;
 
-  m_msgs << "\n\n";
   m_msgs << "-------------------------------------------" << std::endl;
-  m_msgs << "\n\n";
 
 
   ACTable actab(2);

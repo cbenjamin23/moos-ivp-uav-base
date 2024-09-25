@@ -241,13 +241,13 @@
       "command-palette:Open command palette": false
     }
   },
-  "active": "da26bb1516200fb8",
+  "active": "7000d0c8a156708a",
   "lastOpenFiles": [
+    "Troubleshooting.md",
+    "Info/MAIN System architecture.md",
     "Info/Launching System.md",
     "Info/Install, Build & Run MAVSDK.md",
-    "Info/MAIN System architecture.md",
     "Info/Mission Planner info.md",
-    "Troubleshooting.md",
     "Info/ArduPilot & MavProx.md",
     "Helpful definitions.md",
     "Testing.md",
