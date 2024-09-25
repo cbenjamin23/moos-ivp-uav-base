@@ -10,8 +10,8 @@ ProcessConfig = pArduBridge
   ArduPilotURL = $(AP_IP):$(AP_PORT)
   url_protocol = $(AP_PROTOCOL)
 
-
-  prefix    = NAV
+  vname = $(VNAME)
+  prefix = NAV
   // start_pos = $(START_POS), 180
 
 

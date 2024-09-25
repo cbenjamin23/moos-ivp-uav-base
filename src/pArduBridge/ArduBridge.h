@@ -60,14 +60,16 @@ class ArduBridge : public AppCastingMOOSApp
   private:
 
     void visualizeHomeLocation();
-    void visualizeLoiterLocation();
+    void visualizeLoiterLocation(const XYPoint& loiter_point);
 
-    bool evaluateBoolFromString(const std::string& str) const { bool b; setBooleanOnString(b,str); return b;}
+    // bool evaluateBoolFromString(const std::string& str) const { bool b; setBooleanOnString(b,str); return b;}
+    bool parseCoordinateString(const std::string& input, double& lat, double& lon, double& x, double& y , std::string& vname) const;
   
   private: // State variables
     // For UAV
 
-    UAV_Model m_uav_model;
+    std::string     m_vname;
+    UAV_Model       m_uav_model;
 
     bool  m_do_fly_to_waypoint;
     bool  m_do_takeoff;

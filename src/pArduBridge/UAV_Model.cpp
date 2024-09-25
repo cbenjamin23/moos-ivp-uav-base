@@ -43,8 +43,11 @@ UAV_Model::UAV_Model(std::shared_ptr<WarningSystem> ws):
   m_velocity_ned = mavsdk::Telemetry::VelocityNed();
   m_battery = mavsdk::Telemetry::Battery();
   m_flight_mode = mavsdk::Telemetry::FlightMode::Unknown;
+
+
   m_home_coord = XYPoint(0, 0);
   m_current_loiter_coord = XYPoint(0, 0);
+  m_next_waypoint = XYPoint(0, 0);
 
 }
 
@@ -444,7 +447,9 @@ bool UAV_Model::commandGoToLocation(const mavsdk::Telemetry::Position& position)
 
 
   if(res != mavsdk::Action::Result::Success){
-    m_warning_system_ptr->monitorWarningForXseconds("goto_location failed", WARNING_DURATION);
+    std::stringstream ss;
+    ss << "goto_location failed: " << res;
+    m_warning_system_ptr->monitorWarningForXseconds(ss.str(), WARNING_DURATION);
     return false;
   }
 

@@ -106,6 +106,8 @@ ProcessConfig = uFldShoreBroker
   qbridge = RETURN_TO_LAUNCH, LOITER
 
   qbridge = DO_TAKEOFF, FLY_WAYPOINT
+
+  bridge  = src=NEXT_WAYPOINT
   
  
   bridge  = src=RETURN_ALL, alias=RETURN
@@ -168,6 +170,7 @@ ProcessConfig = pMarineViewer
 	// left_context[reg_waypoint]  = VIEW_POINT = x=$[XPOS],y=$[YPOS],label=next_wpt,vertex_size=4
   
   left_context[reg_waypoint] =  VIEW_MARKER = "type=gateway,x=$[XPOS],y=$[YPOS],scale=4.3,label=next_wpt,color=green,width=4.5"
+  left_context[reg_waypoint] =  NEXT_WAYPOINT = "lat=$[LAT],lon=$[LON],x=$[XPOS],y=$[YPOS],vname=$[VNAME]"
   
   
   left_context[reg_swimmer]   = XSWIMMER_ALERT = type=reg,x=$[XPOS],y=$[YPOS]

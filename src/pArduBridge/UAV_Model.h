@@ -67,6 +67,7 @@ public:
     void   setCallbackReportRunW(const std::function<void(const std::string&)>& callback) {callbackReportRunW = callback ;}
     void   setCallbackRetractRunW(const std::function<void(const std::string&)>& callback) {callbackRetractRunW = callback ;}
 
+    void   setNextWaypoint(const XYPoint& wp) {m_next_waypoint = wp;}
 
     // Getters
     bool                            isHealthy() const {return(m_health_all_ok);}
@@ -75,6 +76,7 @@ public:
     mavsdk::Telemetry::FlightMode   getFlightMode() const {return(m_flight_mode);}
 
 
+    XYPoint   getNextWaypoint() const {return(m_next_waypoint);}
     XYPoint   getCurrentLoiterLatLong() const {return(m_current_loiter_coord);}
     XYPoint   getHomeLatLong() const {return(m_home_coord);}
     double    getLatitude() const {return(m_position.latitude_deg);}
@@ -179,6 +181,7 @@ protected:
 
     XYPoint   m_home_coord;
     XYPoint   m_current_loiter_coord;
+    XYPoint   m_next_waypoint;
 
 
 

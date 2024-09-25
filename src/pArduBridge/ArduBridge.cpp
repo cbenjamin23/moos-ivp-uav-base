@@ -73,6 +73,22 @@ bool ArduBridge::OnNewMail(MOOSMSG_LIST &NewMail)
       setBooleanOnString(m_do_fly_to_waypoint, msg.GetString());
       if(!m_do_fly_to_waypoint) m_warning_system_ptr->monitorWarningForXseconds("Fly waypoint command not set", WARNING_DURATION);
     }
+    else if(key == "NEXT_WAYPOINT"){
+      std::string wp_str = msg.GetString();
+      double lat, lon, x, y;
+      std::string vname;
+      if(parseCoordinateString(wp_str, lat, lon, x, y, vname)){
+        
+        if(vname == m_vname){
+          m_uav_model.setNextWaypoint(XYPoint(lat, lon));
+        }
+
+      }
+      else{
+        m_warning_system_ptr->monitorWarningForXseconds("Invalid waypoint string: " + wp_str, WARNING_DURATION);
+      }
+      
+    }
     else if(key == "DO_TAKEOFF"){
       setBooleanOnString(m_do_takeoff, msg.GetString());
       if(!m_do_takeoff) m_warning_system_ptr->monitorWarningForXseconds("Takeoff command not set", WARNING_DURATION);
@@ -138,12 +154,26 @@ bool ArduBridge::Iterate()
   if(m_do_fly_to_waypoint){
     // send the fly to waypoint command
     
-    double lat_deg_home = m_uav_model.getHomeLatLong().x();
-    double lon_deg_home = m_uav_model.getHomeLatLong().y();
-    
-    mavsdk::Telemetry::Position dest = {lat_deg_home+0.0011, lon_deg_home+0.0011, 564 + 60};
+    XYPoint wp = m_uav_model.getNextWaypoint();
+    if(wp == XYPoint(0, 0)){
+      m_warning_system_ptr->monitorWarningForXseconds("No waypoint set", WARNING_DURATION);
+    } else {
 
-    auto res = m_uav_model.commandGoToLocation(dest);
+      double lat = wp.x();
+      double lon = wp.y();
+      float alt_msl = m_uav_model.getAltitudeMSL();
+      
+      mavsdk::Telemetry::Position wpt = {lat, lon, alt_msl};
+
+      // std::stringstream ss;
+      // ss << "Trying to fly to waypoint (lat,long,alt_msl): " << wpt.latitude_deg << ", " << wpt.longitude_deg << ", " << wpt.absolute_altitude_m << std::endl;
+      // reportEvent(ss.str());
+
+      if(m_uav_model.commandGoToLocation(wpt)){
+        visualizeLoiterLocation(wp);
+      }
+
+    }
 
     m_do_fly_to_waypoint = false;
     poll_parameters = true;
@@ -161,7 +191,7 @@ bool ArduBridge::Iterate()
 
   if(m_do_loiter){
     if(m_uav_model.commandLoiter()){
-      visualizeLoiterLocation();
+      visualizeLoiterLocation(m_uav_model.getCurrentLoiterLatLong());
     }
 
     m_do_loiter = false;
@@ -232,7 +262,10 @@ bool ArduBridge::OnStartUp()
 
 
     bool handled = false;
-    if(param == "ardupiloturl" || param == "url") {
+    if(param == "vname"){
+      m_vname = value;
+      handled = true;
+    } else if(param == "ardupiloturl" || param == "url") {
       ardupilot_url = value;
       handled = true;
     }
@@ -308,6 +341,11 @@ bool ArduBridge::OnStartUp()
     return(false);
   }
 
+  if(m_vname.empty()){
+    std::cout << "Vehicle name not set. " << std::endl;
+    return(false);
+  }
+
   m_uav_model.subscribeToTelemetry();
   m_warning_system_ptr->checkConditions(); // Check for warnings and remove/raise them as needed
   
@@ -335,6 +373,7 @@ void ArduBridge::registerVariables()
 
   Register("RETURN_TO_LAUNCH", 0);
   Register("LOITER", 0);
+  Register("NEXT_WAYPOINT", 0);
 }
 
 
@@ -375,6 +414,7 @@ bool ArduBridge::buildReport()
   m_msgs << "  (Latitude , Longditute): " <<  lat  << " , " << lon << std::endl;
   m_msgs << "                  (X , Y): " << nav_x << " , " << nav_y << std::endl;
   m_msgs << "           Altitude (AGL): " << m_uav_model.getAltitudeAGL() << " m (Depth/Z: " << -m_uav_model.getAltitudeAGL() << " m)" << std::endl;
+  m_msgs << "           Altitude (MSL): " << m_uav_model.getAltitudeMSL() <<  " m" << std::endl;
   m_msgs << "          Target Airspeed: " << m_uav_model.getTargetAirSpeed() <<  " m/s" << std::endl;
   m_msgs << "                 AirSpeed: " << m_uav_model.getAirSpeed() <<  " m/s" <<std::endl;
   m_msgs << " AirSpeed (xy projection): " << m_uav_model.getAirSpeedXY() <<  " m/s" << std::endl;
@@ -476,9 +516,9 @@ void ArduBridge::visualizeHomeLocation(){
 }
 
 
-void ArduBridge::visualizeLoiterLocation(){
-  double lat = m_uav_model.getCurrentLoiterLatLong().x();
-  double lon = m_uav_model.getCurrentLoiterLatLong().y();
+void ArduBridge::visualizeLoiterLocation(const XYPoint& loiter_point){
+  double lat = loiter_point.x();
+  double lon = loiter_point.y();
 
   if(!lat || !lon) {
     m_warning_system_ptr->monitorWarningForXseconds("NAN Values at lat or long", 5);
@@ -501,4 +541,31 @@ void ArduBridge::visualizeLoiterLocation(){
   Notify("VIEW_MARKER", spec);
 
  reportEvent("Set marker at loiter location: " + spec);
+}
+
+
+bool ArduBridge::parseCoordinateString(const std::string& input, double& lat, double& lon, double& x, double& y, std::string& vname) const{
+    std::vector<std::string> key_value_pairs = parseString(input, ',');
+
+    for (const std::string& pair : key_value_pairs) {
+        std::string key = biteStringX(const_cast<std::string&>(pair), '=');
+        std::string value = pair;  // `pair` now only contains the value after `biteStringX`
+
+        if (key == "lat") {
+            lat = std::stod(value);  
+        } else if (key == "lon") {
+            lon = std::stod(value);  
+        } else if (key == "x") {
+            x = std::stod(value);   
+        } else if (key == "y") {
+            y = std::stod(value); 
+        } else if (key == "vname") {
+            vname = value;
+        } else {
+            std::cerr << "Unknown key: " << key << std::endl;
+            return false;  // If there's an unknown key, return false
+        }
+    }
+
+    return true;
 }
