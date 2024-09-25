@@ -26,6 +26,7 @@ UAV_Model::UAV_Model(std::shared_ptr<WarningSystem> ws):
   callbackMOOSTrace{nullptr},
   callbackReportRunW{nullptr},
   callbackRetractRunW{nullptr},
+  callbackReportEvent{nullptr},
 
   m_health_all_ok{false},
   m_is_armed{false},
@@ -43,6 +44,7 @@ UAV_Model::UAV_Model(std::shared_ptr<WarningSystem> ws):
   m_battery = mavsdk::Telemetry::Battery();
   m_flight_mode = mavsdk::Telemetry::FlightMode::Unknown;
   m_home_coord = XYPoint(0, 0);
+  m_current_loiter_coord = XYPoint(0, 0);
 
 }
 
@@ -181,7 +183,7 @@ bool UAV_Model::startMission() const{
 bool UAV_Model::sendArmCommandIfHealthyAndNotArmed() const{
   
   if(m_health_all_ok && !m_is_armed){
-    commandArm();
+    commandArmAsync();
     return true;
   }
 
@@ -355,8 +357,45 @@ bool UAV_Model::setParameterAsync(Parameters param_enum, double value) const
 /////////////  COMMANDS  //////////
 ///////////////////////////////////
 
+bool UAV_Model::commandReturnToLaunchAsync() const{
+  
+  m_action_ptr->return_to_launch_async([&, this](mavsdk::Action::Result result) {
+    if (result != mavsdk::Action::Result::Success) {
+        std::stringstream ss;
+        ss << "Return to launch failed: " << result;
+        m_warning_system_ptr->monitorWarningForXseconds(ss.str(), WARNING_DURATION);
+        return;
+    }
+  });
+  
+  return true;
 
-bool UAV_Model::commandAndSetAirSpeedAsync(double speed) const { 
+}
+
+bool UAV_Model::commandLoiter() {
+  
+  m_current_loiter_coord = XYPoint(m_position.latitude_deg, m_position.longitude_deg);
+
+  mavsdk::Telemetry::Position loiter_position;
+  loiter_position.latitude_deg = m_current_loiter_coord.x();
+  loiter_position.longitude_deg = m_current_loiter_coord.y();
+  loiter_position.absolute_altitude_m = m_position.absolute_altitude_m;
+
+  if(commandGoToLocation(loiter_position)){
+    std::stringstream ss;
+    ss << "Loitering at (Lat/Long): " << m_current_loiter_coord.x() << "/" << m_current_loiter_coord.y() << "\n";
+    reportEventFromCallback(ss.str());
+    return true;
+  }
+
+  m_warning_system_ptr->monitorWarningForXseconds("Loitering failed", WARNING_DURATION);
+  return false;
+
+
+}
+
+
+bool UAV_Model::commandAndSetAirSpeed(double speed) const { 
   
   if(commandSpeed(speed, SPEED_TYPE::SPEED_TYPE_GROUNDSPEED)){ // Fails with airspeed
 
@@ -366,7 +405,7 @@ bool UAV_Model::commandAndSetAirSpeedAsync(double speed) const {
   return false;
 }
 
-bool UAV_Model::commandArm() const{
+bool UAV_Model::commandArmAsync() const{
 
   m_action_ptr->arm_async([&, this](mavsdk::Action::Result result) {
     // MOOSTrace("Arming result: %d\n", result);
@@ -381,7 +420,7 @@ bool UAV_Model::commandArm() const{
   return true;
 }
 
-bool UAV_Model::commandDisarm() const{
+bool UAV_Model::commandDisarmAsync() const{
   
     m_action_ptr->disarm_async([&, this](mavsdk::Action::Result result) {
       // MOOSTrace("Disarming result: %d\n", result);
@@ -396,7 +435,7 @@ bool UAV_Model::commandDisarm() const{
     return true;
 }
 
-bool UAV_Model::commandGoToLocation(mavsdk::Telemetry::Position& position) const{
+bool UAV_Model::commandGoToLocation(const mavsdk::Telemetry::Position& position) const{
 
   double loiter_direction = 0; // 0 for clockwise, 1 for counter clockwise
   

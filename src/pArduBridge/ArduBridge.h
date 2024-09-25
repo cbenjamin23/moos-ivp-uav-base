@@ -56,7 +56,14 @@ class ArduBridge : public AppCastingMOOSApp
     bool         m_geo_ok;
     CMOOSGeodesy m_geodesy;
 
+  
+  private:
 
+    void visualizeHomeLocation();
+    void visualizeLoiterLocation();
+
+    bool evaluateBoolFromString(const std::string& str) const { bool b; setBooleanOnString(b,str); return b;}
+  
   private: // State variables
     // For UAV
 
@@ -67,7 +74,14 @@ class ArduBridge : public AppCastingMOOSApp
     std::pair<bool, double> m_do_change_speed_pair;
     bool  m_do_reset_speed;
 
+    bool  m_do_arm;
+    bool  m_do_return_to_launch;
+    bool  m_do_loiter;
+  
+
     std::shared_ptr<WarningSystem> m_warning_system_ptr;
+
+
 
 };
 

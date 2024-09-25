@@ -114,6 +114,7 @@ ProcessConfig = uFldNodeBroker
   bridge = src=AVDCOL_MODE
   bridge = src=VIEW_POLYGON
   bridge = src=VIEW_POINT
+  bridge = src=VIEW_MARKER
   bridge = src=VIEW_SEGLIST
   bridge = src=APPCAST
   bridge = src=BCM_DETECTION_DIST

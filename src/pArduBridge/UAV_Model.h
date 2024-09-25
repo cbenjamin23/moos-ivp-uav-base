@@ -9,7 +9,7 @@
 
 #include <string>
 #include "NodeRecord.h"
-
+#include "AngleUtils.h"
 
 
 #include <mavsdk/mavsdk.h>
@@ -51,15 +51,19 @@ public:
     // Non-blocking function to poll all parameters
     void   pollAllParametersAsync();
 
-    // Actions
-    bool   commandAndSetAirSpeedAsync(double speed) const;
+    // Actions and commands 
+    bool   commandAndSetAirSpeed(double speed) const;
     bool   commandGroundSpeed(double speed) const {return(commandSpeed(speed, SPEED_TYPE::SPEED_TYPE_GROUNDSPEED));} //blocking functions
-    bool   commandGoToLocation(mavsdk::Telemetry::Position& position) const;
-            // async function
-    bool   commandDisarm() const; 
+    bool   commandGoToLocation(const mavsdk::Telemetry::Position& position) const;
+    bool   commandDisarmAsync() const; 
+
+    bool   commandReturnToLaunchAsync() const;
+    bool   commandLoiter() ;
+
 
     // Setters
     void   setCallbackMOOSTrace(const std::function<void(const std::string&)>& callback) {callbackMOOSTrace = callback ;}
+    void   setCallbackReportEvent(const std::function<void(const std::string&)>& callback) {callbackReportEvent = callback ;}
     void   setCallbackReportRunW(const std::function<void(const std::string&)>& callback) {callbackReportRunW = callback ;}
     void   setCallbackRetractRunW(const std::function<void(const std::string&)>& callback) {callbackRetractRunW = callback ;}
 
@@ -71,7 +75,8 @@ public:
     mavsdk::Telemetry::FlightMode   getFlightMode() const {return(m_flight_mode);}
 
 
-    XYPoint   getHomeCoord() const {return(m_home_coord);}
+    XYPoint   getCurrentLoiterLatLong() const {return(m_current_loiter_coord);}
+    XYPoint   getHomeLatLong() const {return(m_home_coord);}
     double    getLatitude() const {return(m_position.latitude_deg);}
     double    getLongitude() const {return(m_position.longitude_deg);}
     
@@ -83,7 +88,7 @@ public:
                                                + m_velocity_ned.down_m_s*m_velocity_ned.down_m_s );}
     double    getAirSpeedXY() const {return( sqrt(m_velocity_ned.north_m_s*m_velocity_ned.north_m_s
                                                + m_velocity_ned.east_m_s*m_velocity_ned.east_m_s) );}
-    double    getHeading() const {return(m_attitude_ned.yaw_deg);}
+    double    getHeading() const {return( angle360(m_attitude_ned.yaw_deg));}
    
    
     double    getAltitudeAGL() const {return(m_position.relative_altitude_m);} 
@@ -128,15 +133,17 @@ protected:
     std::shared_ptr<WarningSystem> m_warning_system_ptr;
     // Callbacks for debug messages
     std::function<void(const std::string&)> callbackMOOSTrace;
+    std::function<void(const std::string&)> callbackReportEvent;
     std::function<void(const std::string&)> callbackReportRunW;
     std::function<void(const std::string&)> callbackRetractRunW;    
 
     void MOOSTraceFromCallback(const std::string& msg) const {if(callbackMOOSTrace) callbackMOOSTrace(msg);};
     void reportRunWarningFromCallback(const std::string& msg) const {if(callbackReportRunW) callbackReportRunW(msg);};
     void retractRunWarningFromCallback(const std::string& msg) const {if(callbackRetractRunW) callbackRetractRunW(msg);};
+    void reportEventFromCallback(const std::string& msg) const {if(callbackReportEvent) callbackReportEvent(msg);};
 
     bool commandSpeed(double airspeed_m_s, SPEED_TYPE speed_type = SPEED_TYPE::SPEED_TYPE_GROUNDSPEED) const;
-    bool commandArm() const;
+    bool commandArmAsync() const;
 
     bool setParameterAsync(Parameters param_enum, double value) const;
     bool getParameterAsync(Parameters param_enum);
@@ -171,6 +178,7 @@ protected:
     PolledParameters m_polled_params;
 
     XYPoint   m_home_coord;
+    XYPoint   m_current_loiter_coord;
 
 
 

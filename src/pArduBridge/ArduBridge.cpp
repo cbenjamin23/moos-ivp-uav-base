@@ -8,8 +8,12 @@
 #include <iterator>
 #include "MBUtils.h"
 #include "ACTable.h"
-#include "ArduBridge.h"
 
+// #include "NodeMessage.h"
+#include "XYMarker.h"
+
+
+#include "ArduBridge.h"
 #include "definitions.h"
 
 //---------------------------------------------------------
@@ -21,12 +25,16 @@ ArduBridge::ArduBridge()
   m_cli_arg{},
   m_do_change_speed_pair{std::make_pair(false, 0)},
   m_do_reset_speed{false},
+  m_do_return_to_launch{false},
+  m_do_loiter{false},
+  m_do_arm{false},
   m_warning_system_ptr{ std::make_shared<WarningSystem>(
     [this](const std::string msg){this->reportRunWarning(msg);}, 
     [this](const std::string msg){this->retractRunWarning(msg);} ) 
   }
 {
   m_uav_model.registerWarningSystem(m_warning_system_ptr);
+  m_uav_model.setCallbackReportEvent([this](const std::string msg){this->reportEvent(msg);});
 
   m_uav_prefix = "UAV";
   
@@ -63,26 +71,32 @@ bool ArduBridge::OnNewMail(MOOSMSG_LIST &NewMail)
 
     if(key == "FLY_WAYPOINT"){
       setBooleanOnString(m_do_fly_to_waypoint, msg.GetString());
+      if(!m_do_fly_to_waypoint) m_warning_system_ptr->monitorWarningForXseconds("Fly waypoint command not set", WARNING_DURATION);
     }
     else if(key == "DO_TAKEOFF"){
       setBooleanOnString(m_do_takeoff, msg.GetString());
+      if(!m_do_takeoff) m_warning_system_ptr->monitorWarningForXseconds("Takeoff command not set", WARNING_DURATION);
     }
     else if(key == "CHANGE_SPEED"){
-      double dval  = msg.GetDouble();
-      m_do_change_speed_pair = std::make_pair(true, dval);
+      m_do_change_speed_pair = std::make_pair(true, msg.GetDouble());
     }
-    else if(key == "ARM_UAV"){
-      std::string sval  = msg.GetString(); 
-      
-      if(sval == "true" || sval == "TRUE" || sval == "True"){
-        m_uav_model.sendArmCommandIfHealthyAndNotArmed();
-      }else{
-        m_uav_model.commandDisarm();
-      }
-
+    else if(key == "ARM_UAV"){  
+      setBooleanOnString(m_do_arm, msg.GetString());
+      if(!m_do_arm) m_warning_system_ptr->monitorWarningForXseconds("Arm command not set", WARNING_DURATION);
     }
     else if(key == "RESET_SPEED_MIN"){
       setBooleanOnString(m_do_reset_speed, msg.GetString());
+      if(!m_do_reset_speed) m_warning_system_ptr->monitorWarningForXseconds("Reset speed command not set", WARNING_DURATION);
+    }
+    else if(key == "RETURN_TO_LAUNCH"){
+      setBooleanOnString(m_do_return_to_launch, msg.GetString());
+      if(!m_do_return_to_launch) m_warning_system_ptr->monitorWarningForXseconds("Return to launch command not set", WARNING_DURATION);
+      
+    }
+    else if(key == "LOITER"){
+      setBooleanOnString(m_do_loiter, msg.GetString());
+      if(!m_do_loiter) m_warning_system_ptr->monitorWarningForXseconds("Loiter command not set", WARNING_DURATION);
+      
     }
     else if(key != "APPCAST_REQ"){  // handled by AppCastingMOOSApp
       reportRunWarning("Unhandled Mail: " + key);
@@ -124,8 +138,8 @@ bool ArduBridge::Iterate()
   if(m_do_fly_to_waypoint){
     // send the fly to waypoint command
     
-    double lat_deg_home = m_uav_model.getHomeCoord().x();
-    double lon_deg_home = m_uav_model.getHomeCoord().y();
+    double lat_deg_home = m_uav_model.getHomeLatLong().x();
+    double lon_deg_home = m_uav_model.getHomeLatLong().y();
     
     mavsdk::Telemetry::Position dest = {lat_deg_home+0.0011, lon_deg_home+0.0011, 564 + 60};
 
@@ -135,10 +149,27 @@ bool ArduBridge::Iterate()
     poll_parameters = true;
   }
 
+  if(m_do_arm){
+    m_uav_model.sendArmCommandIfHealthyAndNotArmed();
+    m_do_arm = false;
+  }
+
+  if(m_do_return_to_launch){
+    m_uav_model.commandReturnToLaunchAsync();
+    m_do_return_to_launch = false;
+  }
+
+  if(m_do_loiter){
+    if(m_uav_model.commandLoiter()){
+      visualizeLoiterLocation();
+    }
+
+    m_do_loiter = false;
+  }
 
   if(m_do_change_speed_pair.first){
     double new_speed = m_uav_model.getTargetAirSpeed() + m_do_change_speed_pair.second;
-    m_uav_model.commandAndSetAirSpeedAsync(new_speed);
+    m_uav_model.commandAndSetAirSpeed(new_speed);
     reportEvent("Trying to changed speed to " + doubleToString(new_speed));
     m_do_change_speed_pair.second = 0;
     m_do_change_speed_pair.first = false;
@@ -148,7 +179,7 @@ bool ArduBridge::Iterate()
 
 
   if(m_do_reset_speed){
-    m_uav_model.commandAndSetAirSpeedAsync(m_uav_model.getMinAirSpeed());
+    m_uav_model.commandAndSetAirSpeed(m_uav_model.getMinAirSpeed());
     m_do_reset_speed = false;
     poll_parameters = true;
   }
@@ -252,8 +283,6 @@ bool ArduBridge::OnStartUp()
   }
 
 
-
-
   ardupilot_url = url_protocol_pair.second + ardupilot_url;
 
   std::cout << "ArduPilot URL is: " << ardupilot_url << std::endl;
@@ -280,12 +309,14 @@ bool ArduBridge::OnStartUp()
   }
 
   m_uav_model.subscribeToTelemetry();
-
-  registerVariables();	
   m_warning_system_ptr->checkConditions(); // Check for warnings and remove/raise them as needed
   
   
   
+
+  visualizeHomeLocation();
+
+  registerVariables();
   return(true);
 }
 
@@ -301,6 +332,9 @@ void ArduBridge::registerVariables()
   Register("CHANGE_SPEED", 0);
   Register("ARM_UAV", 0);
   Register("RESET_SPEED_MIN", 0);
+
+  Register("RETURN_TO_LAUNCH", 0);
+  Register("LOITER", 0);
 }
 
 
@@ -313,8 +347,6 @@ bool ArduBridge::buildReport()
   m_msgs << "File: pArduBridge                                      " << std::endl;
   m_msgs << "============================================" << std::endl;
 
-
-  m_msgs << "\n\n";
 
   m_msgs << " -------- Configuration Settings -----------" << std::endl;
   m_msgs << "ArduPilot URL: " << m_cli_arg.get_path() << std::endl;
@@ -342,7 +374,7 @@ bool ArduBridge::buildReport()
   m_msgs << "------------------ " << std::endl;
   m_msgs << "  (Latitude , Longditute): " <<  lat  << " , " << lon << std::endl;
   m_msgs << "                  (X , Y): " << nav_x << " , " << nav_y << std::endl;
-  m_msgs << "           Altitude (AGL): " << m_uav_model.getAltitudeAGL() << "( Depth/Z: " << -m_uav_model.getAltitudeAGL() << " m)" << std::endl;
+  m_msgs << "           Altitude (AGL): " << m_uav_model.getAltitudeAGL() << " m (Depth/Z: " << -m_uav_model.getAltitudeAGL() << " m)" << std::endl;
   m_msgs << "          Target Airspeed: " << m_uav_model.getTargetAirSpeed() <<  " m/s" << std::endl;
   m_msgs << "                 AirSpeed: " << m_uav_model.getAirSpeed() <<  " m/s" <<std::endl;
   m_msgs << " AirSpeed (xy projection): " << m_uav_model.getAirSpeedXY() <<  " m/s" << std::endl;
@@ -355,13 +387,11 @@ bool ArduBridge::buildReport()
   actb.addHeaderLines();
   actb << "Min AirSpeed:" << m_uav_model.getMinAirSpeed();
   actb << "Max AirSpeed:" << m_uav_model.getMaxAirSpeed();
-  actb << "Home Coord Lat:" << m_uav_model.getHomeCoord().x();
-  actb << "Home Coord Lon:" << m_uav_model.getHomeCoord().y();
-  m_msgs << actb.getFormattedString();
-  m_msgs << "\n\n" << std::endl;
+  actb << "Home Coord Lat:" << m_uav_model.getHomeLatLong().x();
+  actb << "Home Coord Lon:" << m_uav_model.getHomeLatLong().y();
+  m_msgs << actb.getFormattedString() << std::endl;
 
   m_msgs << "-------------------------------------------" << std::endl;
-
 
   ACTable actab(2);
   actab << "Debug | Value ";
@@ -369,16 +399,12 @@ bool ArduBridge::buildReport()
   actab << "Do set fly waypoint:" << boolToString(m_do_fly_to_waypoint);
   actab << "Do takeoff:" << boolToString(m_do_takeoff);
   m_msgs << actab.getFormattedString();
-  m_msgs << "\n\n" << std::endl;
-
-  m_msgs << "Home Coord (lat, lon): (" << m_uav_model.getHomeCoord().x() << " , " << m_uav_model.getHomeCoord().y() << ")\n";
 
   return(true);
 }
 
 
 void ArduBridge::postTelemetryUpdate(const std::string& prefix){
-
   
   double lat = m_uav_model.getLatitude();
   double lon = m_uav_model.getLongitude();
@@ -419,4 +445,60 @@ void ArduBridge::postTelemetryUpdate(const std::string& prefix){
   Notify(prefix+"_SPEED_OVER_GROUND", m_uav_model.getAirSpeedXY(), m_curr_time);
   
 
+}
+
+
+void ArduBridge::visualizeHomeLocation(){
+  double lat = m_uav_model.getHomeLatLong().x();
+  double lon = m_uav_model.getHomeLatLong().y();
+
+  if(!lat || !lon) {
+    m_warning_system_ptr->monitorWarningForXseconds("NAN Values at lat or long", 5);
+    return;
+  }
+  
+  double nav_x, nav_y;
+  if(m_geo_ok) {
+    m_geodesy.LatLong2LocalGrid(lat, lon, nav_y, nav_x);
+  } else {
+    m_warning_system_ptr->monitorWarningForXseconds("Geodesy not initialized", 5);
+    return;
+  }
+
+  XYMarker marker(nav_x, nav_y);
+  marker.set_label("Home");
+  marker.set_type("gateway");
+  marker.set_width(4.5);
+  std::string spec = marker.get_spec() + ",color=blue,scale=5";
+  Notify("VIEW_MARKER", spec);
+
+ reportEvent("Set marker at home location: " + spec);
+}
+
+
+void ArduBridge::visualizeLoiterLocation(){
+  double lat = m_uav_model.getCurrentLoiterLatLong().x();
+  double lon = m_uav_model.getCurrentLoiterLatLong().y();
+
+  if(!lat || !lon) {
+    m_warning_system_ptr->monitorWarningForXseconds("NAN Values at lat or long", 5);
+    return;
+  }
+  
+  double nav_x, nav_y;
+  if(m_geo_ok) {
+    m_geodesy.LatLong2LocalGrid(lat, lon, nav_y, nav_x);
+  } else {
+    m_warning_system_ptr->monitorWarningForXseconds("Geodesy not initialized", 5);
+    return;
+  }
+
+  XYMarker marker(nav_x, nav_y);
+  marker.set_label("Loiter point");
+  marker.set_type("gateway");
+  marker.set_width(4.5);
+  std::string spec = marker.get_spec() + ",color=yellow,scale=5";
+  Notify("VIEW_MARKER", spec);
+
+ reportEvent("Set marker at loiter location: " + spec);
 }

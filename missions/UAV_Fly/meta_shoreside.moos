@@ -132,32 +132,6 @@ ProcessConfig = pLogger
 }
 
 
-// //--------------------------------------------------------
-// // uFldCollisionDetect config block
-
-// ProcessConfig = uFldCollisionDetect
-// {
-//   AppTick    = 4
-//   CommsTick  = 4
-
-//   collision_range = 4
-//   near_miss_range = 8
-//   encounter_range = 20
-
-//   encounter_flag = ENCOUNTER = $CPA                             
-//   collision_flag = COLLISION = $CPA                             
-//   near_miss_flag = NEAR_MISS = vname1=$V1,vname2=$V2,cpa=$CPA   
-
-//   //delay_time_to_clear = 100   // seconds
-//   //deploy_delay_time   = 5     // seconds
-//   pulse_render = true
-//   pulse_range  = 20
-//   pulse_duration = 10
-
-// 	encounter_rings = false
-	
-//   //publish_immediately = true
-// }
 
 
 //--------------------------------------------------------
@@ -168,15 +142,14 @@ ProcessConfig = pMarineViewer
   AppTick    = 4
   CommsTick  = 4
 
-  vehicles_shape_scale = 40.0
   trails_point_size    = 5.0
 
   //tiff_file            = forrest19.tif
   tiff_file            = MIT_SP.tif
   set_pan_x            = 46
   set_pan_y            = -260
-  zoom                 = 1.5
-  vehicles_shape_scale = 1.0
+  zoom                 = 1
+  vehicles_shape_scale = 5.0
   vehicles_name_mode   = names+shortmode
 
 	beat_flag = HEARTBEAT=true
@@ -192,6 +165,11 @@ ProcessConfig = pMarineViewer
   point_viewable_all    = true
   point_viewable_labels = true
 
+	// left_context[reg_waypoint]  = VIEW_POINT = x=$[XPOS],y=$[YPOS],label=next_wpt,vertex_size=4
+  
+  left_context[reg_waypoint] =  VIEW_MARKER = "type=gateway,x=$[XPOS],y=$[YPOS],scale=4.3,label=next_wpt,color=green,width=4.5"
+  
+  
   left_context[reg_swimmer]   = XSWIMMER_ALERT = type=reg,x=$[XPOS],y=$[YPOS]
   left_context[reg_swimmer]   = SURVEY_ALL=true
   left_context[reg_swimmer]   = RETURN_ALL=false
@@ -236,7 +214,6 @@ ProcessConfig = pMarineViewer
   button_5  = TKOFF_ALL  # DO_TAKEOFF_ALL=true
   button_6  = TOWYP_ALL # FLY_WAYPOINT_ALL=true
 
-	left_context[reg_waypoint]  = VIEW_POINT = x=$[XPOS],y=$[YPOS],label=next_wpt,vertex_size=4
 
   cmd = label=TAKEOFF, var=DO_TAKEOFF, sval=true, receivers=all:$(VNAMES)
   cmd = label=TOWAYPOINT, var=FLY_WAYPOINT, sval=true, receivers=all:$(VNAMES)
