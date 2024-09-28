@@ -32,7 +32,8 @@ Read instructions [[MAIN System architecture]]
 - *Configuration step*
 		- In folder `~/MAVSDK/`run:
 	
-		cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=1 -DCMAKE_BUILD_TYPE=Debug -Bbuild/default -H. -DBUILD_SHARED_LIBS=ON 
+	`cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=1 -DCMAKE_BUILD_TYPE=Debug -Bbuild/default -H. -DBUILD_SHARED_LIBS=ON` 
+	
 	The first flag `-DCMAKE_EXPORT_COMPILE_COMMANDS=1` is to generate a `compile_command.json` for IntelliSense Configuration in vscode 
 	- If not restricted by memory/compute consider including:
 	

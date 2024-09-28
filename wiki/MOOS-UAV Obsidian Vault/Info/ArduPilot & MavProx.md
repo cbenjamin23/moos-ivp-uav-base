@@ -27,15 +27,7 @@ Since the error is due to an outdated reference in the `uavcan` library, you can
 ```python
 class ArrayValue(BaseValue, collections.MutableSequence):
 ```
-   
-##### Change the import to use `collections.abc`:
-    
-    
-```python
-from collections.abc import MutableSequence
-```
-    
-    
+
 ##### Modify the class definition as follows:
     
     
@@ -44,7 +36,16 @@ class ArrayValue(BaseValue, MutableSequence):
 ```
 
 
-Ny run simulator again
+##### Change the import to use `collections.abc`:
+    
+    
+```python
+from collections.abc import MutableSequence
+```
+    
+    
+
+Ny run simulator again!
 
 
 

@@ -5,8 +5,19 @@
 
 Run the command 
 
-		~/ardupilot/Tools/environment_install/install-prereqs-ubuntu.sh
-This wil setup things again
+**IMPORTANT**: Run this command in master branch before switching to Plane-4.1.2
+
+```bash
+~/ardupilot/Tools/environment_install/install-prereqs-ubuntu.sh -y
+```
+
+This wil setup things again.
+
+If it doesn't work and `sim_vehicle.sh` is not on the path, then add it manually to `.profile `file:
+
+```bash
+export PATH=/opt/gcc-arm-none-eabi-6-2017-q2-update/bin:$PATH export PATH=$HOME/ardupilot/Tools/autotest:$PATH
+```
 
 
 ## Gazebo not running/ dying after start
@@ -22,6 +33,27 @@ For MissionPlanner:
 	
 and then kill it using `kill <PID>`
 
+
+# Libuavcan issues
+
+Happens when compiling Ardupilot using `sim_vehicle.py`, eg.:
+
+    cfg.srcnode.find_dir('modules/uavcan/libuavcan/include').abspath()
+	AttributeError: 'NoneType' object has no attribute 'abspath
+
+Try to init submodules:
+```bash
+git submodule update --init --recursive
+```
+
+If it is stuck cloning for a long time clone `libcanard.git` and `uavcan.git` manually and try again!
+```bash
+cd ardupilot;
+git clone https://github.com/UAVCAN/libcanard.git modules/libcanard
+git clone https://github.com/UAVCAN/uavcan.git modules/uavcan
+```
+
+After this it is **IMPORTANT** to modify the UAVCAN Library Code as described in [[ArduPilot & MavProx]]
 
 
 ## How to search in files:

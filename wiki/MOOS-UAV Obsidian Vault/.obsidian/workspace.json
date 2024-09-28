@@ -68,7 +68,7 @@
             "state": {
               "type": "search",
               "state": {
-                "query": "world",
+                "query": "mono",
                 "matchingCase": false,
                 "explainSearch": false,
                 "collapseAll": false,
@@ -166,19 +166,19 @@
       "command-palette:Open command palette": false
     }
   },
-  "active": "7000d0c8a156708a",
+  "active": "da26bb1516200fb8",
   "lastOpenFiles": [
     "Info/Launching System.md",
     "Info/Mission Planner info.md",
-    "Info/MAIN System architecture.md",
-    "Info/ArduPilot & MavProx.md",
-    "Info/Skywalker X8.md",
     "Troubleshooting.md",
+    "Testing.md",
+    "Helpful definitions.md",
+    "Advantages of MOOS-IVP.md",
+    "Info/Skywalker X8.md",
+    "Info/ArduPilot & MavProx.md",
+    "Info/MAIN System architecture.md",
     "Info/Install, Build & Run MAVSDK.md",
     "Info/moos-ivp-uav.md",
-    "Helpful definitions.md",
-    "Testing.md",
-    "Advantages of MOOS-IVP.md",
     "QUESTIONS.md",
     "Papers",
     "Info/LSTS Toolchain/Dune.md",
