@@ -73,6 +73,7 @@ Add path to bin folder in moos-ivp-uav to bashrc: `PATH=$PATH:~/moos-ivp-uav/bin
 
 **NOTE**: When building moos-ivp, remember to use the `-m` flag to only build nongui apps: `.build.sh -m`
 
+
 ---
 
 

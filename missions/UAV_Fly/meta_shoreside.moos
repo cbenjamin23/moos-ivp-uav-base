@@ -147,7 +147,9 @@ ProcessConfig = pMarineViewer
   trails_point_size    = 5.0
 
   //tiff_file            = forrest19.tif
-  tiff_file            = MIT_SP.tif
+  //tiff_file            = MIT_SP.tif
+  tiff_file            = NTNU_UAV_Airport_gsat.tif
+  tiff_file            = NTNU_UAV_Airport_gmaps.tif
   set_pan_x            = 46
   set_pan_y            = -260
   zoom                 = 1
