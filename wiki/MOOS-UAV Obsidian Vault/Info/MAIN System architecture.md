@@ -7,9 +7,11 @@ This repository consist of a submodule for #MAVSDK
 
 Clone the [repo](https://github.com/Scarter668/moos-ivp-uav.git) (with ssh) and the submodules:
 
-	git clone git@github.com:Scarter668/moos-ivp-uav.git;
-	cd moos-ivp-uav;
-	git submodule update --init --recursive
+```bash
+git clone git@github.com:Scarter668/moos-ivp-uav.git;
+cd moos-ivp-uav;
+git submodule update --init --recursive
+```
 
 
 ### Setup bash aliases
@@ -17,7 +19,9 @@ Clone the [repo](https://github.com/Scarter668/moos-ivp-uav.git) (with ssh) and 
 The file `moos-ivp-uav/scripts/setup_bash_aliases_moos.sh` defines and sets up some useful aliases. 
 Make the file executable
 
-	chmod +x ~/moos-ivp-uav/scripts/setup_bash_aliases_moos.sh`
+```bash
+chmod +x ~/moos-ivp-uav/scripts/setup_bash_aliases_moos.sh
+```
 
 and source it from your bashrc. 
 
@@ -28,22 +32,36 @@ This will be moved to github eventually, but can currently be found [here](https
 
 Download via `svn`:
 
-	svn co https://oceanai.mit.edu/svn/moos-ivp-aro/trunk moos-ivp
+```bash
+svn co https://oceanai.mit.edu/svn/moos-ivp-aro/trunk moos-ivp
+```
+
 Checkout and update:
 
-	cd moos-ivp;
-	svn update
+```bash
+cd moos-ivp;
+svn update
+```
 
 Then build moos:
 
-	./build.sh
+```bash
+./build.sh
+```
 
 Verify that it is properly installed with:
 
-	$ which MOOSDB
-	/Users/you/moos-ivp/bin/MOOSDB
-	$ which pHelmIvP 
-	/Users/you/moos-ivp/bin/pHelmIvP
+```bash
+which MOOSDB
+which pHelmIvP 
+```
+
+It should produce:
+
+		$ which MOOSDB
+		/Users/you/moos-ivp/bin/MOOSDB
+		$ which pHelmIvP 
+		/Users/you/moos-ivp/bin/pHelmIvP
 
 AND/OR run an example mission:
 ```
@@ -72,11 +90,25 @@ Add path to bin folder in moos-ivp-uav to bashrc: `PATH=$PATH:~/moos-ivp-uav/bin
 	- Test that it runs `gz sim -v4 -r shapes.sdf`
 - In folder: ~/gz_ws/src/ardupilot_gazebo/
 - [Install guide](https://ardupilot.org/dev/docs/sitl-with-gazebo.html)
+- Install the SITL_Models from cloning repo into home
+```bash 
+git clone git@github.com:ArduPilot/SITL_Models.git
+```
+And add to bashrc:
+```bash
+export GZ_SIM_RESOURCE_PATH=$GZ_SIM_RESOURCE_PATH:\
+$HOME/SITL_Models/Gazebo/models:\
+$HOME/SITL_Models/Gazebo/worlds
+```
+
+
 ## MissionPLanner
 - ~/Mission_Planner/
 - [Install guide](https://ardupilot.org/planner/docs/mission-planner-installation.html)
 - [[Mission Planner info]]
-## MAVSDK
+## MAVSDK 
+
+**No need to install as it comes as a submodule with moos-ivp-uav)**
 - ~/MAVSDK/
 - [[Install, Build & Run MAVSDK]]
 

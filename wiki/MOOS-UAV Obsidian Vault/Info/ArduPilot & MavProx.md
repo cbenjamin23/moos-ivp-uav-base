@@ -60,12 +60,16 @@ Ny run simulator again
 
 ## Changing the simulation speed[¶](https://ardupilot.org/dev/docs/sitl-with-gazebo.html#changing-the-simulation-speed "Link to this heading")
 
-By default Gazebo will attempt to run the simulation with a Real Time Factor (RTF) of 1. To increase the simulation speed add the following XML block into the world file just after the opening <world> element in the file of the X8 model:
 
-> <physics name="1ms" type="ignore">
->   <max_step_size>0.001</max_step_size>
->   <real_time_factor>-1.0</real_time_factor>
-> </physics>
+
+By default Gazebo will attempt to run the simulation with a Real Time Factor (RTF) of 1. To increase the simulation speed add the following XML block into the world file just after the opening *world* element in the file of the X8 model under `SITL_Models/Gazebo/worlds/skywalker_x8_runway.sdf`:
+
+```sdf
+<physics name="1ms" type="ignore">
+  <max_step_size>0.001</max_step_size>
+  <real_time_factor>-1.0</real_time_factor>
+</physics>
+```
 
 Then set the simulation speed-up parameter in MAVProxy
 

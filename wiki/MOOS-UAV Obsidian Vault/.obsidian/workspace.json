@@ -8,93 +8,19 @@
         "type": "tabs",
         "children": [
           {
-            "id": "59cb73fb96c5af25",
-            "type": "leaf",
-            "state": {
-              "type": "markdown",
-              "state": {
-                "file": "Helpful definitions.md",
-                "mode": "source",
-                "source": false
-              }
-            }
-          },
-          {
-            "id": "c192c4b83c445d3d",
-            "type": "leaf",
-            "state": {
-              "type": "markdown",
-              "state": {
-                "file": "Helpful definitions.md",
-                "mode": "source",
-                "source": false
-              }
-            }
-          },
-          {
-            "id": "54a30b488bf4b937",
-            "type": "leaf",
-            "state": {
-              "type": "markdown",
-              "state": {
-                "file": "Helpful definitions.md",
-                "mode": "source",
-                "source": false
-              }
-            }
-          },
-          {
-            "id": "261c52b594810563",
-            "type": "leaf",
-            "state": {
-              "type": "markdown",
-              "state": {
-                "file": "Info/Mission Planner info.md",
-                "mode": "source",
-                "source": false
-              }
-            }
-          },
-          {
-            "id": "ad5f158372ea4bc4",
-            "type": "leaf",
-            "state": {
-              "type": "markdown",
-              "state": {
-                "file": "Info/MAIN System architecture.md",
-                "mode": "source",
-                "source": false
-              }
-            }
-          },
-          {
-            "id": "727f9592126327c4",
-            "type": "leaf",
-            "state": {
-              "type": "markdown",
-              "state": {
-                "file": "Info/MAIN System architecture.md",
-                "mode": "source",
-                "source": false
-              }
-            }
-          },
-          {
             "id": "da26bb1516200fb8",
             "type": "leaf",
             "state": {
               "type": "markdown",
               "state": {
-                "file": "Info/Launching System.md",
+                "file": "Info/MAIN System architecture.md",
                 "mode": "source",
-                "backlinks": false,
                 "source": false
               }
             },
-            "group": "66fa2c9133dcf0ec"
+            "group": "db380653c74c02dd"
           }
-        ],
-        "currentTab": 6
+        ]
       },
       {
         "id": "821e164b3d11c07b",
@@ -106,13 +32,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "Info/Launching System.md",
-                "mode": "preview",
-                "backlinks": false,
+                "file": "Info/MAIN System architecture.md",
+                "mode": "source",
                 "source": false
               }
             },
-            "group": "66fa2c9133dcf0ec"
+            "group": "db380653c74c02dd"
           }
         ]
       }
@@ -143,7 +68,7 @@
             "state": {
               "type": "search",
               "state": {
-                "query": "plane",
+                "query": "world",
                 "matchingCase": false,
                 "explainSearch": false,
                 "collapseAll": false,
@@ -180,7 +105,7 @@
             "state": {
               "type": "backlink",
               "state": {
-                "file": "Info/Launching System.md",
+                "file": "Info/MAIN System architecture.md",
                 "collapseAll": false,
                 "extraContext": false,
                 "sortOrder": "alphabetical",
@@ -197,7 +122,7 @@
             "state": {
               "type": "outgoing-link",
               "state": {
-                "file": "Info/Launching System.md",
+                "file": "Info/MAIN System architecture.md",
                 "linksCollapsed": false,
                 "unlinkedCollapsed": true
               }
@@ -220,7 +145,7 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "Info/Launching System.md"
+                "file": "Info/MAIN System architecture.md"
               }
             }
           }
@@ -243,16 +168,17 @@
   },
   "active": "7000d0c8a156708a",
   "lastOpenFiles": [
-    "Troubleshooting.md",
-    "Info/MAIN System architecture.md",
     "Info/Launching System.md",
-    "Info/Install, Build & Run MAVSDK.md",
     "Info/Mission Planner info.md",
+    "Info/MAIN System architecture.md",
     "Info/ArduPilot & MavProx.md",
+    "Info/Skywalker X8.md",
+    "Troubleshooting.md",
+    "Info/Install, Build & Run MAVSDK.md",
+    "Info/moos-ivp-uav.md",
     "Helpful definitions.md",
     "Testing.md",
     "Advantages of MOOS-IVP.md",
-    "Info/Skywalker X8.md",
     "QUESTIONS.md",
     "Papers",
     "Info/LSTS Toolchain/Dune.md",
