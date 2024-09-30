@@ -539,8 +539,9 @@ mavsdk::MissionRaw::MissionItem make_mission_item_wp(
 }
 bool create_missionPlan(std::vector<mavsdk::MissionRaw::MissionItem>& mission_plan, double lat_deg_home, double lon_deg_home){
 
-    // in case of ardupilot we want to set lat lon to 0, to use current position as takeoff position
-    mission_plan.push_back(make_mission_item_wp( //0
+    // in case of ardupilot we want to set lat lon to waypoint 0
+    // Home position (same as original, set to lat/lon home)
+    mission_plan.push_back(make_mission_item_wp( // 0
         lat_deg_home, // lat home
         lon_deg_home, // lon home
         100, // alt home
@@ -548,86 +549,88 @@ bool create_missionPlan(std::vector<mavsdk::MissionRaw::MissionItem>& mission_pl
         MAV_FRAME_GLOBAL_RELATIVE_ALT,
         MAV_CMD_NAV_WAYPOINT));
 
+    // Waypoint 1 
     mission_plan.push_back(make_mission_item_wp( // 1 takeoff
-        -35.359833, // lat
-        149.164703, // lon
+        lat_deg_home + 0.003429, // 382.4 meters north
+        lon_deg_home - 0.000534, // 49 meters west
         41.03,
         15,
         MAV_FRAME_GLOBAL_RELATIVE_ALT,
         MAV_CMD_NAV_TAKEOFF));
 
-    // // setup speed during mission execution
-    // mission_plan.push_back(make_mission_item_wp(
-    //     0, 0, 0, 0, MAV_FRAME_GLOBAL_RELATIVE_ALT, MAV_CMD_DO_CHANGE_SPEED, 9.35f, -1.0f));
-
-    mission_plan.push_back(make_mission_item_wp( //2
-        -35.359585,
-        149.161392,
+    // Waypoint 2 
+    mission_plan.push_back(make_mission_item_wp( // 2
+        lat_deg_home + 0.003677, // 409.2 meters north
+        lon_deg_home - 0.003845, // 341.4 meters west
         100.00,
         0,
         MAV_FRAME_GLOBAL_RELATIVE_ALT,
         MAV_CMD_NAV_WAYPOINT));
 
-    mission_plan.push_back(make_mission_item_wp( //3
-        -35.366463,
-        149.162231,
+    // Waypoint 3 
+    mission_plan.push_back(make_mission_item_wp( // 3
+        lat_deg_home - 0.003201, // 356.8 meters south
+        lon_deg_home - 0.002996, // 265.2 meters west
         100.00,
         0,
         MAV_FRAME_GLOBAL_RELATIVE_ALT,
         MAV_CMD_NAV_WAYPOINT));
 
-
-    mission_plan.push_back(make_mission_item_wp( //4
-        -35.366131,
-        149.164581,
-        100.00,
-        0,
-        MAV_FRAME_GLOBAL_RELATIVE_ALT,
-        MAV_CMD_NAV_WAYPOINT));
- 
-    mission_plan.push_back(make_mission_item_wp( //5
-        -35.359272,
-        149.163757,
+    // Waypoint 4 
+    mission_plan.push_back(make_mission_item_wp( // 4
+        lat_deg_home - 0.002869, // 320.4 meters south
+        lon_deg_home - 0.000656, // 57.2 meters west
         100.00,
         0,
         MAV_FRAME_GLOBAL_RELATIVE_ALT,
         MAV_CMD_NAV_WAYPOINT));
 
-    mission_plan.push_back(make_mission_item_wp( //6
-        -35.366131, // wont do anything
-        149.164581, // wont do anything
-        100.00,     // wont do anything
-        SPEED_TYPE_AIRSPEED,          // param 1
-        MAV_FRAME_GLOBAL_RELATIVE_ALT,
-        MAV_CMD_DO_CHANGE_SPEED,
-        6) // param 2 - 6m/s
-    );
-
-    mission_plan.push_back(make_mission_item_wp( //7
-        -35.359272,
-        149.163757,
+    // Waypoint 5 
+    mission_plan.push_back(make_mission_item_wp( // 5
+        lat_deg_home + 0.004198, // 444.2 meters north
+        lon_deg_home - 0.001480, // 131.6 meters west
         100.00,
         0,
         MAV_FRAME_GLOBAL_RELATIVE_ALT,
         MAV_CMD_NAV_WAYPOINT));
 
-    mission_plan.push_back(make_mission_item_wp( //8
-        -35.3608654,
-        149.1648848,
+    // Waypoint 6 (Speed Change)
+    mission_plan.push_back(make_mission_item_wp( // 6
+        lat_deg_home - 0.002869, // relative to waypoint 4
+        lon_deg_home - 0.000656, // relative to waypoint 4
+        100.00, 
+        SPEED_TYPE_AIRSPEED, 
+        MAV_FRAME_GLOBAL_RELATIVE_ALT, 
+        MAV_CMD_DO_CHANGE_SPEED, 
+        6)); // speed 6 m/s
+
+    // Waypoint 7 (repeat of WP5)
+    mission_plan.push_back(make_mission_item_wp( // 7
+        lat_deg_home + 0.004198, // same as waypoint 5
+        lon_deg_home - 0.001480, 
+        100.00,
+        0,
+        MAV_FRAME_GLOBAL_RELATIVE_ALT,
+        MAV_CMD_NAV_WAYPOINT));
+
+    // Waypoint 8 
+    mission_plan.push_back(make_mission_item_wp( // 8
+        lat_deg_home + 0.002396, // 267.2 meters north
+        lon_deg_home - 0.000352, // 31.1 meters west
         41.00,
         0,
         MAV_FRAME_GLOBAL_RELATIVE_ALT,
         MAV_CMD_NAV_WAYPOINT));
 
-    mission_plan.push_back(make_mission_item_wp( //9
-        lat_deg_home,
+    // Landing waypoint (back to home)
+    mission_plan.push_back(make_mission_item_wp( // 9
+        lat_deg_home, // return to home position
         lon_deg_home,
         0.00,
-        1, //m Minimum abort altitude
+        1, // Minimum abort altitude
         MAV_FRAME_GLOBAL_RELATIVE_ALT,
         MAV_CMD_NAV_LAND,
         PRECISION_LAND_MODE_OPPORTUNISTIC));
-
     return true;
 }
 

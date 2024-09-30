@@ -13,27 +13,14 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "Info/MAIN System architecture.md",
+                "file": "Info/ArduPilot & MavProx.md",
                 "mode": "source",
                 "source": false
               }
             },
             "group": "db380653c74c02dd"
-          },
-          {
-            "id": "14d86133a2fe0208",
-            "type": "leaf",
-            "state": {
-              "type": "markdown",
-              "state": {
-                "file": "Info/ArduPilot & MavProx.md",
-                "mode": "source",
-                "source": false
-              }
-            }
           }
-        ],
-        "currentTab": 1
+        ]
       },
       {
         "id": "821e164b3d11c07b",
@@ -45,7 +32,7 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "Info/MAIN System architecture.md",
+                "file": "Info/ArduPilot & MavProx.md",
                 "mode": "source",
                 "source": false
               }
@@ -179,18 +166,18 @@
       "command-palette:Open command palette": false
     }
   },
-  "active": "14d86133a2fe0208",
+  "active": "7000d0c8a156708a",
   "lastOpenFiles": [
-    "Info/pMarineViewer.md",
     "Info/Launching System.md",
     "Info/MAIN System architecture.md",
+    "Info/ArduPilot & MavProx.md",
+    "Info/pMarineViewer.md",
     "Info/Mission Planner info.md",
     "Troubleshooting.md",
     "Testing.md",
     "Helpful definitions.md",
     "Advantages of MOOS-IVP.md",
     "Info/Skywalker X8.md",
-    "Info/ArduPilot & MavProx.md",
     "Info/Install, Build & Run MAVSDK.md",
     "Info/moos-ivp-uav.md",
     "QUESTIONS.md",

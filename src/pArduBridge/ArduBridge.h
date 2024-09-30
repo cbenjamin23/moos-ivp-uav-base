@@ -59,6 +59,8 @@ class ArduBridge : public AppCastingMOOSApp
   
   private:
 
+    const double MARKER_WIDTH = 14.0;
+
     void visualizeHomeLocation();
     void visualizeLoiterLocation(const XYPoint& loiter_point);
 

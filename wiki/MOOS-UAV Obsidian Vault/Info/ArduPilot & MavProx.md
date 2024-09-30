@@ -53,8 +53,8 @@ Now run simulator again!
 
 Under the folder `scripts/simulation`, modify the specific parameters in `mav.parm` to desired values, eg:  
 ```bash
-SIM_OPOS_ALT     101.100000
-SIM_OPOS_HDG     353.000000
+SIM_OPOS_ALT     106.300000
+SIM_OPOS_HDG     45.000000
 SIM_OPOS_LAT     63.3975168
 SIM_OPOS_LNG     10.1435321
 ```

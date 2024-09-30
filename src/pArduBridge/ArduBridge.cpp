@@ -508,8 +508,8 @@ void ArduBridge::visualizeHomeLocation(){
   XYMarker marker(nav_x, nav_y);
   marker.set_label("Home");
   marker.set_type("gateway");
-  marker.set_width(4.5);
-  std::string spec = marker.get_spec() + ",color=blue,scale=5";
+  marker.set_width(MARKER_WIDTH);
+  std::string spec = marker.get_spec() + ",color=blue,scale=" + doubleToString(MARKER_WIDTH);
   Notify("VIEW_MARKER", spec);
 
  reportEvent("Set marker at home location: " + spec);
@@ -536,8 +536,8 @@ void ArduBridge::visualizeLoiterLocation(const XYPoint& loiter_point){
   XYMarker marker(nav_x, nav_y);
   marker.set_label("Loiter point");
   marker.set_type("gateway");
-  marker.set_width(4.5);
-  std::string spec = marker.get_spec() + ",color=yellow,scale=5";
+  marker.set_width(MARKER_WIDTH);
+  std::string spec = marker.get_spec() + ",color=yellow,scale=" + doubleToString(MARKER_WIDTH);
   Notify("VIEW_MARKER", spec);
 
  reportEvent("Set marker at loiter location: " + spec);

@@ -23,8 +23,8 @@ SWIM_FILE="mit_00.txt"
 VNAMES=""
 
 
-LAT_ORIGIN=-35.3632621 #42.358456
-LON_ORIGIN=149.1652374 #-71.087589
+LAT_ORIGIN=63.3975168 #-35.3632621
+LON_ORIGIN=10.1435321 #149.1652374
 
 #--------------------------------------------------------------
 #  Part 2: Check for and handle command-line arguments

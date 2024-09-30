@@ -160,7 +160,8 @@ export IVP_BEHAVIOR_DIRS
 
 
 IVP_IMAGE_DIRS=~/moos-ivp-uav/Maps/NTNU_UAV_Airport
-export IVP_BEHAVIOR_DIRS
+export IVP_IMAGE_DIRS
+
 
 
 ####################### PATHS - END #########################################
