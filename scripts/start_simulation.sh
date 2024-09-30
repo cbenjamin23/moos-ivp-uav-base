@@ -15,7 +15,6 @@ nohup gz sim -v4 -r skywalker_x8_runway.sdf &> /dev/null &
 # cd -
 
 
-
 # Start ArduPilot SITL in another terminator window
 #  xterm -e "bash -c 'source ~/.profile; sim_vehicle.py -v ArduPlane --model JSON --add-param-file=$HOME/SITL_Models/Gazebo/config/skywalker_x8.param --console --map; exec bash'" &
 # terminator --new-tab -e "bash -c 'source ~/.profile; sim_vehicle.py -v ArduPlane --model JSON --add-param-file=$HOME/SITL_Models/Gazebo/config/skywalker_x8.param --console --map; exec bash'" &

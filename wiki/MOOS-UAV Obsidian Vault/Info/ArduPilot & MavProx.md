@@ -45,8 +45,21 @@ from collections.abc import MutableSequence
     
     
 
-Ny run simulator again!
+Now run simulator again!
 
+
+
+## Setting the default coordinates when running simulation
+
+Under the folder `scripts/simulation`, modify the specific parameters in `mav.parm` to desired values, eg:  
+```bash
+SIM_OPOS_ALT     101.100000
+SIM_OPOS_HDG     353.000000
+SIM_OPOS_LAT     63.3975168
+SIM_OPOS_LNG     10.1435321
+```
+
+*Note*: if the file doesn't exit remember to run the simulation script once before. 
 
 
 # MavProxy
