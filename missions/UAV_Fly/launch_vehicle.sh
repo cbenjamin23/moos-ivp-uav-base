@@ -139,15 +139,12 @@ done
 # #--------------------------------------------------------------
 # #  Part 3: If Heron hardware, set key info based on IP address
 # #--------------------------------------------------------------
-# if [ "${XMODE}" = "M300" ]; then
-#     IP_ADDR=`get_heron_info.sh --ip`
-#     FSEAT_IP=`get_heron_info.sh --fseat`
-#     VNAME=`get_heron_info.sh --name`
-#     if [ $? != 0 ]; then
-# 	echo "$ME: Problem getting Heron Info. Exit Code 2"
-# 	exit 2
-#     fi
-# fi
+if [ "${XMODE}" = "REAL" ]; then
+ 
+    ARDUPILOT_IP=ttySAC0
+    ARDUPILOT_PORT=115200
+    ARDUPILOT_PROTOCOL=serial
+fi
      
 #---------------------------------------------------------------
 #  Part 4: If verbose, show vars and confirm before launching
