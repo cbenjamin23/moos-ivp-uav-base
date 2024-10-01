@@ -98,5 +98,5 @@ MAVSDK_CALLBACK_DEBUGGING=1 MAVSDK_COMMAND_DEBUGGING=1 MAVSDK_PARAMETER_DEBUGGIN
 ## Launching Groundstation
 
 ```bash
-./launch_shoreside.sh --ip=10.0.60.1 --pshare=9200 --vname=all:skywalker -v
+./launch_shoreside.sh --ip=10.0.60.1 --pshare=9200 --vnames=all:skywalker -v
 ```
