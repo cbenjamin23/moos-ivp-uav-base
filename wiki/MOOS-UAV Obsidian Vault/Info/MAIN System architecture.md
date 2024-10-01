@@ -74,6 +74,19 @@ Add path to bin folder in moos-ivp-uav to bashrc: `PATH=$PATH:~/moos-ivp-uav/bin
 **NOTE**: When building moos-ivp, remember to use the `-m` flag to only build nongui apps: `.build.sh -m`
 
 
+### MOOS IVP Editor
+Installed the moos-ivp editor extension for vscode by following this [guide](https://msis.github.io/2680notes/editors/vscode/10%20-%20Setting%20things%20up/#install-recommended-extensions):
+
+Install the file [moos-ivp-editor-0.2.0.vsix](https://github.com/msis/2680notes/blob/main/pages/editors/moos-ivp-editor-0.2.0.vsix) and run command:
+
+```bash 
+code --install-extension moos-ivp-editor-0.2.0.vsix
+```
+
+in your folder where you have the project.
+
+
+
 ---
 
 

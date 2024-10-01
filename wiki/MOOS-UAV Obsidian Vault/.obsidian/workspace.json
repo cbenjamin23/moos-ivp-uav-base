@@ -13,7 +13,7 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "Info/ArduPilot & MavProx.md",
+                "file": "Info/MAIN System architecture.md",
                 "mode": "source",
                 "source": false
               }
@@ -32,7 +32,7 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "Info/ArduPilot & MavProx.md",
+                "file": "Info/MAIN System architecture.md",
                 "mode": "source",
                 "source": false
               }
@@ -105,7 +105,7 @@
             "state": {
               "type": "backlink",
               "state": {
-                "file": "Info/ArduPilot & MavProx.md",
+                "file": "Info/MAIN System architecture.md",
                 "collapseAll": false,
                 "extraContext": false,
                 "sortOrder": "alphabetical",
@@ -122,7 +122,7 @@
             "state": {
               "type": "outgoing-link",
               "state": {
-                "file": "Info/ArduPilot & MavProx.md",
+                "file": "Info/MAIN System architecture.md",
                 "linksCollapsed": false,
                 "unlinkedCollapsed": true
               }
@@ -145,7 +145,7 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "Info/ArduPilot & MavProx.md"
+                "file": "Info/MAIN System architecture.md"
               }
             }
           }
@@ -166,11 +166,11 @@
       "command-palette:Open command palette": false
     }
   },
-  "active": "7000d0c8a156708a",
+  "active": "da26bb1516200fb8",
   "lastOpenFiles": [
+    "Info/ArduPilot & MavProx.md",
     "Info/Launching System.md",
     "Info/MAIN System architecture.md",
-    "Info/ArduPilot & MavProx.md",
     "Info/pMarineViewer.md",
     "Info/Mission Planner info.md",
     "Troubleshooting.md",
