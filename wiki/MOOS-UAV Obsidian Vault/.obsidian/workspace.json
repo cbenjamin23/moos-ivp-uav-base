@@ -13,7 +13,7 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "Info/Launching System.md",
+                "file": "Troubleshooting.md",
                 "mode": "source",
                 "source": false
               }
@@ -32,7 +32,7 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "Info/Launching System.md",
+                "file": "Troubleshooting.md",
                 "mode": "source",
                 "source": false
               }
@@ -85,8 +85,7 @@
               "state": {}
             }
           }
-        ],
-        "currentTab": 1
+        ]
       }
     ],
     "direction": "horizontal",
@@ -106,7 +105,7 @@
             "state": {
               "type": "backlink",
               "state": {
-                "file": "Info/Launching System.md",
+                "file": "Troubleshooting.md",
                 "collapseAll": false,
                 "extraContext": false,
                 "sortOrder": "alphabetical",
@@ -123,7 +122,7 @@
             "state": {
               "type": "outgoing-link",
               "state": {
-                "file": "Info/Launching System.md",
+                "file": "Troubleshooting.md",
                 "linksCollapsed": false,
                 "unlinkedCollapsed": true
               }
@@ -146,7 +145,7 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "Info/Launching System.md"
+                "file": "Troubleshooting.md"
               }
             }
           }
@@ -167,11 +166,11 @@
       "command-palette:Open command palette": false
     }
   },
-  "active": "66dfd7105c2fc55c",
+  "active": "7000d0c8a156708a",
   "lastOpenFiles": [
+    "Info/Launching System.md",
     "Info/MAIN System architecture.md",
     "Info/ArduPilot & MavProx.md",
-    "Info/Launching System.md",
     "Info/pMarineViewer.md",
     "Info/Mission Planner info.md",
     "Troubleshooting.md",

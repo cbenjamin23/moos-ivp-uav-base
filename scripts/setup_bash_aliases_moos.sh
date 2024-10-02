@@ -69,6 +69,14 @@ alias cll='./clean.sh'
 alias lll='ktm; cll; ./launch.sh'
 
 
+## Launching MOOS-IvP
+
+
+alias launchSkywalker='cd ~/moos-ivp-uav/missions/UAV_Fly;
+                       MAVSDK_CALLBACK_DEBUGGING=1 MAVSDK_COMMAND_DEBUGGING=1 MAVSDK_PARAMETER_DEBUGGING=1 pArduBridge targ_skywalker.moos;'
+
+
+
 #-------------------------------------------------------
 # Some suggestions for MOOS-IvP aliases
 #-------------------------------------------------------

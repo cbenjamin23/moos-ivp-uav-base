@@ -91,7 +91,11 @@ bool UAV_Model::connectToUAV(std::string url)
   auto system = m_mavsdk_ptr->first_autopilot(3.0);
   if (!system.has_value()) {
     m_warning_system_ptr->monitorWarningForXseconds(WARNING_TIMED_OUT, WARNING_DURATION);
+    std::cout << "UAV System NOT discovered\n";
+    return false;
   }
+
+  std::cout << "UAV System discovered\n";
 
   m_system_ptr = system.value();
 
@@ -400,7 +404,7 @@ bool UAV_Model::commandLoiter() {
 
 bool UAV_Model::commandAndSetAirSpeed(double speed) const { 
   
-  if(commandSpeed(speed, SPEED_TYPE::SPEED_TYPE_GROUNDSPEED)){ // Fails with airspeed
+  if(commandSpeed(speed, SPEED_TYPE::SPEED_TYPE_AIRSPEED)){ // Fails with airspeed
 
     setParameterAsync(Parameters::AIRSPEED_TARGET_CRUISE, speed);
     return true;
@@ -458,12 +462,25 @@ bool UAV_Model::commandGoToLocation(const mavsdk::Telemetry::Position& position)
   return true;
 }
 
+
+
 bool UAV_Model::commandSpeed(double speed_m_s, SPEED_TYPE speed_type) const{
   
   if(!m_in_air){
     m_warning_system_ptr->monitorWarningForXseconds("UAV is not in air! Cannot send speed", WARNING_DURATION);
     return false;
   }
+
+  if(speed_type == SPEED_TYPE::SPEED_TYPE_AIRSPEED){
+    // check if speed is within bounds  
+    if(speed_m_s < m_polled_params.min_airspeed || speed_m_s > m_polled_params.max_airspeed){
+      std::stringstream ss;
+      ss << "Speed out of bounds: " << speed_m_s << " min: " << m_polled_params.min_airspeed << " max: " << m_polled_params.max_airspeed;
+      m_warning_system_ptr->monitorWarningForXseconds(ss.str(), WARNING_DURATION);
+      return false;
+    }
+  }
+
 
   mavsdk::MavlinkPassthrough::CommandLong command_mode;
   command_mode.command = MAV_CMD_DO_CHANGE_SPEED;
@@ -472,6 +489,10 @@ bool UAV_Model::commandSpeed(double speed_m_s, SPEED_TYPE speed_type) const{
   command_mode.param1 = speed_type;
   command_mode.param2 = speed_m_s;
   command_mode.param3 = -1; // -1 throttle no change
+  command_mode.param4 = -1; // Not used
+  command_mode.param5 = -1; // 
+  command_mode.param6 = -1; // 
+  command_mode.param7 = -1; //
 
   // blocking
   auto result = m_mavPass_ptr->send_command_long(command_mode);
@@ -503,6 +524,9 @@ bool UAV_Model::commandSpeed(double speed_m_s, SPEED_TYPE speed_type) const{
 
   return true;
 }
+
+
+
 
 mavsdk::MissionRaw::MissionItem make_mission_item_wp(
     float latitude_deg1e7,

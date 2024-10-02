@@ -64,3 +64,26 @@ After this it is **IMPORTANT** to modify the UAVCAN Library Code as described in
 		- ./Maneuver/CoverArea/Task.cpp: Math::Matrix m_rows; // etc
 
 ![[Pasted image 20240903114151.png]]
+
+
+
+# Debugging Arduplane
+
+If arduplane crashes and you need to debug, here are some steps you can follow:
+
+Run the start simulator script  with -gdb flag to debug it too: `./start_simulation.sh --gdb` 
+
+Run the script: `gdb_attach_arduplane.sh` in `scripts/` after which you can enter `continue`  / `c` from the gdb to continue to run the program.
+
+
+**Note**: 
+- Arduplane runs from `~/ardupilot/build/sitl/bin` by default. If not, this needs to be changed in the script
+- Starting the simulation should be done *First*
+- Arduplane processes command with functions defined here `~/ardupilot/libraries/GCS_MAVLink/GCS_Common.cpp`
+- To debug pArduBridge  add the alias:
+  
+  ```bash
+  alias launchSkywalker_gdb='cd ~/moos-ivp-uav/missions/UAV_Fly;
+                       gdb --args env MAVSDK_CALLBACK_DEBUGGING=1 MAVSDK_COMMAND_DEBUGGING=1 MAVSDK_PARAMETER_DEBUGGING=1 pArduBridge targ_skywalker.moos;'
+
+```

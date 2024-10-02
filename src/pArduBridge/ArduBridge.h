@@ -11,10 +11,13 @@
 #include "MOOS/libMOOS/Thirdparty/AppCasting/AppCastingMOOSApp.h"
 
 #include "MOOSGeodesy.h"
+#include <cli_arg.h>
+
+
 
 #include "WarningSystem.h"
 #include "UAV_Model.h"
-#include <cli_arg.h>
+#include "SetpointManager.h"
 
 
 
@@ -71,8 +74,11 @@ class ArduBridge : public AppCastingMOOSApp
     // For UAV
 
     std::string     m_vname;
+    
+    std::shared_ptr<WarningSystem> m_warning_system_ptr;
     UAV_Model       m_uav_model;
-
+    SetpointManager m_setpoint_manager;
+    
     bool  m_do_fly_to_waypoint;
     bool  m_do_takeoff;
     std::pair<bool, double> m_do_change_speed_pair;
@@ -83,7 +89,7 @@ class ArduBridge : public AppCastingMOOSApp
     bool  m_do_loiter;
   
 
-    std::shared_ptr<WarningSystem> m_warning_system_ptr;
+
 
 
 

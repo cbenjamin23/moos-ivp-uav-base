@@ -123,6 +123,7 @@ ProcessConfig = uFldNodeBroker
 	bridge = src=VIEW_COMMS_PULSE
 
 	bridge = src=RESCUE_REQUEST
+
 }
 
 //--------------------------------------------------------

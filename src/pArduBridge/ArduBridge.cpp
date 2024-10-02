@@ -69,7 +69,20 @@ bool ArduBridge::OnNewMail(MOOSMSG_LIST &NewMail)
     bool   mstr  = msg.IsString();
 #endif
 
-    if(key == "FLY_WAYPOINT"){
+    if(key == "DESIRED_HEADING"){
+      double heading = msg.GetDouble();
+      m_setpoint_manager.updateDesiredHeading(heading);
+    }
+    else if(key == "DESIRED_SPEED"){ 
+      double speed = msg.GetDouble();
+      m_setpoint_manager.updateDesiredSpeed(speed);
+    }
+    else if(key == "DESIRED_DEPTH"){
+      // TODO: update this to rather handle altitude
+      double depth = msg.GetDouble();
+      m_setpoint_manager.updateDesiredAltitude(-depth);
+    }
+    else if(key == "FLY_WAYPOINT"){
       setBooleanOnString(m_do_fly_to_waypoint, msg.GetString());
       if(!m_do_fly_to_waypoint) m_warning_system_ptr->monitorWarningForXseconds("Fly waypoint command not set", WARNING_DURATION);
     }
@@ -78,11 +91,9 @@ bool ArduBridge::OnNewMail(MOOSMSG_LIST &NewMail)
       double lat, lon, x, y;
       std::string vname;
       if(parseCoordinateString(wp_str, lat, lon, x, y, vname)){
-        
         if(vname == m_vname){
           m_uav_model.setNextWaypoint(XYPoint(lat, lon));
         }
-
       }
       else{
         m_warning_system_ptr->monitorWarningForXseconds("Invalid waypoint string: " + wp_str, WARNING_DURATION);
@@ -374,6 +385,15 @@ void ArduBridge::registerVariables()
   Register("RETURN_TO_LAUNCH", 0);
   Register("LOITER", 0);
   Register("NEXT_WAYPOINT", 0);
+
+
+  // Register("MOOS_MANUAL_OVERIDE", 0);
+  // Register("MOOS_MANUAL_OVERRIDE", 0);
+
+  // To be sent to Ardupilot
+  Register("DESIRED_HEADING", 0);
+  Register("DESIRED_SPEED", 0);
+  Register("DESIRED_DEPTH", 0);
 }
 
 
@@ -416,8 +436,7 @@ bool ArduBridge::buildReport()
   m_msgs << "           Altitude (AGL): " << m_uav_model.getAltitudeAGL() << " m (Depth/Z: " << -m_uav_model.getAltitudeAGL() << " m)" << std::endl;
   m_msgs << "           Altitude (MSL): " << m_uav_model.getAltitudeMSL() <<  " m" << std::endl;
   m_msgs << "          Target Airspeed: " << m_uav_model.getTargetAirSpeed() <<  " m/s" << std::endl;
-  m_msgs << "                 AirSpeed: " << m_uav_model.getAirSpeed() <<  " m/s" <<std::endl;
-  m_msgs << " AirSpeed (xy projection): " << m_uav_model.getAirSpeedXY() <<  " m/s" << std::endl;
+  m_msgs << "                 AirSpeed: " << m_uav_model.getAirSpeed() <<  " m/s (XY projection: " <<  m_uav_model.getAirSpeedXY() << " m/s)" << std::endl;
   m_msgs << "                 Heading: " << m_uav_model.getHeading() <<  " deg" << std::endl;
 
   m_msgs << "-------------------------------------------" << std::endl;
@@ -430,8 +449,17 @@ bool ArduBridge::buildReport()
   actb << "Home Coord Lat:" << m_uav_model.getHomeLatLong().x();
   actb << "Home Coord Lon:" << m_uav_model.getHomeLatLong().y();
   m_msgs << actb.getFormattedString() << std::endl;
-
   m_msgs << "-------------------------------------------" << std::endl;
+
+  ACTable actabd(2);
+  actabd << "Desired | Value ";
+  actabd.addHeaderLines();
+  actabd << "Desired Speed:" << m_setpoint_manager.readDesiredSpeed();
+  actabd << "Desired Heading:" << m_setpoint_manager.readDesiredHeading();
+  actabd << "Desired Altitude:" << m_setpoint_manager.readDesiredAltitude();
+  m_msgs << actabd.getFormattedString() << std::endl;
+  m_msgs << "-------------------------------------------" << std::endl;
+
 
   ACTable actab(2);
   actab << "Debug | Value ";
@@ -542,6 +570,8 @@ void ArduBridge::visualizeLoiterLocation(const XYPoint& loiter_point){
 
  reportEvent("Set marker at loiter location: " + spec);
 }
+
+
 
 
 bool ArduBridge::parseCoordinateString(const std::string& input, double& lat, double& lon, double& x, double& y, std::string& vname) const{
