@@ -154,6 +154,10 @@ bool ArduBridge::Iterate()
  
   static bool poll_parameters = true;
 
+
+
+  sendSetpointsToUAV();
+
   if(m_do_takeoff ){
     // send the takeoff command
     auto start_result = m_uav_model.startMission();
@@ -165,7 +169,7 @@ bool ArduBridge::Iterate()
   if(m_do_fly_to_waypoint){
     // send the fly to waypoint command
     
-    XYPoint wp = m_uav_model.getNextWaypoint();
+    XYPoint wp = m_uav_model.getNextWaypointLatLon();
     if(wp == XYPoint(0, 0)){
       m_warning_system_ptr->monitorWarningForXseconds("No waypoint set", WARNING_DURATION);
     } else {
@@ -202,7 +206,7 @@ bool ArduBridge::Iterate()
 
   if(m_do_loiter){
     if(m_uav_model.commandLoiter()){
-      visualizeLoiterLocation(m_uav_model.getCurrentLoiterLatLong());
+      visualizeLoiterLocation(m_uav_model.getCurrentLoiterLatLon());
     }
 
     m_do_loiter = false;
@@ -225,6 +229,7 @@ bool ArduBridge::Iterate()
     poll_parameters = true;
   }
 
+  
   postTelemetryUpdate(m_uav_prefix);
 
 
@@ -441,22 +446,22 @@ bool ArduBridge::buildReport()
 
   m_msgs << "-------------------------------------------" << std::endl;
 
-  ACTable actb(2);
-  actb << "Parameters | Value ";
+  ACTable actb(4);
+  actb << "Parameters | Value | Desired | Value";
   actb.addHeaderLines();
-  actb << "Min AirSpeed:" << m_uav_model.getMinAirSpeed();
-  actb << "Max AirSpeed:" << m_uav_model.getMaxAirSpeed();
-  actb << "Home Coord Lat:" << m_uav_model.getHomeLatLong().x();
-  actb << "Home Coord Lon:" << m_uav_model.getHomeLatLong().y();
+  actb << "Min AirSpeed:" << m_uav_model.getMinAirSpeed() << "Speed:" << m_setpoint_manager.readDesiredSpeed();
+  actb << "Max AirSpeed:" << m_uav_model.getMaxAirSpeed() << "Heading:" << m_setpoint_manager.readDesiredHeading();
+  actb << "Home Coord Lat:" << m_uav_model.getHomeLatLon().x() << "Altitude:" << m_setpoint_manager.readDesiredAltitude();
+  actb << "Home Coord Lon:" << m_uav_model.getHomeLatLon().y();
   m_msgs << actb.getFormattedString() << std::endl;
   m_msgs << "-------------------------------------------" << std::endl;
 
-  ACTable actabd(2);
-  actabd << "Desired | Value ";
+  ACTable actabd(3);
+  actabd << "Waypoint | Lat | Lon";
   actabd.addHeaderLines();
-  actabd << "Desired Speed:" << m_setpoint_manager.readDesiredSpeed();
-  actabd << "Desired Heading:" << m_setpoint_manager.readDesiredHeading();
-  actabd << "Desired Altitude:" << m_setpoint_manager.readDesiredAltitude();
+  actabd << "Home Coord:" << m_uav_model.getHomeLatLon().x() << m_uav_model.getHomeLatLon().y();
+  actabd << "Next Wypt Coord:" << m_uav_model.getNextWaypointLatLon().x() << m_uav_model.getNextWaypointLatLon().y();
+  actabd << "Heading Wypt Coord:" << m_uav_model.getHeadingWaypointLatLon().x() << m_uav_model.getHeadingWaypointLatLon().y();
   m_msgs << actabd.getFormattedString() << std::endl;
   m_msgs << "-------------------------------------------" << std::endl;
 
@@ -470,6 +475,33 @@ bool ArduBridge::buildReport()
 
   return(true);
 }
+
+
+//---------------------------------------------------------
+// Procedure: sendSetPointsToUAV()
+
+void ArduBridge::sendSetpointsToUAV(){
+  
+  auto desired_heading = m_setpoint_manager.getDesiredHeading();
+  auto desired_speed = m_setpoint_manager.getDesiredSpeed();
+  auto desired_altitude = m_setpoint_manager.getDesiredAltitude(); 
+
+  if(desired_heading.has_value()){    
+    if(m_uav_model.commandHeadingHold(desired_heading.value())){
+      visualizeHeadingWaypoint(m_uav_model.getHeadingWaypointLatLon()); 
+    }
+  }
+
+  if(desired_speed.has_value()){
+    m_uav_model.commandAndSetAirSpeed(desired_speed.value());
+  }
+
+  // if(desired_altitude.has_value()){
+  //   m_uav_model.commandAndSetAltitude(desired_altitude.value());
+  // }
+
+}
+
 
 
 void ArduBridge::postTelemetryUpdate(const std::string& prefix){
@@ -517,11 +549,11 @@ void ArduBridge::postTelemetryUpdate(const std::string& prefix){
 
 
 void ArduBridge::visualizeHomeLocation(){
-  double lat = m_uav_model.getHomeLatLong().x();
-  double lon = m_uav_model.getHomeLatLong().y();
+  double lat = m_uav_model.getHomeLatLon().x();
+  double lon = m_uav_model.getHomeLatLon().y();
 
   if(!lat || !lon) {
-    m_warning_system_ptr->monitorWarningForXseconds("NAN Values at lat or long", 5);
+    m_warning_system_ptr->monitorWarningForXseconds("Cannot Visualize Home: NAN Values at lat or long", 5);
     return;
   }
   
@@ -544,12 +576,12 @@ void ArduBridge::visualizeHomeLocation(){
 }
 
 
-void ArduBridge::visualizeLoiterLocation(const XYPoint& loiter_point){
-  double lat = loiter_point.x();
-  double lon = loiter_point.y();
+void ArduBridge::visualizeLoiterLocation(const XYPoint& loiter_coord, bool visualize){
+  double lat = loiter_coord.x();
+  double lon = loiter_coord.y();
 
   if(!lat || !lon) {
-    m_warning_system_ptr->monitorWarningForXseconds("NAN Values at lat or long", 5);
+    m_warning_system_ptr->monitorWarningForXseconds("Cannot Visualize Loiter: NAN Values at lat or long", 5);
     return;
   }
   
@@ -565,14 +597,40 @@ void ArduBridge::visualizeLoiterLocation(const XYPoint& loiter_point){
   marker.set_label("Loiter point");
   marker.set_type("gateway");
   marker.set_width(MARKER_WIDTH);
+  marker.set_active(visualize);
   std::string spec = marker.get_spec() + ",color=yellow,scale=" + doubleToString(MARKER_WIDTH);
   Notify("VIEW_MARKER", spec);
 
  reportEvent("Set marker at loiter location: " + spec);
 }
 
+void ArduBridge::visualizeHeadingWaypoint(const XYPoint& heading_coord, bool visualize){
 
+  double lat = heading_coord.x();
+  double lon = heading_coord.y();
 
+  if(!lat || !lon) {
+    m_warning_system_ptr->monitorWarningForXseconds("Cannot Visualize HeadingWpt: NAN Values at lat or long", 5);
+    return;
+  }
+  
+  double nav_x, nav_y;
+  if(m_geo_ok) {
+    m_geodesy.LatLong2LocalGrid(lat, lon, nav_y, nav_x);
+  } else {
+    m_warning_system_ptr->monitorWarningForXseconds("Geodesy not initialized", 5);
+    return;
+  }
+
+  XYPoint point(nav_x, nav_y);
+  point.set_label("Hold Heading point");
+  point.set_vertex_size(HEADING_POINT_SIZE);
+  point.set_active(visualize);
+  std::string spec = point.get_spec() + ",color=yellow";
+  Notify("VIEW_POINT", spec);
+
+ reportEvent("Set constant Heading point at with: " + spec);
+}
 
 bool ArduBridge::parseCoordinateString(const std::string& input, double& lat, double& lon, double& x, double& y, std::string& vname) const{
     std::vector<std::string> key_value_pairs = parseString(input, ',');

@@ -58,7 +58,8 @@ public:
     bool   commandDisarmAsync() const; 
 
     bool   commandReturnToLaunchAsync() const;
-    bool   commandLoiter() ;
+    bool   commandLoiter();
+    bool   commandHeadingHold(double heading);
 
 
     // Setters
@@ -67,7 +68,10 @@ public:
     void   setCallbackReportRunW(const std::function<void(const std::string&)>& callback) {callbackReportRunW = callback ;}
     void   setCallbackRetractRunW(const std::function<void(const std::string&)>& callback) {callbackRetractRunW = callback ;}
 
-    void   setNextWaypoint(const XYPoint& wp) {m_next_waypoint = wp;}
+    void   setNextWaypoint(const XYPoint& wp) {m_next_waypoint_coord = wp;}
+    void   setHeadingWyptFromHeading(double heading);
+
+
 
     // Getters
     bool                            isHealthy() const {return(m_health_all_ok);}
@@ -76,9 +80,10 @@ public:
     mavsdk::Telemetry::FlightMode   getFlightMode() const {return(m_flight_mode);}
 
 
-    XYPoint   getNextWaypoint() const {return(m_next_waypoint);}
-    XYPoint   getCurrentLoiterLatLong() const {return(m_current_loiter_coord);}
-    XYPoint   getHomeLatLong() const {return(m_home_coord);}
+    XYPoint   getNextWaypointLatLon() const {return(m_next_waypoint_coord);}
+    XYPoint   getHeadingWaypointLatLon() const {return(m_heading_waypoint_coord);}
+    XYPoint   getCurrentLoiterLatLon() const {return(m_current_loiter_coord);}
+    XYPoint   getHomeLatLon() const {return(m_home_coord);}
     double    getLatitude() const {return(m_position.latitude_deg);}
     double    getLongitude() const {return(m_position.longitude_deg);}
     
@@ -101,18 +106,6 @@ public:
 
     
 protected:
-
-    // enum class Parameters{ 
-    //   AIRSPEED_MIN,
-    //   AIRSPEED_MAX,
-    //   AIRSPEED_CRUISE
-    // };
-
-    // static inline std::map<Parameters, std::string> paramEnum2string = {
-    //   {Parameters::AIRSPEED_MIN, "ARSPD_FBW_MIN"},
-    //   {Parameters::AIRSPEED_MAX, "ARSPD_FBW_MAX"},
-    //   {Parameters::AIRSPEED_CRUISE, "TRIM_ARSPD_CM"}
-    // };
 
     enum class Parameters{ 
       AIRSPEED_MIN,
@@ -181,12 +174,12 @@ protected:
 
     XYPoint   m_home_coord;
     XYPoint   m_current_loiter_coord;
-    XYPoint   m_next_waypoint;
+    XYPoint   m_next_waypoint_coord;
+    XYPoint   m_heading_waypoint_coord;
 
 
 
-    const int IN_AIR_HIGHT_THRESHOLD = 5; // meters
-    
+
 
 };
 

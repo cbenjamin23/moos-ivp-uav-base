@@ -58,8 +58,8 @@ public:
 
 
     // Return all desired values unconditionally
-    double readDesiredSpeed() { return desiredSpeed; }
-    double readDesiredHeading() { return desiredHeading; }
-    double readDesiredAltitude() { return desiredAltitude; }
+    double readDesiredSpeed() const { return desiredSpeed; }
+    double readDesiredHeading() const { return desiredHeading; }
+    double readDesiredAltitude() const { return desiredAltitude; }
 
 };

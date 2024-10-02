@@ -11,11 +11,16 @@
 #include "UAV_Model.h"
 #include "MBUtils.h"
 #include "AngleUtils.h"
+#include "MOOSGeodesy.h"
 
 #include "thread"
 
 #include "definitions.h"
 
+
+
+
+#include <cmath>
 
 //------------------------------------------------------------------------
 // Constructor
@@ -47,7 +52,8 @@ UAV_Model::UAV_Model(std::shared_ptr<WarningSystem> ws):
 
   m_home_coord = XYPoint(0, 0);
   m_current_loiter_coord = XYPoint(0, 0);
-  m_next_waypoint = XYPoint(0, 0);
+  m_next_waypoint_coord = XYPoint(0, 0);
+  m_heading_waypoint_coord = XYPoint(0, 0);
 
 }
 
@@ -525,6 +531,62 @@ bool UAV_Model::commandSpeed(double speed_m_s, SPEED_TYPE speed_type) const{
   return true;
 }
 
+
+void UAV_Model::setHeadingWyptFromHeading(double heading_deg){
+
+    heading_deg = angle360(heading_deg); // make sure heading is within 0-360
+    
+    static const auto deg_to_rad = [](double degrees) { return degrees * deg2rad;};
+    static const auto rad_to_deg = [](double radians) { return radians * rad2deg;};
+
+    // Convert heading to radians
+    double heading_rad = deg_to_rad(heading_deg);
+
+    // Get current position in radians
+    double lat_rad = deg_to_rad(m_position.latitude_deg);
+    double lon_rad = deg_to_rad(m_position.longitude_deg);
+
+    // Calculate new latitude using the bearing formula
+    double new_lat_rad = std::asin(
+        std::sin(lat_rad) * std::cos(DISTANCE_TO_HEADING_WAYPOINT / EARTH_RADIUS) +
+        std::cos(lat_rad) * std::sin(DISTANCE_TO_HEADING_WAYPOINT / EARTH_RADIUS) * std::cos(heading_rad)
+    );
+
+    // Calculate new longitude
+    double new_lon_rad = lon_rad + std::atan2(
+        std::sin(heading_rad) * std::sin(DISTANCE_TO_HEADING_WAYPOINT / EARTH_RADIUS) * std::cos(lat_rad),
+        std::cos(DISTANCE_TO_HEADING_WAYPOINT / EARTH_RADIUS) - std::sin(lat_rad) * std::sin(new_lat_rad)
+    );
+
+    // Convert the new latitude and longitude back to degrees
+    double new_lat_deg = rad_to_deg(new_lat_rad);
+    double new_lon_deg = rad_to_deg(new_lon_rad);
+
+    m_heading_waypoint_coord.set_vertex(new_lat_deg, new_lon_deg);
+    
+}
+
+
+
+bool UAV_Model::commandHeadingHold(double heading){
+  
+  if(!m_in_air){
+    m_warning_system_ptr->monitorWarningForXseconds("UAV is not in air! Cannot send heading", WARNING_DURATION);
+    return false;
+  }
+
+  setHeadingWyptFromHeading(heading);
+
+  // Create the new waypoint
+  mavsdk::Telemetry::Position new_position;
+  new_position.latitude_deg = m_heading_waypoint_coord.x();
+  new_position.longitude_deg = m_heading_waypoint_coord.y();
+  new_position.absolute_altitude_m = m_position.absolute_altitude_m;  // Maintain the same altitude
+
+
+  // Command the plane to the new location
+  return commandGoToLocation(new_position);
+}
 
 
 

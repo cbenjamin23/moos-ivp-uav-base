@@ -40,9 +40,12 @@ class ArduBridge : public AppCastingMOOSApp
   protected:
     void registerVariables();
 
+    // Notify to DB
     void postTelemetryUpdate(const std::string& prefix );
 
 
+    // Send command to UAV
+    void sendSetpointsToUAV();
 
   private: // Configuration variables
     std::string  m_uav_prefix;
@@ -64,8 +67,11 @@ class ArduBridge : public AppCastingMOOSApp
 
     const double MARKER_WIDTH = 14.0;
 
+    const double HEADING_POINT_SIZE = 5;
+
     void visualizeHomeLocation();
-    void visualizeLoiterLocation(const XYPoint& loiter_point);
+    void visualizeLoiterLocation(const XYPoint& loiter_coord, bool visualize = true);
+    void visualizeHeadingWaypoint(const XYPoint& heading_coord, bool visualize = true);
 
     // bool evaluateBoolFromString(const std::string& str) const { bool b; setBooleanOnString(b,str); return b;}
     bool parseCoordinateString(const std::string& input, double& lat, double& lon, double& x, double& y , std::string& vname) const;
