@@ -95,9 +95,8 @@ ProcessConfig = uFldShoreBroker
   AppTick   = 1
   CommsTick = 1
 
-  qbridge = DEPLOY, NODE_REPORT, NODE_MESSAGE, SURVEY
+  qbridge = DEPLOY, NODE_REPORT, NODE_MESSAGE
   qbridge = STATION_KEEP, APPCAST_REQ, SWIMMER_ALERT
-  qbridge = MOOS_MANUAL_OVERIDE, SURVEY
 	qbridge = SURVEY_UPDATE, SCOUTED_SWIMMER
   qbridge = NODE_COLOR_CHANGE
   
@@ -106,6 +105,8 @@ ProcessConfig = uFldShoreBroker
   qbridge = RETURN_TO_LAUNCH, LOITER
 
   qbridge = DO_TAKEOFF, FLY_WAYPOINT
+
+  qbridge = MOOS_MANUAL_OVERIDE, SURVEY
 
   bridge  = src=NEXT_WAYPOINT
   
@@ -207,16 +208,19 @@ ProcessConfig = pMarineViewer
   stale_report_thresh = 2
   stale_remove_thresh = 20000
 
-  button_one   = ARM_ALL  # DEPLOY_ALL=true  # MOOS_MANUAL_OVERIDE_ALL=false 
   button_one   = ARM_ALL  # ARM_UAV_ALL=true
-
   button_two   = DISARM_ALL   # ARM_UAV_ALL=false 
 
-  button_three = RTL_ALL  # RETURN_TO_LAUNCH_ALL=true 
-  button_four = LOITER_ALL  # LOITER_ALL=true
+  button_3    = SURVEY_ALL  # SURVEY_ALL=true # MOOS_MANUAL_OVERIDE_ALL=false 
+  button_3    = RETURN_ALL=false 
+  
+  button_4    = RETURN_ALL  # RETURN_ALL=true # SURVEY_ALL=false # STATION_KEEP_ALL=false
 
-  button_5  = TKOFF_ALL  # DO_TAKEOFF_ALL=true
-  button_6  = TOWYP_ALL # FLY_WAYPOINT_ALL=true
+  button_5 = RTL_ALL  # RETURN_TO_LAUNCH_ALL=true 
+  button_6 = LOITER_ALL  # LOITER_ALL=true
+
+  button_7  = TKOFF_ALL  # DO_TAKEOFF_ALL=true
+  button_8  = TOWYP_ALL # FLY_WAYPOINT_ALL=true
 
 
   cmd = label=TAKEOFF, var=DO_TAKEOFF, sval=true, receivers=all:$(VNAMES)
@@ -234,6 +238,9 @@ ProcessConfig = pMarineViewer
   cmd = label=AIRSPD-5, var=CHANGE_SPEED, dval=-5, receivers=all:$(VNAMES)
 
   cmd = label=SPEED_TO_MIN, var=RESET_SPEED_MIN, sval=true, receivers=all:$(VNAMES)
+
+  cmd = label=HELM_ON, var=MOOS_MANUAL_OVERIDE, sval=true, receivers=all:$(VNAMES)
+  cmd = label=HELM_OFF, var=MOOS_MANUAL_OVERIDE, sval=false, receivers=all:$(VNAMES)
 
 	}
 

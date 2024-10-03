@@ -35,12 +35,19 @@ Behavior = BHV_Waypoint
   perpetual  = true
   endflag    = RETURN = true
 
-          repeat = 0
+          repeat = 1
            speed = $(SPEED)
-  capture_radius = 1.0 
-    capture_line = true
-     slip_radius = 8.0
-          points = 41,-25:64,-41:28,-60:50,-92:5,-100
+          radius = 5.0
+     slip_radius = 15.0
+            lead = 40
+     lead_damper = 25
+
+          // points = 205,-125:320,-205:140,-300:250,-460:25,-500
+          points = -390,10:55,381:333,35:-100,-290
+
+    
+    capture_radius = 10 // default
+       slip_radius = 35 // default
 
      visual_hints = vertex_size  = 4             // default
      visual_hints = vertex_color = dodger_blue   // default
@@ -112,32 +119,10 @@ Behavior = BHV_Waypoint
   capture_radius = 2.0
      slip_radius = 8.0
 
-#ifdef VNAME abe
-	point = 52,9
-#elseifdef VNAME ben
-	point = 39,4
-#elseifdef VNAME cal
-	point = 29,0
-#elseifdef VNAME deb
-	point = 16,-6
-#elseifdef VNAME eve
-	point = 4,-11
-#elseifdef VNAME fin
-	point = 2,-15
-#elseifdef VNAME max
-	point = 26,-2
-#elseifdef VNAME ned
-	point = 12,-8
-#elseifdef VNAME oak
-	point = 14,-10
-#elseifdef VNAME skywalker
-	point = 14,-10
-#else
 	point = $(START_POS)
-#endif
 
-     visual_hints = vertex_size  = 4             // default
-     visual_hints = vertex_color = dodger_blue   // default
+    visual_hints = vertex_size  = 4             // default
+    visual_hints = vertex_color = dodger_blue   // default
 }
 
 //----------------------------------------------

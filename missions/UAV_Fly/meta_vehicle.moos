@@ -61,7 +61,7 @@ ProcessConfig = pHelmIvP
   behaviors    = targ_$(VNAME).bhv  
   verbose      = false
   domain       = course:0:359:360
-  domain       = speed:0:3:31
+  domain       = speed:10:30:301
 
   hold_on_app  = pContactMgrV20
 }

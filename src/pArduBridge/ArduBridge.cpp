@@ -544,6 +544,16 @@ void ArduBridge::postTelemetryUpdate(const std::string& prefix){
   // Notify(prefix+"_HEADING_OVER_GROUND", hog, m_curr_time);
   Notify(prefix+"_SPEED_OVER_GROUND", m_uav_model.getAirSpeedXY(), m_curr_time);
   
+  static bool prev_in_air = false;
+
+  if(m_uav_model.isInAir() != prev_in_air){
+
+    prev_in_air = m_uav_model.isInAir();
+    Notify("DEPLOY", boolToString(prev_in_air));
+  }
+
+
+
 
 }
 

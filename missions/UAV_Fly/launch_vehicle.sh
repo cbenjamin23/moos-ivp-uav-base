@@ -203,7 +203,8 @@ nsplug meta_vehicle.moos targ_$VNAME.moos $NSFLAGS WARP=$TIME_WARP \
 
 nsplug meta_vehicle.bhv targ_$VNAME.bhv $NSFLAGS VNAME=$VNAME \
        SPEED=$SPEED                 COLOR=$COLOR              \
-       LatOrigin=$LAT_ORIGIN         LonOrogin=$LON_ORIGIN         # own defined variables
+       LatOrigin=$LAT_ORIGIN         LonOrogin=$LON_ORIGIN    \
+       START_POS=$START_POS                                          # own defined variables
 
 if [ ${JUST_MAKE} = "yes" ]; then
     echo "$ME: Files assembled; nothing launched; exiting per request."
