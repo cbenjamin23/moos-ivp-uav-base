@@ -20,9 +20,9 @@ void showSynopsis()
 {
   blk("SYNOPSIS:                                                       ");
   blk("------------------------------------                            ");
-  blk("  The pArduBridge application is used for               ");
-  blk("                                                                ");
-  blk("                                                                ");
+  blk("  The pArduBridge application is used for interfacing with              ");
+  blk(" Ardupilot. It will send necessary commands from the MOOS community                                           ");
+  blk(" needed to controll the vehicle autonomously.                                                                ");
   blk("                                                                ");
   blk("                                                                ");
 }
@@ -75,7 +75,7 @@ void showExampleConfigAndExit()
   blk("  CommsTick = 4                                                 ");
   blk("                                                                ");
   blk("  ArduPilotURL/ ardupiloturl | url   = 0.0.0.0:1455                   ");    
-  blk("  Prefix   = NAV                                               ");    
+  blk("  prefix   = NAV                                               ");    
   blk("                                                                ");
   blk("}                                                               ");
   blk("                                                                ");
@@ -100,9 +100,33 @@ void showInterfaceAndExit()
   blk("  NODE_MESSAGE = src_node=alpha,dest_node=bravo,var_name=FOO,   ");
   blk("                 string_val=BAR                                 ");
   blk("                                                                ");
+  blk("  FLY_WAYPOINT                                                              ");
+  blk("  DO_TAKEOFF                                                              ");
+  blk("  CHANGE_SPEED                                                              ");
+  blk("  ARM_UAV                                                              ");
+  blk("  RESET_SPEED_MIN                                                              ");
+  blk("  RETURN_TO_LAUNCH                                                              ");
+  blk("  LOITER                                                              ");
+  blk("  NEXT_WAYPOINT                                                              ");
+  blk("                                                                ");
+  blk("  DESIRED_HEADING                                                              ");
+  blk("  DESIRED_SPEED                                                              ");
+  blk("  DESIRED_DEPTH                                                              ");
+  blk("                                                                ");
+  blk("  MOOS_MANUAL_OVERIDE                                                              ");
+  blk("                                                                ");
+  blk("                                                                ");
   blk("PUBLICATIONS:                                                   ");
   blk("------------------------------------                            ");
   blk("  Publications are determined by the node message content.      ");
+  blk("                                                                ");
+  blk("  UAV_LAT                                                              ");
+  blk("  UAV_LONG                                                              ");
+  blk("  UAV_X                                                              ");
+  blk("  UAV_Y                                                              ");
+  blk("  UAV_HEADING                                                              ");
+  blk("  UAV_SPEED_OVER_GROUND                                                              ");
+  blk("  DEPLOY                                                              ");
   blk("                                                                ");
   exit(0);
 }

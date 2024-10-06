@@ -392,7 +392,7 @@ void ArduBridge::registerVariables()
   Register("NEXT_WAYPOINT", 0);
 
 
-  // Register("MOOS_MANUAL_OVERIDE", 0);
+  Register("MOOS_MANUAL_OVERIDE", 0);
   // Register("MOOS_MANUAL_OVERRIDE", 0);
 
   // To be sent to Ardupilot
@@ -515,7 +515,7 @@ void ArduBridge::postTelemetryUpdate(const std::string& prefix){
   }
 
   Notify(prefix+"_LAT", lat, m_curr_time);
-  Notify(prefix+"_LONG", lon, m_curr_time);
+  Notify(prefix+"_LON", lon, m_curr_time);
   
   
   if(m_geo_ok) {
