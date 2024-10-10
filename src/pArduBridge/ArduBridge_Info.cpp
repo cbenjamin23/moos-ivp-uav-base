@@ -75,6 +75,8 @@ void showExampleConfigAndExit()
   blk("  CommsTick = 4                                                 ");
   blk("                                                                ");
   blk("  ArduPilotURL/ ardupiloturl | url   = 0.0.0.0:1455                   ");    
+  blk("  (or ArduPilotURL   = ttySAC0:115200 )                             ");    
+  blk("  url_protocol = serial, tcp, udp                                ");    
   blk("  prefix   = NAV                                               ");    
   blk("                                                                ");
   blk("}                                                               ");

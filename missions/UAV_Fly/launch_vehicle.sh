@@ -26,15 +26,15 @@ COLOR="yellow"
 XMODE="REAL"
 
 START_POS="0,0"  
-SPEED="1.2"
+SPEED="12"
 RETURN_POS="5,0"
-MAXSPD="2"
+MAXSPD="30"
 
 
 LAT_ORIGIN=63.3975168 #-35.3632621 
 LON_ORIGIN=10.1435321 #149.1652374 
-# Ardupilot SITL
 
+# Ardupilot SITL
 ARDUPILOT_IP=0.0.0.0
 ARDUPILOT_PORT=14550
 ARDUPILOT_PROTOCOL=udp
@@ -78,10 +78,13 @@ for ARGI; do
 	echo "                                                 "
     echo "  --ap_ip=<0.0.0.0>                     "
     echo "    IP of the ArduPilot autopilot                " 
+    echo "    Device  for coms with ArduPilot autopilot  <ttySAC0>   " 
     echo "  --ap_port=<14550>                       "
     echo "    Port of the ArduPilot autopilot              "
+    echo "    Baudrate for coms with ArduPilot autopilot   "
     echo "  --ap_protocol=<udp>                       "
     echo "    Protocol for coms with ArduPilot autopilot   "
+    echo "    udp, tcp or serial                           "
     echo "                                                 "
 	echo "  --start=<X,Y>     (default is 0,0)             " 
 	echo "    Start position chosen by script launching    "
@@ -137,15 +140,14 @@ for ARGI; do
 done
 
 # #--------------------------------------------------------------
-# #  Part 3: If Heron hardware, set key info based on IP address
+# #  Part 3: If Skywalker hardware, set ArduPilot access info to known values
 # #--------------------------------------------------------------
 if [ "${XMODE}" = "REAL" ]; then
- 
     ARDUPILOT_IP=ttySAC0
     ARDUPILOT_PORT=115200
     ARDUPILOT_PROTOCOL=serial
 fi
-     
+
 #---------------------------------------------------------------
 #  Part 4: If verbose, show vars and confirm before launching
 #---------------------------------------------------------------
@@ -164,7 +166,6 @@ if [ "${VERBOSE}" = "yes" ]; then
     echo "VNAME =         [${VNAME}]        "
     echo "COLOR =         [${COLOR}]        "
     echo "----------------------------------"
-    echo "FSEAT_IP =      [${FSEAT_IP}]     "
     echo "XMODE =         [${XMODE}]        "
     echo "----------------------------------"
     echo "START_POS =     [${START_POS}]    "
@@ -194,18 +195,16 @@ nsplug meta_vehicle.moos targ_$VNAME.moos $NSFLAGS WARP=$TIME_WARP \
        PSHARE_PORT=$PSHARE_PORT     VNAME=$VNAME              \
        IP_ADDR=$IP_ADDR             SHORE_IP=$SHORE_IP        \
        SHORE_PSHARE=$SHORE_PSHARE   MOOS_PORT=$MOOS_PORT      \
-       FSEAT_IP=$FSEAT_IP           XMODE=$XMODE              \
-       MAXSPD=$MAXSPD               START_POS=$START_POS      \
        COLOR=$COLOR                                           \
        LatOrigin=$LAT_ORIGIN        LonOrigin=$LON_ORIGIN     \
        AP_IP=$ARDUPILOT_IP          AP_PORT=$ARDUPILOT_PORT   \
-       AP_PROTOCOL=$ARDUPILOT_PROTOCOL                        # own defined variables
+       AP_PROTOCOL=$ARDUPILOT_PROTOCOL                       
 
 nsplug meta_vehicle.bhv targ_$VNAME.bhv $NSFLAGS VNAME=$VNAME \
-       SPEED=$SPEED                 COLOR=$COLOR              \
+       SPEED=$SPEED                  START_POS=$START_POS     \
        LatOrigin=$LAT_ORIGIN         LonOrogin=$LON_ORIGIN    \
-       START_POS=$START_POS                                          # own defined variables
-
+                                                
+       
 if [ ${JUST_MAKE} = "yes" ]; then
     echo "$ME: Files assembled; nothing launched; exiting per request."
     exit 0

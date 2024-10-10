@@ -4,26 +4,28 @@ initialize   DEPLOY = false
 initialize   RETURN = false
 initialize   SURVEY = false
 initialize   AVOID  = true
+
+initialize   MODE = HELM_INACTIVE
   
-set MODE = ACTIVE {
-  DEPLOY = true
-} INACTIVE
+// set MODE = ACTIVE {
+//   DEPLOY = true
+// } INACTIVE
 
-set MODE = STATION-KEEPING {
-  MODE = ACTIVE
-  STATION_KEEP = true
-}                       
+// set MODE = STATION-KEEPING {
+//   MODE = ACTIVE
+//   STATION_KEEP = true
+// }                       
 
-set MODE = SURVEYING {
-  MODE = ACTIVE
-  RETURN != true
-  SURVEY = true
-} 
+// set MODE = SURVEYING {
+//   MODE = ACTIVE
+//   RETURN != true
+//   SURVEY = true
+// } 
 
-set MODE = RETURNING {
-  MODE = ACTIVE
-  RETURN = true
-} 
+// set MODE = RETURNING {
+//   MODE = ACTIVE
+//   RETURN = true
+// } 
 
 //----------------------------------------------
 Behavior = BHV_Waypoint
@@ -31,7 +33,7 @@ Behavior = BHV_Waypoint
   name       = waypt_survey
   pwt        = 100
   updates    = SURVEY_UPDATE
-  condition  = MODE==SURVEYING
+  condition  = MODE==HELM_SURVEYING
   perpetual  = true
   endflag    = RETURN = true
 
@@ -46,29 +48,39 @@ Behavior = BHV_Waypoint
           points = -390,10:55,381:333,35:-100,-290
 
     
-    capture_radius = 10 // default
-       slip_radius = 35 // default
+    capture_radius = 10 
+       slip_radius = 35 
 
      visual_hints = vertex_size  = 4             // default
      visual_hints = vertex_color = dodger_blue   // default
 }
 
 //----------------------------------------------
-Behavior = BHV_StationKeep
-{
-  name         = station-keep
-  pwt          = 100
-  condition    = MODE==STATION-KEEPING
+// Behavior = BHV_Loiter
+// {
+//   // General Behavior Parameters
+//   // ---------------------------
+//   name = loiter // example
+//   pwt = 100  // default
+//   condition = MODE==HELM_LOITERING // example
+//   updates = LOITER_UPDATES // example
 
-  center_activate = true
-     inner_radius = 5
-     outer_radius = 10 
-      outer_speed = 1.0
-
-    transit_speed = 1.3
-       swing_time = 7
-     visual_hints = vertex_size=0, edge_color=gray50
-}
+//   perpetual = true 
+//   // Parameters specific to this behavior
+//   // ------------------------------------
+//   acquire_dist = 10 
+//   capture_radius = 5
+//   center_activate = false // default
+  
+//   clockwise = best
+//   slip_radius = 20 // default
+//   speed = 10 // default
+//   spiral_factor = -2 // default
+  
+  
+//   polygon = radial:: x=10,y=-10,radius=15, pts=8 
+//   center_assign = 10,-10 
+// }
 
 
 // //----------------------------------------------
@@ -107,17 +119,38 @@ Behavior = BHV_StationKeep
 //----------------------------------------------
 Behavior = BHV_Waypoint
 {
+  name       = waypt_next
+  pwt        = 100
+  updates    = TOWAYPT_UPDATE
+  condition  = MODE==HELM_TOWAYPT
+  perpetual  = true
+  endflag    = LOITER = true
+
+           speed = 12.0
+  capture_radius = 10 .0
+     slip_radius = 30.0
+
+	point = $(START_POS)
+
+    visual_hints = vertex_size  = 4             // default
+    visual_hints = vertex_color = dodger_blue   // default
+}
+
+
+//----------------------------------------------
+Behavior = BHV_Waypoint
+{
   name       = waypt_return
   pwt        = 100
   updates    = RETURN_UPDATE
-  condition  = MODE==RETURNING
+  condition  = MODE==HELM_RETURNING
   perpetual  = true
-  endflag    = RETURN = false
-  endflag    = STATION_KEEP=true
+  endflag    = LOITER = true
 
-           speed = 1.0
-  capture_radius = 2.0
-     slip_radius = 8.0
+
+           speed = 12.0
+  capture_radius = 10.0
+     slip_radius = 30.0
 
 	point = $(START_POS)
 
@@ -150,4 +183,4 @@ Behavior = BHV_OpRegionRecover
 
 	visual_hints = edge_size = 2
 	visual_hints = edge_color = gray30
-	}
+}

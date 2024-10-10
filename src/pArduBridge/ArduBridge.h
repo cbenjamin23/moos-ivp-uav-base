@@ -63,10 +63,53 @@ class ArduBridge : public AppCastingMOOSApp
     CMOOSGeodesy m_geodesy;
 
   
+  private: // Autopilot Helm states
+
+    enum class AutopilotHelmState{
+      HELM_INACTIVE,
+      HELM_ACTIVE,
+      HELM_TOWAYPT,
+      HELM_LOITERING,
+      HELM_SURVEYING,
+      HELM_RETURNING,
+      HELM_UNKOWN,
+    };
+
+  // map containing the stateName
+
+    const std::vector<std::pair<AutopilotHelmState, std::string>> stateStringPairs = {
+      {AutopilotHelmState::HELM_INACTIVE, "HELM_INACTIVE"},
+      {AutopilotHelmState::HELM_ACTIVE, "HELM_ACTIVE"},
+      {AutopilotHelmState::HELM_TOWAYPT, "HELM_TOWAYPT"},
+      {AutopilotHelmState::HELM_LOITERING, "HELM_LOITERING"},
+      {AutopilotHelmState::HELM_SURVEYING, "HELM_SURVEYING"},
+      {AutopilotHelmState::HELM_RETURNING, "HELM_RETURNING"},
+      {AutopilotHelmState::HELM_UNKOWN, "HELM_UNKOWN"},
+    };
+
+    std::string helmStateToString(AutopilotHelmState state) const {
+      for (const auto& [stateEnum, stateStr] : stateStringPairs) {
+          if (stateEnum == state) {
+              return stateStr;
+          }
+      }
+      return "HELM_UNKOWN";
+    }
+
+    AutopilotHelmState stringToHelmState(const std::string& stateStr) const {
+      for (const auto& [stateEnum, stateStrVal] : stateStringPairs) {
+          if (stateStrVal == stateStr) {
+              return stateEnum;
+          }
+      }
+      return AutopilotHelmState::HELM_UNKOWN;  
+    }
+
+    
+
   private:
 
     const double MARKER_WIDTH = 14.0;
-
     const double HEADING_POINT_SIZE = 5;
 
     void visualizeHomeLocation();
@@ -75,6 +118,23 @@ class ArduBridge : public AppCastingMOOSApp
 
     // bool evaluateBoolFromString(const std::string& str) const { bool b; setBooleanOnString(b,str); return b;}
     bool parseCoordinateString(const std::string& input, double& lat, double& lon, double& x, double& y , std::string& vname) const;
+  
+  
+    AutopilotHelmState getTransitionAutopilotHelmState() const;  
+  
+  private: // Helperfunctions
+
+  std::string xypointToString(const XYPoint& point) const;
+  XYPoint transformLatLonToXY(const XYPoint& lat_lon);
+  bool isHelmON(){return m_autopilot_mode != AutopilotHelmState::HELM_INACTIVE;};
+  
+  void goToHelmState(AutopilotHelmState state);
+
+
+  bool maybeDoTakeoff();
+  bool maybeFlyToWaypoint();
+  bool maybeRTL();
+  bool maybeLoiterAtPos(const XYPoint& loiter_coord = XYPoint(0, 0));
   
   private: // State variables
     // For UAV
@@ -93,11 +153,14 @@ class ArduBridge : public AppCastingMOOSApp
     bool  m_do_arm;
     bool  m_do_return_to_launch;
     bool  m_do_loiter;
+    bool  m_do_helm_survey;
   
+    AutopilotHelmState m_autopilot_mode;
 
 
+    // Helm utility
 
-
+    XYPoint m_next_waypointXY;
 
 };
 

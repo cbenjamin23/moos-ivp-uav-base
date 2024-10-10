@@ -10,7 +10,6 @@ Processconfig = ANTLER
   MSBetweenLaunches = 50
    
   Run = MOOSDB             @ NewConsole = false
-  Run = pMarinePID         @ NewConsole = false
   Run = pLogger            @ NewConsole = false
   Run = pNodeReporter      @ NewConsole = false
   Run = pDeadManPost       @ NewConsole = false
@@ -37,14 +36,6 @@ Processconfig = ANTLER
 #include plug_uProcessWatch.moos
 
 #include plug_pArduBridge.moos
-
-// //------------------------------------------
-// // pGenRescue config block
-
-// ProcessConfig = pGenRescue
-// {
-//   vname = $(VNAME)
-// }
 
 
 
@@ -85,8 +76,8 @@ ProcessConfig = pRealm
   CommsTick = 4
 
 	hist_var = MOB_ALERT
-	hist_var = FOUND_SWIMMER
-	scope_set = name=msgs, vars=MOB_ALERT:FOUND_SWIMMER
+  hist_var = MODE
+	scope_set = name=msgs, vars=MOB_ALERT:MODE
 }
 
 //--------------------------------------------------
@@ -174,39 +165,6 @@ ProcessConfig = pDeadManPost
   deadflag        = DEPLOY = false
 }
 
-//----------------------------------------
-// pMarinePID Config Block
-	
-ProcessConfig = pMarinePID
-{
-  AppTick    = 10
-  CommsTick  = 10
-
-	deprecated_ok = true
-  verbose       = true
-  depth_control = false
-  active_start  = true
-
-  // Yaw PID controller (Set for M300)
-  yaw_pid_kp             = 0.9 
-  yaw_pid_kd             = 0.3 
-  yaw_pid_ki             = 0.3  
-  yaw_pid_integral_limit = 0.3 
-
-  // Speed PID controller
-  speed_pid_kp           = 1.0
-  speed_pid_kd           = 0.0
-  speed_pid_ki           = 0.0
-  speed_pid_integral_limit = 0.07
-
-  // Maximums
-  maxrudder  = 100 // 100
-  maxthrust  = 100
-
-  // A non-zero SPEED_FACTOR overrides use of SPEED_PID
-  // Will set DESIRED_THRUST = DESIRED_SPEED * SPEED_FACTOR
-  //SPEED_FACTOR = 20
-}
 
 //--------------------------------------------------
 // pLogger Config Block

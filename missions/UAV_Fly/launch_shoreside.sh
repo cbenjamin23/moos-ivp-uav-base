@@ -1,9 +1,9 @@
 #!/bin/bash 
 #-------------------------------------------------------------- 
 #   Script: launch_shoreside.sh    
-#  Mission: rescue_baseline
-#   Author: Michael Benjamin   
-#   LastEd: April 2022       
+#  Mission: UAV_Fly
+#   Author: Steve Carter Feujo Nomeny
+#   LastEd: 2024       
 #-------------------------------------------------------------- 
 #  Part 1: Set global variables
 #-------------------------------------------------------------- 
@@ -18,7 +18,6 @@ LAUNCH_GUI="yes"
 IP_ADDR="localhost"
 MOOS_PORT="9000"
 PSHARE_PORT="9200"
-SWIM_FILE="mit_00.txt"
 
 VNAMES=""
 
@@ -74,8 +73,6 @@ for ARGI; do
         PSHARE_PORT="${ARGI#--pshare=}"
     elif [[ "${ARGI}" == --vnames=* ]]; then
         VNAMES="${ARGI#--vnames=}"
-    elif [[ "${ARGI}" == --swim_file=* ]]; then
-        SWIM_FILE="${ARGI#--swim_file=}"
     else 
         echo "$ME: Bad Arg: $ARGI. Exit Code 1."
         exit 1

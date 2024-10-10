@@ -93,7 +93,7 @@ public:
     double    getAirSpeed() const {return( sqrt(m_velocity_ned.north_m_s*m_velocity_ned.north_m_s
                                                + m_velocity_ned.east_m_s*m_velocity_ned.east_m_s)
                                                + m_velocity_ned.down_m_s*m_velocity_ned.down_m_s );}
-    double    getAirSpeedXY() const {return( sqrt(m_velocity_ned.north_m_s*m_velocity_ned.north_m_s
+    double    getAirSpeedOG() const {return( sqrt(m_velocity_ned.north_m_s*m_velocity_ned.north_m_s
                                                + m_velocity_ned.east_m_s*m_velocity_ned.east_m_s) );}
     double    getHeading() const {return( angle360(m_attitude_ned.yaw_deg));}
    

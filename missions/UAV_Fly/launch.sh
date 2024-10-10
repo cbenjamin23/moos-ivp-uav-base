@@ -1,8 +1,8 @@
 #!/bin/bash 
 #-------------------------------------------------------------- 
 #   Script: launch.sh    
-#   Author: Michael Benjamin   
-#   LastEd: April 2022
+#   Author: Steve Carter Feujo Nomeny   
+#   LastEd: 2024
 #-------------------------------------------------------------- 
 #  Part 1: Define a convenience function for producing terminal
 #          debugging/status output depending on the verbosity.
@@ -16,7 +16,6 @@ ME=`basename "$0"`
 TIME_WARP=1
 JUST_MAKE=""
 VERBOSE=""
-RANDSTART="true"
 VLAUNCH_ARGS="--auto --sim "
 SLAUNCH_ARGS="--auto "
 
@@ -41,16 +40,17 @@ for ARGI; do
         echo "    Increase verbosity                              "
 	echo "  --just_make, -j                                   " 
 	echo "    Just make the targ files, but do not launch.    " 
-	echo "  --norand                                          " 
-	echo "    Do not randomly generate vpositions.txt.        "
     echo "  --vname=<skywalker>                                  " 
 	echo "    Name of the vehicle being launched           " 
     echo "  --ap_ip=<0.0.0.0>                     "
     echo "    IP of the ArduPilot autopilot                " 
+    echo "    Device  for coms with ArduPilot autopilot  <ttySAC0>   " 
     echo "  --ap_port=<14550>                       "
     echo "    Port of the ArduPilot autopilot              "
+    echo "    Baudrate for coms with ArduPilot autopilot   "
     echo "  --ap_protocol=<udp>                       "
     echo "    Protocol for coms with ArduPilot autopilot   "
+    echo "    udp, tcp or serial                           "
 	exit 0;
     elif [[ "${ARGI}" == "--verbose" || "${ARGI}" == "-v" ]]; then
         VERBOSE="--verbose"
@@ -58,8 +58,6 @@ for ARGI; do
         TIME_WARP=$ARGI
     elif [[ "${ARGI}" == "--just_make" || "${ARGI}" == "-j" ]]; then
         JUST_MAKE="-j"
-    elif [[ "${ARGI}" == "--norand" || "${ARGI}" == "-r" ]]; then
-        RANDSTART="false"
     elif [[ "${ARGI}" == --vname=* ]]; then
         VNAME="${ARGI#--vname=}"
     elif [[ "${ARGI}" == --ap_ip=* ]]; then
@@ -75,37 +73,25 @@ for ARGI; do
 done
 
 #-------------------------------------------------------------
-# Part 4: Generate random starting positions, speeds and vnames
+# Part 4: Set vnames
 #-------------------------------------------------------------
-vecho "Picking starting position"
-if [ "${RANDSTART}" = "true" -o  ! -f "vpositions.txt" ]; then
-    pickpos --poly="-2,-8 : 4,-13 : 60,13 : 57,18"   \
-	    --amt=1  > vpositions.txt  
-fi
+# vecho "Picking vname"
 
 # vehicle names are always deterministic in alphabetical order
 # pickpos --amt=1 --vnames  > vnames.txt
-echo $VNAME > vnames.txt
+# echo $VNAME > vnames.txt
 
-
-VEHPOS=(`cat vpositions.txt`)
-VNAMES=(`cat vnames.txt`)
+# VNAMES=(`cat vnames.txt`)
 
 #-------------------------------------------------------------
 # Part 5: Launch the vehicles
 #-------------------------------------------------------------
 INDEX=1
 
-ARRAY_INDEX=`expr $INDEX - 1`
-
-START=${VEHPOS[$ARRAY_INDEX]}
-VNAME=${VNAMES[$ARRAY_INDEX]}
-
 MOOS_PORT=`expr $INDEX + 9000`
 PSHARE_PORT=`expr $INDEX + 9200`
 
 IX_VLAUNCH_ARGS=$VLAUNCH_ARGS
-IX_VLAUNCH_ARGS+=" --start=$START "
 IX_VLAUNCH_ARGS+=" --vname=$VNAME                "
 IX_VLAUNCH_ARGS+=" --mport=$MOOS_PORT --pshare=$PSHARE_PORT "
 IX_VLAUNCH_ARGS+=" $TIME_WARP $VERBOSE $JUST_MAKE"
