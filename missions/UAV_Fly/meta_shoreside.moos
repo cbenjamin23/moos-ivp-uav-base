@@ -105,7 +105,7 @@ ProcessConfig = uFldShoreBroker
   qbridge = RETURN_TO_LAUNCH, LOITER, SURVEY
   qbridge = DO_TAKEOFF, FLY_WAYPOINT
 
-  qbridge = DO_TAKEOFF, FLY_WAYPOINT
+  qbridge = DO_TAKEOFF, FLY_WAYPOINT, CHANGE_ALTITUDE
 
   qbridge = MOOS_MANUAL_OVERIDE, SURVEY
 
@@ -155,7 +155,7 @@ ProcessConfig = pMarineViewer
   set_pan_y            = 20
   zoom                 = 2
   vehicles_shape_scale = 5.0
-  vehicles_name_mode   = names+shortmode
+  vehicles_name_mode   = names+depth
 
 	beat_flag = HEARTBEAT=true
 	
@@ -189,13 +189,24 @@ ProcessConfig = pMarineViewer
   appcast_viewable     = true
   appcast_color_scheme = indigo
 
+
+  action = menu_key=all_vehicles # CHANGE_SPEED_ALL=1
+  action =  CHANGE_SPEED_ALL=-1
+  action =  CHANGE_SPEED_ALL=5
+  action+ =  CHANGE_SPEED_ALL=-5
+
+  action = menu_key=all_vehicles # CHANGE_ALTITUDE_ALL=1
+  action = CHANGE_ALTITUDE_ALL=-1
+  action = CHANGE_ALTITUDE_ALL=10
+  action+ = CHANGE_ALTITUDE_ALL=-10
+
   action = menu_key=abe # DEPLOY_ABE=true
   action = menu_key=abe # MOOS_MANUAL_OVERIDE_ABE=false
   action = menu_key=abe # RETURN_ABE=false
 
   action = menu_key=ben # DEPLOY_BEN=true
   action = menu_key=ben # MOOS_MANUAL_OVERIDE_BEN=false
-  action = menu_key=ben # RETURN_BEN=false
+  action+ = menu_key=ben # RETURN_BEN=false
 
 	action = BLOCK_HEARTBEAT = true
 	action = BLOCK_HEARTBEAT = false
@@ -237,6 +248,11 @@ ProcessConfig = pMarineViewer
   cmd = label=AIRSPD-1, var=CHANGE_SPEED, dval=-1, receivers=all:$(VNAMES)
   cmd = label=AIRSPD+5, var=CHANGE_SPEED, dval=5, receivers=all:$(VNAMES)
   cmd = label=AIRSPD-5, var=CHANGE_SPEED, dval=-5, receivers=all:$(VNAMES)
+
+  cmd = label=ALT+1, var=CHANGE_ALTITUDE, dval=1, receivers=all:$(VNAMES)
+  cmd = label=ALT-1, var=CHANGE_ALTITUDE, dval=-1, receivers=all:$(VNAMES)
+  cmd = label=ALT+10, var=CHANGE_ALTITUDE, dval=10, receivers=all:$(VNAMES)
+  cmd = label=ALT-10, var=CHANGE_ALTITUDE, dval=-10, receivers=all:$(VNAMES)
 
   cmd = label=SPEED_TO_MIN, var=RESET_SPEED_MIN, sval=true, receivers=all:$(VNAMES)
 

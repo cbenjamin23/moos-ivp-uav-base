@@ -121,6 +121,9 @@ bool ArduBridge::OnNewMail(MOOSMSG_LIST &NewMail)
     else if(key == "CHANGE_SPEED"){
       m_do_change_speed_pair = std::make_pair(true, msg.GetDouble());
     }
+    else if(key == "CHANGE_ALTITUDE"){
+      m_do_change_altitude_pair = std::make_pair(true, msg.GetDouble());
+    }
     else if(key == "ARM_UAV"){  
       setBooleanOnString(m_do_arm, msg.GetString());
       if(!m_do_arm) m_warning_system_ptr->monitorWarningForXseconds("Arm command not set", WARNING_DURATION);
@@ -168,11 +171,9 @@ bool ArduBridge::OnConnectToServer()
 bool ArduBridge::Iterate()
 {
   AppCastingMOOSApp::Iterate();
- 
   static bool poll_uav_parameters = true;
 
-
-  if(isHelmON() && m_autopilot_mode != AutopilotHelmState::HELM_LOITERING){
+  if(isHelmON() && m_autopilot_mode != AutopilotHelmState::HELM_INACTIVE_LOITERING){
     sendSetpointsToUAV();
   }
 
@@ -205,7 +206,7 @@ bool ArduBridge::Iterate()
 
   if(m_do_loiter){
     if(maybeLoiterAtPos() && isHelmON()){
-      goToHelmState(AutopilotHelmState::HELM_LOITERING);
+      goToHelmState(AutopilotHelmState::HELM_INACTIVE_LOITERING);
     }
     m_do_loiter = false;
   }
@@ -226,6 +227,16 @@ bool ArduBridge::Iterate()
     reportEvent("Trying to changed speed to " + doubleToString(new_speed));
     m_do_change_speed_pair.second = 0;
     m_do_change_speed_pair.first = false;
+
+    poll_uav_parameters = true;
+  }
+
+  if(m_do_change_altitude_pair.first){
+    double new_altitude = m_uav_model.getTargetAltitudeAGL() + m_do_change_altitude_pair.second;
+    m_uav_model.setTargetAltitudeAGL(new_altitude);
+    reportEvent("Changed altitude to " + doubleToString(new_altitude));
+    m_do_change_altitude_pair.second = 0;
+    m_do_change_altitude_pair.first = false;
 
     poll_uav_parameters = true;
   }
@@ -395,6 +406,7 @@ void ArduBridge::registerVariables()
   Register("ARM_UAV", 0);
   Register("RESET_SPEED_MIN", 0);
 
+  Register("CHANGE_ALTITUDE", 0);
   Register("RETURN_TO_LAUNCH", 0); Register("RETURN", 0);
   Register("LOITER", 0);
   Register("SURVEY", 0);
@@ -453,11 +465,12 @@ bool ArduBridge::buildReport()
   m_msgs << "       Helm Autonomy Mode: " << helmStateToString(m_autopilot_mode) << std::endl;
   m_msgs << "  (Latitude , Longditute): " <<  lat  << " , " << lon << std::endl;
   m_msgs << "                  (X , Y): " << nav_x << " , " << nav_y << std::endl;
+  m_msgs << "    Target Altitude (AGL): " << m_uav_model.getTargetAltitudeAGL() <<  " m" << "    Last Sent (AGL): " << m_uav_model.getLastSentTargetAltitudeAGL() << " m" << std::endl;
   m_msgs << "           Altitude (AGL): " << m_uav_model.getAltitudeAGL() << " m (Depth/Z: " << -m_uav_model.getAltitudeAGL() << " m)" << std::endl;
   m_msgs << "           Altitude (MSL): " << m_uav_model.getAltitudeMSL() <<  " m" << std::endl;
   m_msgs << "          Target Airspeed: " << m_uav_model.getTargetAirSpeed() <<  " m/s" << std::endl;
   m_msgs << "                 AirSpeed: " << m_uav_model.getAirSpeed() <<  " m/s (XY projection: " <<  m_uav_model.getAirSpeedOG() << " m/s)" << std::endl;
-  m_msgs << "                 Heading: " << m_uav_model.getHeading() <<  " deg" << std::endl;
+  m_msgs << "                  Heading: " << m_uav_model.getHeading() <<  " deg" << std::endl;
 
   m_msgs << "-------------------------------------------" << std::endl;
 
@@ -511,9 +524,9 @@ void ArduBridge::sendSetpointsToUAV(){
     m_uav_model.commandAndSetAirSpeed(desired_speed.value());
   }
 
-  // if(desired_altitude.has_value()){
-  //   m_uav_model.commandAndSetAltitude(desired_altitude.value());
-  // }
+  if(desired_altitude.has_value() && desired_altitude.value() > 5){ // TODO: Temporary solution to avoid setting depth to 0
+    m_uav_model.setTargetAltitudeAGL(desired_altitude.value());
+  }
 
 }
 
@@ -674,7 +687,7 @@ ArduBridge::AutopilotHelmState ArduBridge::getTransitionAutopilotHelmState() con
 
     case AutopilotHelmState::HELM_ACTIVE:
     case AutopilotHelmState::HELM_SURVEYING:
-    case AutopilotHelmState::HELM_LOITERING:
+    case AutopilotHelmState::HELM_INACTIVE_LOITERING:
     case AutopilotHelmState::HELM_RETURNING:
             
       return m_autopilot_mode;
@@ -731,21 +744,9 @@ bool ArduBridge::maybeFlyToWaypoint(){
     }   
     else { // Helm is inactive. Send the waypoint directly to the UAV
 
-        double lat = wp.x();
-        double lon = wp.y();
-        float alt_msl = m_uav_model.getAltitudeMSL();
-        
-        mavsdk::Telemetry::Position wpt = {lat, lon, alt_msl};
-
-        // std::stringstream ss;
-        // ss << "Trying to fly to waypoint (lat,long,alt_msl): " << wpt.latitude_deg << ", " << wpt.longitude_deg << ", " << wpt.absolute_altitude_m << std::endl;
-        // reportEvent(ss.str());
-
-        if(!m_uav_model.commandGoToLocation(wpt)){
-          
+        if(!m_uav_model.commandGoToLocationXY(wp)){ 
           return false;
         }
-      
         visualizeLoiterLocation(wp);
     }
 

@@ -24,12 +24,16 @@ export PATH=/opt/gcc-arm-none-eabi-6-2017-q2-update/bin:$PATH export PATH=$HOME/
 
 There might be a gazebo server/client running. Identify the PID with the command
 
-		ps aux | grep gz
+```bash
+ps aux | grep gz
+```
 and then kill it using `kill <PID>`
 
 For MissionPlanner: 
 
-		ps aux | grep mono
+```bash
+ps aux | grep mono
+```
 	
 and then kill it using `kill <PID>`
 

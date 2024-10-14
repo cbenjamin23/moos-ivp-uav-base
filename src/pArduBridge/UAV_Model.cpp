@@ -35,7 +35,9 @@ UAV_Model::UAV_Model(std::shared_ptr<WarningSystem> ws):
 
   m_health_all_ok{false},
   m_is_armed{false},
-  m_in_air{false}
+  m_in_air{false},
+  m_target_altitudeAGL{50.0},
+  m_last_sent_altitudeAGL{double(NAN)}
 {
   // Initalize the configuration variables
 
@@ -385,16 +387,11 @@ bool UAV_Model::commandReturnToLaunchAsync() const{
 
 }
 
-bool UAV_Model::commandLoiter() {
+bool UAV_Model::commandLoiter(bool holdAltitude) {
   
   m_current_loiter_coord = XYPoint(m_position.latitude_deg, m_position.longitude_deg);
 
-  mavsdk::Telemetry::Position loiter_position;
-  loiter_position.latitude_deg = m_current_loiter_coord.x();
-  loiter_position.longitude_deg = m_current_loiter_coord.y();
-  loiter_position.absolute_altitude_m = m_position.absolute_altitude_m;
-
-  if(commandGoToLocation(loiter_position)){
+  if(commandGoToLocationXY(m_current_loiter_coord)){
     std::stringstream ss;
     ss << "Loitering at (Lat/Long): " << m_current_loiter_coord.x() << "/" << m_current_loiter_coord.y() << "\n";
     reportEventFromCallback(ss.str());
@@ -448,6 +445,59 @@ bool UAV_Model::commandDisarmAsync() const{
     return true;
 }
 
+// bool UAV_Model::setTargetAltitudeAGL(double altitude) const{
+  
+//   if(!m_in_air){
+//     m_warning_system_ptr->monitorWarningForXseconds("UAV is not in air! Cannot send altitude", WARNING_DURATION);
+//     return false;
+//   }
+
+
+
+//   mavsdk::MavlinkPassthrough::CommandLong command_mode;
+//   command_mode.command = MAV_CMD_CONDITION_CHANGE_ALT;
+//   command_mode.target_sysid = m_system_ptr->get_system_id();
+//   command_mode.target_compid = MAV_COMP_ID_AUTOPILOT1; // assuming first component is autopilot
+//   command_mode.param1 = altitude; // altitude in meters
+//   command_mode.param2 = MAV_FRAME_GLOBAL_RELATIVE_ALT; 
+//   command_mode.param3 = 0; // Not used
+//   command_mode.param4 = 0; // 
+//   command_mode.param5 = 0; // 
+//   command_mode.param6 = 0; // 
+//   command_mode.param7 = 0; //
+
+//   // blocking
+//   auto result = m_mavPass_ptr->send_command_long(command_mode);
+
+//   if(result != mavsdk::MavlinkPassthrough::Result::Success){
+//     std::stringstream ss;
+//     ss << "command Set Altitude AGL error: " << result <<  " with altitude " << altitude;
+//     m_warning_system_ptr->monitorWarningForXseconds( ss.str(), WARNING_DURATION);
+//     return false;
+//   }
+
+//   MOOSTraceFromCallback("command Set Altitude AGL succeeded\n");
+
+//   return true;
+// }
+
+bool UAV_Model::commandGoToLocationXY(const XYPoint pos, bool holdCurrentAltitudeAGL) {
+
+
+  float alt_msl = m_position.absolute_altitude_m; 
+  double terrain_altitude = m_position.absolute_altitude_m - m_position.relative_altitude_m;
+  if(!holdCurrentAltitudeAGL){
+    alt_msl = terrain_altitude + m_target_altitudeAGL;
+  }
+  mavsdk::Telemetry::Position wpt = {pos.x(), pos.y(), alt_msl};
+
+
+
+  m_last_sent_altitudeAGL = alt_msl - terrain_altitude;   
+  
+  return commandGoToLocation(wpt);
+}
+
 bool UAV_Model::commandGoToLocation(const mavsdk::Telemetry::Position& position) const{
 
   double loiter_direction = 0; // 0 for clockwise, 1 for counter clockwise
@@ -462,7 +512,7 @@ bool UAV_Model::commandGoToLocation(const mavsdk::Telemetry::Position& position)
     m_warning_system_ptr->monitorWarningForXseconds(ss.str(), WARNING_DURATION);
     return false;
   }
-
+     
   MOOSTraceFromCallback("goto_location succeeded\n");
   
   return true;
@@ -577,15 +627,8 @@ bool UAV_Model::commandHeadingHold(double heading){
 
   setHeadingWyptFromHeading(heading);
 
-  // Create the new waypoint
-  mavsdk::Telemetry::Position new_position;
-  new_position.latitude_deg = m_heading_waypoint_coord.x();
-  new_position.longitude_deg = m_heading_waypoint_coord.y();
-  new_position.absolute_altitude_m = m_position.absolute_altitude_m;  // Maintain the same altitude
-
-
   // Command the plane to the new location
-  return commandGoToLocation(new_position);
+  return commandGoToLocationXY(m_heading_waypoint_coord);
 }
 
 
@@ -648,7 +691,7 @@ bool create_missionPlan(std::vector<mavsdk::MissionRaw::MissionItem>& mission_pl
     mission_plan.push_back(make_mission_item_wp( // 2
         lat_deg_home + 0.003677, // 409.2 meters north
         lon_deg_home - 0.003845, // 341.4 meters west
-        100.00,
+        120.00,
         0,
         MAV_FRAME_GLOBAL_RELATIVE_ALT,
         MAV_CMD_NAV_WAYPOINT));
@@ -657,7 +700,7 @@ bool create_missionPlan(std::vector<mavsdk::MissionRaw::MissionItem>& mission_pl
     mission_plan.push_back(make_mission_item_wp( // 3
         lat_deg_home - 0.003201, // 356.8 meters south
         lon_deg_home - 0.002996, // 265.2 meters west
-        100.00,
+        200.00,
         0,
         MAV_FRAME_GLOBAL_RELATIVE_ALT,
         MAV_CMD_NAV_WAYPOINT));
@@ -666,7 +709,7 @@ bool create_missionPlan(std::vector<mavsdk::MissionRaw::MissionItem>& mission_pl
     mission_plan.push_back(make_mission_item_wp( // 4
         lat_deg_home - 0.002869, // 320.4 meters south
         lon_deg_home - 0.000656, // 57.2 meters west
-        100.00,
+        210.00,
         0,
         MAV_FRAME_GLOBAL_RELATIVE_ALT,
         MAV_CMD_NAV_WAYPOINT));
@@ -675,7 +718,7 @@ bool create_missionPlan(std::vector<mavsdk::MissionRaw::MissionItem>& mission_pl
     mission_plan.push_back(make_mission_item_wp( // 5
         lat_deg_home + 0.004198, // 444.2 meters north
         lon_deg_home - 0.001480, // 131.6 meters west
-        100.00,
+        130.00,
         0,
         MAV_FRAME_GLOBAL_RELATIVE_ALT,
         MAV_CMD_NAV_WAYPOINT));
@@ -684,7 +727,7 @@ bool create_missionPlan(std::vector<mavsdk::MissionRaw::MissionItem>& mission_pl
     mission_plan.push_back(make_mission_item_wp( // 6
         lat_deg_home - 0.002869, // relative to waypoint 4
         lon_deg_home - 0.000656, // relative to waypoint 4
-        100.00, 
+        110.00, 
         SPEED_TYPE_AIRSPEED, 
         MAV_FRAME_GLOBAL_RELATIVE_ALT, 
         MAV_CMD_DO_CHANGE_SPEED, 

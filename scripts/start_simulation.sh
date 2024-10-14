@@ -9,7 +9,7 @@ cd ./simulation
 nohup gz sim -v4 -r skywalker_x8_runway.sdf &> /dev/null &
 
 # Start Mission Planner in the background in a third terminator window
-# terminator --new-tab -e "bash -c 'source ~/.profile; cd ~/MissionPlanner; mono MissionPlanner.exe; exec bash'" &
+terminator --new-tab -e "bash -c 'source ~/.profile; cd ~/MissionPlanner; mono MissionPlanner.exe; exec bash'" &
 # cd ~/Mission_Planner
 # nohup mono MissionPlanner.exe &> /dev/null &
 # cd -

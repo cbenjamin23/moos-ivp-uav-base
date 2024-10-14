@@ -83,14 +83,16 @@ alias launchSkywalker='cd ~/moos-ivp-uav/missions/UAV_Fly;
 alias cdm='cd ~/moos-ivp'
 alias cdmm='cdm; cd ivp/missions'
 alias cdmma='cdmm; cd s1_alpha'
-alias cdmis='cdm; cd ivp/src'
-
-alias cduav='cd ~/moos-ivp-uav/'
+alias cdmsrc='cdm; cd ivp/src'
 
 # for moos-ivp-uav
+alias cduav='cd ~/moos-ivp-uav/'
+
 alias cdsrc='cd ~/moos-ivp-uav/src'
 alias cdmi='cd ~/moos-ivp-uav/missions'
+alias cdmis='cdmi; cd ./UAV_Fly'
 alias bld='cd ~/moos-ivp-uav; ./build.sh; cd -'
+
 
 
 alias build_all='cd ~/moos-ivp; svn up; ./build.sh -m; cd -

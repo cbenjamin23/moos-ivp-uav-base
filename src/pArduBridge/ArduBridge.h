@@ -69,7 +69,7 @@ class ArduBridge : public AppCastingMOOSApp
       HELM_INACTIVE,
       HELM_ACTIVE,
       HELM_TOWAYPT,
-      HELM_LOITERING,
+      HELM_INACTIVE_LOITERING,
       HELM_SURVEYING,
       HELM_RETURNING,
       HELM_UNKOWN,
@@ -81,7 +81,7 @@ class ArduBridge : public AppCastingMOOSApp
       {AutopilotHelmState::HELM_INACTIVE, "HELM_INACTIVE"},
       {AutopilotHelmState::HELM_ACTIVE, "HELM_ACTIVE"},
       {AutopilotHelmState::HELM_TOWAYPT, "HELM_TOWAYPT"},
-      {AutopilotHelmState::HELM_LOITERING, "HELM_LOITERING"},
+      {AutopilotHelmState::HELM_INACTIVE_LOITERING, "HELM_INACTIVE_LOITERING"},
       {AutopilotHelmState::HELM_SURVEYING, "HELM_SURVEYING"},
       {AutopilotHelmState::HELM_RETURNING, "HELM_RETURNING"},
       {AutopilotHelmState::HELM_UNKOWN, "HELM_UNKOWN"},
@@ -148,6 +148,7 @@ class ArduBridge : public AppCastingMOOSApp
     bool  m_do_fly_to_waypoint;
     bool  m_do_takeoff;
     std::pair<bool, double> m_do_change_speed_pair;
+    std::pair<bool, double> m_do_change_altitude_pair;
     bool  m_do_reset_speed;
 
     bool  m_do_arm;

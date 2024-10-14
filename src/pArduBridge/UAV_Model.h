@@ -54,11 +54,12 @@ public:
     // Actions and commands 
     bool   commandAndSetAirSpeed(double speed) const;
     bool   commandGroundSpeed(double speed) const {return(commandSpeed(speed, SPEED_TYPE::SPEED_TYPE_GROUNDSPEED));} //blocking functions
+    bool   commandGoToLocationXY(const XYPoint pos, bool holdCurrentAltitudeAGL = false) ;
     bool   commandGoToLocation(const mavsdk::Telemetry::Position& position) const;
     bool   commandDisarmAsync() const; 
 
     bool   commandReturnToLaunchAsync() const;
-    bool   commandLoiter();
+    bool   commandLoiter(bool holdAltitude = true);
     bool   commandHeadingHold(double heading);
 
 
@@ -69,6 +70,7 @@ public:
     void   setCallbackRetractRunW(const std::function<void(const std::string&)>& callback) {callbackRetractRunW = callback ;}
 
     void   setNextWaypoint(const XYPoint& wp) {m_next_waypoint_coord = wp;}
+    void   setTargetAltitudeAGL(double altitude) {m_target_altitudeAGL = altitude;}
     void   setHeadingWyptFromHeading(double heading);
 
 
@@ -80,29 +82,31 @@ public:
     mavsdk::Telemetry::FlightMode   getFlightMode() const {return(m_flight_mode);}
 
 
-    XYPoint   getNextWaypointLatLon() const {return(m_next_waypoint_coord);}
-    XYPoint   getHeadingWaypointLatLon() const {return(m_heading_waypoint_coord);}
-    XYPoint   getCurrentLoiterLatLon() const {return(m_current_loiter_coord);}
-    XYPoint   getHomeLatLon() const {return(m_home_coord);}
-    double    getLatitude() const {return(m_position.latitude_deg);}
-    double    getLongitude() const {return(m_position.longitude_deg);}
+    XYPoint getNextWaypointLatLon() const {return(m_next_waypoint_coord);}
+    XYPoint getHeadingWaypointLatLon() const {return(m_heading_waypoint_coord);}
+    XYPoint getCurrentLoiterLatLon() const {return(m_current_loiter_coord);}
+    XYPoint getHomeLatLon() const {return(m_home_coord);}
+    double  getLatitude() const {return(m_position.latitude_deg);}
+    double  getLongitude() const {return(m_position.longitude_deg);}
     
-    double    getMinAirSpeed() const {return(m_polled_params.min_airspeed);}
-    double    getMaxAirSpeed() const {return(m_polled_params.max_airspeed);}
-    double    getTargetAirSpeed() const {return(m_polled_params.target_airspeed_cruise);}
-    double    getAirSpeed() const {return( sqrt(m_velocity_ned.north_m_s*m_velocity_ned.north_m_s
+    double  getMinAirSpeed() const {return(m_polled_params.min_airspeed);}
+    double  getMaxAirSpeed() const {return(m_polled_params.max_airspeed);}
+    double  getTargetAirSpeed() const {return(m_polled_params.target_airspeed_cruise);}
+    double  getAirSpeed() const {return( sqrt(m_velocity_ned.north_m_s*m_velocity_ned.north_m_s
                                                + m_velocity_ned.east_m_s*m_velocity_ned.east_m_s)
                                                + m_velocity_ned.down_m_s*m_velocity_ned.down_m_s );}
-    double    getAirSpeedOG() const {return( sqrt(m_velocity_ned.north_m_s*m_velocity_ned.north_m_s
+    double  getAirSpeedOG() const {return( sqrt(m_velocity_ned.north_m_s*m_velocity_ned.north_m_s
                                                + m_velocity_ned.east_m_s*m_velocity_ned.east_m_s) );}
-    double    getHeading() const {return( angle360(m_attitude_ned.yaw_deg));}
+    double  getHeading() const {return( angle360(m_attitude_ned.yaw_deg));}
    
    
-    double    getAltitudeAGL() const {return(m_position.relative_altitude_m);} 
-    double    getAltitudeMSL() const {return(m_position.absolute_altitude_m);}
-    
-    double    getRoll() const {return(m_attitude_ned.roll_deg);}
-    double    getPitch() const {return(m_attitude_ned.pitch_deg);}
+    double  getAltitudeAGL() const {return(m_position.relative_altitude_m);} 
+    double  getAltitudeMSL() const {return(m_position.absolute_altitude_m);}
+    double  getTargetAltitudeAGL() const {return(m_target_altitudeAGL);}
+    double  getLastSentTargetAltitudeAGL() const {return(m_last_sent_altitudeAGL);}
+
+    double  getRoll() const {return(m_attitude_ned.roll_deg);}
+    double  getPitch() const {return(m_attitude_ned.pitch_deg);}
 
     
 protected:
@@ -118,10 +122,12 @@ protected:
         double min_airspeed = 0.0;
         double max_airspeed = 0.0;
         double target_airspeed_cruise = 0.0;
-
-        // std::mutex param_mutex;  // Mutex for thread-safe access
     };
 
+
+    // Parameters not polled
+    double m_target_altitudeAGL;
+    double m_last_sent_altitudeAGL;
 
  protected:
 
@@ -176,6 +182,7 @@ protected:
     XYPoint   m_current_loiter_coord;
     XYPoint   m_next_waypoint_coord;
     XYPoint   m_heading_waypoint_coord;
+
 
 
 

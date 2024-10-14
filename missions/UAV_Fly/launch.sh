@@ -106,7 +106,7 @@ vecho "IX_VLAUNCH_ARGS: [$IX_VLAUNCH_ARGS]"
 # Part 6: Launch the Shoreside mission file
 #-------------------------------------------------------------
 SLAUNCH_ARGS+=" $JUST_MAKE"
-SLAUNCH_ARGS+=" --vnames=${VNAMES[*]} "
+SLAUNCH_ARGS+=" --vnames=${VNAME} "
 vecho "Launching the shoreside. Args: $SLAUNCH_ARGS $TIME_WARP"
 
 ./launch_shoreside.sh $SLAUNCH_ARGS $VERBOSE $TIME_WARP 
