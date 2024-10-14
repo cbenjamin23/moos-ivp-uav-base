@@ -387,11 +387,17 @@ bool UAV_Model::commandReturnToLaunchAsync() const{
 
 }
 
-bool UAV_Model::commandLoiter(bool holdAltitude) {
+bool UAV_Model::commandLoiterAtPos(XYPoint pos, bool holdCurrentAltitude) {
   
-  m_current_loiter_coord = XYPoint(m_position.latitude_deg, m_position.longitude_deg);
+  // lat lon 0 0  should not be possible
+  if (pos == XYPoint(0, 0)){
+    m_current_loiter_coord = XYPoint(m_position.latitude_deg, m_position.longitude_deg);
+    m_warning_system_ptr->monitorWarningForXseconds("Received empty loiter pos: Loitering at current position", WARNING_DURATION);
+  } else{
+    m_current_loiter_coord = pos;
+  }
 
-  if(commandGoToLocationXY(m_current_loiter_coord)){
+  if(commandGoToLocationXY(m_current_loiter_coord, holdCurrentAltitude)){
     std::stringstream ss;
     ss << "Loitering at (Lat/Long): " << m_current_loiter_coord.x() << "/" << m_current_loiter_coord.y() << "\n";
     reportEventFromCallback(ss.str());
@@ -494,7 +500,7 @@ bool UAV_Model::commandGoToLocationXY(const XYPoint pos, bool holdCurrentAltitud
 
 
   m_last_sent_altitudeAGL = alt_msl - terrain_altitude;   
-  
+
   return commandGoToLocation(wpt);
 }
 

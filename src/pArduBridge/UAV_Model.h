@@ -59,7 +59,7 @@ public:
     bool   commandDisarmAsync() const; 
 
     bool   commandReturnToLaunchAsync() const;
-    bool   commandLoiter(bool holdAltitude = true);
+    bool   commandLoiterAtPos(XYPoint pos, bool holdCurrentAltitude = true);
     bool   commandHeadingHold(double heading);
 
 

@@ -45,7 +45,7 @@ class ArduBridge : public AppCastingMOOSApp
 
 
     // Send command to UAV
-    void sendSetpointsToUAV();
+    void sendSetpointsToUAV(bool forceSend = false);
 
   private: // Configuration variables
     std::string  m_uav_prefix;
@@ -67,9 +67,9 @@ class ArduBridge : public AppCastingMOOSApp
 
     enum class AutopilotHelmState{
       HELM_INACTIVE,
+      HELM_INACTIVE_LOITERING,
       HELM_ACTIVE,
       HELM_TOWAYPT,
-      HELM_INACTIVE_LOITERING,
       HELM_SURVEYING,
       HELM_RETURNING,
       HELM_UNKOWN,
@@ -79,9 +79,9 @@ class ArduBridge : public AppCastingMOOSApp
 
     const std::vector<std::pair<AutopilotHelmState, std::string>> stateStringPairs = {
       {AutopilotHelmState::HELM_INACTIVE, "HELM_INACTIVE"},
+      {AutopilotHelmState::HELM_INACTIVE_LOITERING, "HELM_INACTIVE_LOITERING"},
       {AutopilotHelmState::HELM_ACTIVE, "HELM_ACTIVE"},
       {AutopilotHelmState::HELM_TOWAYPT, "HELM_TOWAYPT"},
-      {AutopilotHelmState::HELM_INACTIVE_LOITERING, "HELM_INACTIVE_LOITERING"},
       {AutopilotHelmState::HELM_SURVEYING, "HELM_SURVEYING"},
       {AutopilotHelmState::HELM_RETURNING, "HELM_RETURNING"},
       {AutopilotHelmState::HELM_UNKOWN, "HELM_UNKOWN"},
@@ -126,15 +126,15 @@ class ArduBridge : public AppCastingMOOSApp
 
   std::string xypointToString(const XYPoint& point) const;
   XYPoint transformLatLonToXY(const XYPoint& lat_lon);
-  bool isHelmON(){return m_autopilot_mode != AutopilotHelmState::HELM_INACTIVE;};
+  bool isHelmON(){return m_autopilot_mode != AutopilotHelmState::HELM_INACTIVE && m_autopilot_mode != AutopilotHelmState::HELM_INACTIVE_LOITERING;};
   
   void goToHelmState(AutopilotHelmState state);
 
 
-  bool maybeDoTakeoff();
-  bool maybeFlyToWaypoint();
-  bool maybeRTL();
-  bool maybeLoiterAtPos(const XYPoint& loiter_coord = XYPoint(0, 0));
+  bool tryDoTakeoff();
+  bool tryFlyToWaypoint();
+  bool tryRTL();
+  bool tryloiterAtPos(const XYPoint& loiter_coord = XYPoint(0, 0), bool holdCurrentAltitude = false);
   
   private: // State variables
     // For UAV
