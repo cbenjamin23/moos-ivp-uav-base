@@ -241,6 +241,7 @@ bool ArduBridge::Iterate()
     m_setpoint_manager.updateDesiredAltitude(new_altitude);
 
     if (!isHelmON()){
+      m_uav_model.setTargetAltitudeAGL(new_altitude);
       bool ok = false;      
       if(m_autopilot_mode == AutopilotHelmState::HELM_INACTIVE_LOITERING){
         ok = tryloiterAtPos(m_uav_model.getCurrentLoiterLatLon());
@@ -252,10 +253,7 @@ bool ArduBridge::Iterate()
       if(!ok){
         m_warning_system_ptr->monitorWarningForXseconds("Failed to immidiately change altitude!!", WARNING_DURATION);
       }
-
-    } else{
-      sendSetpointsToUAV(true);
-    }
+    } 
     
     reportEvent("Changed altitude to " + doubleToString(new_altitude));
     m_do_change_altitude_pair.second = 0;
