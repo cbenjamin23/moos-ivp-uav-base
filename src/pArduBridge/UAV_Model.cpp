@@ -119,15 +119,36 @@ bool UAV_Model::connectToUAV(std::string url)
   auto clear_result = m_mission_raw_ptr->clear_mission();
   if (clear_result != mavsdk::MissionRaw::Result::Success) {
       m_warning_system_ptr->monitorWarningForXseconds("Failed to clear mission", WARNING_DURATION);
+
   }
 
   auto download_result = m_mission_raw_ptr->download_mission();
+
+
+  std::vector<mavsdk::MissionRaw::MissionItem> mission_plan;
+
   if (download_result.first != mavsdk::MissionRaw::Result::Success) {
       m_warning_system_ptr->monitorWarningForXseconds("Failed to download mission", WARNING_DURATION);
-  }
+      std::cout << "Failed to download mission - Exiting\n";
 
-  // first point in case of ardupilot is always home
-  auto mission_plan = download_result.second;
+      mavsdk::MissionRaw::MissionItem home_item{};
+      home_item.seq = 0;
+      home_item.frame = static_cast<uint32_t>(MAV_FRAME_GLOBAL);
+      home_item.command = static_cast<uint32_t>(MAV_CMD_NAV_WAYPOINT);
+      home_item.current = 1;
+      home_item.autocontinue = 1;
+      home_item.param1 = 0;
+      home_item.param2 = 0;
+      home_item.param3 = 0;   
+      home_item.param4 = 0;   
+      home_item.x = 633975181; // default at NTNU airport
+      home_item.y = 101435316; // default at NTNU airport
+      home_item.z = 106.25;    // default at NTNU airport
+      home_item.mission_type = MAV_MISSION_TYPE_MISSION;
+      mission_plan.push_back(home_item);
+  } else {
+      mission_plan = download_result.second;
+  }
 
   mavsdk::MissionRaw::MissionItem home_point = mission_plan[0];
 
