@@ -129,7 +129,7 @@ bool UAV_Model::connectToUAV(std::string url)
 
   if (download_result.first != mavsdk::MissionRaw::Result::Success) {
       m_warning_system_ptr->monitorWarningForXseconds("Failed to download mission", WARNING_DURATION);
-      std::cout << "Failed to download mission - Exiting\n";
+      std::cout << "Failed to download mission - Using default home location\n";
 
       mavsdk::MissionRaw::MissionItem home_item{};
       home_item.seq = 0;
