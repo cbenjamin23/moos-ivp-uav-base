@@ -174,7 +174,7 @@ bool ArduBridge::Iterate()
   AppCastingMOOSApp::Iterate();
   static bool poll_uav_parameters = true;
 
-  if(isHelmON() && m_autopilot_mode != AutopilotHelmState::HELM_INACTIVE_LOITERING){
+  if(isHelmON()){
     sendSetpointsToUAV();
   }
 
@@ -237,8 +237,8 @@ bool ArduBridge::Iterate()
   }
 
   if(m_do_change_altitude_pair.first){
-    double new_altitude = m_uav_model.getTargetAltitudeAGL() + m_do_change_altitude_pair.second;
-    m_uav_model.setTargetAltitudeAGL(new_altitude);
+    double new_altitude = m_uav_model.getTargetAltitudeAGL() + m_do_change_altitude_pair.second;    
+    m_setpoint_manager.updateDesiredAltitude(new_altitude);
 
     if (!isHelmON()){
       bool ok = false;      

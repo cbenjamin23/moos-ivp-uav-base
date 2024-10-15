@@ -114,6 +114,8 @@ bool UAV_Model::connectToUAV(std::string url)
   m_mavPass_ptr = std::make_unique<mavsdk::MavlinkPassthrough>(m_system_ptr);
   m_param_ptr = std::make_unique<mavsdk::Param>(m_system_ptr);
 
+  std::cout << "Created mission_raw, action, telemetry, mavlinkPassthrough and param\n";
+
   auto clear_result = m_mission_raw_ptr->clear_mission();
   if (clear_result != mavsdk::MissionRaw::Result::Success) {
       m_warning_system_ptr->monitorWarningForXseconds("Failed to clear mission", WARNING_DURATION);
