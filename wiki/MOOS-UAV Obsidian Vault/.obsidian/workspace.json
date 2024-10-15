@@ -13,7 +13,7 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "Info/Launching System.md",
+                "file": "Info/MAIN System architecture.md",
                 "mode": "source",
                 "source": false
               }
@@ -32,7 +32,7 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "Info/Launching System.md",
+                "file": "Info/MAIN System architecture.md",
                 "mode": "source",
                 "source": false
               }
@@ -85,8 +85,7 @@
               "state": {}
             }
           }
-        ],
-        "currentTab": 1
+        ]
       }
     ],
     "direction": "horizontal",
@@ -106,7 +105,7 @@
             "state": {
               "type": "backlink",
               "state": {
-                "file": "Info/Launching System.md",
+                "file": "Info/MAIN System architecture.md",
                 "collapseAll": false,
                 "extraContext": false,
                 "sortOrder": "alphabetical",
@@ -123,7 +122,7 @@
             "state": {
               "type": "outgoing-link",
               "state": {
-                "file": "Info/Launching System.md",
+                "file": "Info/MAIN System architecture.md",
                 "linksCollapsed": false,
                 "unlinkedCollapsed": true
               }
@@ -146,7 +145,7 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "Info/Launching System.md"
+                "file": "Info/MAIN System architecture.md"
               }
             }
           }
@@ -167,10 +166,11 @@
       "command-palette:Open command palette": false
     }
   },
-  "active": "7000d0c8a156708a",
+  "active": "da26bb1516200fb8",
   "lastOpenFiles": [
-    "Troubleshooting.md",
+    "Info/Install, Build & Run MAVSDK.md",
     "Info/Launching System.md",
+    "Troubleshooting.md",
     "Info/MAIN System architecture.md",
     "Info/ArduPilot & MavProx.md",
     "Info/pMarineViewer.md",
@@ -179,7 +179,6 @@
     "Helpful definitions.md",
     "Advantages of MOOS-IVP.md",
     "Info/Skywalker X8.md",
-    "Info/Install, Build & Run MAVSDK.md",
     "Info/moos-ivp-uav.md",
     "QUESTIONS.md",
     "Papers",

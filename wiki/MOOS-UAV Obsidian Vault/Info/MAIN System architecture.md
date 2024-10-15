@@ -25,29 +25,30 @@ chmod +x ~/moos-ivp-uav/scripts/setup_bash_aliases_moos.sh
 
 and source it from your bashrc. 
 
-## Install MOOS-IVP trunk
+## Install MOOS-IVP (Github)
 
-This will be moved to github eventually, but can currently be found [here](https://oceanai.mit.edu/ivpman/pmwiki/pmwiki.php?n=Lab.ClassSetup#sec_course_software)
+This was moved from svn trunk found [here](https://oceanai.mit.edu/ivpman/pmwiki/pmwiki.php?n=Lab.ClassSetup#sec_course_software)
 
 
-Download via `svn`:
+Download using`git`:
 
 ```bash
-svn co https://oceanai.mit.edu/svn/moos-ivp-aro/trunk moos-ivp
+git clone https://github.com/moos-ivp/moos-ivp.git
 ```
 
-Checkout and update:
+Checkout and pull:
 
 ```bash
 cd moos-ivp;
-svn update
+git pull
 ```
 
 Then build moos:
 
 ```bash
-./build.sh
+./build.sh 
 ```
+**PS**: Build with flag `-m` if building on vehicle
 
 Verify that it is properly installed with:
 
