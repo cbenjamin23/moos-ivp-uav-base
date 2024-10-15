@@ -21,7 +21,7 @@ jobs:
         run: |
             cmake -DCMAKE_BUILD_TYPE=Debug -Bbuild/default -H. -DBUILD_SHARED_LIBS=ON -DSUPERBUILD=ON; 
             sudo cmake --build build/default --target install;
-      - run: svn co https://oceanai.mit.edu/svn/moos-ivp-aro/trunk/ moos-ivp
+      - run: git clone https://github.com/moos-ivp/moos-ivp.git
       - name: Build MOOS-IvP
         working-directory: moos-ivp
         run: |
