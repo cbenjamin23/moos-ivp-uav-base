@@ -391,11 +391,37 @@ bool UAV_Model::setParameterAsync(Parameters param_enum, double value) const
     return true;
 }
 
+
+
+bool UAV_Model::haveAutorythyToChangeMode() const {
+  
+  if(  m_flight_mode == mavsdk::Telemetry::FlightMode::Mission  //   Mission mode is ardupilots AUTO mode
+      || m_flight_mode == mavsdk::Telemetry::FlightMode::ReturnToLaunch
+      || m_flight_mode == mavsdk::Telemetry::FlightMode::Hold   // Also loiter mode
+      || m_flight_mode == mavsdk::Telemetry::FlightMode::Land
+      || m_flight_mode == mavsdk::Telemetry::FlightMode::Offboard // Previous guided mode
+    || m_flight_mode == mavsdk::Telemetry::FlightMode::Guided )
+  {
+    return true;
+  }
+  
+  return false;
+
+}
+
+
 ///////////////////////////////////
 /////////////  COMMANDS  //////////
 ///////////////////////////////////
 
 bool UAV_Model::commandReturnToLaunchAsync() const{
+  
+  if(!haveAutorythyToChangeMode()){
+    std::stringstream ss;
+    ss << "Cannot change mode. Do not have autorithy. Flight mode in" << m_flight_mode;
+    m_warning_system_ptr->monitorWarningForXseconds(ss.str() , WARNING_DURATION);
+    return false;
+  }
   
   m_action_ptr->return_to_launch_async([&, this](mavsdk::Action::Result result) {
     if (result != mavsdk::Action::Result::Success) {
@@ -438,9 +464,11 @@ bool UAV_Model::commandAndSetAirSpeed(double speed) const {
   
   if(commandSpeed(speed, SPEED_TYPE::SPEED_TYPE_AIRSPEED)){ // Fails with airspeed
 
-    setParameterAsync(Parameters::AIRSPEED_TARGET_CRUISE, speed);
+    // set target airspeed
+    // setParameterAsync(Parameters::AIRSPEED_TARGET_CRUISE, speed);
     return true;
   };
+  m_warning_system_ptr->monitorWarningForXseconds("Failed to set airspeed to " + doubleToString(speed), WARNING_DURATION);
   return false;
 }
 
@@ -529,6 +557,13 @@ bool UAV_Model::commandGoToLocationXY(const XYPoint pos, bool holdCurrentAltitud
 
 bool UAV_Model::commandGoToLocation(const mavsdk::Telemetry::Position& position) const{
 
+  if(!haveAutorythyToChangeMode()){
+    std::stringstream ss;
+    ss << "Cannot change mode. Do not have autorithy. Flight mode in" << m_flight_mode;
+    m_warning_system_ptr->monitorWarningForXseconds(ss.str() , WARNING_DURATION);
+    return false;
+  }
+  
   double loiter_direction = 0; // 0 for clockwise, 1 for counter clockwise
   
   // blocking //TODO modify so it is non

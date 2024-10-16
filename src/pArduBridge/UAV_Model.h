@@ -149,6 +149,7 @@ protected:
     bool setParameterAsync(Parameters param_enum, double value) const;
     bool getParameterAsync(Parameters param_enum);
 
+    bool haveAutorythyToChangeMode() const;
 
   protected:
     std::shared_ptr<mavsdk::System>             m_system_ptr;

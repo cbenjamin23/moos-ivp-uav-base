@@ -13,7 +13,7 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "Info/MAIN System architecture.md",
+                "file": "Info/Launching System.md",
                 "mode": "source",
                 "source": false
               }
@@ -32,7 +32,7 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "Info/MAIN System architecture.md",
+                "file": "Info/Launching System.md",
                 "mode": "source",
                 "source": false
               }
@@ -105,7 +105,7 @@
             "state": {
               "type": "backlink",
               "state": {
-                "file": "Info/MAIN System architecture.md",
+                "file": "Info/Launching System.md",
                 "collapseAll": false,
                 "extraContext": false,
                 "sortOrder": "alphabetical",
@@ -122,7 +122,7 @@
             "state": {
               "type": "outgoing-link",
               "state": {
-                "file": "Info/MAIN System architecture.md",
+                "file": "Info/Launching System.md",
                 "linksCollapsed": false,
                 "unlinkedCollapsed": true
               }
@@ -145,7 +145,7 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "Info/MAIN System architecture.md"
+                "file": "Info/Launching System.md"
               }
             }
           }
@@ -168,10 +168,10 @@
   },
   "active": "da26bb1516200fb8",
   "lastOpenFiles": [
+    "Info/MAIN System architecture.md",
     "Info/Install, Build & Run MAVSDK.md",
     "Info/Launching System.md",
     "Troubleshooting.md",
-    "Info/MAIN System architecture.md",
     "Info/ArduPilot & MavProx.md",
     "Info/pMarineViewer.md",
     "Info/Mission Planner info.md",
