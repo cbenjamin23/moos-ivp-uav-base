@@ -36,7 +36,7 @@ UAV_Model::UAV_Model(std::shared_ptr<WarningSystem> ws):
   m_health_all_ok{false},
   m_is_armed{false},
   m_in_air{false},
-  m_target_altitudeAGL{50.0},
+  m_target_altitudeAGL{120.0},
   m_last_sent_altitudeAGL{double(NAN)}
 {
   // Initalize the configuration variables
