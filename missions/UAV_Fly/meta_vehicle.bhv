@@ -74,7 +74,7 @@ Behavior = BHV_Waypoint
   
 //   clockwise = best
 //   slip_radius = 20 // default
-//   speed = 10 // default
+//   speed = 20 // default
 //   spiral_factor = -2 // default
   
   
@@ -126,7 +126,7 @@ Behavior = BHV_Waypoint
   perpetual  = true
   endflag    = LOITER = true
 
-           speed = 12.0
+           speed = 20.0
   capture_radius = 10 .0
      slip_radius = 30.0
 
@@ -148,7 +148,7 @@ Behavior = BHV_Waypoint
   endflag    = LOITER = true
 
 
-           speed = 12.0
+           speed = 20.0
   capture_radius = 10.0
      slip_radius = 30.0
 
