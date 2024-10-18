@@ -175,18 +175,18 @@ bool UAV_Model::connectToUAV(std::string url)
 
   std::cout << "Home point: " << m_home_coord.x() << ", " << m_home_coord.y()  << " , " << home_point.z << std::endl;
 
-  //create_missionPlan(mission_plan,  m_home_coord.x(), m_home_coord.y());
+  create_missionPlan(mission_plan,  m_home_coord.x(), m_home_coord.y());
 
-  // auto upload_result = m_mission_raw_ptr->upload_mission(mission_plan);
-  //   if (upload_result != mavsdk::MissionRaw::Result::Success) {
-  //       m_warning_system_ptr->monitorWarningForXseconds("Mission upload failed", WARNING_DURATION);
-  //       std::stringstream ss;
-  //       ss << "Failed to upload mission" << std::endl;
-  //       ss << "upload result: " << upload_result << std::endl;
-  //       MOOSTraceFromCallback(ss.str());
-  //   }
+  auto upload_result = m_mission_raw_ptr->upload_mission(mission_plan);
+    if (upload_result != mavsdk::MissionRaw::Result::Success) {
+        m_warning_system_ptr->monitorWarningForXseconds("Mission upload failed", WARNING_DURATION);
+        std::stringstream ss;
+        ss << "Failed to upload mission" << std::endl;
+        ss << "upload result: " << upload_result << std::endl;
+        MOOSTraceFromCallback(ss.str());
+    }
 
-  //m_mission_raw_ptr->set_current_mission_item(0);
+  m_mission_raw_ptr->set_current_mission_item(0);
 
   return true;
 }

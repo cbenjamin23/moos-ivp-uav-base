@@ -44,6 +44,7 @@ def determine_target_path(categorical_data, helm_start, timeStart):
     variable_towaypoint = None
     variable_survey = None
     
+    print(filtered_categorical)
     # Iterate through the categorical data to find the last relevant mode and corresponding update
     for _, row in filtered_categorical.iterrows():
 
@@ -108,6 +109,10 @@ def plot_time_series(numerical_data, timeStart, timeEnd, helm_start, helm_stop, 
     filtered_var1 = filtered_data[filtered_data['variable'] == var1].copy()
     filtered_var2 = filtered_data[filtered_data['variable'] == var2].copy()
 
+    # if var1 =='DESIRED_SPEED' :
+    #     # replace all the values of desired speed with 12
+    #     filtered_var1['value'] = 11.7
+    
     # Ensure both var1 and var2 are not empty after filtering
     if filtered_var1.empty or filtered_var2.empty:
         print(f"No valid data found for {var1} or {var2} in the specified time range.")
