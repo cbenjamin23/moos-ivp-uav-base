@@ -422,7 +422,7 @@ bool UAV_Model::commandReturnToLaunchAsync() const{
     m_warning_system_ptr->monitorWarningForXseconds(ss.str() , WARNING_DURATION);
     return false;
   }
-  
+
   m_action_ptr->return_to_launch_async([&, this](mavsdk::Action::Result result) {
     if (result != mavsdk::Action::Result::Success) {
         std::stringstream ss;
@@ -559,7 +559,7 @@ bool UAV_Model::commandGoToLocation(const mavsdk::Telemetry::Position& position)
 
   if(!haveAutorythyToChangeMode()){
     std::stringstream ss;
-    ss << "Cannot change mode. Do not have autorithy. Flight mode in" << m_flight_mode;
+    ss << "Cannot change mode. Do not have autorithy. Flight mode in " << m_flight_mode;
     m_warning_system_ptr->monitorWarningForXseconds(ss.str() , WARNING_DURATION);
     return false;
   }

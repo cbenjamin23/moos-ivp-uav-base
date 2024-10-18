@@ -40,7 +40,7 @@ ArduBridge::ArduBridge()
 
   m_uav_prefix = "UAV";
   
-
+  m_waypointsXY_mission = {{-390,10},{55,381},{333,35},{-100,-290}};
 
 }
 
@@ -95,7 +95,7 @@ bool ArduBridge::OnNewMail(MOOSMSG_LIST &NewMail)
       if(parseCoordinateString(wp_str, lat, lon, x, y, vname)){
         if(vname == m_vname){
           m_uav_model.setNextWaypoint(XYPoint(lat, lon));
-          m_next_waypointXY = XYPoint(x, y);
+          m_tonext_waypointXY = XYPoint(x, y);
         }
       }
       else{
@@ -217,6 +217,9 @@ bool ArduBridge::Iterate()
   }
 
   if(m_do_helm_survey){
+    
+    Notify("SURVEY_UPDATE", generateMissionPathSpec(m_waypointsXY_mission));
+    
     if(isHelmON()){
       goToHelmState(AutopilotHelmState::HELM_SURVEYING);
     }
@@ -558,8 +561,27 @@ void ArduBridge::sendSetpointsToUAV(bool forceSend){
 
 
 
+std::string ArduBridge::generateMissionPathSpec(const std::vector<XYPoint>& points) const
+{
+  XYSegList seglist;
+  for(auto point : points){
+    seglist.add_vertex(point);
+  }
+  std::string update_str = "points = ";
+  update_str       += seglist.get_spec();
+  return update_str;
+}
+
+
+
 void ArduBridge::postTelemetryUpdate(const std::string& prefix){
   
+
+  static std::function<bool(const std::string&, double, double)> NotifyIfNonNan = [this](const std::string& key, double value, double time = (-1.0)){
+    if(!std::isnan(value)){ return Notify(key, value, time); }
+    return false;
+  }; 
+
   double lat = m_uav_model.getLatitude();
   double lon = m_uav_model.getLongitude();
 
@@ -568,35 +590,36 @@ void ArduBridge::postTelemetryUpdate(const std::string& prefix){
     return;
   }
 
-  Notify(prefix+"_LAT", lat, m_curr_time);
-  Notify(prefix+"_LON", lon, m_curr_time);
+
+  NotifyIfNonNan(prefix+"_LAT", lat, m_curr_time);
+  NotifyIfNonNan(prefix+"_LON", lon, m_curr_time);
   
   
   if(m_geo_ok) {
     double nav_x, nav_y;
     m_geodesy.LatLong2LocalGrid(lat, lon, nav_y, nav_x);
     
-    Notify(prefix+"_X", nav_x, m_curr_time);
-    Notify(prefix+"_Y", nav_y, m_curr_time);
+    NotifyIfNonNan(prefix+"_X", nav_x, m_curr_time);
+    NotifyIfNonNan(prefix+"_Y", nav_y, m_curr_time);
   }  
 
-  Notify(prefix+"_SPEED", m_uav_model.getAirSpeed(), m_curr_time);
+  NotifyIfNonNan(prefix+"_SPEED", m_uav_model.getAirSpeed(), m_curr_time);
   
-  Notify(prefix+"_ALTITUDE", m_uav_model.getAltitudeAGL(), m_curr_time);
-  Notify(prefix+"_DEPTH", -m_uav_model.getAltitudeAGL(), m_curr_time);
+  NotifyIfNonNan(prefix+"_ALTITUDE", m_uav_model.getAltitudeAGL(), m_curr_time);
+  NotifyIfNonNan(prefix+"_DEPTH", -m_uav_model.getAltitudeAGL(), m_curr_time);
 
-  // Notify(prefix+"_Z", -m_uav_model.getDepth(), m_curr_time);
-
-
-  // Notify(prefix+"_ROLL", m_uav_model.getPitch(), m_curr_time);
-  // Notify(prefix+"_PITCH", m_uav_model.getPitch(), m_curr_time);
-  Notify(prefix+"_HEADING", m_uav_model.getHeading(), m_curr_time);
+  // NotifyIfNonNan(prefix+"_Z", -m_uav_model.getDepth(), m_curr_time);
 
 
+  // NotifyIfNonNan(prefix+"_ROLL", m_uav_model.getPitch(), m_curr_time);
+  // NotifyIfNonNan(prefix+"_PITCH", m_uav_model.getPitch(), m_curr_time);
+  NotifyIfNonNan(prefix+"_HEADING", m_uav_model.getHeading(), m_curr_time);
 
 
-  // Notify(prefix+"_HEADING_OVER_GROUND", hog, m_curr_time);
-  Notify(prefix+"_SPEED_OVER_GROUND", m_uav_model.getAirSpeedOG(), m_curr_time);
+
+
+  // NotifyIfNonNan(prefix+"_HEADING_OVER_GROUND", hog, m_curr_time);
+  NotifyIfNonNan(prefix+"_SPEED_OVER_GROUND", m_uav_model.getAirSpeedOG(), m_curr_time);
   
   static bool prev_in_air = false;
 
@@ -763,7 +786,7 @@ bool ArduBridge::tryFlyToWaypoint(){
 
     if(isHelmON()){
       
-      std::string update_str = "points=" + xypointToString(m_next_waypointXY);
+      std::string update_str = "points=" + xypointToString(m_tonext_waypointXY);
       Notify("TOWAYPT_UPDATE", update_str);
 
       // m_warning_system_ptr->monitorWarningForXseconds("HELM is active when trying to give control to UAV Ardupilot", WARNING_DURATION);

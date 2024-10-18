@@ -18,5 +18,5 @@ constexpr double WARNING_DURATION = 10.0;  // seconds
 
 
 constexpr int IN_AIR_HIGHT_THRESHOLD = 5; // meters
-constexpr int DISTANCE_TO_HEADING_WAYPOINT = 1000; // meters
+constexpr int DISTANCE_TO_HEADING_WAYPOINT = 5000; // meters
     

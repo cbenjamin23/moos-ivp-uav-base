@@ -8,25 +8,31 @@ cd ./simulation
 # terminator --new-tab -e "bash -l -c 'source ~/.profile; source ~/.bashrc; sleep 2;echo \$BASH_SOURCE; env; gz sim -v4 -r skywalker_x8_runway.sdf; exec bash'" &
 nohup gz sim -v4 -r skywalker_x8_runway.sdf &> /dev/null &
 
-# Start Mission Planner in the background in a third terminator window
-terminator --new-tab -e "bash -c 'source ~/.profile; cd ~/MissionPlanner; mono MissionPlanner.exe; exec bash'" &
-# cd ~/Mission_Planner
-# nohup mono MissionPlanner.exe &> /dev/null &
-# cd -
+DEBUG=OFF
+MISSIONPLANNER=OFF
+# if argument -gdb is given, then start gdb
+for ARGI; do
+    if [ "$ARGI" == "--gdb" ]; then
+        DEBUG=ON
+    elif [ "$ARGI" == "--mp" ]; then
+        MISSIONPLANNER=ON
+    fi
+done
+
+if [ $MISSIONPLANNER == "ON" ]; then
+    # Start Mission Planner in the background in a third terminator window
+    echo "Starting Mission Planner"
+    terminator --new-tab -e "bash -c 'source ~/.profile; cd ~/MissionPlanner; mono MissionPlanner.exe; exec bash'" &
+    # cd ~/Mission_Planner
+    # nohup mono MissionPlanner.exe &> /dev/null &
+    # cd -
+fi
 
 
 # Start ArduPilot SITL in another terminator window
 #  xterm -e "bash -c 'source ~/.profile; sim_vehicle.py -v ArduPlane --model JSON --add-param-file=$HOME/SITL_Models/Gazebo/config/skywalker_x8.param --console --map; exec bash'" &
 # terminator --new-tab -e "bash -c 'source ~/.profile; sim_vehicle.py -v ArduPlane --model JSON --add-param-file=$HOME/SITL_Models/Gazebo/config/skywalker_x8.param --console --map; exec bash'" &
 
-DEBUG=OFF
-
-# if argument -gdb is given, then start gdb
-for ARGI; do
-    if [ "$ARGI" == "--gdb" ]; then
-        DEBUG=ON
-    fi
-done
 
 
 

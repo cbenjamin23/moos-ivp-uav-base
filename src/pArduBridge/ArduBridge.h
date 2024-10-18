@@ -124,6 +124,8 @@ class ArduBridge : public AppCastingMOOSApp
   
   private: // Helperfunctions
 
+  std::string generateMissionPathSpec(const std::vector<XYPoint>& points) const;
+
   std::string xypointToString(const XYPoint& point) const;
   XYPoint transformLatLonToXY(const XYPoint& lat_lon);
   bool isHelmON(){return m_autopilot_mode != AutopilotHelmState::HELM_INACTIVE && m_autopilot_mode != AutopilotHelmState::HELM_INACTIVE_LOITERING;};
@@ -161,7 +163,8 @@ class ArduBridge : public AppCastingMOOSApp
 
     // Helm utility
 
-    XYPoint m_next_waypointXY;
+    XYPoint   m_tonext_waypointXY;
+    std::vector<XYPoint> m_waypointsXY_mission;
 
 };
 
