@@ -195,7 +195,7 @@ nsplug meta_vehicle.moos targ_$VNAME.moos $NSFLAGS WARP=$TIME_WARP \
        PSHARE_PORT=$PSHARE_PORT     VNAME=$VNAME              \
        IP_ADDR=$IP_ADDR             SHORE_IP=$SHORE_IP        \
        SHORE_PSHARE=$SHORE_PSHARE   MOOS_PORT=$MOOS_PORT      \
-       COLOR=$COLOR                                           \
+       COLOR=$COLOR                 XMODE=$XMODE                          \
        LatOrigin=$LAT_ORIGIN        LonOrigin=$LON_ORIGIN     \
        AP_IP=$ARDUPILOT_IP          AP_PORT=$ARDUPILOT_PORT   \
        AP_PROTOCOL=$ARDUPILOT_PROTOCOL                       

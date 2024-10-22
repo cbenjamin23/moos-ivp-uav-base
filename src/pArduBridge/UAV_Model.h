@@ -37,6 +37,7 @@ public:
 
     void registerWarningSystem(std::shared_ptr<WarningSystem> ws) {m_warning_system_ptr = ws;}
     bool connectToUAV(std::string url);
+    bool setUpMission(bool onlyRegisterHome = true);
     
     bool startMission() const;
          //async function
@@ -183,10 +184,6 @@ protected:
     XYPoint   m_current_loiter_coord;
     XYPoint   m_next_waypoint_coord;
     XYPoint   m_heading_waypoint_coord;
-
-
-
-
 
 
 };

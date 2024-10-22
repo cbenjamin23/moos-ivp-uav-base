@@ -29,6 +29,7 @@ ArduBridge::ArduBridge()
   m_do_loiter{false},
   m_do_arm{false},
   m_do_helm_survey{false},
+  m_is_Sim{false},
   m_warning_system_ptr{ std::make_shared<WarningSystem>(
     [this](const std::string msg){this->reportRunWarning(msg);}, 
     [this](const std::string msg){this->retractRunWarning(msg);} ) 
@@ -298,7 +299,7 @@ bool ArduBridge::OnStartUp()
   std::cout << "App name is: " << GetAppName() << std::endl;
 
 
-  bool is_connected = false;
+
   std::string ardupilot_url;
   std::pair<bool, std::string> url_protocol_pair{false, ""};
 
@@ -322,7 +323,12 @@ bool ArduBridge::OnStartUp()
     if(param == "vname"){
       m_vname = value;
       handled = true;
-    } else if(param == "ardupiloturl" || param == "url") {
+    }
+    if(param == "is_sim" && isBoolean(value)){
+      setBooleanOnString(m_is_Sim, value);
+      handled = true;
+    }
+    else if(param == "ardupiloturl" || param == "url") {
       ardupilot_url = value;
       handled = true;
     }
@@ -377,26 +383,29 @@ bool ArduBridge::OnStartUp()
 
   std::cout << "ArduPilot URL is: " << ardupilot_url << std::endl;
   
-  if (!m_cli_arg.parse(ardupilot_url)) {
-    
+
+  if (!m_cli_arg.parse(ardupilot_url)) {   
     if(!url_protocol_pair.first){
       reportConfigWarning("URL protocol not set - Need to restart with a valid URL prefix");
       std::cout << "URL protocol not set - Need to restart with a valid URL prefix" << std::endl;
     }
     else{
       reportConfigWarning("Invalid ArduPilot URL specified - Need to restart with a valid URL");
+      std::cout << "Invalid ArduPilot URL specified - Need to restart with a valid URL" << std::endl;
     }
   }
   else{
     // Connect to autopilot
-    is_connected = m_uav_model.connectToUAV(ardupilot_url);
-
+    if(!m_uav_model.connectToUAV(ardupilot_url)){
+      std::cout << "Failed to connect to ArduPilot" << std::endl;
+      return(false);
+    }
   }
 
-  if(!is_connected){
-    std::cout << "Failed to connect to ArduPilot" << std::endl;
+  if(!m_uav_model.setUpMission(!m_is_Sim)){
+    std::cout << "Mission setup failed" << std::endl;
     return(false);
-  }
+  };
 
   if(m_vname.empty()){
     std::cout << "Vehicle name not set. " << std::endl;
@@ -464,7 +473,8 @@ bool ArduBridge::buildReport()
   m_msgs << "ArduPilot URL: " << m_cli_arg.get_path() << std::endl;
   m_msgs << "ArduPilot Port: " << m_cli_arg.get_port() << std::endl;
   m_msgs << "ArduPilot Protocol: " << protocol2str.at(m_cli_arg.get_protocol()) << std::endl;
-
+  std::string sim_mode = m_is_Sim ? "SITL" : "No Simulation";
+  m_msgs << "Simulation Mode: " << sim_mode << std::endl;
   
   m_msgs << "-------------------------------------------" << std::endl;
 

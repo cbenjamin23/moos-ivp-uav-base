@@ -141,8 +141,9 @@ class ArduBridge : public AppCastingMOOSApp
   private: // State variables
     // For UAV
 
-    std::string     m_vname;
-    
+    std::string   m_vname;
+    bool          m_is_Sim;
+
     std::shared_ptr<WarningSystem> m_warning_system_ptr;
     UAV_Model       m_uav_model;
     SetpointManager m_setpoint_manager;

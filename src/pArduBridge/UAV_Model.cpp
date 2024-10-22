@@ -116,14 +116,21 @@ bool UAV_Model::connectToUAV(std::string url)
 
   std::cout << "Created mission_raw, action, telemetry, mavlinkPassthrough and param\n";
 
-  auto clear_result = m_mission_raw_ptr->clear_mission();
-  if (clear_result != mavsdk::MissionRaw::Result::Success) {
-      m_warning_system_ptr->monitorWarningForXseconds("Failed to clear mission", WARNING_DURATION);
+  return true;
+}
 
+bool UAV_Model::setUpMission(bool onlyRegisterHome){
+
+  if(!onlyRegisterHome){
+    auto clear_result = m_mission_raw_ptr->clear_mission();
+
+    if (clear_result != mavsdk::MissionRaw::Result::Success) {
+        m_warning_system_ptr->monitorWarningForXseconds("Failed to clear mission", WARNING_DURATION);
+
+    }
   }
 
   auto download_result = m_mission_raw_ptr->download_mission();
-
 
   std::vector<mavsdk::MissionRaw::MissionItem> mission_plan;
 
@@ -159,11 +166,9 @@ bool UAV_Model::connectToUAV(std::string url)
   std::cout << ss.str();
   ss.clear();
 
-  mission_plan.clear();
-
-
   m_home_coord.set_vx( home_point.x * 1e-7);
   m_home_coord.set_vy( home_point.y * 1e-7);
+
 
   if(home_point.frame == MAV_FRAME_GLOBAL){
     m_home_coord.set_vz( home_point.z);
@@ -172,8 +177,13 @@ bool UAV_Model::connectToUAV(std::string url)
     m_warning_system_ptr->monitorWarningForXseconds("Home point is not in global frame, but in frame" + intToString(home_point.frame) , WARNING_DURATION);
   }
 
-
   std::cout << "Home point: " << m_home_coord.x() << ", " << m_home_coord.y()  << " , " << home_point.z << std::endl;
+
+  if(onlyRegisterHome){
+    return true;
+  }
+
+  mission_plan.clear();
 
   create_missionPlan(mission_plan,  m_home_coord.x(), m_home_coord.y());
 
