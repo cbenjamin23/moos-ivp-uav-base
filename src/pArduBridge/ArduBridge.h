@@ -143,6 +143,7 @@ class ArduBridge : public AppCastingMOOSApp
 
     std::string   m_vname;
     bool          m_is_Sim;
+    bool          m_is_Helm_Parked;
 
     std::shared_ptr<WarningSystem> m_warning_system_ptr;
     UAV_Model       m_uav_model;

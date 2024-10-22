@@ -107,7 +107,7 @@ ProcessConfig = uFldShoreBroker
 
   qbridge = DO_TAKEOFF, FLY_WAYPOINT, CHANGE_ALTITUDE
 
-  qbridge = MOOS_MANUAL_OVERIDE, SURVEY
+  qbridge = HELM_STATUS, SURVEY, MOOS_MANUAL_OVERRIDE
 
   bridge  = src=NEXT_WAYPOINT
 
@@ -202,14 +202,6 @@ ProcessConfig = pMarineViewer
   action = CHANGE_ALTITUDE_ALL=10
   action+ = CHANGE_ALTITUDE_ALL=-10
 
-  action = menu_key=abe # DEPLOY_ABE=true
-  action = menu_key=abe # MOOS_MANUAL_OVERIDE_ABE=false
-  action = menu_key=abe # RETURN_ABE=false
-
-  action = menu_key=ben # DEPLOY_BEN=true
-  action = menu_key=ben # MOOS_MANUAL_OVERIDE_BEN=false
-  action+ = menu_key=ben # RETURN_BEN=false
-
 	action = BLOCK_HEARTBEAT = true
 	action = BLOCK_HEARTBEAT = false
 	
@@ -225,8 +217,8 @@ ProcessConfig = pMarineViewer
   button_one   = ARM_ALL  # ARM_UAV_ALL=true
   button_two   = DISARM_ALL   # ARM_UAV_ALL=false 
 
-  button_3    = HELM_ON_ALL  # MOOS_MANUAL_OVERIDE_ALL=false 
-  button_4    = HELM_OFF_ALL # MOOS_MANUAL_OVERIDE_ALL=true
+  button_3    = HELM_ON_ALL  # HELM_STATUS_ALL=ON 
+  button_4    = HELM_OFF_ALL # HELM_STATUS_ALL=OFF
   
   button_5    = SURVEY_ALL  # SURVEY_ALL=true  
   
@@ -235,6 +227,8 @@ ProcessConfig = pMarineViewer
 
   button_8  = TKOFF_ALL  # DO_TAKEOFF_ALL=true
   button_9  = TOWYP_ALL # FLY_WAYPOINT_ALL=true
+
+  button_10 = PARK_HELM_ALL # MOOS_MANUAL_OVERRIDE_ALL=true
 
 
   cmd = label=TAKEOFF, var=DO_TAKEOFF, sval=true, receivers=all:$(VNAMES)
@@ -258,8 +252,10 @@ ProcessConfig = pMarineViewer
 
   cmd = label=SPEED_TO_MIN, var=RESET_SPEED_MIN, sval=true, receivers=all:$(VNAMES)
 
-  cmd = label=HELM_ON, var=MOOS_MANUAL_OVERIDE, sval=true, receivers=all:$(VNAMES)
-  cmd = label=HELM_OFF, var=MOOS_MANUAL_OVERIDE, sval=false, receivers=all:$(VNAMES)
+  cmd = label=HELM_ON, var=HELM_STATUS, sval=ON, receivers=all:$(VNAMES)
+  cmd = label=HELM_OFF, var=HELM_STATUS, sval=OFF, receivers=all:$(VNAMES)
+
+  cmd = label=PARK_HELM, var=MOOS_MANUAL_OVERRIDE, sval=true, receivers=all:$(VNAMES)
 
 	}
 

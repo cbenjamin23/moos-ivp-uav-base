@@ -13,6 +13,8 @@ private:
     double prevHeading;
     double prevAltitude;
 
+
+
     bool hasChanged(double prevValue, double newValue) {
         return prevValue != newValue;
     }
@@ -61,5 +63,9 @@ public:
     double readDesiredSpeed() const { return desiredSpeed; }
     double readDesiredHeading() const { return desiredHeading; }
     double readDesiredAltitude() const { return desiredAltitude; }
+    
+    bool isValid()const{
+        return ! (desiredAltitude == 0.0 && desiredHeading == 0.0 && desiredSpeed == 0.0);
+    }
 
 };

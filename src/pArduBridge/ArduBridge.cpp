@@ -30,6 +30,7 @@ ArduBridge::ArduBridge()
   m_do_arm{false},
   m_do_helm_survey{false},
   m_is_Sim{false},
+  m_is_Helm_Parked{true},
   m_warning_system_ptr{ std::make_shared<WarningSystem>(
     [this](const std::string msg){this->reportRunWarning(msg);}, 
     [this](const std::string msg){this->retractRunWarning(msg);} ) 
@@ -43,6 +44,7 @@ ArduBridge::ArduBridge()
   
   m_waypointsXY_mission = {{-390,10},{55,381},{333,35},{-100,-290}};
 
+  
 }
 
 //---------------------------------------------------------
@@ -104,14 +106,19 @@ bool ArduBridge::OnNewMail(MOOSMSG_LIST &NewMail)
       }
       
     }
-    else if(key == "MOOS_MANUAL_OVERIDE" || key == "MOOS_MANUAL_OVERRIDE"){
+    else if(key == "HELM_STATUS"){
       std::string overide = msg.GetString();
-      if(overide == "true" && m_autopilot_mode != AutopilotHelmState::HELM_INACTIVE_LOITERING){
-        m_autopilot_mode = AutopilotHelmState::HELM_INACTIVE;
+      if(overide == "OFF" && m_autopilot_mode != AutopilotHelmState::HELM_INACTIVE_LOITERING){
+        // m_autopilot_mode = AutopilotHelmState::HELM_INACTIVE;
+        goToHelmState(AutopilotHelmState::HELM_INACTIVE);
 
-      } else if(overide == "false" && !isHelmON()){
-        m_autopilot_mode = AutopilotHelmState::HELM_ACTIVE;
+      } else if(overide == "ON" && !isHelmON()){
+        // m_autopilot_mode = AutopilotHelmState::HELM_ACTIVE;
+        goToHelmState(AutopilotHelmState::HELM_ACTIVE);
       }
+    }
+    else if(key == "MOOS_MANUAL_OVERRIDE"){
+      setBooleanOnString(m_is_Helm_Parked, msg.GetString());
     }
     else if(key == "MODE"){
       m_autopilot_mode = stringToHelmState( msg.GetString());
@@ -163,6 +170,9 @@ bool ArduBridge::OnNewMail(MOOSMSG_LIST &NewMail)
 bool ArduBridge::OnConnectToServer()
 {
   registerVariables();
+
+
+  m_warning_system_ptr->monitorCondition("Helm is set in Park Mode", [this](){return m_is_Helm_Parked;});
   return(true);
 }
 
@@ -211,7 +221,6 @@ bool ArduBridge::Iterate()
   }
 
   if(m_do_loiter){
-
     tryloiterAtPos();  // Will report warning if command fails
     goToHelmState(AutopilotHelmState::HELM_INACTIVE_LOITERING);
     m_do_loiter = false;
@@ -444,7 +453,9 @@ void ArduBridge::registerVariables()
   Register("NEXT_WAYPOINT", 0);
 
 
-  Register("MOOS_MANUAL_OVERIDE", 0);
+  Register("HELM_STATUS", 0);
+
+  // Register("MOOS_MANUAL_OVERIDE", 0);
   Register("MOOS_MANUAL_OVERRIDE", 0);
 
   Register("MODE", 0);
@@ -542,6 +553,10 @@ bool ArduBridge::buildReport()
 
 void ArduBridge::sendSetpointsToUAV(bool forceSend){
   
+  if(!m_setpoint_manager.isValid()){
+    m_warning_system_ptr->monitorWarningForXseconds("No valid setpoints to send", 2);
+    return;
+  }
   auto desired_heading = m_setpoint_manager.getDesiredHeading();
   auto desired_speed = m_setpoint_manager.getDesiredSpeed();
   auto desired_altitude = m_setpoint_manager.getDesiredAltitude(); 
@@ -869,8 +884,14 @@ void ArduBridge::goToHelmState(AutopilotHelmState state){
   {
   case AutopilotHelmState::HELM_INACTIVE_LOITERING:
   case AutopilotHelmState::HELM_INACTIVE:
-    Notify("MOOS_MANUAL_OVERRIDE", "true");
+    // Notify("MOOS_MANUAL_OVERRIDE", "true");
     break;
+  case AutopilotHelmState::HELM_ACTIVE:
+  case AutopilotHelmState::HELM_SURVEYING:
+  case AutopilotHelmState::HELM_RETURNING:
+  case AutopilotHelmState::HELM_TOWAYPT:
+    Notify("MOOS_MANUAL_OVERRIDE", "false");
+    
   default:
     break;
   }

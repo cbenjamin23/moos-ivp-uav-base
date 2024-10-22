@@ -1,12 +1,52 @@
 //--------    FILE: alpha.bhv  -------------
 
-initialize   DEPLOY = false
-initialize   RETURN = false
-initialize   SURVEY = false
+// initialize   DEPLOY = false
+// initialize   RETURN = false
+// initialize   SURVEY = false
 initialize   AVOID  = true
 
 initialize   MODE = HELM_INACTIVE
-  
+
+
+initialize HELM_MODE = INACTIVE
+
+
+// set HELM_MODE = INACTIVE {
+//   MODE = HELM_INACTIVE
+// }
+
+set HELM_MODE = ACTIVE {
+  MODE != HELM_INACTIVE  
+  MODE != HELM_INACTIVE_LOITERING
+} INACTIVE
+
+
+set HELM_MODE = TOWAYPT {
+  HELM_MODE = ACTIVE
+  MODE = HELM_TOWAYPT
+} 
+
+set HELM_MODE = RETURN {
+  HELM_MODE = ACTIVE
+  MODE = HELM_RETURNING
+}
+
+set HELM_MODE = SURVEY {
+  HELM_MODE = ACTIVE
+  MODE = HELM_SURVEYING
+} 
+
+
+// Set MAINTAIN_DEPTH = true {
+//   MODE = HELM_SURVEYING  
+// }
+// set MAINTAIN_DEPTH = true {
+//   MODE = HELM_RETURNING
+// }
+// set MAINTAIN_DEPTH = true {
+//   MODE = HELM_TOWAYPT
+// } false
+
 // set MODE = ACTIVE {
 //   DEPLOY = true
 // } INACTIVE
@@ -55,32 +95,27 @@ Behavior = BHV_Waypoint
      visual_hints = vertex_color = dodger_blue   // default
 }
 
-//----------------------------------------------
-// Behavior = BHV_Loiter
-// {
-//   // General Behavior Parameters
-//   // ---------------------------
-//   name = loiter // example
-//   pwt = 100  // default
-//   condition = MODE==HELM_LOITERING // example
-//   updates = LOITER_UPDATES // example
 
-//   perpetual = true 
-//   // Parameters specific to this behavior
-//   // ------------------------------------
-//   acquire_dist = 10 
-//   capture_radius = 5
-//   center_activate = false // default
-  
-//   clockwise = best
-//   slip_radius = 20 // default
-//   speed = 20 // default
-//   spiral_factor = -2 // default
-  
-  
-//   polygon = radial:: x=10,y=-10,radius=15, pts=8 
-//   center_assign = 10,-10 
-// }
+
+//----------------------------------------------
+
+Behavior = BHV_ConstantDepth{
+  name       = const_depth
+  pwt        = 100
+  updates    = DEPTH_UPDATE
+
+  // condition  = (MODE=HELM_SURVEYING) or (MODE=HELM_RETURNING) or (MODE=HELM_TOWAYPT)
+  condition  = HELM_MODE==ACTIVE
+
+  perpetual  = true
+
+  // endflag    = MAINTAIN_DEPTH=true
+
+
+  depth = 120
+
+  duration = -1
+}
 
 
 // //----------------------------------------------
