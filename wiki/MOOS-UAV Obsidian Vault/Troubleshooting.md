@@ -3,6 +3,8 @@
 
 ## SITL fails
 
+Try to first clean the build.  From `~/ardupilot` run `./waf clean` and run again.
+
 Run the command 
 
 **IMPORTANT**: Run this command in master branch before switching to Plane-4.1.2
@@ -18,6 +20,8 @@ If it doesn't work and `sim_vehicle.sh` is not on the path, then add it manually
 ```bash
 export PATH=/opt/gcc-arm-none-eabi-6-2017-q2-update/bin:$PATH export PATH=$HOME/ardupilot/Tools/autotest:$PATH
 ```
+
+
 
 
 ## Gazebo not running/ dying after start

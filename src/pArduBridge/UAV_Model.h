@@ -52,9 +52,9 @@ public:
     // Non-blocking function to poll all parameters
     void   pollAllParametersAsync();
 
-    // Actions and commands 
-    bool   commandAndSetAirSpeed(double speed) const;
-    bool   commandGroundSpeed(double speed) const {return(commandSpeed(speed, SPEED_TYPE::SPEED_TYPE_GROUNDSPEED));} //blocking functions
+    // Actions and commands , blocking functions
+    bool   commandAndSetAirSpeed(double speed);
+    bool   commandGroundSpeed(double speed) const {return(commandSpeed(speed, SPEED_TYPE::SPEED_TYPE_GROUNDSPEED));} 
     bool   commandGoToLocationXY(const XYPoint pos, bool holdCurrentAltitudeAGL = false) ;
     bool   commandGoToLocation(const mavsdk::Telemetry::Position& position) const;
     bool   commandDisarmAsync() const; 
@@ -74,7 +74,7 @@ public:
     void   setTargetAltitudeAGL(double altitude) {m_target_altitudeAGL = altitude;}
     void   setHeadingWyptFromHeading(double heading);
 
-
+    void   setTargetAirSpeed(double speed) {m_target_airspeed = speed;}
 
     // Getters
     bool                            isHealthy() const {return(m_health_all_ok);}
@@ -92,7 +92,8 @@ public:
     
     double  getMinAirSpeed() const {return(m_polled_params.min_airspeed);}
     double  getMaxAirSpeed() const {return(m_polled_params.max_airspeed);}
-    double  getTargetAirSpeed() const {return(m_polled_params.target_airspeed_cruise);}
+    double  getTargetCruiseSpeed() const {return(m_polled_params.target_airspeed_cruise);}  
+    double  getTargetAirSpeed() const {return(m_target_airspeed);}
     double  getAirSpeed() const {return( sqrt(m_velocity_ned.north_m_s*m_velocity_ned.north_m_s
                                                + m_velocity_ned.east_m_s*m_velocity_ned.east_m_s)
                                                + m_velocity_ned.down_m_s*m_velocity_ned.down_m_s );}
@@ -127,6 +128,7 @@ protected:
 
 
     // Parameters not polled
+    double m_target_airspeed;
     double m_target_altitudeAGL;
     double m_last_sent_altitudeAGL;
 

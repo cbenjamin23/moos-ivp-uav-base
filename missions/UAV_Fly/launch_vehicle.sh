@@ -191,6 +191,10 @@ if [ "${AUTO_LAUNCHED}" = "no" ]; then
     NSFLAGS="-i -f"
 fi
 
+if [ "${XMODE}" = "SIM" ]; then
+    SPEED=12 // Simulation target airspeed is set to 11.2 m/s weirdly 
+fi
+
 nsplug meta_vehicle.moos targ_$VNAME.moos $NSFLAGS WARP=$TIME_WARP \
        PSHARE_PORT=$PSHARE_PORT     VNAME=$VNAME              \
        IP_ADDR=$IP_ADDR             SHORE_IP=$SHORE_IP        \

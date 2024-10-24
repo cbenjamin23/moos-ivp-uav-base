@@ -79,8 +79,8 @@ Behavior = BHV_Waypoint
 
           repeat = 1
            speed = $(SPEED)
-          radius = 5.0
-     slip_radius = 15.0
+          radius = 50.0
+     slip_radius = 70.0
             lead = 40
      lead_damper = 25
 
@@ -99,20 +99,19 @@ Behavior = BHV_Waypoint
 
 //----------------------------------------------
 
-Behavior = BHV_ConstantDepth{
-  name       = const_depth
+Behavior = BHV_ConstantAltitude{
+  name       = const_altitude
   pwt        = 100
-  updates    = DEPTH_UPDATE
+  updates    = CONST_ALTITUDE_UPDATE
 
   // condition  = (MODE=HELM_SURVEYING) or (MODE=HELM_RETURNING) or (MODE=HELM_TOWAYPT)
   condition  = HELM_MODE==ACTIVE
 
   perpetual  = true
 
-  // endflag    = MAINTAIN_DEPTH=true
 
 
-  depth = 120
+  altitude = 120
 
   duration = -1
 }
@@ -161,9 +160,9 @@ Behavior = BHV_Waypoint
   perpetual  = true
   endflag    = LOITER = true
 
-           speed = 20.0
-  capture_radius = 10 .0
-     slip_radius = 30.0
+           speed = $(SPEED)
+  capture_radius = 50 .0
+     slip_radius = 100.0
 
 	point = $(START_POS)
 
@@ -183,9 +182,9 @@ Behavior = BHV_Waypoint
   endflag    = LOITER = true
 
 
-           speed = 20.0
-  capture_radius = 10.0
-     slip_radius = 30.0
+           speed = $(SPEED)
+  capture_radius = 50.0
+     slip_radius = 100.0
 
 	point = $(START_POS)
 

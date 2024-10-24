@@ -11,6 +11,8 @@ ProcessConfig = pArduBridge
   vname = $(VNAME)
   prefix = NAV
 
+  cmd_GS = false
+
 #ifdef XMODE SIM
   is_Sim = true
 #else

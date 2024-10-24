@@ -32,7 +32,7 @@ ADD_SUBDIRECTORY(pExampleApp)
 # ADD_SUBDIRECTORY(pGenPath)
 ADD_SUBDIRECTORY(pGenRescue)
 ADD_SUBDIRECTORY(pArduBridge)
-# ADD_SUBDIRECTORY(lib_bhv_scout)
+ADD_SUBDIRECTORY(lib_behaviors)
 
 ##############################################################################
 #                           END of CMakeLists.txt

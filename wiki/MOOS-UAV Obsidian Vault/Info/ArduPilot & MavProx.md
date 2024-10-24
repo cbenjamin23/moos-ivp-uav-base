@@ -62,6 +62,106 @@ SIM_OPOS_LNG     10.1435321
 *Note*: if the file doesn't exit remember to run the simulation script once before. 
 
 
+## Ensuring Simulation has the same parameters as hardware Ardupilot
+
+
+The parameters on the hardware might be different from simulation, therefore causing  oscillation. 
+
+Ensure that the tuning hardware params are loaded when simulating.
+
+Prams copied:
+
+ACRO_LOCKING
+AHRS_TRIM_X/Y
+ALT_CTRL_ALG
+ALT_HOLD_RTL
+ARSPD_FBW_MIN/MAX
+LIM_PITCH_MAX/MIN
+LIM_ROLL_CD
+
+NAVL1_PERIOD `tunable` 
+NAVL1_XTRACK_I  `tunable` 
+PTCH_RATE_D  `tunable`
+PTCH_RATE_FF  `tunable`
+PTCH_RATE_**  `tunable`
+PTCH_RATE_I  `tunable`
+PTCH_RATE_P  `tunable`
+
+```tunables
+PTCH_RATE_D      0.003699
+PTCH_RATE_FF     0.403978
+PTCH_RATE_FLTD   10.000000
+PTCH_RATE_FLTE   0.000000
+PTCH_RATE_FLTT   2.122066
+PTCH_RATE_I      0.403978
+PTCH_RATE_IMAX   0.666000
+PTCH_RATE_P      0.350000
+PTCH_RATE_SMAX   150.000000
+```
+
+RLL_RATE_D `tunable`
+RLL_RATE_FF `tunable`
+RLL_RATE_FLTD `tunable`
+RLL_RATE_FLTT `tunable`
+RLL_RATE_I `tunable`
+RLL_RATE_P `tunable`
+
+```tunables
+RLL_RATE_D       0.002845
+RLL_RATE_FF      0.181866
+RLL_RATE_FLTD    10.000000
+RLL_RATE_FLTE    0.000000
+RLL_RATE_FLTT    3.183099
+RLL_RATE_I       0.181866
+RLL_RATE_IMAX    0.666000
+RLL_RATE_P       0.096396
+RLL_RATE_SMAX    150.000000
+```
+
+TECS_PTCH_DAMP `tunable`
+
+
+```tunables
+TECS_PTCH_DAMP   0.900000
+TECS_PTCH_FF_K   0.000000
+TECS_PTCH_FF_V0  12.000000
+TECS_RLL2THR     10.000000
+TECS_SINK_MAX    5.000000
+TECS_SINK_MIN    2.000000
+TECS_SPDWEIGHT   1.000000
+TECS_SPD_OMEGA   2.000000
+TECS_SYNAIRSPEED 0
+TECS_THR_DAMP    0.500000
+TECS_TIME_CONST  5.000000
+TECS_TKOFF_IGAIN 0.000000
+TECS_VERT_ACC    7.000000
+```
+
+TRIM_ARSPD_CM
+TRIM_THROTTLE 
+WP_LOITER_RAD  `old value= 30`
+WP_RADIUS  `old value= 30`
+YAW2SRV_DAMP `tunable`
+YAW2SRV_INT `tunable`
+
+```tunables
+YAW2SRV_DAMP     0.100000
+YAW2SRV_INT      0.050000
+
+YAW2SRV_RLL      1.000000
+YAW2SRV_SLIP     0.000000
+YAW2SRV_IMAX     1500
+```
+
+for more on `tunable` values see [[Mission Planner info]]
+
+Tuned parameters:
+
+
+
+
+
+
 # MavProxy
 
 - UDP forwarding:
@@ -89,3 +189,17 @@ Then set the simulation speed-up parameter in MAVProxy
 
 > MANUAL> param set SIM_SPEEDUP 1
 
+
+### Adding wind in simulation
+Modify the parameters  in mavproxy with `param set <param> <value>`
+```example params
+SIM_WIND_DELAY,0
+SIM_WIND_DIR,180
+SIM_WIND_DIR_Z,0
+SIM_WIND_SPD,0
+SIM_WIND_T,0
+SIM_WIND_T_ALT,60
+SIM_WIND_T_COEF,0.01
+SIM_WIND_TURB,0
+SIM_WOW_PIN,-1
+```

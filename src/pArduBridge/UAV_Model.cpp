@@ -37,6 +37,7 @@ UAV_Model::UAV_Model(std::shared_ptr<WarningSystem> ws):
   m_is_armed{false},
   m_in_air{false},
   m_target_altitudeAGL{120.0},
+  m_target_airspeed{0.0},
   m_last_sent_altitudeAGL{double(NAN)}
 {
   // Initalize the configuration variables
@@ -115,6 +116,17 @@ bool UAV_Model::connectToUAV(std::string url)
   m_param_ptr = std::make_unique<mavsdk::Param>(m_system_ptr);
 
   std::cout << "Created mission_raw, action, telemetry, mavlinkPassthrough and param\n";
+
+
+  // Poll Cruise speed and set to target airspeed
+  auto resPair = m_action_ptr->get_target_speed();
+  if(resPair.first != mavsdk::Action::Result::Success){
+    std::cout << "Failed to get initial target speed\n";
+    m_warning_system_ptr->monitorWarningForXseconds("Failed to get initial target speed", WARNING_DURATION);  
+  } 
+  else{
+    m_target_airspeed = resPair.second;
+  }
 
   return true;
 }
@@ -470,12 +482,11 @@ bool UAV_Model::commandLoiterAtPos(XYPoint pos, bool holdCurrentAltitude) {
 }
 
 
-bool UAV_Model::commandAndSetAirSpeed(double speed) const { 
+bool UAV_Model::commandAndSetAirSpeed(double speed) { 
   
-  if(commandSpeed(speed, SPEED_TYPE::SPEED_TYPE_AIRSPEED)){ // Fails with airspeed
-
-    // set target airspeed
+  if(commandSpeed(speed, SPEED_TYPE::SPEED_TYPE_AIRSPEED)){ 
     // setParameterAsync(Parameters::AIRSPEED_TARGET_CRUISE, speed);
+    m_target_airspeed = speed; 
     return true;
   };
   m_warning_system_ptr->monitorWarningForXseconds("Failed to set airspeed to " + doubleToString(speed), WARNING_DURATION);

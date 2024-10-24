@@ -29,8 +29,9 @@ ArduBridge::ArduBridge()
   m_do_loiter{false},
   m_do_arm{false},
   m_do_helm_survey{false},
-  m_is_Sim{false},
-  m_is_Helm_Parked{true},
+  m_is_simulation{false},
+  m_is_helm_parked{true},
+  m_command_groundSpeed{false},
   m_warning_system_ptr{ std::make_shared<WarningSystem>(
     [this](const std::string msg){this->reportRunWarning(msg);}, 
     [this](const std::string msg){this->retractRunWarning(msg);} ) 
@@ -82,10 +83,9 @@ bool ArduBridge::OnNewMail(MOOSMSG_LIST &NewMail)
       double speed = msg.GetDouble();
       m_setpoint_manager.updateDesiredSpeed(speed);
     }
-    else if(key == "DESIRED_DEPTH"){
-      // TODO: update this to rather handle altitude
-      double depth = msg.GetDouble();
-      m_setpoint_manager.updateDesiredAltitude(-depth);
+    else if(key == "DESIRED_ALTITUDE"){
+      double alt = msg.GetDouble();
+      m_setpoint_manager.updateDesiredAltitude(alt);
     }
     else if(key == "FLY_WAYPOINT"){
       setBooleanOnString(m_do_fly_to_waypoint, msg.GetString());
@@ -118,7 +118,7 @@ bool ArduBridge::OnNewMail(MOOSMSG_LIST &NewMail)
       }
     }
     else if(key == "MOOS_MANUAL_OVERRIDE"){
-      setBooleanOnString(m_is_Helm_Parked, msg.GetString());
+      setBooleanOnString(m_is_helm_parked, msg.GetString());
     }
     else if(key == "MODE"){
       m_autopilot_mode = stringToHelmState( msg.GetString());
@@ -128,10 +128,20 @@ bool ArduBridge::OnNewMail(MOOSMSG_LIST &NewMail)
       if(!m_do_takeoff) m_warning_system_ptr->monitorWarningForXseconds("Takeoff command not set", WARNING_DURATION);
     }
     else if(key == "CHANGE_SPEED"){
-      m_do_change_speed_pair = std::make_pair(true, msg.GetDouble());
+      double speed_change = msg.GetDouble(); 
+      m_do_change_speed_pair = std::make_pair(true, speed_change);
+    
+      std::string update_str = "speed=" + doubleToString(m_uav_model.getTargetAirSpeed() + speed_change);
+      Notify("SURVEY_UPDATE", update_str);
+      Notify("TOWAYPT_UPDATE", update_str);
+      Notify("RETURN_UPDATE", update_str);
     }
     else if(key == "CHANGE_ALTITUDE"){
-      m_do_change_altitude_pair = std::make_pair(true, msg.GetDouble());
+      double altitude_change = msg.GetDouble();
+      m_do_change_altitude_pair = std::make_pair(true, altitude_change);
+      
+      std::string update_str = "altitude=" + doubleToString(altitude_change + m_uav_model.getTargetAltitudeAGL()); 
+      Notify("CONST_ALTITUDE_UPDATE", update_str);
     }
     else if(key == "ARM_UAV"){  
       setBooleanOnString(m_do_arm, msg.GetString());
@@ -139,7 +149,14 @@ bool ArduBridge::OnNewMail(MOOSMSG_LIST &NewMail)
     }
     else if(key == "RESET_SPEED_MIN"){
       setBooleanOnString(m_do_reset_speed, msg.GetString());
-      if(!m_do_reset_speed) m_warning_system_ptr->monitorWarningForXseconds("Reset speed command not set", WARNING_DURATION);
+      if(!m_do_reset_speed){
+        m_warning_system_ptr->monitorWarningForXseconds("Reset speed command not set", WARNING_DURATION);
+        continue;
+      }
+      std::string update_str = "speed=" + doubleToString(m_uav_model.getMinAirSpeed());
+      Notify("SURVEY_UPDATE", update_str);
+      Notify("TOWAYPT_UPDATE", update_str);
+      Notify("RETURN_UPDATE", update_str);
     }
     else if(key == "RETURN_TO_LAUNCH" || key == "RETURN"){
       setBooleanOnString(m_do_return_to_launch, msg.GetString());
@@ -172,7 +189,7 @@ bool ArduBridge::OnConnectToServer()
   registerVariables();
 
 
-  m_warning_system_ptr->monitorCondition("Helm is set in Park Mode", [this](){return m_is_Helm_Parked;});
+  m_warning_system_ptr->monitorCondition("Helm is set in Park Mode", [this](){return m_is_helm_parked;});
   return(true);
 }
 
@@ -242,6 +259,9 @@ bool ArduBridge::Iterate()
   if(m_do_change_speed_pair.first){
     double new_speed = m_uav_model.getTargetAirSpeed() + m_do_change_speed_pair.second;
     m_uav_model.commandAndSetAirSpeed(new_speed);
+    if(m_command_groundSpeed){
+      m_uav_model.commandGroundSpeed(new_speed);
+    }
     reportEvent("Trying to changed speed to " + doubleToString(new_speed));
     m_do_change_speed_pair.second = 0;
     m_do_change_speed_pair.first = false;
@@ -251,10 +271,9 @@ bool ArduBridge::Iterate()
 
   if(m_do_change_altitude_pair.first){
     double new_altitude = m_uav_model.getTargetAltitudeAGL() + m_do_change_altitude_pair.second;    
-    m_setpoint_manager.updateDesiredAltitude(new_altitude);
+    m_uav_model.setTargetAltitudeAGL(new_altitude);
 
     if (!isHelmON()){
-      m_uav_model.setTargetAltitudeAGL(new_altitude);
       bool ok = false;      
       if(m_autopilot_mode == AutopilotHelmState::HELM_INACTIVE_LOITERING){
         ok = tryloiterAtPos(m_uav_model.getCurrentLoiterLatLon());
@@ -264,7 +283,7 @@ bool ArduBridge::Iterate()
       }
 
       if(!ok){
-        m_warning_system_ptr->monitorWarningForXseconds("Failed to immidiately change altitude!!", WARNING_DURATION);
+        m_warning_system_ptr->monitorWarningForXseconds("Failed to immidiately change altitude (in helm off state)", WARNING_DURATION);
       }
     } 
     
@@ -277,6 +296,9 @@ bool ArduBridge::Iterate()
 
   if(m_do_reset_speed){
     m_uav_model.commandAndSetAirSpeed(m_uav_model.getMinAirSpeed());
+    if(m_command_groundSpeed){
+      m_uav_model.commandGroundSpeed(m_uav_model.getMinAirSpeed());
+    }
     m_do_reset_speed = false;
     poll_uav_parameters = true;
   }
@@ -334,8 +356,10 @@ bool ArduBridge::OnStartUp()
       handled = true;
     }
     if(param == "is_sim" && isBoolean(value)){
-      setBooleanOnString(m_is_Sim, value);
-      handled = true;
+      handled = setBooleanOnString(m_is_simulation, value);
+    }
+    if( (param == "command_groundspeed" || param=="cmd_gs" ) && isBoolean(value)){
+      handled = setBooleanOnString(m_command_groundSpeed, value);
     }
     else if(param == "ardupiloturl" || param == "url") {
       ardupilot_url = value;
@@ -411,7 +435,7 @@ bool ArduBridge::OnStartUp()
     }
   }
 
-  if(!m_uav_model.setUpMission(!m_is_Sim)){
+  if(!m_uav_model.setUpMission(!m_is_simulation)){
     std::cout << "Mission setup failed" << std::endl;
     return(false);
   };
@@ -424,8 +448,9 @@ bool ArduBridge::OnStartUp()
   m_uav_model.subscribeToTelemetry();
   m_warning_system_ptr->checkConditions(); // Check for warnings and remove/raise them as needed
   
-  
-  
+  if(m_is_simulation){
+    m_uav_model.setTargetAirSpeed(12); // target speed in simulation is constant 11.2 when default throttle is 50%
+  }  
 
   visualizeHomeLocation();
 
@@ -466,7 +491,7 @@ void ArduBridge::registerVariables()
   // To be sent to Ardupilot
   Register("DESIRED_HEADING", 0);
   Register("DESIRED_SPEED", 0);
-  Register("DESIRED_DEPTH", 0);
+  Register("DESIRED_ALTITUDE", 0);
 }
 
 
@@ -484,7 +509,7 @@ bool ArduBridge::buildReport()
   m_msgs << "ArduPilot URL: " << m_cli_arg.get_path() << std::endl;
   m_msgs << "ArduPilot Port: " << m_cli_arg.get_port() << std::endl;
   m_msgs << "ArduPilot Protocol: " << protocol2str.at(m_cli_arg.get_protocol()) << std::endl;
-  std::string sim_mode = m_is_Sim ? "SITL" : "No Simulation";
+  std::string sim_mode = m_is_simulation ? "SITL" : "No Simulation";
   m_msgs << "Simulation Mode: " << sim_mode << std::endl;
   
   m_msgs << "-------------------------------------------" << std::endl;
@@ -542,6 +567,7 @@ bool ArduBridge::buildReport()
   actab.addHeaderLines();
   actab << "Do set fly waypoint:" << boolToString(m_do_fly_to_waypoint);
   actab << "Do takeoff:" << boolToString(m_do_takeoff);
+  actab << "command groundSpeed:" << boolToString(m_command_groundSpeed);
   m_msgs << actab.getFormattedString();
 
   return(true);
@@ -576,6 +602,9 @@ void ArduBridge::sendSetpointsToUAV(bool forceSend){
 
   if(desired_speed.has_value()){
     m_uav_model.commandAndSetAirSpeed(desired_speed.value());
+    if(m_command_groundSpeed){
+      m_uav_model.commandGroundSpeed(desired_speed.value());
+    }
   }
 
   if(desired_altitude.has_value() && desired_altitude.value() > 5){ // TODO: Temporary solution to avoid setting depth to 0

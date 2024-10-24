@@ -52,7 +52,7 @@ ProcessConfig = pHelmIvP
   verbose      = false
   domain       = course:0:359:360
   domain       = speed:10:30:301
-  domain       = depth:20:300:400
+  domain       = altitude:10:300:291
 
   hold_on_app  = pContactMgrV20
 }

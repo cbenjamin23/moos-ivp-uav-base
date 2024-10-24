@@ -78,6 +78,12 @@ eeprom.bin
 terrain
 
 */simulation/**
+
+# except for file: scripts/simulation/sim.param and scripts/simulation/hardware.param and scripts/simulation/mav_sim_old.param
+!scripts/simulation/sim.parm
+!scripts/simulation/hardware.parm
+!scripts/simulation/mav_sim_old.parm
+
 vpositions.txt
 vnames.txt
 

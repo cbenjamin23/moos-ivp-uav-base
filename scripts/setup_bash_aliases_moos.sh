@@ -88,10 +88,10 @@ alias cdmsrc='cdm; cd ivp/src'
 # for moos-ivp-uav
 alias cduav='cd ~/moos-ivp-uav/'
 
-alias cdsrc='cd ~/moos-ivp-uav/src'
-alias cdmi='cd ~/moos-ivp-uav/missions'
+alias cdsc='cduav; cd ./scripts'
+alias cdmi='cduav; cd ./missions'
 alias cdmis='cdmi; cd ./UAV_Fly'
-alias bld='cd ~/moos-ivp-uav; ./build.sh; cd -'
+alias bld='cduav; ./build.sh; cd -'
 
 
 
