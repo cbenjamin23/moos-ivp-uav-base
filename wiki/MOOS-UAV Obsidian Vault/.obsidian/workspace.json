@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "Info/MAIN System architecture.md",
+                "file": "Info/ArduPilot & MavProx.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "MAIN System architecture"
+              "title": "ArduPilot & MavProx"
             }
           },
           {
@@ -144,7 +144,7 @@
             "state": {
               "type": "backlink",
               "state": {
-                "file": "Info/MAIN System architecture.md",
+                "file": "Info/ArduPilot & MavProx.md",
                 "collapseAll": false,
                 "extraContext": false,
                 "sortOrder": "alphabetical",
@@ -154,7 +154,7 @@
                 "unlinkedCollapsed": true
               },
               "icon": "links-coming-in",
-              "title": "Backlinks for MAIN System architecture"
+              "title": "Backlinks for ArduPilot & MavProx"
             }
           },
           {
@@ -163,12 +163,12 @@
             "state": {
               "type": "outgoing-link",
               "state": {
-                "file": "Info/MAIN System architecture.md",
+                "file": "Info/ArduPilot & MavProx.md",
                 "linksCollapsed": false,
                 "unlinkedCollapsed": true
               },
               "icon": "links-going-out",
-              "title": "Outgoing links from MAIN System architecture"
+              "title": "Outgoing links from ArduPilot & MavProx"
             }
           },
           {
@@ -190,10 +190,10 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "Info/MAIN System architecture.md"
+                "file": "Info/ArduPilot & MavProx.md"
               },
               "icon": "lucide-list",
-              "title": "Outline of MAIN System architecture"
+              "title": "Outline of ArduPilot & MavProx"
             }
           }
         ]
@@ -215,18 +215,18 @@
   },
   "active": "da26bb1516200fb8",
   "lastOpenFiles": [
+    "Troubleshooting.md",
+    "Info/MAIN System architecture.md",
     "Info/ArduPilot & MavProx.md",
     "Info/Data Management.md",
     "Info/Install, Build & Run MAVSDK.md",
     "Info/Launching System.md",
-    "Info/MAIN System architecture.md",
     "Info/Mission Planner info.md",
     "Info/pMarineViewer.md",
     "Info/Skywalker X8.md",
     "Advantages of MOOS-IVP.md",
     "Helpful definitions.md",
     "Testing.md",
-    "Troubleshooting.md",
     "Info/moos-ivp-uav.md",
     "QUESTIONS.md",
     "Papers",

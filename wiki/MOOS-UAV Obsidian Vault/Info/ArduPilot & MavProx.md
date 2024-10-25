@@ -155,9 +155,10 @@ YAW2SRV_IMAX     1500
 
 for more on `tunable` values see [[Mission Planner info]]
 
-Tuned parameters:
 
+## Changing speed in Ardupilot SITL
 
+speed change in simulation doesn't seem to work. This seems to be a known issue on the [forum](https://discuss.ardupilot.org/search?q=DO_CHANGE_SPEED%20not%20working).
 
 
 
