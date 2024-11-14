@@ -216,6 +216,7 @@
   "active": "da26bb1516200fb8",
   "lastOpenFiles": [
     "Info/Gazebo.md",
+    "Info/ArduPilot & MavProx.md",
     "Info/MAIN System architecture.md",
     "Info/Swarm.md",
     "Info/Gazebo",
@@ -230,7 +231,6 @@
     "attachments/Pasted image 20240903114151.png",
     "Papers/zolich2015unmanned - UAS description.pdf",
     "Papers/lsts_paper.pdf",
-    "Info/ArduPilot & MavProx.md",
     "Troubleshooting.md",
     "Testing.md",
     "Helpful definitions.md",

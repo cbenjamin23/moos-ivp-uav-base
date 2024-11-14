@@ -115,7 +115,9 @@ And add to bashrc:
 ```bash
 export GZ_SIM_RESOURCE_PATH=$GZ_SIM_RESOURCE_PATH:\
 $HOME/SITL_Models/Gazebo/models:\
-$HOME/SITL_Models/Gazebo/worlds
+$HOME/SITL_Models/Gazebo/worlds:\
+$HOME/moos-ivp-uav/GazeboSim/models:\
+$HOME/moos-ivp-uav/GazeboSim/worlds:
 ```
 More on [[Gazebo]]
 
