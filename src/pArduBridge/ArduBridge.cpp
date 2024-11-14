@@ -98,6 +98,7 @@ bool ArduBridge::OnNewMail(MOOSMSG_LIST &NewMail)
       if(parseCoordinateString(wp_str, lat, lon, x, y, vname)){
         if(vname == m_vname){
           m_uav_model.setNextWaypoint(XYPoint(lat, lon));
+          m_uav_model.setLoiterLocation(XYPoint(lat, lon));
           m_tonext_waypointXY = XYPoint(x, y);
         }
       }
@@ -170,7 +171,15 @@ bool ArduBridge::OnNewMail(MOOSMSG_LIST &NewMail)
     else if(key == "SURVEY"){
       setBooleanOnString(m_do_helm_survey, msg.GetString());
     }
- 
+    else if(key == "DEAD_MAN_POST_INTERRUPT"){
+
+      m_warning_system_ptr->monitorWarningForXseconds(
+        "No heartbeats from GCS. Returning to launch", WARNING_DURATION
+      );
+      reportEvent("No heartbeats from GCS. Returning to launch");
+      m_do_return_to_launch = true;
+    }
+
     else if(key != "APPCAST_REQ"){  // handled by AppCastingMOOSApp
       reportRunWarning("Unhandled Mail: " + key);
     }
@@ -238,6 +247,7 @@ bool ArduBridge::Iterate()
   }
 
   if(m_do_loiter){
+
     tryloiterAtPos();  // Will report warning if command fails
     goToHelmState(AutopilotHelmState::HELM_INACTIVE_LOITERING);
     m_do_loiter = false;
@@ -485,7 +495,7 @@ void ArduBridge::registerVariables()
 
   Register("MODE", 0);
 
-
+  Register("DEAD_MAN_POST_INTERRUPT", 0);
 
 
   // To be sent to Ardupilot
@@ -884,18 +894,9 @@ bool ArduBridge::tryloiterAtPos(const XYPoint& loiter_coord,  bool holdCurrentAl
     loiter_latlon = {m_uav_model.getLatitude(), m_uav_model.getLongitude()}; // current position
   }
 
-  //   XYPoint loiter = transformLatLonToXY(loiter_latlon);
-  //   if(loiter == XYPoint(0, 0)){
-  //     m_warning_system_ptr->monitorWarningForXseconds("Cannot Loiter: NAN Values at lat or long", 5);
-  //     return false;
-  //   }
-
-  //   std::string update_str = "center_assign=" + xypointToString(loiter);
-  //   Notify("LOITER_UPDATES", update_str);
-
-  //   // m_warning_system_ptr->monitorWarningForXseconds("HELM is active when trying to give control to UAV Ardupilot", WARNING_DURATION);
-  
-  // }   
+  if(m_autopilot_mode == AutopilotHelmState::HELM_TOWAYPT){ // if UAV is flying to waypoint, loiter at the waypoint
+    loiter_latlon = m_uav_model.getCurrentLoiterLatLon();
+  }
   
   if(!m_uav_model.commandLoiterAtPos(loiter_latlon, holdCurrentAltitude)){
     return false;

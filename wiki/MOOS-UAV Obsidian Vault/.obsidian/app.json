@@ -1,4 +1,6 @@
 {
   "attachmentFolderPath": "./attachments",
-  "alwaysUpdateLinks": true
+  "alwaysUpdateLinks": true,
+  "showLineNumber": false,
+  "readableLineLength": true
 }

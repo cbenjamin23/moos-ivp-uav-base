@@ -192,29 +192,29 @@ Behavior = BHV_Waypoint
     visual_hints = vertex_color = dodger_blue   // default
 }
 
-//----------------------------------------------
-Behavior = BHV_OpRegionRecover
-{
-  name         = recover
-  pwt          = 300
-  updates      = RECOVER_UPDATES
-  activeflag   = RECOVER = true
-  inactiveflag = RECOVER = false
+// //----------------------------------------------
+// Behavior = BHV_OpRegionRecover
+// {
+//   name         = recover
+//   pwt          = 300
+//   updates      = RECOVER_UPDATES
+//   activeflag   = RECOVER = true
+//   inactiveflag = RECOVER = false
 
-	// pav60 explicitly:
-  // polygon = pts={60,10:-30.36,-32.837:-4.658,-87.053:85.702,-44.216}
+// 	// pav60 explicitly:
+//   // polygon = pts={60,10:-30.36,-32.837:-4.658,-87.053:85.702,-44.216}
 
-	// pav90 explicitly
-  // polygon = pts={60,10:-75.54,-54.256:-36.987,-135.58:98.554,-71.324}
+// 	// pav90 explicitly
+//   // polygon = pts={60,10:-75.54,-54.256:-36.987,-135.58:98.554,-71.324}
 
-	// Prefer to get the rescue region from uFldRescuMgr
-	dynamic_region_var = RESCUE_REGION
+// 	// Prefer to get the rescue region from uFldRescuMgr
+// 	dynamic_region_var = RESCUE_REGION
 	
-	buffer_dist = 10
+// 	buffer_dist = 10
 	
-	trigger_entry_time = 1
-  trigger_exit_time  = 1
+// 	trigger_entry_time = 1
+//   trigger_exit_time  = 1
 
-	visual_hints = edge_size = 2
-	visual_hints = edge_color = gray30
-}
+// 	visual_hints = edge_size = 2
+// 	visual_hints = edge_color = gray30
+// }

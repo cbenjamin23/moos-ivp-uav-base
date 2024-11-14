@@ -117,7 +117,7 @@ export GZ_SIM_RESOURCE_PATH=$GZ_SIM_RESOURCE_PATH:\
 $HOME/SITL_Models/Gazebo/models:\
 $HOME/SITL_Models/Gazebo/worlds
 ```
-
+More on [[Gazebo]]
 
 ## MissionPLanner
 - ~/Mission_Planner/

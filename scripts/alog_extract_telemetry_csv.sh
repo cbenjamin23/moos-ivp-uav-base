@@ -10,7 +10,7 @@ categorical_output_file="telemetry_data_categorical.csv"
 # Change directory to the folder ending with *alvtmp
 cd *alvtmp
 
-# Define the numeric and categorical variables
+# Define the numeric and categorical variables HERE!!!!
 VARS_numeric="NAV_* DESIRED_*"
 VARS_categorical="MODE TOWAYPT_UPDATE SURVEY_UPDATE"
 

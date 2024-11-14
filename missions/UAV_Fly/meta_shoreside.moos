@@ -100,6 +100,7 @@ ProcessConfig = uFldShoreBroker
 	qbridge = SURVEY_UPDATE
   qbridge = NODE_COLOR_CHANGE
   
+  
 
   qbridge = CHANGE_SPEED, ARM_UAV, RESET_SPEED_MIN
   qbridge = RETURN_TO_LAUNCH, LOITER, SURVEY
@@ -112,6 +113,7 @@ ProcessConfig = uFldShoreBroker
   bridge  = src=NEXT_WAYPOINT
 
   bridge  = src=REGION_INFO
+  bridge  = src=HEARTBEAT
   
 
   // bridge  = src=RETURN_ALL, alias=RETURN
@@ -158,9 +160,13 @@ ProcessConfig = pMarineViewer
   zoom                 = 2
   vehicles_shape_scale = 5.0
   vehicles_name_mode   = names+depth
+  log_the_image = true
 
 	beat_flag = HEARTBEAT=true
-	
+  action = BLOCK_HEARTBEAT = true
+	action+ = BLOCK_HEARTBEAT = false
+
+
 	procs_font_size = medium
 	nodes_font_size = medium
 	infocast_font_size = medium
@@ -178,15 +184,15 @@ ProcessConfig = pMarineViewer
   left_context[reg_waypoint] =  NEXT_WAYPOINT = "lat=$[LAT],lon=$[LON],x=$[XPOS],y=$[YPOS],vname=$[VNAME]"
   
   
-  left_context[reg_swimmer]   = XSWIMMER_ALERT = type=reg,x=$[XPOS],y=$[YPOS]
-  left_context[reg_swimmer]   = SURVEY_ALL=true
-  left_context[reg_swimmer]   = RETURN_ALL=false
+  // left_context[reg_swimmer]   = XSWIMMER_ALERT = type=reg,x=$[XPOS],y=$[YPOS]
+  // left_context[reg_swimmer]   = SURVEY_ALL=true
+  // left_context[reg_swimmer]   = RETURN_ALL=false
 	
-	left_context[unreg_swimmer]   = XSWIMMER_ALERT = type=unreg,x=$[XPOS],y=$[YPOS]
-  left_context[unreg_swimmer]   = SURVEY_ALL=true
-  left_context[unreg_swimmer]   = RETURN_ALL=false
+	// left_context[unreg_swimmer]   = XSWIMMER_ALERT = type=unreg,x=$[XPOS],y=$[YPOS]
+  // left_context[unreg_swimmer]   = SURVEY_ALL=true
+  // left_context[unreg_swimmer]   = RETURN_ALL=false
 	
-	right_context[rescue]  = XFOUND_SWIMMER = x=$[XPOS],y=$[YPOS]
+	// right_context[rescue]  = XFOUND_SWIMMER = x=$[XPOS],y=$[YPOS]
  
   appcast_viewable     = true
   appcast_color_scheme = indigo
@@ -257,5 +263,5 @@ ProcessConfig = pMarineViewer
 
   cmd = label=PARK_HELM, var=MOOS_MANUAL_OVERRIDE, sval=true, receivers=all:$(VNAMES)
 
-	}
+}
 

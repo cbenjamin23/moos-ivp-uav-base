@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "Info/ArduPilot & MavProx.md",
+                "file": "Info/MAIN System architecture.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "ArduPilot & MavProx"
+              "title": "MAIN System architecture"
             }
           },
           {
@@ -63,12 +63,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "Info/Mission Planner info.md",
+                "file": "Info/ArduPilot & MavProx.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "Mission Planner info"
+              "title": "ArduPilot & MavProx"
             }
           }
         ],
@@ -103,7 +103,7 @@
             "state": {
               "type": "search",
               "state": {
-                "query": "Plane-4.1.2",
+                "query": "mono",
                 "matchingCase": false,
                 "explainSearch": false,
                 "collapseAll": false,
@@ -144,7 +144,7 @@
             "state": {
               "type": "backlink",
               "state": {
-                "file": "Info/ArduPilot & MavProx.md",
+                "file": "Papers/zolich2015unmanned - UAS description.pdf",
                 "collapseAll": false,
                 "extraContext": false,
                 "sortOrder": "alphabetical",
@@ -154,7 +154,7 @@
                 "unlinkedCollapsed": true
               },
               "icon": "links-coming-in",
-              "title": "Backlinks for ArduPilot & MavProx"
+              "title": "Backlinks for zolich2015unmanned - UAS description"
             }
           },
           {
@@ -163,12 +163,12 @@
             "state": {
               "type": "outgoing-link",
               "state": {
-                "file": "Info/ArduPilot & MavProx.md",
+                "file": "Papers/zolich2015unmanned - UAS description.pdf",
                 "linksCollapsed": false,
                 "unlinkedCollapsed": true
               },
               "icon": "links-going-out",
-              "title": "Outgoing links from ArduPilot & MavProx"
+              "title": "Outgoing links from zolich2015unmanned - UAS description"
             }
           },
           {
@@ -190,10 +190,10 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "Info/ArduPilot & MavProx.md"
+                "file": "Papers/zolich2015unmanned - UAS description.pdf"
               },
               "icon": "lucide-list",
-              "title": "Outline of ArduPilot & MavProx"
+              "title": "Outline of zolich2015unmanned - UAS description"
             }
           }
         ]
@@ -215,27 +215,36 @@
   },
   "active": "da26bb1516200fb8",
   "lastOpenFiles": [
-    "Troubleshooting.md",
+    "Info/Gazebo.md",
     "Info/MAIN System architecture.md",
+    "Info/Swarm.md",
+    "Info/Gazebo",
+    "Info/Skywalker X8.md",
+    "Info/pMarineViewer.md",
+    "Info/Mission Planner info.md",
+    "Advantages of MOOS-IVP.md",
+    "Info/LSTS Toolchain/LSTS.md",
+    "Info/LSTS Toolchain/Dune.md",
+    "Info/LSTS Toolchain/Neptus.md",
+    "attachments/Pasted image 20240829151142.png",
+    "attachments/Pasted image 20240903114151.png",
+    "Papers/zolich2015unmanned - UAS description.pdf",
+    "Papers/lsts_paper.pdf",
     "Info/ArduPilot & MavProx.md",
+    "Troubleshooting.md",
+    "Testing.md",
+    "Helpful definitions.md",
+    "Info/Launching System.md",
     "Info/Data Management.md",
     "Info/Install, Build & Run MAVSDK.md",
-    "Info/Launching System.md",
-    "Info/Mission Planner info.md",
-    "Info/pMarineViewer.md",
-    "Info/Skywalker X8.md",
-    "Advantages of MOOS-IVP.md",
-    "Helpful definitions.md",
-    "Testing.md",
+    "Info/attachments/Pasted image 20240903113410.png",
+    "Info/attachments/Pasted image 20240903113855.png",
+    "Info/attachments/Pasted image 20240903123843.png",
+    "SystemDiagX-Hardware overview.drawio.png",
     "Info/moos-ivp-uav.md",
     "QUESTIONS.md",
     "Papers",
-    "Info/LSTS Toolchain/Dune.md",
-    "Info/LSTS Toolchain/LSTS.md",
-    "Info/LSTS Toolchain/Neptus.md",
     "Info/LSTS Toolchain",
-    "Papers/zolich2015unmanned - UAS description.pdf",
-    "Papers/lsts_paper.pdf",
     "Info/MAVSDK/Install, Building & Running MAVSDK.md",
     "Info/MAVSDK/Untitled.md",
     "Info/MAVSDK",
@@ -245,21 +254,11 @@
     "LSTS Toolchain/Neptus.md",
     "LSTS Toolchain/Dune.md",
     "\"Building.md",
-    "[[Building.md",
-    "Building.md",
     "Papers",
-    "Papers/zolich2015unmanned - UAS description.pdf",
-    "Papers/lsts_paper.pdf",
-    "Info/attachments/Pasted image 20240903123843.png",
-    "attachments/Pasted image 20240903114151.png",
     "attachments",
-    "Info/attachments/Pasted image 20240903113410.png",
     "Info/attachments/Pasted image 20240903113547.png",
-    "Info/attachments/Pasted image 20240903113855.png",
     "Info/attachments/Pasted image 20240903113334.png",
-    "figures/Pasted image 20240829151142.png",
     "Info/attachments/Pasted image 20240903113344.png",
-    "Info/Pasted image 20240903113257.png",
-    "Info/Pasted image 20240903113217.png"
+    "Info/Pasted image 20240903113257.png"
   ]
 }

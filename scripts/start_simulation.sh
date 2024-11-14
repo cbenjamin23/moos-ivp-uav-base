@@ -50,13 +50,15 @@ fi
 
 
 
-
+cd $HOME/ardupilot/ArduPlane
 
 if [ $DEBUG == "ON" ]; then
     echo "Starting ArduPilot SITL in GDB mode"
-    gdb --args python /home/steve/ardupilot/Tools/autotest/sim_vehicle.py -v ArduPlane --model JSON --add-param-file=$HOME/SITL_Models/Gazebo/config/skywalker_x8.param --console --map --add-param-file="$PARAMFILE" #--no-mavproxy &
+    gdb --args python $HOME/ardupilot/Tools/autotest/sim_vehicle.py -v ArduPlane --model JSON --add-param-file=$HOME/SITL_Models/Gazebo/config/skywalker_x8.param --console --map --add-param-file="$PARAMFILE" #--no-mavproxy &
 else
     echo "Starting ArduPilot SITL in normal mode"
     sim_vehicle.py -v ArduPlane --model JSON --add-param-file=$HOME/SITL_Models/Gazebo/config/skywalker_x8.param --console --map --add-param-file="$PARAMFILE"  #--no-mavproxy &
+    # sim_vehicle.py -v ArduPlane -f gazebo-zephyr  --console --map --add-param-file="$PARAMFILE" --count 2  --swarm Tools/autotest/swarminit.txt #--no-mavproxy &
 fi
+
 

@@ -159,10 +159,10 @@ ProcessConfig = pDeadManPost
   CommsTick = 4
 
   heartbeat_var   = HEARTBEAT
-  max_noheart     = 15
+  max_noheart     = 15 // seconds
   post_policy     = reset
   active_at_start = false
-  deadflag        = DEPLOY = false
+  deadflag        = DEAD_MAN_POST_INTERRUPT = true
 }
 
 

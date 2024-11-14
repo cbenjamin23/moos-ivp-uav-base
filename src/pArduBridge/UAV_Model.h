@@ -71,6 +71,7 @@ public:
     void   setCallbackRetractRunW(const std::function<void(const std::string&)>& callback) {callbackRetractRunW = callback ;}
 
     void   setNextWaypoint(const XYPoint& wp) {m_next_waypoint_coord = wp;}
+    void   setLoiterLocation(const XYPoint& wp) {m_current_loiter_coord = wp;}
     void   setTargetAltitudeAGL(double altitude) {m_target_altitudeAGL = altitude;}
     void   setHeadingWyptFromHeading(double heading);
 
