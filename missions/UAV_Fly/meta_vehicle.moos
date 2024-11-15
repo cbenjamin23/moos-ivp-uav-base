@@ -24,9 +24,11 @@ Processconfig = ANTLER
   Run = uTimerScript       @ NewConsole = false
   Run = pRealm             @ NewConsole = false
   Run = uProcessWatch      @ NewConsole = false
-  // Run = pArduBridge        @ NewConsole = false
+  Run = pArduBridge        @ NewConsole = true,XConfig=DBXConsoleSettings,  \[=\=]
 
-	}
+  // xterm configuration settings for pArduBridge
+  DBXConsoleSettings = -hold,-bg,#2e302c,-geometry,80x50+2+00,+sb,-T,pArduBridge-$(VNAME)
+}
 
 // #include plug_uSimMarine.moos
 

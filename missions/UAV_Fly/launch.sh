@@ -26,6 +26,8 @@ ARDUPILOT_PROTOCOL=udp
 
 VNAME="skywalker"
 
+
+NUM_VEHICLES=1
 #-------------------------------------------------------
 #  Part 3: Check for and handle command-line arguments
 #-------------------------------------------------------
@@ -51,6 +53,8 @@ for ARGI; do
     echo "  --ap_protocol=<udp>                       "
     echo "    Protocol for coms with ArduPilot autopilot   "
     echo "    udp, tcp or serial                           "
+    echo "  --swarm=<1>                       "
+    echo "    Number of vehicles in the swarm              "
 	exit 0;
     elif [[ "${ARGI}" == "--verbose" || "${ARGI}" == "-v" ]]; then
         VERBOSE="--verbose"
@@ -66,6 +70,8 @@ for ARGI; do
         ARDUPILOT_PORT="${ARGI#--ap_port=}"
     elif [[ "${ARGI}" == --ap_protocol=* ]]; then
         ARDUPILOT_PROTOCOL="${ARGI#--ap_protocol=}"
+    elif [[ "${ARGI}" == --swarm=* ]]; then
+        NUM_VEHICLES="${ARGI#--swarm=}"
     else
         echo "$ME: Bad Arg: $ARGI. Exit Code 1."
         exit 1
@@ -83,35 +89,51 @@ done
 
 # VNAMES=(`cat vnames.txt`)
 
+VNAMES=(skywalker skyfollower)
+ARDUPILOT_IPS=( "0.0.0.0" "0.0.0.0")
+ARDUPILOT_PORTS=(14550 14560)
+ARDUPILOT_PROTOCOLS=(udp udp)
 #-------------------------------------------------------------
 # Part 5: Launch the vehicles
 #-------------------------------------------------------------
-INDEX=1
 
-MOOS_PORT=`expr $INDEX + 9000`
-PSHARE_PORT=`expr $INDEX + 9200`
+for INDEX in `seq 1 $NUM_VEHICLES`; do
+    
+    ARRAY_INDEX=$((INDEX - 1))
+    VNAME=${VNAMES[$ARRAY_INDEX]}
+    ARDUPILOT_IP=${ARDUPILOT_IPS[$ARRAY_INDEX]}
+    ARDUPILOT_PORT=${ARDUPILOT_PORTS[$ARRAY_INDEX]}
+    ARDUPILOT_PROTOCOL=${ARDUPILOT_PROTOCOLS[$ARRAY_INDEX]}
 
-IX_VLAUNCH_ARGS=$VLAUNCH_ARGS
-IX_VLAUNCH_ARGS+=" --vname=$VNAME                "
-IX_VLAUNCH_ARGS+=" --mport=$MOOS_PORT --pshare=$PSHARE_PORT "
-IX_VLAUNCH_ARGS+=" $TIME_WARP $VERBOSE $JUST_MAKE"
-IX_VLAUNCH_ARGS+=" --ap_ip=$ARDUPILOT_IP --ap_port=$ARDUPILOT_PORT --ap_protocol=$ARDUPILOT_PROTOCOL"
+    MOOS_PORT=$(($INDEX + 9000))
+    PSHARE_PORT=$(($INDEX + 9200))
 
-vecho "Launching: $VNAME"
-vecho "IX_VLAUNCH_ARGS: [$IX_VLAUNCH_ARGS]"
+    IX_VLAUNCH_ARGS=$VLAUNCH_ARGS
+    IX_VLAUNCH_ARGS+=" --vname=$VNAME"
+    IX_VLAUNCH_ARGS+=" --mport=$MOOS_PORT --pshare=$PSHARE_PORT "
+    IX_VLAUNCH_ARGS+=" $TIME_WARP $VERBOSE $JUST_MAKE"
+    IX_VLAUNCH_ARGS+=" --ap_ip=$ARDUPILOT_IP --ap_port=$ARDUPILOT_PORT --ap_protocol=$ARDUPILOT_PROTOCOL"
 
-./launch_vehicle.sh $IX_VLAUNCH_ARGS
+    vecho "Launching: $VNAME"
+    vecho "IX_VLAUNCH_ARGS: [$IX_VLAUNCH_ARGS]"
 
+    ./launch_vehicle.sh $IX_VLAUNCH_ARGS
+done
 #-------------------------------------------------------------
 # Part 6: Launch the Shoreside mission file
 #-------------------------------------------------------------
+
+# Join the array into a comma-separated string
+VNAMES_STR=$(IFS=':'; echo "${VNAMES[*]}")
+
 SLAUNCH_ARGS+=" $JUST_MAKE"
-SLAUNCH_ARGS+=" --vnames=${VNAME} "
+SLAUNCH_ARGS+=" --vnames=${VNAMES_STR[*]} "
 vecho "Launching the shoreside. Args: $SLAUNCH_ARGS $TIME_WARP"
 
 ./launch_shoreside.sh $SLAUNCH_ARGS $VERBOSE $TIME_WARP 
 
-if [ ${JUST_MAKE} != "" ]; then
+# if JUST_MAKE is set, then we are done
+if [ -n "${JUST_MAKE}" ]; then
     echo "$ME: Files assembled; nothing launched; exiting per request."
     exit 0
 fi

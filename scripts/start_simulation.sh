@@ -113,12 +113,19 @@ fi
 cd $HOME/ardupilot/ArduPlane
 
 if [ $DEBUG == "ON" ]; then
-    echo "Starting ArduPilot SITL in GDB mode"
+    echo "Starting ArduPilot SITL in GDB mode with one vehicle"
     gdb --args python $HOME/ardupilot/Tools/autotest/sim_vehicle.py -v ArduPlane --model JSON --add-param-file=$HOME/SITL_Models/Gazebo/config/skywalker_x8.param --console --map --add-param-file="$PARAMFILE" #--no-mavproxy &
+    exit 0
+fi
+
+
+# Debug is off
+# Start ArduPilot SITL in normal mode
+if [ $NUM_VEHICLES -eq 1 ]; then
+    echo "Starting ArduPilot SITL with 1 vehicle"
+    sim_vehicle.py -v ArduPlane --model JSON --add-param-file=$HOME/SITL_Models/Gazebo/config/skywalker_x8.param --add-param-file="$PARAMFILE" --console --map  #--no-mavproxy &
 else
-    echo "Starting ArduPilot SITL in normal mode"
-    # sim_vehicle.py -v ArduPlane --model JSON --add-param-file=$HOME/SITL_Models/Gazebo/config/skywalker_x8.param --console --map --add-param-file="$PARAMFILE"  #--no-mavproxy &
-    sim_vehicle.py -v ArduPlane --model JSON  --console --map --add-param-file="$PARAMFILE" --count $NUM_VEHICLES   #--no-mavproxy &
+    sim_vehicle.py -v ArduPlane --model JSON --add-param-file=$HOME/SITL_Models/Gazebo/config/skywalker_x8.param --add-param-file="$PARAMFILE" --console --map --count $NUM_VEHICLES   
 fi
 
 
