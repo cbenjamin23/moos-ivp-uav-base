@@ -27,16 +27,17 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "Info/ArduPilot & MavProx.md",
+                "file": "Info/MAIN System architecture.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "ArduPilot & MavProx"
+              "title": "MAIN System architecture"
             },
             "group": "971996182042d422"
           }
-        ]
+        ],
+        "currentTab": 1
       },
       {
         "id": "821e164b3d11c07b",
@@ -48,12 +49,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "Info/ArduPilot & MavProx.md",
+                "file": "Info/MAIN System architecture.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "ArduPilot & MavProx"
+              "title": "MAIN System architecture"
             },
             "group": "971996182042d422"
           },
@@ -103,7 +104,7 @@
             "state": {
               "type": "search",
               "state": {
-                "query": "mono",
+                "query": "Plane",
                 "matchingCase": false,
                 "explainSearch": false,
                 "collapseAll": false,
@@ -213,11 +214,12 @@
       "command-palette:Open command palette": false
     }
   },
-  "active": "9498a02ccdc7fadb",
+  "active": "40a14e625136148f",
   "lastOpenFiles": [
+    "Troubleshooting.md",
     "Info/MAIN System architecture.md",
-    "Info/Gazebo.md",
     "Info/ArduPilot & MavProx.md",
+    "Info/Gazebo.md",
     "Info/Swarm.md",
     "Info/Gazebo",
     "Info/Skywalker X8.md",
@@ -231,7 +233,6 @@
     "attachments/Pasted image 20240903114151.png",
     "Papers/zolich2015unmanned - UAS description.pdf",
     "Papers/lsts_paper.pdf",
-    "Troubleshooting.md",
     "Testing.md",
     "Helpful definitions.md",
     "Info/Launching System.md",

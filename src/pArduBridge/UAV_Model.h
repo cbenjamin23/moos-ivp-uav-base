@@ -122,9 +122,9 @@ protected:
 
     // Structure to hold polled parameters
     struct PolledParameters {
-        double min_airspeed = 0.0;
-        double max_airspeed = 0.0;
-        double target_airspeed_cruise = 0.0;
+        int min_airspeed = 0;
+        int max_airspeed = 0;
+        int target_airspeed_cruise = 0;
     };
 
 

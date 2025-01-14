@@ -74,10 +74,10 @@ if [ $NUM_VEHICLES -eq 1 ]; then
     echo "Starting Gazebo with a single vehicle"
     if [ $GZ_ONLY == "ON" ]; then
         echo "Gazebo only mode. Exiting."
-        gz sim -v4 -r skywalker_x8_runway.world 
+        gz sim -v4 -r skywalker_x8_runway.sdf 
         exit 0
     fi
-    nohup gz sim -v4 -r skywalker_x8_runway.world &> /dev/null &
+    nohup gz sim -v4 -r skywalker_x8_runway.sdf &> /dev/null &
 else
     echo "Starting Gazebo with $NUM_VEHICLES vehicles: SkywalkerX8_swarm$NUM_VEHICLES.world"
 

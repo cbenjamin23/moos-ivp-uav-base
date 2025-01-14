@@ -338,7 +338,7 @@ bool UAV_Model::getParameterAsync(Parameters param_enum)
       break;
       
     case Parameters::AIRSPEED_MAX:
-      m_action_ptr->get_maximum_speed_async([this](mavsdk::Action::Result result, float max_speed) {
+      m_action_ptr->get_maximum_speed_async([this](mavsdk::Action::Result result, int max_speed) {
         if (result != mavsdk::Action::Result::Success) {
             std::stringstream ss;
             ss << "Failed to get maximum speed: " << result;
@@ -346,11 +346,11 @@ bool UAV_Model::getParameterAsync(Parameters param_enum)
             return;
         }
 
-        m_polled_params.max_airspeed = static_cast<int>(std::round(max_speed));
+        m_polled_params.max_airspeed = static_cast<int>(max_speed);
       });
       break;
     case Parameters::AIRSPEED_MIN:
-      m_action_ptr->get_minimum_speed_async([this](mavsdk::Action::Result result, float min_speed) {
+      m_action_ptr->get_minimum_speed_async([this](mavsdk::Action::Result result, int min_speed) {
         if (result != mavsdk::Action::Result::Success) {
             std::stringstream ss;
             ss << "Failed to get minimum speed: " << result;
@@ -358,7 +358,7 @@ bool UAV_Model::getParameterAsync(Parameters param_enum)
             return;
         }
 
-        m_polled_params.min_airspeed = static_cast<int>(std::round(min_speed));
+        m_polled_params.min_airspeed = min_speed;
       });
       break;
     default:

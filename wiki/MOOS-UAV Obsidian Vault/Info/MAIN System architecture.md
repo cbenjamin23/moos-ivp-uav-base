@@ -100,7 +100,7 @@ in your folder where you have the project.
 - [Install guide](https://ardupilot.org/dev/docs/building-setup-linux.html#building-setup-linux)
 	- Run `git submodule update --init --recursive`
 	- Run `install-prereqs-ubuntu.sh` before switching branch! More in [[Troubleshooting]]
-	- **CHECKOUT** version `Plane-4.1.2` (branch)
+	- **CHECKOUT** version `Plane-4.5.7` (branch)
 - [More info](ArduPilot%20&%20MavProx.md)
 ## ardupilot_gazebo (*gazebo Harmonic*)
 - Install the [Gazebo Harmonic](https://gazebosim.org/docs/harmonic/install_ubuntu/) simulator binary:

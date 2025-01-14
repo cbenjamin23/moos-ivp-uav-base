@@ -928,6 +928,6 @@ void ArduBridge::goToHelmState(AutopilotHelmState state){
 
 }
 
- std::string ArduBridge::xypointToString(const XYPoint& point) const{
+std::string ArduBridge::xypointToString(const XYPoint& point) const{
   return doubleToString(point.x()) + "," + doubleToString(point.y());
- }
+}

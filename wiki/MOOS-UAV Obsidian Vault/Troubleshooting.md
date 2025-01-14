@@ -7,7 +7,6 @@ Try to first clean the build.  From `~/ardupilot` run `./waf clean` and run agai
 
 Run the command 
 
-**IMPORTANT**: Run this command in master branch before switching to Plane-4.1.2
 
 ```bash
 ~/ardupilot/Tools/environment_install/install-prereqs-ubuntu.sh -y
