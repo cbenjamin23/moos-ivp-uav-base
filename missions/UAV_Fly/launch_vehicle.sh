@@ -192,7 +192,7 @@ if [ "${AUTO_LAUNCHED}" = "no" ]; then
 fi
 
 if [ "${XMODE}" = "SIM" ]; then
-    SPEED=12 ## Simulation target airspeed is set to 11.2 m/s weirdly 
+    SPEED=12 # It is 12 in simulation
 fi
 
 nsplug meta_vehicle.moos targ_$VNAME.moos $NSFLAGS WARP=$TIME_WARP \

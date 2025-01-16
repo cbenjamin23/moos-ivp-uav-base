@@ -8,7 +8,23 @@ and look for plane version **Plane-4.5.7**
 For All parameter across all vehicles look [here](https://ardupilot.org/dev/docs/mavlink-get-set-params.html) which also informs about the Mavlink Interface with ArduPilot
 
 
-It will not compile if you are using python 3.10 or newer. To fix the error generetad do the following:
+
+The ArduPilot spesific commands can be found  [here](https://mavlink.io/en/messages/ardupilotmega.html#enumerated-types) (web) or in [xml](https://github.com/mavlink/mavlink/blob/master/message_definitions/v1.0/ardupilotmega.xml) version.
+
+
+Airspeed in simulation is set to the following values: 
+```
+AIRSPEED_CRUISE 15
+AIRSPEED_MAX 19
+AIRSPEED_MIN 8
+```
+
+
+
+
+
+
+If it does not  compile because of usage of python 3.10 or newer, fix the generated error by doing the following:
 
 #### Modify the UAVCAN Library Code
 

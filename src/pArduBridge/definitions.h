@@ -12,11 +12,14 @@ constexpr char WARNING_UAV_NOT_ARMED[] = "UAV is not armed. Please arm UAV first
 constexpr char WARNING_TIMED_OUT[] = "Timed out waiting for response from UAV.";
 
 
+// Constants
+
 constexpr double WARNING_DURATION = 10.0;  // seconds
-
-
-
 
 constexpr int IN_AIR_HIGHT_THRESHOLD = 5; // meters
 constexpr int DISTANCE_TO_HEADING_WAYPOINT = 5000; // meters
-    
+
+
+constexpr double MAX_CENTRIPITAL_ACC_TURN = 10; // m/s^2
+
+

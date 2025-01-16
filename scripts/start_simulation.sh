@@ -38,6 +38,16 @@ for (( i=1; i <= $#; i++ )); do
             ((i++))
             NUM_VEHICLES="${!i}"
             ;;
+        --clean)
+            echo "Cleaning up simulation files"
+            # clean up simulation files except for the parm files
+            rm -rf simulation/*.tlog*
+            rm -rf simulation/*.ou*
+            rm -rf simulation/logs
+            
+            echo "" > ~/moos-ivp-uav/missions/MavlinkLog.log
+            exit 0
+            ;;
         *)
             echo "Unknown argument: $ARGI"
             # Print help
@@ -48,7 +58,8 @@ for (( i=1; i <= $#; i++ )); do
                                                     :Use the specified parameter file for ArduPilot SITL
                                              [--swarm=num_vehicles | --swarm num_vehicles]
                                                     : Start Gazebo with num_vehicles vehicles
-                                                      Default is 1 vehicle"
+                                                      Default is 1 vehicle
+                                             [--clean] : Clean up simulation files"
             exit 1
             ;;
     esac
@@ -109,23 +120,23 @@ fi
 # terminator --new-tab -e "bash -c 'source ~/.profile; sim_vehicle.py -v ArduPlane --model JSON --add-param-file=$HOME/SITL_Models/Gazebo/config/skywalker_x8.param --console --map; exec bash'" &
 
 
-
-cd $HOME/ardupilot/ArduPlane
+START_PARAMS="-v ArduPlane --model JSON --add-param-file=${HOME}/SITL_Models/Gazebo/config/skywalker_x8.param --console --map --add-param-file=${PARAMFILE} -w --out=127.0.0.1:14551"
 
 if [ $DEBUG == "ON" ]; then
+    cd ${HOME}/ardupilot/ArduPlane
     echo "Starting ArduPilot SITL in GDB mode with one vehicle"
-    gdb --args python $HOME/ardupilot/Tools/autotest/sim_vehicle.py -v ArduPlane --model JSON --add-param-file=$HOME/SITL_Models/Gazebo/config/skywalker_x8.param --console --map --add-param-file="$PARAMFILE" #--no-mavproxy &
+    gdb --args python ${HOME}/ardupilot/Tools/autotest/sim_vehicle.py ${START_PARAMS} #--no-mavproxy &
     exit 0
 fi
-
 
 # Debug is off
 # Start ArduPilot SITL in normal mode
 if [ $NUM_VEHICLES -eq 1 ]; then
     echo "Starting ArduPilot SITL with 1 vehicle"
-    sim_vehicle.py -v ArduPlane --model JSON --add-param-file=$HOME/SITL_Models/Gazebo/config/skywalker_x8.param --add-param-file="$PARAMFILE" --console --map  #--no-mavproxy &
+    sim_vehicle.py ${START_PARAMS} #--no-mavproxy &
+    # sim_vehicle.py -v ArduPlane --model JSON --add-param-file=$HOME/SITL_Models/Gazebo/config/skywalker_x8.param --console --map --add-param-file=$PARAMFILE -w --out=127.0.0.1:14551 #--no-mavproxy &
 else
-    sim_vehicle.py -v ArduPlane --model JSON --add-param-file=$HOME/SITL_Models/Gazebo/config/skywalker_x8.param --add-param-file="$PARAMFILE" --console --map --count $NUM_VEHICLES   
+    sim_vehicle.py ${START_PARAMS} --count $NUM_VEHICLES
 fi
 
 

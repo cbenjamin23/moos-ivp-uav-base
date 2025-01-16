@@ -102,11 +102,11 @@ ProcessConfig = uFldShoreBroker
   
   
 
-  qbridge = CHANGE_SPEED, ARM_UAV, RESET_SPEED_MIN
+  qbridge = ARM_UAV, RESET_SPEED_MIN
   qbridge = RETURN_TO_LAUNCH, LOITER, SURVEY
   qbridge = DO_TAKEOFF, FLY_WAYPOINT
 
-  qbridge = DO_TAKEOFF, FLY_WAYPOINT, CHANGE_ALTITUDE
+  qbridge = CHANGE_ALTITUDE, CHANGE_HEADING, CHANGE_SPEED
 
   qbridge = HELM_STATUS, SURVEY, MOOS_MANUAL_OVERRIDE
 
@@ -197,19 +197,25 @@ ProcessConfig = pMarineViewer
   appcast_viewable     = true
   appcast_color_scheme = indigo
 
+	action = BLOCK_HEARTBEAT = true
+	action+ = BLOCK_HEARTBEAT = false
 
-  action = menu_key=all_vehicles # CHANGE_SPEED_ALL=1
+  action = menu_key=all_vehicles_SPD # CHANGE_SPEED_ALL=1
   action =  CHANGE_SPEED_ALL=-1
   action =  CHANGE_SPEED_ALL=5
   action+ =  CHANGE_SPEED_ALL=-5
 
-  action = menu_key=all_vehicles # CHANGE_ALTITUDE_ALL=1
+  action = menu_key=all_vehicles_ALT # CHANGE_ALTITUDE_ALL=1
   action = CHANGE_ALTITUDE_ALL=-1
   action = CHANGE_ALTITUDE_ALL=10
   action+ = CHANGE_ALTITUDE_ALL=-10
 
-	action = BLOCK_HEARTBEAT = true
-	action = BLOCK_HEARTBEAT = false
+  action = menu_key=all_vehicles_HDG # CHANGE_HEADING_ALL=1
+  action = CHANGE_HEADING_ALL=-1
+  action = CHANGE_HEADING_ALL=10
+  action+ = CHANGE_HEADING_ALL=-10
+
+
 	
   comms_pulse_viewable_all = true
   range_pulse_viewable_all = false
@@ -255,6 +261,11 @@ ProcessConfig = pMarineViewer
   cmd = label=ALT-1, var=CHANGE_ALTITUDE, dval=-1, receivers=all:$(VNAMES)
   cmd = label=ALT+10, var=CHANGE_ALTITUDE, dval=10, receivers=all:$(VNAMES)
   cmd = label=ALT-10, var=CHANGE_ALTITUDE, dval=-10, receivers=all:$(VNAMES)
+  
+  cmd = label=HDG+1, var=CHANGE_HEADING, dval=1, receivers=all:$(VNAMES)
+  cmd = label=HDG-1, var=CHANGE_HEADING, dval=-1, receivers=all:$(VNAMES)
+  cmd = label=HDG+10, var=CHANGE_HEADING, dval=10, receivers=all:$(VNAMES)
+  cmd = label=HDG-10, var=CHANGE_HEADING, dval=-10, receivers=all:$(VNAMES)
 
   cmd = label=SPEED_TO_MIN, var=RESET_SPEED_MIN, sval=true, receivers=all:$(VNAMES)
 

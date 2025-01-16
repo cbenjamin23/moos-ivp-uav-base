@@ -5,65 +5,64 @@
 // initialize   SURVEY = false
 initialize   AVOID  = true
 
-initialize   MODE = HELM_INACTIVE
-
+// initialize_   AUTOPILOT_MODE = HELM_PARKED
 
 initialize HELM_MODE = INACTIVE
 
 
 // set HELM_MODE = INACTIVE {
-//   MODE = HELM_INACTIVE
+//   AUTOPILOT_MODE = HELM_INACTIVE
 // }
 
 set HELM_MODE = ACTIVE {
-  MODE != HELM_INACTIVE  
-  MODE != HELM_INACTIVE_LOITERING
+  AUTOPILOT_MODE != HELM_INACTIVE  
+  AUTOPILOT_MODE != HELM_INACTIVE_LOITERING
 } INACTIVE
 
 
 set HELM_MODE = TOWAYPT {
   HELM_MODE = ACTIVE
-  MODE = HELM_TOWAYPT
+  AUTOPILOT_MODE = HELM_TOWAYPT
 } 
 
 set HELM_MODE = RETURN {
   HELM_MODE = ACTIVE
-  MODE = HELM_RETURNING
+  AUTOPILOT_MODE = HELM_RETURNING
 }
 
 set HELM_MODE = SURVEY {
   HELM_MODE = ACTIVE
-  MODE = HELM_SURVEYING
+  AUTOPILOT_MODE = HELM_SURVEYING
 } 
 
 
 // Set MAINTAIN_DEPTH = true {
-//   MODE = HELM_SURVEYING  
+//   AUTOPILOT_MODE = HELM_SURVEYING  
 // }
 // set MAINTAIN_DEPTH = true {
-//   MODE = HELM_RETURNING
+//   AUTOPILOT_MODE = HELM_RETURNING
 // }
 // set MAINTAIN_DEPTH = true {
-//   MODE = HELM_TOWAYPT
+//   AUTOPILOT_MODE = HELM_TOWAYPT
 // } false
 
-// set MODE = ACTIVE {
+// set AUTOPILOT_MODE = ACTIVE {
 //   DEPLOY = true
 // } INACTIVE
 
-// set MODE = STATION-KEEPING {
-//   MODE = ACTIVE
+// set AUTOPILOT_MODE = STATION-KEEPING {
+//   AUTOPILOT_MODE = ACTIVE
 //   STATION_KEEP = true
 // }                       
 
-// set MODE = SURVEYING {
-//   MODE = ACTIVE
+// set AUTOPILOT_MODE = SURVEYING {
+//   AUTOPILOT_MODE = ACTIVE
 //   RETURN != true
 //   SURVEY = true
 // } 
 
-// set MODE = RETURNING {
-//   MODE = ACTIVE
+// set AUTOPILOT_MODE = RETURNING {
+//   AUTOPILOT_MODE = ACTIVE
 //   RETURN = true
 // } 
 
@@ -73,7 +72,7 @@ Behavior = BHV_Waypoint
   name       = waypt_survey
   pwt        = 100
   updates    = SURVEY_UPDATE
-  condition  = MODE==HELM_SURVEYING
+  condition  = AUTOPILOT_MODE==HELM_SURVEYING
   perpetual  = true
   endflag    = RETURN = true
 
@@ -104,7 +103,7 @@ Behavior = BHV_ConstantAltitude{
   pwt        = 100
   updates    = CONST_ALTITUDE_UPDATE
 
-  // condition  = (MODE=HELM_SURVEYING) or (MODE=HELM_RETURNING) or (MODE=HELM_TOWAYPT)
+  // condition  = (AUTOPILOT_MODE=HELM_SURVEYING) or (AUTOPILOT_MODE=HELM_RETURNING) or (AUTOPILOT_MODE=HELM_TOWAYPT)
   condition  = HELM_MODE==ACTIVE
 
   perpetual  = true
@@ -123,8 +122,8 @@ Behavior = BHV_ConstantAltitude{
 //   name       = avdcol_
 //   pwt        = 350
 //   condition  = AVOID = true 
-//   condition  = MODE==ACTIVE
-//   condition  = MODE!=ACTIVE:STATION-KEEPING
+//   condition  = AUTOPILOT_MODE==ACTIVE
+//   condition  = AUTOPILOT_MODE!=ACTIVE:STATION-KEEPING
 //   updates    = CONTACT_INFO
 //   endflag    = CONTACT_RESOLVED = $[CONTACT]
 //   templating = spawn
@@ -156,7 +155,7 @@ Behavior = BHV_Waypoint
   name       = waypt_next
   pwt        = 100
   updates    = TOWAYPT_UPDATE
-  condition  = MODE==HELM_TOWAYPT
+  condition  = AUTOPILOT_MODE==HELM_TOWAYPT
   perpetual  = true
   endflag    = LOITER = true
 
@@ -177,7 +176,7 @@ Behavior = BHV_Waypoint
   name       = waypt_return
   pwt        = 100
   updates    = RETURN_UPDATE
-  condition  = MODE==HELM_RETURNING
+  condition  = AUTOPILOT_MODE==HELM_RETURNING
   perpetual  = true
   endflag    = LOITER = true
 
