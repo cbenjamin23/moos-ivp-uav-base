@@ -78,17 +78,22 @@ Behavior = BHV_Waypoint
 
           repeat = 1
            speed = $(SPEED)
-          radius = 50.0
-     slip_radius = 70.0
-            lead = 40
+ 
+ #ifdef XMODE SIM
+  capture_radius = 90
+     slip_radius = 100
+            lead = 30
+     lead_damper = 20
+#else
+  capture_radius = 70
+     slip_radius = 90
+            lead = 30
      lead_damper = 25
+#endif
 
           // points = 205,-125:320,-205:140,-300:250,-460:25,-500
           points = -390,10:55,381:333,35:-100,-290
 
-    
-    capture_radius = 10 
-       slip_radius = 35 
 
      visual_hints = vertex_size  = 4             // default
      visual_hints = vertex_color = dodger_blue   // default
@@ -160,8 +165,8 @@ Behavior = BHV_Waypoint
   endflag    = LOITER = true
 
            speed = $(SPEED)
-  capture_radius = 50 .0
-     slip_radius = 100.0
+  capture_radius = 20 
+     slip_radius = 50
 
 	point = $(START_POS)
 
@@ -182,8 +187,8 @@ Behavior = BHV_Waypoint
 
 
            speed = $(SPEED)
-  capture_radius = 50.0
-     slip_radius = 100.0
+  capture_radius = 150
+     slip_radius = 170
 
 	point = $(START_POS)
 

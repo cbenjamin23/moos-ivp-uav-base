@@ -26,8 +26,18 @@ ARDUPILOT_PROTOCOL=udp
 
 VNAME="skywalker"
 
+START_FROM_CONFIG="no"
+CONFIG_FILE="./missionConfig.yaml"
 
 NUM_VEHICLES=1
+
+
+#### Defaults 
+VNAMES=(skywalker skyfollower)
+ARDUPILOT_IPS=( "0.0.0.0" "0.0.0.0")
+ARDUPILOT_PORTS=(14550 14560)
+ARDUPILOT_PROTOCOLS=(udp udp)
+
 #-------------------------------------------------------
 #  Part 3: Check for and handle command-line arguments
 #-------------------------------------------------------
@@ -55,6 +65,8 @@ for ARGI; do
     echo "    udp, tcp or serial                           "
     echo "  --swarm=<1>                       "
     echo "    Number of vehicles in the swarm              "
+    echo " --config, -c=<missionConfig.yaml>                       "
+    echo "    Start the vehicles from a configuration file  "
 	exit 0;
     elif [[ "${ARGI}" == "--verbose" || "${ARGI}" == "-v" ]]; then
         VERBOSE="--verbose"
@@ -72,6 +84,14 @@ for ARGI; do
         ARDUPILOT_PROTOCOL="${ARGI#--ap_protocol=}"
     elif [[ "${ARGI}" == --swarm=* ]]; then
         NUM_VEHICLES="${ARGI#--swarm=}"
+    elif [[ "${ARGI}" == --config=* || "${ARGI}" == -c=* ]]; then
+        MISSION_CONFIG="${ARGI#--config=}"
+        if [ -f $MISSION_CONFIG ]; then # Check if the file exists
+            CONFIG_FILE=$MISSION_CONFIG
+        fi
+        START_FROM_CONFIG="yes"
+    elif [[ "${ARGI}" == "--config" || "${ARGI}" == "-c" ]]; then
+        START_FROM_CONFIG="yes"
     else
         echo "$ME: Bad Arg: $ARGI. Exit Code 1."
         exit 1
@@ -83,30 +103,58 @@ done
 #-------------------------------------------------------------
 # vecho "Picking vname"
 
+if [ "$START_FROM_CONFIG" == "yes" ]; then
+    echo "Starting vehicles from configuration file: $CONFIG_FILE"
+    echo "All other arguments will be ignored"
+
+    NUM_VEHICLES=$(yq eval '.simulation.number_of_drones' "$CONFIG_FILE")
+    ARDUPILOT_IP=$(yq eval ".simulation.ardupilot_ip" "$CONFIG_FILE")
+    ARDUPILOT_PROTOCOL=$(yq eval ".simulation.ardupilot_protocol" "$CONFIG_FILE")
+
+    DEFAULT_PORT_DB=$(yq eval ".moos.defaultPorts.DB" "$CONFIG_FILE")
+    DEFAULT_PORT_PSHARE=$(yq eval ".moos.defaultPorts.PSHARE" "$CONFIG_FILE")
+    VNAMES=""
+
+else
+    echo "Starting vehicles from command line arguments"
+    VNAMES=(skywalker skyfollower)
+    ARDUPILOT_IPS=( "0.0.0.0" "0.0.0.0")
+    ARDUPILOT_PORTS=(14550 14560)
+    ARDUPILOT_PROTOCOLS=(udp udp)
+fi
+
+
 # vehicle names are always deterministic in alphabetical order
 # pickpos --amt=1 --vnames  > vnames.txt
 # echo $VNAME > vnames.txt
 
 # VNAMES=(`cat vnames.txt`)
 
-VNAMES=(skywalker skyfollower)
-ARDUPILOT_IPS=( "0.0.0.0" "0.0.0.0")
-ARDUPILOT_PORTS=(14550 14560)
-ARDUPILOT_PROTOCOLS=(udp udp)
+
 #-------------------------------------------------------------
 # Part 5: Launch the vehicles
 #-------------------------------------------------------------
 
-for INDEX in `seq 1 $NUM_VEHICLES`; do
+for ((i = 0; i < $NUM_VEHICLES; i++)); do
     
-    ARRAY_INDEX=$((INDEX - 1))
-    VNAME=${VNAMES[$ARRAY_INDEX]}
-    ARDUPILOT_IP=${ARDUPILOT_IPS[$ARRAY_INDEX]}
-    ARDUPILOT_PORT=${ARDUPILOT_PORTS[$ARRAY_INDEX]}
-    ARDUPILOT_PROTOCOL=${ARDUPILOT_PROTOCOLS[$ARRAY_INDEX]}
+    if [ "$START_FROM_CONFIG" == "yes" ]; then
+        VNAME=$(yq eval ".drones[$i].name" "$CONFIG_FILE")
+        ARDUPILOT_IP=$(yq eval ".simulation.ardupilot_ip" "$CONFIG_FILE")
+        ARDUPILOT_PORT=$(yq eval ".drones[$i].simulation.ardupilot_port" "$CONFIG_FILE")
+        MOOS_PORT=$(($i+1 + $DEFAULT_PORT_DB))
+        PSHARE_PORT=$(($i+1 + $DEFAULT_PORT_PSHARE))
 
-    MOOS_PORT=$(($INDEX + 9000))
-    PSHARE_PORT=$(($INDEX + 9200))
+        VNAMES="${VNAMES:+$VNAMES,}$VNAME" # append name to VNAMES
+        
+    else
+        VNAME=${VNAMES[$i]}
+        ARDUPILOT_IP=${ARDUPILOT_IPS[$i]}
+        ARDUPILOT_PORT=${ARDUPILOT_PORTS[$i]}
+        ARDUPILOT_PROTOCOL=${ARDUPILOT_PROTOCOLS[$i]}
+
+        MOOS_PORT=$(($i+1 + 9000))
+        PSHARE_PORT=$(($i+1 + 9200))
+    fi
 
     IX_VLAUNCH_ARGS=$VLAUNCH_ARGS
     IX_VLAUNCH_ARGS+=" --vname=$VNAME"
@@ -123,11 +171,15 @@ done
 # Part 6: Launch the Shoreside mission file
 #-------------------------------------------------------------
 
-# Join the array into a comma-separated string
-VNAMES_STR=$(IFS=':'; echo "${VNAMES[*]}")
+if [ "$START_FROM_CONFIG" == "no" ]; then
+    # Join the array into a comma-separated string
+    VNAMES=$(IFS=':'; echo "${VNAMES[*]}")
+    VNAMES="${VNAMES}[*]"
+fi
+
 
 SLAUNCH_ARGS+=" $JUST_MAKE"
-SLAUNCH_ARGS+=" --vnames=${VNAMES_STR[*]} "
+SLAUNCH_ARGS+=" --vnames=${VNAMES} "
 vecho "Launching the shoreside. Args: $SLAUNCH_ARGS $TIME_WARP"
 
 ./launch_shoreside.sh $SLAUNCH_ARGS $VERBOSE $TIME_WARP 

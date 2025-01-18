@@ -1,0 +1,56 @@
+# Config file for drone simulation and field deployment
+
+# Global simulation parameters
+simulation:
+  time_warp: 1
+  number_of_drones: 1
+  ardupilot_ip: "0.0.0.0"
+  ardupilot_protocol: "udp"
+
+field:
+  ardupilot_ip: "ttySAC0"  # serial port
+  ardupilot_port: "115200" # baudrate
+  ardupilot_protocol: "serial"
+
+
+# Additional environment parameters
+environment:
+  wind_speed: 2.5  # m/s
+  temperature: 25  # Celsius
+
+
+moos:
+  defaultPorts:
+    DB: 9000
+    PSHARE: 9200 
+
+drones:
+  - id: 1
+    name: "Skywalker"
+    color: "yellow"
+    speed: 10.0  # m/s
+    starting_position:
+      latitude: 34.052235
+      longitude: -118.243683
+    simulation:
+      ardupilot_port: 14550
+
+  - id: 2
+    name: "Skyfollower"
+    color: "red"
+    speed: 12.0
+    starting_position:
+      latitude: 34.052300
+      longitude: -118.243700
+    simulation:
+      ardupilot_port: 14560
+
+  - id: 3
+    name: "Skytrailer"
+    color: "green"
+    speed: 8.0
+    starting_position:
+      latitude: 34.052350
+      longitude: -118.243750
+    simulation:
+      ardupilot_port: 14570

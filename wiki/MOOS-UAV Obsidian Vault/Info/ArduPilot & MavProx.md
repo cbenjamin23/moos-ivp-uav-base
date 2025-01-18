@@ -12,6 +12,8 @@ For All parameter across all vehicles look [here](https://ardupilot.org/dev/docs
 The ArduPilot spesific commands can be found  [here](https://mavlink.io/en/messages/ardupilotmega.html#enumerated-types) (web) or in [xml](https://github.com/mavlink/mavlink/blob/master/message_definitions/v1.0/ardupilotmega.xml) version.
 
 
+
+
 Airspeed in simulation is set to the following values: 
 ```
 AIRSPEED_CRUISE 15

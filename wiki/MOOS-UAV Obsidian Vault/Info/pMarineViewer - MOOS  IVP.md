@@ -6,3 +6,16 @@ The tool to find the lat-long coordinates for the map can be found [here](https:
 
 The tool will download 2 version of the map, one satellite image, and one terrain.
 
+
+
+# pArduBridge
+
+The parameters 
+```
+WP_LOITER_RAD    100
+WP_RADIUS        50
+```
+defined in the parameter list for ardupilot has `m` as units.
+In the behavior file these differ as distance is measured in local XY coordinates.
+
+

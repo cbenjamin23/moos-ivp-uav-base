@@ -27,12 +27,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "Info/MAIN System architecture.md",
+                "file": "Info/Gazebo.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "MAIN System architecture"
+              "title": "Gazebo"
             },
             "group": "971996182042d422"
           }
@@ -49,12 +49,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "Info/MAIN System architecture.md",
+                "file": "Info/Gazebo.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "MAIN System architecture"
+              "title": "Gazebo"
             },
             "group": "971996182042d422"
           },
@@ -104,7 +104,7 @@
             "state": {
               "type": "search",
               "state": {
-                "query": "Plane",
+                "query": "harm",
                 "matchingCase": false,
                 "explainSearch": false,
                 "collapseAll": false,
@@ -125,7 +125,8 @@
               "title": "Bookmarks"
             }
           }
-        ]
+        ],
+        "currentTab": 1
       }
     ],
     "direction": "horizontal",
@@ -216,15 +217,17 @@
   },
   "active": "40a14e625136148f",
   "lastOpenFiles": [
-    "Info/ArduPilot & MavProx.md",
     "Info/MAIN System architecture.md",
-    "Troubleshooting.md",
     "Info/Gazebo.md",
-    "Info/Swarm.md",
-    "Info/Gazebo",
+    "Info/ArduPilot & MavProx.md",
+    "Info/Install, Build & Run MAVSDK.md",
     "Info/Skywalker X8.md",
-    "Info/pMarineViewer.md",
+    "Info/pMarineViewer - MOOS  IVP.md",
+    "Info/Launching System.md",
     "Info/Mission Planner info.md",
+    "Info/Swarm.md",
+    "Troubleshooting.md",
+    "Info/Gazebo",
     "Advantages of MOOS-IVP.md",
     "Info/LSTS Toolchain/LSTS.md",
     "Info/LSTS Toolchain/Dune.md",
@@ -235,9 +238,7 @@
     "Papers/lsts_paper.pdf",
     "Testing.md",
     "Helpful definitions.md",
-    "Info/Launching System.md",
     "Info/Data Management.md",
-    "Info/Install, Build & Run MAVSDK.md",
     "Info/attachments/Pasted image 20240903113410.png",
     "Info/attachments/Pasted image 20240903113855.png",
     "Info/attachments/Pasted image 20240903123843.png",

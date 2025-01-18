@@ -63,7 +63,7 @@ public:
 
   bool commandDisarmAsync() const;
 
-  bool commandGuidedMode(bool alt_hold=false) ;
+  bool commandGuidedMode(bool alt_hold = false);
 
   // Setters
   void setCallbackMOOSTrace(const std::function<void(const std::string &)> &callback) { callbackMOOSTrace = callback; }
@@ -71,8 +71,8 @@ public:
   void setCallbackReportRunW(const std::function<void(const std::string &)> &callback) { callbackReportRunW = callback; }
   void setCallbackRetractRunW(const std::function<void(const std::string &)> &callback) { callbackRetractRunW = callback; }
 
-  void setNextWaypoint(const XYPoint &wp) { m_next_waypoint_coord = wp; }
-  void setLoiterLocation(const XYPoint &wp) { m_current_loiter_coord = wp; }
+  void setNextWaypointLatLon(const XYPoint &wp) { m_next_waypoint_coord = wp; }
+  void setLoiterLocationLatLon(const XYPoint &wp) { m_current_loiter_coord = wp; }
   void setHeadingWyptFromHeading(double heading);
   // void setTargetAltitudeAGL(double altitude) { m_target_altitudeAGL = altitude; }
 
@@ -190,7 +190,7 @@ protected:
 
   // Exiting GUIDED returns aircraft to normal behaviour defined elsewhere
   // If hold heading is set, it will ignore further repositions command, and Guided mode has to be exited
-  bool m_is_hold_heading_guided_set; 
+  bool m_is_hold_heading_guided_set;
 
   // Telemetry
   mavsdk::Telemetry::Position m_position;

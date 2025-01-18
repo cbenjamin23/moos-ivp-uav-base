@@ -100,8 +100,8 @@ ProcessConfig = uFldShoreBroker
 	qbridge = SURVEY_UPDATE
   qbridge = NODE_COLOR_CHANGE
   
+  qbridge = VIZ_HOME
   
-
   qbridge = ARM_UAV, RESET_SPEED_MIN
   qbridge = RETURN_TO_LAUNCH, LOITER, SURVEY
   qbridge = DO_TAKEOFF, FLY_WAYPOINT
@@ -199,6 +199,9 @@ ProcessConfig = pMarineViewer
 
 	action = BLOCK_HEARTBEAT = true
 	action+ = BLOCK_HEARTBEAT = false
+
+
+  action+ = menu_key=VisualizeHome # VIZ_HOME_ALL=true
 
   action = menu_key=all_vehicles_SPD # CHANGE_SPEED_ALL=1
   action =  CHANGE_SPEED_ALL=-1

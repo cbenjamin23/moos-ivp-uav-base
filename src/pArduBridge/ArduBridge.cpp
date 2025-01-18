@@ -94,8 +94,6 @@ bool ArduBridge::OnNewMail(MOOSMSG_LIST &NewMail)
     else if (key == "FLY_WAYPOINT")
     {
       setBooleanOnString(m_do_fly_to_waypoint, msg.GetString());
-      if (!m_do_fly_to_waypoint)
-        m_warning_system_ptr->monitorWarningForXseconds("Fly waypoint command not set", WARNING_DURATION);
     }
     else if (key == "NEXT_WAYPOINT")
     {
@@ -106,8 +104,7 @@ bool ArduBridge::OnNewMail(MOOSMSG_LIST &NewMail)
       {
         if (vname == m_vname)
         {
-          m_uav_model.setNextWaypoint(XYPoint(lat, lon));
-          m_uav_model.setLoiterLocation(XYPoint(lat, lon));
+          m_uav_model.setNextWaypointLatLon(XYPoint(lat, lon));
           m_tonext_waypointXY = XYPoint(x, y);
         }
       }
@@ -187,7 +184,9 @@ bool ArduBridge::OnNewMail(MOOSMSG_LIST &NewMail)
       reportEvent("No heartbeats from GCS. Returning to launch");
       m_do_return_to_launch = true;
     }
-
+    else if (key == "VIZ_HOME"){
+      visualizeHomeLocation();
+    }
     else if (key != "APPCAST_REQ")
     { // handled by AppCastingMOOSApp
       reportRunWarning("Unhandled Mail: " + key);
@@ -237,6 +236,7 @@ bool ArduBridge::Iterate()
     if (tryFlyToWaypoint() && isHelmActive())
     { // Will report warning if command fails
       goToHelmMode(AutopilotHelmMode::HELM_TOWAYPT);
+      m_uav_model.setLoiterLocationLatLon(m_uav_model.getNextWaypointLatLon());
     }
     else
     {
@@ -294,7 +294,8 @@ bool ArduBridge::Iterate()
     double new_speed = m_uav_model.getTargetAirSpeed() + m_do_change_speed_pair.second;
     //  m_uav_model.commandAndSetAirSpeed(new_speed);
 
-    if(m_uav_model.commandAndSetAirSpeed(new_speed)) postSpeedUpdateToBehaviors(new_speed);
+    if (m_uav_model.commandAndSetAirSpeed(new_speed))
+      postSpeedUpdateToBehaviors(new_speed);
 
     if (m_command_groundSpeed)
     {
@@ -351,8 +352,9 @@ bool ArduBridge::Iterate()
 
   if (m_do_reset_speed)
   {
-    if(m_uav_model.commandAndSetAirSpeed(m_uav_model.getMinAirSpeed())) postSpeedUpdateToBehaviors(m_uav_model.getMinAirSpeed());
-    
+    if (m_uav_model.commandAndSetAirSpeed(m_uav_model.getMinAirSpeed()))
+      postSpeedUpdateToBehaviors(m_uav_model.getMinAirSpeed());
+
     if (m_command_groundSpeed)
     {
       m_uav_model.commandGroundSpeed(m_uav_model.getMinAirSpeed());
@@ -521,8 +523,8 @@ bool ArduBridge::OnStartUp()
   m_warning_system_ptr->checkConditions(); // Check for warnings and remove/raise them as needed
 
   postSpeedUpdateToBehaviors(m_uav_model.getTargetAirSpeed());
-  
-   // if (m_is_simulation) // Should be set in the param file for simulation
+
+  // if (m_is_simulation) // Should be set in the param file for simulation
   // {
   //   m_uav_model.setTargetAirSpeed(12); // target speed in simulation is constant 11.2 when default throttle is 50%
   // }
@@ -568,6 +570,9 @@ void ArduBridge::registerVariables()
   Register("DESIRED_HEADING", 0);
   Register("DESIRED_SPEED", 0);
   Register("DESIRED_ALTITUDE", 0);
+
+  // For PMarineViewer
+  Register("VIZ_HOME", 0);
 }
 
 //------------------------------------------------------------
@@ -769,8 +774,9 @@ void ArduBridge::postTelemetryUpdate(const std::string &prefix)
   }
 }
 
-void ArduBridge::postSpeedUpdateToBehaviors(double speed){
-  
+void ArduBridge::postSpeedUpdateToBehaviors(double speed)
+{
+
   std::string update_str = "speed=" + doubleToString(speed);
   Notify("SURVEY_UPDATE", update_str);
   Notify("TOWAYPT_UPDATE", update_str);
@@ -1011,6 +1017,10 @@ bool ArduBridge::tryloiterAtPos(const XYPoint &loiter_coord, bool holdCurrentAlt
   if (m_autopilot_mode == AutopilotHelmMode::HELM_TOWAYPT)
   { // if UAV is flying to waypoint, loiter at the waypoint
     loiter_latlon = m_uav_model.getCurrentLoiterLatLon();
+  }
+
+  if(m_autopilot_mode == AutopilotHelmMode::HELM_RETURNING){
+    loiter_latlon = m_uav_model.getHomeLatLon();
   }
 
   if (!m_uav_model.commandLoiterAtPos(loiter_latlon, holdCurrentAltitude))

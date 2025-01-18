@@ -207,6 +207,7 @@ nsplug meta_vehicle.moos targ_$VNAME.moos $NSFLAGS WARP=$TIME_WARP \
 nsplug meta_vehicle.bhv targ_$VNAME.bhv $NSFLAGS VNAME=$VNAME \
        SPEED=$SPEED                  START_POS=$START_POS     \
        LatOrigin=$LAT_ORIGIN         LonOrogin=$LON_ORIGIN    \
+       XMODE=$XMODE 
                                                 
        
 if [ ${JUST_MAKE} = "yes" ]; then
