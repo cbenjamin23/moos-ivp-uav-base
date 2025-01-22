@@ -131,7 +131,7 @@ ProcessConfig = pLogger
   CommsTick     = 10
   
   File          = XLOG_SHORESIDE
-  PATH          = ./
+  PATH          = ./Slogs/
   AsyncLog      = true
   FileTimeStamp = true
 

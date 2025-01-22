@@ -57,8 +57,10 @@ int main(int argc, char *argv[])
         std::cerr << "Error: Could not get the home directory." << std::endl;
         return 1;
     }
+
+    
     // Construct the full path for the log file
-    std::string save_path = std::string(home_dir) + "/moos-ivp-uav/missions/MavlinkLog.log";
+    std::string save_path = std::string(home_dir) + "/moos-ivp-uav/missions/MavlinkLog_" + run_command + ".log";
     std::cout << "Log file path: " << save_path << std::endl;
     
     // Set the log file with the full path

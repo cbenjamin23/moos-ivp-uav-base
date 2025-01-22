@@ -38,6 +38,43 @@ kill_drone_session () {
     fi
 }
 
+cleanup() {
+    excluded_files=("sim.parm" "hardware.parm" "mav_sim_old.parm" "way.txt")
+
+    exclusions=()
+    for file in "${excluded_files[@]}"; do
+        exclusions+=(! -name "$file")
+    done
+
+    files_to_delete=$(find simulation -type f "${exclusions[@]}" -print)
+    if [ -z "$files_to_delete" ]; then
+        echo "No files to delete"
+        exit 0
+    fi
+
+    echo "Files to be deleted:"
+    echo "$files_to_delete"
+    
+    #confirm deletion by user
+    read -p "Do you want to delete these files? (y/n) " -n 1 -r
+    echo
+
+    
+    if [[ $REPLY =~ ^[Yy]$ ]]; then
+        find "simulation" -type f "${exclusions[@]}" -delete
+        find "simulation" -type d -empty -delete
+        echo "Cleaned up simulation files"
+    else
+        echo "Aborting deletions"
+    fi
+
+    
+    for file in ~/moos-ivp-uav/missions/MavlinkLog*.log; do
+        > "$file"
+    done
+
+    exit 0
+}
 
 # Parse arguments
 for (( i=1; i <= $#; i++ )); do
@@ -69,13 +106,8 @@ for (( i=1; i <= $#; i++ )); do
             NUM_VEHICLES="${!i}"
             ;;
         --clean)
-            echo "Cleaning up simulation files"
             # clean up simulation files except for the parm files
-            rm -rf simulation/*.tlog*
-            rm -rf simulation/*.ou*
-            rm -rf simulation/logs
-            
-            echo "" > ~/moos-ivp-uav/missions/MavlinkLog.log
+            cleanup
             exit 0
             ;;
         --config)

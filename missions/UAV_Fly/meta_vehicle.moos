@@ -177,7 +177,7 @@ ProcessConfig = pLogger
   CommsTick = 10
   
   File      = LOG_%(VNAME)
-  PATH      = ./
+  PATH      = ./Vlogs/
   AsyncLog  = true
   FileTimeStamp = true
 
