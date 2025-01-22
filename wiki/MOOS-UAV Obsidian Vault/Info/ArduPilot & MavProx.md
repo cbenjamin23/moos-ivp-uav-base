@@ -18,15 +18,24 @@ Airspeed in simulation is set to the following values:
 ```
 AIRSPEED_CRUISE 15
 AIRSPEED_MAX 19
-AIRSPEED_MIN 8
+AIRSPEED_MIN 11
 ```
 
 
+#### SIM_OPOS parameters
+```default
+SIM_OPOS_ALT     106.099998
+SIM_OPOS_HDG     45.000000
+SIM_OPOS_LAT     63.397518
+SIM_OPOS_LNG     10.143532
+```
+Defined in `sim.parm` but not used, as the location is given as a location parameters when calling sim_vehicles.py
 
 
 
+---
 
-If it does not  compile because of usage of python 3.10 or newer, fix the generated error by doing the following:
+If ardupilot does not  compile because of usage of python 3.10 or newer, fix the generated error by doing the following:
 
 #### Modify the UAVCAN Library Code
 

@@ -110,10 +110,12 @@ ProcessConfig = uFldShoreBroker
 
   qbridge = HELM_STATUS, SURVEY, MOOS_MANUAL_OVERRIDE
 
+  
+  qbridge = HEARTBEAT  // Heartbeat from the GCS to all vehicles
+  
   bridge  = src=NEXT_WAYPOINT
 
   bridge  = src=REGION_INFO
-  bridge  = src=HEARTBEAT
   
 
   // bridge  = src=RETURN_ALL, alias=RETURN
@@ -162,10 +164,32 @@ ProcessConfig = pMarineViewer
   vehicles_name_mode   = names+depth
   log_the_image = true
 
-	beat_flag = HEARTBEAT=true
+	beat_flag = HEARTBEAT_ALL=true
   action = BLOCK_HEARTBEAT = true
 	action+ = BLOCK_HEARTBEAT = false
 
+  action+ = menu_key=VisualizeHome # VIZ_HOME_ALL=true
+
+  action = menu_key=all_vehicles_SPD # CHANGE_SPEED_ALL=1
+  action =  CHANGE_SPEED_ALL=-1
+  action =  CHANGE_SPEED_ALL=5
+  action+ =  CHANGE_SPEED_ALL=-5
+
+  action = menu_key=all_vehicles_ALT # CHANGE_ALTITUDE_ALL=1
+  action = CHANGE_ALTITUDE_ALL=-1
+  action = CHANGE_ALTITUDE_ALL=10
+  action+ = CHANGE_ALTITUDE_ALL=-10
+
+  action = menu_key=all_vehicles_HDG # CHANGE_HEADING_ALL=1
+  action = CHANGE_HEADING_ALL=-1
+  action = CHANGE_HEADING_ALL=10
+  action+ = CHANGE_HEADING_ALL=-10
+
+
+
+
+  appcast_viewable     = true
+  appcast_color_scheme = indigo
 
 	procs_font_size = medium
 	nodes_font_size = medium
@@ -194,32 +218,7 @@ ProcessConfig = pMarineViewer
 	
 	// right_context[rescue]  = XFOUND_SWIMMER = x=$[XPOS],y=$[YPOS]
  
-  appcast_viewable     = true
-  appcast_color_scheme = indigo
 
-	action = BLOCK_HEARTBEAT = true
-	action+ = BLOCK_HEARTBEAT = false
-
-
-  action+ = menu_key=VisualizeHome # VIZ_HOME_ALL=true
-
-  action = menu_key=all_vehicles_SPD # CHANGE_SPEED_ALL=1
-  action =  CHANGE_SPEED_ALL=-1
-  action =  CHANGE_SPEED_ALL=5
-  action+ =  CHANGE_SPEED_ALL=-5
-
-  action = menu_key=all_vehicles_ALT # CHANGE_ALTITUDE_ALL=1
-  action = CHANGE_ALTITUDE_ALL=-1
-  action = CHANGE_ALTITUDE_ALL=10
-  action+ = CHANGE_ALTITUDE_ALL=-10
-
-  action = menu_key=all_vehicles_HDG # CHANGE_HEADING_ALL=1
-  action = CHANGE_HEADING_ALL=-1
-  action = CHANGE_HEADING_ALL=10
-  action+ = CHANGE_HEADING_ALL=-10
-
-
-	
   comms_pulse_viewable_all = true
   range_pulse_viewable_all = false
   node_pulse_viewable_all  = false

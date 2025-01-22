@@ -3,54 +3,52 @@
 # Global simulation parameters
 simulation:
   time_warp: 1
-  number_of_drones: 1
+  number_of_drones: 3
   ardupilot_ip: "0.0.0.0"
   ardupilot_protocol: "udp"
+  home_altitude: 106.1
 
+# Field deployment parameters
 field:
-  ardupilot_ip: "ttySAC0"  # serial port
+  ardupilot_ip: "ttySAC0" # serial port
   ardupilot_port: "115200" # baudrate
   ardupilot_protocol: "serial"
-
-
-# Additional environment parameters
-environment:
-  wind_speed: 2.5  # m/s
-  temperature: 25  # Celsius
-
 
 moos:
   defaultPorts:
     DB: 9000
-    PSHARE: 9200 
+    PSHARE: 9200
+  datum:
+    lat: 63.3975168
+    lon: 10.1435321
 
 drones:
-  - id: 1
-    name: "Skywalker"
+  - name: "Skywalker"
     color: "yellow"
-    speed: 10.0  # m/s
-    starting_position:
-      latitude: 34.052235
-      longitude: -118.243683
-    simulation:
+    start_orientaton_moos: # +x is east, +y is north [m] !!MOOS seems to double he distance,  so 50m east is a distance of 100 in MOOS!!
+      x: 0
+      y: 0
+      hdg: 46 # deg
+    simulation: # Can be automated away (for now it is hardcoded)
       ardupilot_port: 14550
+      fdm_port_in: 9002
 
-  - id: 2
-    name: "Skyfollower"
+  - name: "Skyfollower"
     color: "red"
-    speed: 12.0
-    starting_position:
-      latitude: 34.052300
-      longitude: -118.243700
+    start_orientaton_moos: # +x is east, +y is north [m]
+      x: -50
+      y: -5
+      hdg: 36 # deg
     simulation:
       ardupilot_port: 14560
+      fdm_port_in: 9012
 
-  - id: 3
-    name: "Skytrailer"
+  - name: "Skytrailer"
     color: "green"
-    speed: 8.0
-    starting_position:
-      latitude: 34.052350
-      longitude: -118.243750
+    start_orientaton_moos: # +x is east, +y is north [m]
+      x: 50
+      y: -5
+      hdg: 56 # deg
     simulation:
       ardupilot_port: 14570
+      fdm_port_in: 9022

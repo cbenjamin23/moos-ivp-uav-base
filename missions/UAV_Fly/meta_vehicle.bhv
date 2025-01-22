@@ -80,13 +80,13 @@ Behavior = BHV_Waypoint
            speed = $(SPEED)
  
  #ifdef XMODE SIM
-  capture_radius = 90
-     slip_radius = 100
+  capture_radius = 100
+     slip_radius = 150
             lead = 30
      lead_damper = 20
 #else
-  capture_radius = 70
-     slip_radius = 90
+  capture_radius = 100
+     slip_radius = 200
             lead = 30
      lead_damper = 25
 #endif
@@ -168,7 +168,7 @@ Behavior = BHV_Waypoint
   capture_radius = 20 
      slip_radius = 50
 
-	point = $(START_POS)
+	         point = $(START_POS)
 
     visual_hints = vertex_size  = 4             // default
     visual_hints = vertex_color = dodger_blue   // default
@@ -190,7 +190,7 @@ Behavior = BHV_Waypoint
   capture_radius = 150
      slip_radius = 170
 
-	point = $(START_POS)
+	         point = $(START_POS)
 
     visual_hints = vertex_size  = 4             // default
     visual_hints = vertex_color = dodger_blue   // default

@@ -456,7 +456,7 @@ bool UAV_Model::commandReturnToLaunchAsync() const
   if (!haveAutorythyToChangeMode())
   {
     std::stringstream ss;
-    ss << "Cannot change mode. Do not have autorithy. Flight mode in" << m_flight_mode;
+    ss << "Cannot change mode. Do not have autorithy. Flight mode in " << m_flight_mode;
     m_warning_system_ptr->monitorWarningForXseconds(ss.str(), WARNING_DURATION);
     return false;
   }

@@ -92,3 +92,6 @@ Backup_dunebuild/**
 Maps/**
 
 moos-ivp-editor-0.2.0.vsix
+
+GazeboSim/models/**
+GazeboSim/worlds/**

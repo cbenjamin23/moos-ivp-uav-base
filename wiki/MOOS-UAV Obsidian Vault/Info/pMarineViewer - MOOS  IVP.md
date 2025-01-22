@@ -15,7 +15,9 @@ The parameters
 WP_LOITER_RAD    100
 WP_RADIUS        50
 ```
-defined in the parameter list for ardupilot has `m` as units.
+defined in the parameter list (*sim.param*) for ardupilot has `meters` as units.
 In the behavior file these differ as distance is measured in local XY coordinates.
+
+**Observation:** A distance of 1 meter in real life is a distance of 2 in local XY coordinates in moos.  
 
 

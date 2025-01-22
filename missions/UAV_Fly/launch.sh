@@ -88,12 +88,15 @@ for ARGI; do
         MISSION_CONFIG="${ARGI#--config=}"
         if [ -f $MISSION_CONFIG ]; then # Check if the file exists
             CONFIG_FILE=$MISSION_CONFIG
+        else
+        echo "Configuration file not found: $MISSION_CONFIG. 
+              Using default config fileExit Code 1."
         fi
         START_FROM_CONFIG="yes"
     elif [[ "${ARGI}" == "--config" || "${ARGI}" == "-c" ]]; then
         START_FROM_CONFIG="yes"
     else
-        echo "$ME: Bad Arg: $ARGI. Exit Code 1."
+        echo "Bad Arg: $ARGI. Exit Code 1."
         exit 1
     fi
 done
@@ -104,8 +107,8 @@ done
 # vecho "Picking vname"
 
 if [ "$START_FROM_CONFIG" == "yes" ]; then
-    echo "Starting vehicles from configuration file: $CONFIG_FILE"
-    echo "All other arguments will be ignored"
+    vecho "Starting vehicles from configuration file: $CONFIG_FILE"
+    vecho "All other arguments will be ignored"
 
     NUM_VEHICLES=$(yq eval '.simulation.number_of_drones' "$CONFIG_FILE")
     ARDUPILOT_IP=$(yq eval ".simulation.ardupilot_ip" "$CONFIG_FILE")
@@ -115,8 +118,10 @@ if [ "$START_FROM_CONFIG" == "yes" ]; then
     DEFAULT_PORT_PSHARE=$(yq eval ".moos.defaultPorts.PSHARE" "$CONFIG_FILE")
     VNAMES=""
 
+    TIME_WARP=$(yq eval ".simulation.time_warp" "$CONFIG_FILE")
+
 else
-    echo "Starting vehicles from command line arguments"
+    vecho "Starting vehicles from command line arguments"
     VNAMES=(skywalker skyfollower)
     ARDUPILOT_IPS=( "0.0.0.0" "0.0.0.0")
     ARDUPILOT_PORTS=(14550 14560)
@@ -141,10 +146,19 @@ for ((i = 0; i < $NUM_VEHICLES; i++)); do
         VNAME=$(yq eval ".drones[$i].name" "$CONFIG_FILE")
         ARDUPILOT_IP=$(yq eval ".simulation.ardupilot_ip" "$CONFIG_FILE")
         ARDUPILOT_PORT=$(yq eval ".drones[$i].simulation.ardupilot_port" "$CONFIG_FILE")
+        x=$(yq eval ".drones[$i].start_orientaton_moos.x" "$CONFIG_FILE")
+        y=$(yq eval ".drones[$i].start_orientaton_moos.y" "$CONFIG_FILE")
+        
+        ## Convert [m] to moos distance (1m = 2 moos distance)
+        x=$(($x * 2))
+        y=$(($y * 2))
+    
+        START_POS="$x,$y"
+
         MOOS_PORT=$(($i+1 + $DEFAULT_PORT_DB))
         PSHARE_PORT=$(($i+1 + $DEFAULT_PORT_PSHARE))
 
-        VNAMES="${VNAMES:+$VNAMES,}$VNAME" # append name to VNAMES
+        VNAMES="${VNAMES:+$VNAMES:}$VNAME" # append name to VNAMES
         
     else
         VNAME=${VNAMES[$i]}
@@ -160,6 +174,7 @@ for ((i = 0; i < $NUM_VEHICLES; i++)); do
     IX_VLAUNCH_ARGS+=" --vname=$VNAME"
     IX_VLAUNCH_ARGS+=" --mport=$MOOS_PORT --pshare=$PSHARE_PORT "
     IX_VLAUNCH_ARGS+=" $TIME_WARP $VERBOSE $JUST_MAKE"
+    IX_VLAUNCH_ARGS+=" --start=$START_POS --return=$START_POS "
     IX_VLAUNCH_ARGS+=" --ap_ip=$ARDUPILOT_IP --ap_port=$ARDUPILOT_PORT --ap_protocol=$ARDUPILOT_PROTOCOL"
 
     vecho "Launching: $VNAME"

@@ -25,9 +25,9 @@ VNAME="skywalker"
 COLOR="yellow"
 XMODE="REAL"
 
-START_POS="0,0"  
+START_POS="50,50"  
 SPEED="20"
-RETURN_POS="5,0"
+RETURN_POS="0,0"
 MAXSPD="30"
 
 
@@ -93,6 +93,8 @@ for ARGI; do
 	echo "    The speed use for transiting/loitering       "
 	echo "  --maxspd=meters/sec                            " 
 	echo "    Max speed of vehicle (for sim and in-field)  "
+    echo "  --return=<X,Y>     (default is 0,0)            "
+    echo "    Return position chosen by script launching   "
 	echo "                                                 "
 	echo "  --sim,   -s  : This is simultion not robot     "
 	exit 0;
@@ -123,6 +125,8 @@ for ARGI; do
         echo "Simulation mode ON."
     elif [[ "${ARGI}" == --start=* ]]; then
         START_POS="${ARGI#--start=}"
+    elif [[ "${ARGI}" == --return=* ]]; then
+        RETURN_POS="${ARGI#--return=}"
     elif [[ "${ARGI}" == --speed=* ]]; then
         SPEED="${ARGI#--speed=}"
     elif [[ "${ARGI}" == --maxspd=* ]]; then

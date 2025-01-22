@@ -102,12 +102,11 @@ in your folder where you have the project.
 	- Run `install-prereqs-ubuntu.sh` before switching branch! More in [[Troubleshooting]]
 	- **CHECKOUT** version `Plane-4.5.7` (branch)
 - [More info](ArduPilot%20&%20MavProx.md)
-## ardupilot_gazebo (*gazebo Garden*)
-- Install the [Gazebo Garden](https://gazebosim.org/docs/garden/install_ubuntu/) simulator binary:
+## ardupilot_gazebo (*gazebo Ionic*)
+- Install the [Gazebo Ionic](https://gazebosim.org/docs/ionic/install_ubuntu/) simulator binary:
 	- Test that it runs `gz sim -v4 -r shapes.sdf`
-	- **IMPORTANT:** It reached EOL but harmonic had problmes displaying the mesh of the skywalker, so garden was chosen as the only other alternative (to hamonic).
 - In folder: ~/gz_ws/ardupilot_gazebo/
-- [Install guide](https://ardupilot.org/dev/docs/sitl-with-gazebo.html)
+- Modified installation to match with Ionic version can be found in  [[ardupilot_gazebo plugin]]
 - Install the SITL_Models from cloning repo into home
 ```bash 
 git clone git@github.com:ArduPilot/ardupilot_gazebo.git
