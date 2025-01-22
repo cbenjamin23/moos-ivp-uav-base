@@ -39,6 +39,10 @@ kill_drone_session () {
 }
 
 cleanup() {
+    for file in ~/moos-ivp-uav/missions/MavlinkLog*.log; do
+        > "$file"
+    done
+
     excluded_files=("sim.parm" "hardware.parm" "mav_sim_old.parm" "way.txt")
 
     exclusions=()
@@ -67,12 +71,6 @@ cleanup() {
     else
         echo "Aborting deletions"
     fi
-
-    
-    for file in ~/moos-ivp-uav/missions/MavlinkLog*.log; do
-        > "$file"
-    done
-
     exit 0
 }
 

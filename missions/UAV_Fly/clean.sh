@@ -37,3 +37,5 @@ rm -f   $VERBOSE   targ_*
 rm -f   $VERBOSE   .LastOpenedMOOSLogDirectory
 rm -f   $VERBOSE   .mem_info*
 rm -f   $VERBOSE   vgroups.txt vnames.txt vpositions.txt vspeeds.txt
+
+rm -rf  $VERBOSE   Slogs/ Vlogs/

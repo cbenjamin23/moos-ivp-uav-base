@@ -18,6 +18,20 @@ using namespace std;
 
 #include <log.h>
 
+
+std::string extractVname(const std::string& missionFile) {
+    size_t start = missionFile.find("targ_") + 5; // 5 = length of "targ_"
+    size_t end = missionFile.find(".moos", start);
+
+    // Extract the substring containing vehicle_name
+    if (start != std::string::npos && end != std::string::npos) {
+        return missionFile.substr(start, end - start);
+    }
+
+    return "";
+}
+
+
 int main(int argc, char *argv[])
 {
     string mission_file;
@@ -60,7 +74,7 @@ int main(int argc, char *argv[])
 
     
     // Construct the full path for the log file
-    std::string save_path = std::string(home_dir) + "/moos-ivp-uav/missions/MavlinkLog_" + run_command + ".log";
+    std::string save_path = std::string(home_dir) + "/moos-ivp-uav/missions/MavlinkLog_" + extractVname(mission_file) + ".log";
     std::cout << "Log file path: " << save_path << std::endl;
     
     // Set the log file with the full path
