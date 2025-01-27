@@ -96,7 +96,7 @@ Behavior = BHV_Waypoint
 
 
      visual_hints = vertex_size  = 4             // default
-     visual_hints = vertex_color = dodger_blue   // default
+     visual_hints = vertex_color = $(COLOR)   // default
 }
 
 
@@ -171,7 +171,7 @@ Behavior = BHV_Waypoint
 	         point = $(START_POS)
 
     visual_hints = vertex_size  = 4             // default
-    visual_hints = vertex_color = dodger_blue   // default
+    visual_hints = vertex_color = $(COLOR)   // default
 }
 
 
@@ -193,7 +193,7 @@ Behavior = BHV_Waypoint
 	         point = $(START_POS)
 
     visual_hints = vertex_size  = 4             // default
-    visual_hints = vertex_color = dodger_blue   // default
+    visual_hints = vertex_color = $(COLOR)   // default
 }
 
 // //----------------------------------------------

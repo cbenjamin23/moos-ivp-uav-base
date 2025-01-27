@@ -59,11 +59,11 @@ public:
 
   bool commandReturnToLaunchAsync() const;
   bool commandLoiterAtPos(XYPoint pos, bool holdCurrentAltitude = true);
-  bool commandAndSetHeading(double heading); // command COG if in guided mode
-
-  bool commandDisarmAsync() const;
+  bool commandAndSetHeading(double heading, bool isAllowed=true); // command COG if in guided mode
 
   bool commandGuidedMode(bool alt_hold = false);
+
+  bool commandDisarmAsync() const;
 
   // Setters
   void setCallbackMOOSTrace(const std::function<void(const std::string &)> &callback) { callbackMOOSTrace = callback; }
@@ -86,6 +86,7 @@ public:
   bool isInAir() const { return (m_in_air); }
   mavsdk::Telemetry::FlightMode getFlightMode() const { return (m_flight_mode); }
   bool isGuidedMode() const { return (m_flight_mode == mavsdk::Telemetry::FlightMode::Guided); }
+  bool isHoldHeadingGuidedSet() const { return (m_is_hold_heading_guided_set); }
 
   XYPoint getNextWaypointLatLon() const { return (m_next_waypoint_coord); }
   XYPoint getHeadingWaypointLatLon() const { return (m_heading_waypoint_coord); }

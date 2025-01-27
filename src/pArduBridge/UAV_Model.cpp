@@ -17,6 +17,7 @@
 
 #include <cmath>
 
+
 //------------------------------------------------------------------------
 // Constructor
 
@@ -699,6 +700,9 @@ bool UAV_Model::commandChangeAltitude_Guided(double altitude_m, bool relativeAlt
     return false;
   }
 
+  // mavsdk::MavlinkCommandSender
+
+
   mavsdk::MavlinkPassthrough::CommandInt command_mode;
   command_mode.command = MAV_CMD_GUIDED_CHANGE_ALTITUDE;
   command_mode.target_sysid = m_system_ptr->get_system_id();
@@ -713,16 +717,37 @@ bool UAV_Model::commandChangeAltitude_Guided(double altitude_m, bool relativeAlt
   command_mode.x = -1;      // unused
   command_mode.y = -1;      // unused
 
-  // blocking
-  auto result = m_mavPass_ptr->send_command_int(command_mode);
+  mavsdk::Action::ResultCallback retultFuncion = [altitude_m, this ](mavsdk::Action::Result result){
+    
+    std::cout << "Result: " << result << std::endl;
 
-  if (result != mavsdk::MavlinkPassthrough::Result::Success)
-  {
-    std::stringstream ss;
-    ss << "command Change Altitude error: " << result << " with altitude " << altitude_m;
-    m_warning_system_ptr->monitorWarningForXseconds(ss.str(), WARNING_DURATION);
-    return false;
-  }
+    if (result != mavsdk::Action::Result::Success)
+    {
+      std::stringstream ss;
+      ss << "command Change Altitude error: " << result << " with altitude " << altitude_m;
+      m_warning_system_ptr->monitorWarningForXseconds(ss.str(), WARNING_DURATION);
+    } else{
+      reportEventFromCallback("command Change Altitude succeeded\n");
+    }
+
+  };
+
+
+
+  m_action_ptr->send_command_async(command_mode, retultFuncion);
+
+
+
+  // blocking
+  // auto result = m_mavPass_ptr->send_command_int(command_mode);
+
+  // if (result != mavsdk::MavlinkPassthrough::Result::Success)
+  // {
+  //   std::stringstream ss;
+  //   ss << "command Change Altitude error: " << result << " with altitude " << altitude_m;
+  //   m_warning_system_ptr->monitorWarningForXseconds(ss.str(), WARNING_DURATION);
+  //   return false;
+  // }
 
   MOOSTraceFromCallback("command Change Altitude succeeded\n");
 
@@ -885,7 +910,7 @@ void UAV_Model::setHeadingWyptFromHeading(double heading_deg)
   m_heading_waypoint_coord.set_vertex(new_lat_deg, new_lon_deg);
 }
 
-bool UAV_Model::commandAndSetHeading(double heading)
+bool UAV_Model::commandAndSetHeading(double heading, bool isAllowed)
 {
 
   if (!m_in_air)
@@ -896,8 +921,8 @@ bool UAV_Model::commandAndSetHeading(double heading)
 
   m_target_heading = heading;
 
-  if (isGuidedMode())
-  {
+  if (isGuidedMode() && isAllowed)
+  { 
     return commandChangeHeading_Guided(heading, HEADING_TYPE::HEADING_TYPE_COURSE_OVER_GROUND);
   }
 

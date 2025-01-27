@@ -40,6 +40,38 @@ ARDUPILOT_PORT=14550
 ARDUPILOT_PROTOCOL=udp
 
 
+CONFIG_FILE="./missionConfig.yaml"
+
+
+#--------------------------------------------------------------
+#  Functions
+#--------------------------------------------------------------
+
+get_field_by_drone_name() {
+    local drone_name=$1
+    local field_name=$2
+
+    local total_drones=$(yq eval '.drones | length' "$CONFIG_FILE")
+
+    for i in $(seq 0 $((total_drones - 1))); do
+        local current_name=$(yq eval ".drones[$i].name" "$CONFIG_FILE")
+
+        if [ "$current_name" = "$drone_name" ]; then
+
+            local val=$(yq eval ".drones[$i].$field_name" "$CONFIG_FILE")
+            if [ "$val" != "null" ]; then
+                echo "$val"
+                return 0
+            fi
+            echo "Error: Field '$field_name' not found for drone with name '$drone_name'." >&2
+            return 1
+        fi
+    done
+
+    # print an error and return 1
+    echo "Error: Drone with name '$drone_name' not found." >&2
+    return 1
+}
 
 #-------------------------------------------------------
 #  Part 2: Check for and handle command-line arguments
@@ -144,13 +176,28 @@ for ARGI; do
 done
 
 # #--------------------------------------------------------------
-# #  Part 3: If Skywalker hardware, set ArduPilot access info to known values
+# #  Part 3: Configure Variables 
 # #--------------------------------------------------------------
+
+#If Skywalker hardware, set ArduPilot access info to known values
 if [ "${XMODE}" = "REAL" ]; then
     ARDUPILOT_IP=ttySAC0
     ARDUPILOT_PORT=115200
     ARDUPILOT_PROTOCOL=serial
 fi
+
+
+if [ "${XMODE}" = "SIM" ]; then
+    SPEED=12 # It is 12 in simulation
+fi
+
+
+
+COLOR=$(get_field_by_drone_name "$VNAME" "color")
+if [ $? -ne 0 ]; then exit 1; fi
+
+
+
 
 #---------------------------------------------------------------
 #  Part 4: If verbose, show vars and confirm before launching
@@ -195,10 +242,6 @@ if [ "${AUTO_LAUNCHED}" = "no" ]; then
     NSFLAGS="-i -f"
 fi
 
-if [ "${XMODE}" = "SIM" ]; then
-    SPEED=12 # It is 12 in simulation
-fi
-
 nsplug meta_vehicle.moos targ_$VNAME.moos $NSFLAGS WARP=$TIME_WARP \
        PSHARE_PORT=$PSHARE_PORT     VNAME=$VNAME              \
        IP_ADDR=$IP_ADDR             SHORE_IP=$SHORE_IP        \
@@ -211,7 +254,7 @@ nsplug meta_vehicle.moos targ_$VNAME.moos $NSFLAGS WARP=$TIME_WARP \
 nsplug meta_vehicle.bhv targ_$VNAME.bhv $NSFLAGS VNAME=$VNAME \
        SPEED=$SPEED                  START_POS=$START_POS     \
        LatOrigin=$LAT_ORIGIN         LonOrogin=$LON_ORIGIN    \
-       XMODE=$XMODE 
+       XMODE=$XMODE                  COLOR=$COLOR 
                                                 
        
 if [ ${JUST_MAKE} = "yes" ]; then

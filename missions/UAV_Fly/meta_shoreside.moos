@@ -160,11 +160,57 @@ ProcessConfig = pMarineViewer
   set_pan_x            = -1922 // To get over the airport
   set_pan_y            = -1369 // To get over the airport
   zoom                 = 2
-  vehicles_shape_scale = 5.0
-  vehicles_name_mode   = names+depth
   log_the_image = true
 
-	beat_flag = HEARTBEAT_ALL=true
+
+  beat_flag = HEARTBEAT_ALL=true
+
+  appcast_viewable     = true
+  appcast_color_scheme = indigo
+
+	procs_font_size = medium
+	nodes_font_size = medium
+	infocast_font_size = medium
+	
+  polygon_viewable_all    = true
+  polygon_viewable_labels = false
+  seglist_viewable_all    = true
+  seglist_viewable_labels = false
+  point_viewable_all    = true
+  point_viewable_labels = true
+
+  comms_pulse_viewable_all = true
+  range_pulse_viewable_all = false
+  node_pulse_viewable_all  = false
+
+
+
+  ////////////////////////////////////////////////
+  // Vehicle related
+  ////////////////////////////////////////////////
+
+  bearing_lines_viewable  = true
+  center_view             = average
+  trails_color            = white
+
+  stale_report_thresh = 2
+  stale_remove_thresh = 120
+
+
+  vehicles_shape_scale = 5.0
+  vehicles_name_mode   = names
+  vehicles_active_color = skyblue // (87,ce,eb)
+  vehicles_inactive_color = gray // (80,80,80)
+
+  vehicles_name_color = white
+
+
+
+
+  ////////////////////////////////////////////////
+  // Actions
+  ////////////////////////////////////////////////
+
   action = BLOCK_HEARTBEAT = true
 	action+ = BLOCK_HEARTBEAT = false
 
@@ -187,26 +233,18 @@ ProcessConfig = pMarineViewer
 
 
 
-
-  appcast_viewable     = true
-  appcast_color_scheme = indigo
-
-	procs_font_size = medium
-	nodes_font_size = medium
-	infocast_font_size = medium
-	
-  polygon_viewable_all    = true
-  polygon_viewable_labels = false
-  seglist_viewable_all    = true
-  seglist_viewable_labels = false
-  point_viewable_all    = true
-  point_viewable_labels = true
+  ////////////////////////////////////////////////
+  // Mouse Contexts
+  ////////////////////////////////////////////////
 
 	// left_context[reg_waypoint]  = VIEW_POINT = x=$[XPOS],y=$[YPOS],label=next_wpt,vertex_size=4
   
-  left_context[reg_waypoint] =  VIEW_MARKER = "type=gateway,x=$[XPOS],y=$[YPOS],scale=14,label=next_wpt,color=brown,width=14"
-  left_context[reg_waypoint] =  NEXT_WAYPOINT = "lat=$[LAT],lon=$[LON],x=$[XPOS],y=$[YPOS],vname=$[VNAME]"
+  left_context[register_wypt_all] =  VIEW_MARKER = "type=gateway,x=$[XPOS],y=$[YPOS],scale=10,label=next_wpt_all,color=blue,width=10"
+  left_context[register_wypt_all] =  NEXT_WAYPOINT = "lat=$[LAT],lon=$[LON],x=$[XPOS],y=$[YPOS],vname=all"
   
+  left_context[register_wypt_active_vehicle] =  VIEW_MARKER = "type=gateway,x=$[XPOS],y=$[YPOS],scale=10,label=next_wpt_$[VNAME],color=gray,width=10"
+  left_context[register_wypt_active_vehicle] =  NEXT_WAYPOINT = "lat=$[LAT],lon=$[LON],x=$[XPOS],y=$[YPOS],vname=$[VNAME]"
+
   
   // left_context[reg_swimmer]   = XSWIMMER_ALERT = type=reg,x=$[XPOS],y=$[YPOS]
   // left_context[reg_swimmer]   = SURVEY_ALL=true
@@ -219,14 +257,14 @@ ProcessConfig = pMarineViewer
 	// right_context[rescue]  = XFOUND_SWIMMER = x=$[XPOS],y=$[YPOS]
  
 
-  comms_pulse_viewable_all = true
-  range_pulse_viewable_all = false
-  node_pulse_viewable_all  = false
 
-  vehicles_name_mode = names
 
-  stale_report_thresh = 2
-  stale_remove_thresh = 20000
+
+
+  ////////////////////////////////////////////////
+  // Buttons
+  ////////////////////////////////////////////////
+  
 
   button_one   = ARM_ALL  # ARM_UAV_ALL=true
   button_two   = DISARM_ALL   # ARM_UAV_ALL=false 
@@ -244,6 +282,10 @@ ProcessConfig = pMarineViewer
 
   button_10 = PARK_HELM_ALL # MOOS_MANUAL_OVERRIDE_ALL=true
 
+
+  ////////////////////////////////////////////////
+  // Commands
+  ////////////////////////////////////////////////
 
   cmd = label=TAKEOFF, var=DO_TAKEOFF, sval=true, receivers=all:$(VNAMES)
   cmd = label=TOWAYPOINT, var=FLY_WAYPOINT, sval=true, receivers=all:$(VNAMES)

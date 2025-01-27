@@ -9,9 +9,11 @@ ProcessConfig = pArduBridge
   url_protocol = $(AP_PROTOCOL)
 
   vname = $(VNAME)
+  vcolor = $(COLOR)
   prefix = NAV
 
   cmd_GS = false
+
 
 #ifdef XMODE SIM
   is_Sim = true

@@ -11,11 +11,15 @@
 #include "MOOS/libMOOS/Thirdparty/AppCasting/AppCastingMOOSApp.h"
 
 #include "MOOSGeodesy.h"
-#include <cli_arg.h>
+#include <mavsdk/cli_arg.h>
 
 #include "WarningSystem.h"
 #include "UAV_Model.h"
 #include "SetpointManager.h"
+
+#include <map>
+#include <functional>
+#include <utility> // for std::pair
 
 class ArduBridge : public AppCastingMOOSApp
 {
@@ -65,7 +69,7 @@ private: // Autopilot Helm states
     HELM_INACTIVE_LOITERING,
 
     // Active states where the Helm is in control
-    HELM_ACTIVE,
+    HELM_ACTIVE, // Helm has nothing to do
     HELM_TOWAYPT,
     HELM_SURVEYING,
     HELM_RETURNING,
@@ -73,7 +77,6 @@ private: // Autopilot Helm states
   };
 
   // map containing the stateName
-
   const std::vector<std::pair<AutopilotHelmMode, std::string>> stateStringPairs = {
       {AutopilotHelmMode::HELM_PARKED, "HELM_PARKED"},
       {AutopilotHelmMode::HELM_INACTIVE, "HELM_INACTIVE"},
@@ -109,27 +112,36 @@ private: // Autopilot Helm states
     return AutopilotHelmMode::HELM_UNKOWN;
   }
 
+  using StateTransition = std::pair<AutopilotHelmMode, AutopilotHelmMode>;
+  std::map<StateTransition, std::function<void()>> m_statetransition_functions;
+  void initializeStateTransitionFunctions();
+
 private:
-  const double MARKER_WIDTH = 14.0;
+  const double MARKER_WIDTH = 10.0;
   const double HEADING_POINT_SIZE = 5;
 
   void visualizeHomeLocation();
   void visualizeLoiterLocation(const XYPoint &loiter_coord, bool visualize = true);
   void visualizeHeadingWaypoint(const XYPoint &heading_coord, bool visualize = true);
+  void visualizeHdgVector(double x, double y, double magnitude, double angle, bool visualize = true);
+
+  void visualizeHdgHoldTarget(bool visualize = true);
 
   // bool evaluateBoolFromString(const std::string& str) const { bool b; setBooleanOnString(b,str); return b;}
   bool parseCoordinateString(const std::string &input, double &lat, double &lon, double &x, double &y, std::string &vname) const;
 
-  AutopilotHelmMode getTransitionAutopilotHelmState() const;
+  // AutopilotHelmMode getTransitionAutopilotHelmState() const;
 
 private: // Helperfunctions
   std::string generateMissionPathSpec(const std::vector<XYPoint> &points) const;
 
   std::string xypointToString(const XYPoint &point) const;
   XYPoint transformLatLonToXY(const XYPoint &lat_lon);
-  bool isHelmActive() const { return (m_autopilot_mode != AutopilotHelmMode::HELM_INACTIVE && m_autopilot_mode != AutopilotHelmMode::HELM_INACTIVE_LOITERING && m_autopilot_mode != AutopilotHelmMode::HELM_PARKED); };
+  bool isHelmDrive() const { return (m_autopilot_mode != AutopilotHelmMode::HELM_INACTIVE && m_autopilot_mode != AutopilotHelmMode::HELM_INACTIVE_LOITERING && m_autopilot_mode != AutopilotHelmMode::HELM_PARKED); };
+  bool isHelmCommanding() const { return (m_autopilot_mode == AutopilotHelmMode::HELM_SURVEYING || m_autopilot_mode == AutopilotHelmMode::HELM_TOWAYPT || m_autopilot_mode == AutopilotHelmMode::HELM_RETURNING); };
+  bool isHelmNothingTodo() const { return (m_autopilot_mode == AutopilotHelmMode::HELM_ACTIVE); };
 
-  void goToHelmMode(AutopilotHelmMode state);
+  void goToHelmMode(AutopilotHelmMode state, bool fromGCS = false);
 
   bool tryDoTakeoff();
   bool tryFlyToWaypoint();
@@ -140,6 +152,7 @@ private: // State variables
   // For UAV
 
   std::string m_vname;
+  std::string m_vcolor;
   bool m_is_simulation;
   bool m_command_groundSpeed;
 
@@ -147,13 +160,12 @@ private: // State variables
   UAV_Model m_uav_model;
   SetpointManager m_setpoint_manager;
 
-  bool m_do_fly_to_waypoint;
-  bool m_do_takeoff;
   std::pair<bool, double> m_do_change_speed_pair;
   std::pair<bool, double> m_do_change_heading_pair;
   std::pair<bool, double> m_do_change_altitude_pair;
   bool m_do_reset_speed;
-
+  bool m_do_fly_to_waypoint;
+  bool m_do_takeoff;
   bool m_do_arm;
   bool m_do_return_to_launch;
   bool m_do_loiter;
@@ -162,7 +174,6 @@ private: // State variables
   AutopilotHelmMode m_autopilot_mode;
 
   // Helm utility
-
   XYPoint m_tonext_waypointXY;
   std::vector<XYPoint> m_waypointsXY_mission;
 };

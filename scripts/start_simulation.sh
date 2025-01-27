@@ -140,20 +140,21 @@ for (( i=1; i <= $#; i++ )); do
         *)
             echo "Unknown argument: $ARGI"
             # Print help
-            echo "Usage: start_simulation.sh [--gdb]: Start ArduPilot SITL in GDB mode (debugging)
-                                             [--mp] : Start Mission Planner
-                                             [--just_gz] : Start Gazebo only (no ArduPilot SITL)
-                                             [--parm=filename | --parm filename]
-                                                    :Use the specified parameter file for ArduPilot SITL
-                                             [--swarm=num_vehicles | --swarm num_vehicles]
-                                                    : Start Gazebo with num_vehicles vehicles
-                                                      Default is 1 vehicle
-                                             [--clean] : Clean up simulation files
-                                             [--config] : Use the configuration file to generate drone SDF files
-                                             [--force | -f] : Force overwrite of existing drone SDF files and restart Gazebo
-                                             [--verbose | -v] : Verbose output
-                                             [--nt] : Open new terminal windows for the simulation
-                                             [--ks] : Kill existing tmux session and exit"
+            echo "Usage: start_simulation.sh 
+        [--gdb]: Start ArduPilot SITL in GDB mode (debugging)
+        [--mp] : Start Mission Planner
+        [--just_gz] : Start Gazebo only (no ArduPilot SITL)
+        [--parm=filename | --parm filename]
+            :Use the specified parameter file for ArduPilot SITL
+        [--swarm=num_vehicles | --swarm num_vehicles]
+            : Start Gazebo with num_vehicles vehicles
+              Default is 1 vehicle
+        [--clean] : Clean up simulation files
+        [--config] : Use the configuration file to generate drone SDF files
+        [--force | -f] : Force overwrite of existing drone SDF files and restart Gazebo
+        [--verbose | -v] : Verbose output
+        [--nt] : Open new terminal windows for the simulation
+        [--ks] : Kill existing tmux session and exit"
 
             exit 1
             ;;

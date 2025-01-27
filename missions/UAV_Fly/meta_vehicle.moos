@@ -25,6 +25,7 @@ Processconfig = ANTLER
   Run = pRealm             @ NewConsole = false
   Run = uProcessWatch      @ NewConsole = false
   Run = pArduBridge        @ NewConsole = true,XConfig=DBXConsoleSettings,  \[=\=]
+  Run = uLoadWatch         @ NewConsole = false
 
   // xterm configuration settings for pArduBridge
   DBXConsoleSettings = -hold,-bg,#2e302c,-geometry,80x60+2+00,+sb,-T,pArduBridge-$(VNAME)
@@ -109,11 +110,13 @@ ProcessConfig = uFldNodeBroker
   bridge = src=VIEW_POINT
   bridge = src=VIEW_MARKER
   bridge = src=VIEW_SEGLIST
+  bridge = src=VIEW_VECTOR
   bridge = src=APPCAST
   bridge = src=BCM_DETECTION_DIST
   bridge = src=NODE_REPORT_LOCAL,  alias=NODE_REPORT
   bridge = src=NODE_MESSAGE_LOCAL, alias=NODE_MESSAGE
 	bridge = src=VIEW_COMMS_PULSE
+  
 
 	bridge = src=RESCUE_REQUEST
 
@@ -150,8 +153,10 @@ ProcessConfig = pNodeReporter
   CommsTick   = 6
   
   platform_type = GLIDER
-
 	platform_color = $(COLOR)
+
+
+  cross_fill_policy=global
 }
 
 //----------------------------------------
@@ -197,3 +202,22 @@ ProcessConfig = pLogger
 
   CompressAlogs = false
 }
+
+//=============================================================== 
+//uLoadWatch Example MOOS Configuration                           
+//=============================================================== 
+                                                                
+ProcessConfig = uLoadWatch                                      
+{                                                               
+  AppTick   = 4                                                 
+  CommsTick = 4                                                 
+                                                                
+  thresh = app=pHelmIvP, gapthresh=1.5                          
+  thresh = app=any,      gapthresh=2.0                          
+                                                                
+  near_breach_thresh = 0.9  // default                          
+                                                                
+  breach_trigger = 1    // default (first offense forgiven)     
+                                                                
+  app_logging = true  // {true or file} By default disabled     
+} 
