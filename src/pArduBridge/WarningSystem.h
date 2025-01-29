@@ -4,81 +4,117 @@
 #include <functional>
 #include <unordered_map>
 #include <string>
-
 #include <chrono>
+#include <shared_mutex>
 #include <mutex>
+#include <unordered_set>
 
-class WarningSystem {
+class WarningSystem
+{
 public:
-    // Function signatures for warning reporting and retraction
-    using CallbackType = std::function<void(const std::string&)>;
+    using CallbackType = std::function<void(const std::string &)>;
 
-
-    WarningSystem(CallbackType MOOSReportCallback = nullptr, CallbackType MOOSRetractCallback = nullptr) 
+    WarningSystem(CallbackType MOOSReportCallback = nullptr, CallbackType MOOSRetractCallback = nullptr)
         : MOOSReportCallback(MOOSReportCallback), MOOSRetractCallback(MOOSRetractCallback) {}
 
-    void monitorWarningForXseconds(const std::string& warningKey, double seconds) {
-
-        
-         // Get the current time as the start time
+    void queue_monitorWarningForXseconds(const std::string &warningKey, double seconds)
+    {
         auto start_time = std::chrono::steady_clock::now();
+        auto expiration_time = start_time + std::chrono::milliseconds(static_cast<int>(seconds * 1000));
 
-        // Create a condition that checks whether the current time is within the duration
-        std::function<bool()> condition = [start_time, seconds]() {
-            auto current_time = std::chrono::steady_clock::now();
-            auto elapsed_seconds = std::chrono::duration_cast<std::chrono::seconds>(current_time - start_time).count();
-            return elapsed_seconds < seconds;  // True if still within the time limit
+        std::function<bool()> condition = [expiration_time]()
+        {
+            return std::chrono::steady_clock::now() < expiration_time;
         };
 
-        monitorCondition(warningKey, condition);
+        {
+            std::unique_lock lock(mutex_);
+            timeBasedWarnings.insert(warningKey); // time-based
+        }
+
+        queue_monitorCondition(warningKey, condition);
     }
 
-    // Register a condition to be monitored
-    void monitorCondition(const std::string& warningKey, 
-                          std::function<bool()> condition, 
-                          CallbackType reportCallback = nullptr, 
-                          CallbackType retractCallback = nullptr) {
-        
+    // Registers a condition to be monitored
+    void queue_monitorCondition(const std::string &warningKey,
+                                std::function<bool()> condition,
+                                CallbackType reportCallback = nullptr,
+                                CallbackType retractCallback = nullptr)
+    {
 
-        if (reportCallback == nullptr) {
+        if (reportCallback == nullptr)
+        {
             reportCallback = MOOSReportCallback;
         }
-        if (retractCallback == nullptr) {
+        if (retractCallback == nullptr)
+        {
             retractCallback = MOOSRetractCallback;
         }
+
+        std::unique_lock lock(mutex_);
         monitoredConditions[warningKey] = {condition, reportCallback, retractCallback};
+        warningsActive[warningKey] = false; // Initialize as inactive
     }
 
-    // This method is called periodically (e.g., in a loop or timer)
-    void checkConditions() {
-        for (auto& [warningKey, conditionData] : monitoredConditions) {
-            auto& condition = conditionData.condition;
-            auto& reportCallback = conditionData.reportCallback;
-            auto& retractCallback = conditionData.retractCallback;
+    // Periodically called
+    void checkConditions()
+    {
+        std::unique_lock lock(mutex_);
+        auto it = monitoredConditions.begin();
+        while (it != monitoredConditions.end())
+        {
+            const auto warningKey = it->first;
+            auto &conditionData = it->second;
+            auto &condition = conditionData.condition;
+            auto &reportCallback = conditionData.reportCallback;
+            auto &retractCallback = conditionData.retractCallback;
 
-            if (condition() && !warningsActive[warningKey]) {
-                reportCallback(warningKey);
-                warningsActive[warningKey] = true;
-            } else if (!condition() && warningsActive[warningKey]) {
-                retractCallback(warningKey);
-                warningsActive[warningKey] = false;
+            if (condition())
+            {
+                if (!warningsActive[warningKey])
+                {
+                    if (reportCallback)
+                        reportCallback(warningKey);    //  report callback
+                    warningsActive[warningKey] = true; //  active
+                }
+                ++it;
+            }
+            else
+            {
+                if (warningsActive[warningKey])
+                {
+                    if (retractCallback)
+                        retractCallback(warningKey);    // retract callback
+                    warningsActive[warningKey] = false; // inactive
+                }
+                // Remove only time-based warnings
+                if (timeBasedWarnings.count(warningKey))
+                {
+                    it = monitoredConditions.erase(it);
+                    timeBasedWarnings.erase(warningKey);
+                }
+                else
+                {
+                    ++it;
+                }
             }
         }
     }
 
 private:
-    
-    CallbackType MOOSReportCallback;
-    CallbackType MOOSRetractCallback;
-
-
-    struct ConditionData {
+    struct ConditionData
+    {
         std::function<bool()> condition;
         CallbackType reportCallback;
         CallbackType retractCallback;
     };
 
+    CallbackType MOOSReportCallback;
+    CallbackType MOOSRetractCallback;
+
     std::unordered_map<std::string, ConditionData> monitoredConditions;
     std::unordered_map<std::string, bool> warningsActive;
-};
 
+    std::unordered_set<std::string> timeBasedWarnings; // Track time-based warnings
+    mutable std::shared_mutex mutex_;                  // Protects shared data
+};

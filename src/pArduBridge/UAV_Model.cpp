@@ -17,7 +17,7 @@
 
 #include <cmath>
 
-
+#include <future> // for async and promises
 //------------------------------------------------------------------------
 // Constructor
 
@@ -34,23 +34,22 @@ UAV_Model::UAV_Model(std::shared_ptr<WarningSystem> ws) : m_mavsdk_ptr{std::make
                                                           m_target_altitudeAGL{120.0},
                                                           m_target_airspeed{0.0},
                                                           m_target_heading{0.0},
-                                                          m_last_sent_altitudeAGL{double(NAN)}
+                                                          m_last_sent_altitudeAGL{double(NAN)},
+                                                          mts_position{mavsdk::Telemetry::Position()},
+                                                          mts_attitude_ned{mavsdk::Telemetry::EulerAngle()},
+                                                          m_velocity_ned{mavsdk::Telemetry::VelocityNed()},
+                                                          mts_battery{mavsdk::Telemetry::Battery()},
+                                                          mts_flight_mode{mavsdk::Telemetry::FlightMode::Unknown},
+                                                          mts_home_coord{XYPoint(0, 0)},
+                                                          mts_current_loiter_coord{XYPoint(0, 0)},
+                                                          mts_next_waypoint_coord{XYPoint(0, 0)},
+                                                          mts_heading_waypoint_coord{XYPoint(0, 0)},
+                                                          mts_polled_params{PolledParameters()}
+
 {
   // Initalize the configuration variables
 
   m_warning_system_ptr = ws;
-
-  // Initalize the state variables
-  m_position = mavsdk::Telemetry::Position();
-  m_attitude_ned = mavsdk::Telemetry::EulerAngle();
-  m_velocity_ned = mavsdk::Telemetry::VelocityNed();
-  m_battery = mavsdk::Telemetry::Battery();
-  m_flight_mode = mavsdk::Telemetry::FlightMode::Unknown;
-
-  m_home_coord = XYPoint(0, 0);
-  m_current_loiter_coord = XYPoint(0, 0);
-  m_next_waypoint_coord = XYPoint(0, 0);
-  m_heading_waypoint_coord = XYPoint(0, 0);
 }
 
 //------------------------------------------------------------------------
@@ -76,7 +75,7 @@ bool UAV_Model::connectToUAV(std::string url)
     MOOSTraceFromCallback(ss.str().c_str());
 
     std::cout << ss.str() << std::endl;
-    m_warning_system_ptr->monitorWarningForXseconds(ss.str(), WARNING_DURATION);
+    m_warning_system_ptr->queue_monitorWarningForXseconds(ss.str(), WARNING_DURATION);
 
     return false;
   }
@@ -89,7 +88,7 @@ bool UAV_Model::connectToUAV(std::string url)
   auto system = m_mavsdk_ptr->first_autopilot(3.0);
   if (!system.has_value())
   {
-    m_warning_system_ptr->monitorWarningForXseconds(WARNING_TIMED_OUT, WARNING_DURATION);
+    m_warning_system_ptr->queue_monitorWarningForXseconds(WARNING_TIMED_OUT, WARNING_DURATION);
     std::cout << "UAV System NOT discovered\n";
     return false;
   }
@@ -112,7 +111,7 @@ bool UAV_Model::connectToUAV(std::string url)
   if (resPair.first != mavsdk::Action::Result::Success)
   {
     std::cout << "Failed to get initial target speed\n";
-    m_warning_system_ptr->monitorWarningForXseconds("Failed to get initial target speed", WARNING_DURATION);
+    m_warning_system_ptr->queue_monitorWarningForXseconds("Failed to get initial target speed", WARNING_DURATION);
   }
   else
   {
@@ -131,7 +130,7 @@ bool UAV_Model::setUpMission(bool onlyRegisterHome)
 
     if (clear_result != mavsdk::MissionRaw::Result::Success)
     {
-      m_warning_system_ptr->monitorWarningForXseconds("Failed to clear mission", WARNING_DURATION);
+      m_warning_system_ptr->queue_monitorWarningForXseconds("Failed to clear mission", WARNING_DURATION);
     }
   }
 
@@ -141,7 +140,7 @@ bool UAV_Model::setUpMission(bool onlyRegisterHome)
 
   if (download_result.first != mavsdk::MissionRaw::Result::Success)
   {
-    m_warning_system_ptr->monitorWarningForXseconds("Failed to download mission", WARNING_DURATION);
+    m_warning_system_ptr->queue_monitorWarningForXseconds("Failed to download mission", WARNING_DURATION);
     std::cout << "Failed to download mission - Using default home location\n";
 
     mavsdk::MissionRaw::MissionItem home_item{};
@@ -174,20 +173,21 @@ bool UAV_Model::setUpMission(bool onlyRegisterHome)
   std::cout << ss.str();
   ss.clear();
 
-  m_home_coord.set_vx(home_point.x * 1e-7);
-  m_home_coord.set_vy(home_point.y * 1e-7);
+  mts_home_coord->set_vx(home_point.x * 1e-7);
+  mts_home_coord->set_vy(home_point.y * 1e-7);
 
   if (home_point.frame == MAV_FRAME_GLOBAL)
   {
-    m_home_coord.set_vz(home_point.z);
+    mts_home_coord->set_vz(home_point.z);
   }
   else
   {
     std::cout << "Home point is not in global frame, but in frame" << home_point.frame << std::endl;
-    m_warning_system_ptr->monitorWarningForXseconds("Home point is not in global frame, but in frame" + intToString(home_point.frame), WARNING_DURATION);
+    m_warning_system_ptr->queue_monitorWarningForXseconds("Home point is not in global frame, but in frame" + intToString(home_point.frame), WARNING_DURATION);
   }
 
-  std::cout << "Home point: " << m_home_coord.x() << ", " << m_home_coord.y() << " , " << home_point.z << std::endl;
+  auto m_coord = mts_home_coord.get();
+  std::cout << "-> Home point: " << m_coord.x() << ", " << m_coord.y() << " , " << home_point.z << std::endl;
 
   if (onlyRegisterHome)
   {
@@ -196,20 +196,23 @@ bool UAV_Model::setUpMission(bool onlyRegisterHome)
 
   mission_plan.clear();
 
-  create_missionPlan(mission_plan, m_home_coord.x(), m_home_coord.y());
+  std::cout << "Creating mission plan\n";
+  create_missionPlan(mission_plan, m_coord.x(), m_coord.y());
 
   auto upload_result = m_mission_raw_ptr->upload_mission(mission_plan);
   if (upload_result != mavsdk::MissionRaw::Result::Success)
   {
-    m_warning_system_ptr->monitorWarningForXseconds("Mission upload failed", WARNING_DURATION);
+    m_warning_system_ptr->queue_monitorWarningForXseconds("Mission upload failed", WARNING_DURATION);
     std::stringstream ss;
     ss << "Failed to upload mission" << std::endl;
     ss << "upload result: " << upload_result << std::endl;
     MOOSTraceFromCallback(ss.str());
+    std::cout << ss.str();
   }
 
   m_mission_raw_ptr->set_current_mission_item(0);
 
+  std::cout << "Mission uploaded\n";
   return true;
 }
 
@@ -220,9 +223,9 @@ bool UAV_Model::startMission() const
   {
     // reportRunWarning("Not armed");
 
-    m_warning_system_ptr->monitorCondition(WARNING_UAV_NOT_ARMED,
-                                           [&]()
-                                           { return !m_is_armed; });
+    m_warning_system_ptr->queue_monitorCondition(WARNING_UAV_NOT_ARMED,
+                                                 [&]()
+                                                 { return !m_is_armed; });
     return false;
   }
 
@@ -230,7 +233,7 @@ bool UAV_Model::startMission() const
 
   if (start_result != mavsdk::MissionRaw::Result::Success)
   {
-    m_warning_system_ptr->monitorWarningForXseconds("Failed to start mission", WARNING_DURATION);
+    m_warning_system_ptr->queue_monitorWarningForXseconds("Failed to start mission", WARNING_DURATION);
     return false;
   }
 
@@ -240,14 +243,13 @@ bool UAV_Model::startMission() const
 
 bool UAV_Model::sendArmCommandIfHealthyAndNotArmed() const
 {
-
   if (m_health_all_ok && !m_is_armed)
   {
     commandArmAsync();
     return true;
   }
 
-  m_warning_system_ptr->monitorWarningForXseconds("UAV is not healthy or is already armed", WARNING_DURATION);
+  m_warning_system_ptr->queue_monitorWarningForXseconds("UAV is not healthy or is already armed", WARNING_DURATION);
   return false;
 }
 
@@ -262,21 +264,21 @@ bool UAV_Model::subscribeToTelemetry()
 
   m_telemetry_ptr->subscribe_position([&](mavsdk::Telemetry::Position position)
                                       {
-                                        m_position = position;
+                                        mts_position = position;
 
-                                        m_in_air = (m_position.relative_altitude_m >= IN_AIR_HIGHT_THRESHOLD); });
+                                        m_in_air = (position.relative_altitude_m >= IN_AIR_HIGHT_THRESHOLD); });
 
   m_telemetry_ptr->subscribe_attitude_euler([&](mavsdk::Telemetry::EulerAngle attitude_ned)
-                                            { m_attitude_ned = attitude_ned; });
+                                            { mts_attitude_ned = attitude_ned; });
 
   m_telemetry_ptr->subscribe_velocity_ned([&](mavsdk::Telemetry::VelocityNed vel)
                                           { m_velocity_ned = vel; });
 
   m_telemetry_ptr->subscribe_battery([&](mavsdk::Telemetry::Battery battery)
-                                     { m_battery = battery; });
+                                     { mts_battery = battery; });
 
   m_telemetry_ptr->subscribe_flight_mode([&](mavsdk::Telemetry::FlightMode flight_mode)
-                                         { m_flight_mode = flight_mode; });
+                                         { mts_flight_mode = flight_mode; });
 
   // gives wrong data
   // m_telemetry_ptr->subscribe_in_air([&](bool in_air) {
@@ -308,11 +310,11 @@ bool UAV_Model::getParameterAsync(Parameters param_enum)
         if (result != mavsdk::Action::Result::Success) {
             std::stringstream ss;
             ss << "Failed to get target speed: " << result;
-            m_warning_system_ptr->monitorWarningForXseconds(ss.str(), WARNING_DURATION);
+            m_warning_system_ptr->queue_monitorWarningForXseconds(ss.str(), WARNING_DURATION);
             return;
         }
         std::cout << "target speed: " << target_speed << std::endl;
-        m_polled_params.target_airspeed_cruise = target_speed; });
+        mts_polled_params->target_airspeed_cruise = target_speed; });
     break;
 
   case Parameters::AIRSPEED_MAX:
@@ -321,11 +323,11 @@ bool UAV_Model::getParameterAsync(Parameters param_enum)
         if (result != mavsdk::Action::Result::Success) {
             std::stringstream ss;
             ss << "Failed to get maximum speed: " << result;
-            m_warning_system_ptr->monitorWarningForXseconds(ss.str(), WARNING_DURATION);
+            m_warning_system_ptr->queue_monitorWarningForXseconds(ss.str(), WARNING_DURATION);
             return;
         }
 
-        m_polled_params.max_airspeed = static_cast<int>(max_speed); });
+        mts_polled_params->max_airspeed = static_cast<int>(max_speed); });
     break;
   case Parameters::AIRSPEED_MIN:
     m_action_ptr->get_minimum_speed_async([this](mavsdk::Action::Result result, int min_speed)
@@ -333,14 +335,14 @@ bool UAV_Model::getParameterAsync(Parameters param_enum)
         if (result != mavsdk::Action::Result::Success) {
             std::stringstream ss;
             ss << "Failed to get minimum speed: " << result;
-            m_warning_system_ptr->monitorWarningForXseconds(ss.str(), WARNING_DURATION);
+            m_warning_system_ptr->queue_monitorWarningForXseconds(ss.str(), WARNING_DURATION);
             return;
         }
 
-        m_polled_params.min_airspeed = min_speed; });
+        mts_polled_params->min_airspeed = min_speed; });
     break;
   default:
-    m_warning_system_ptr->monitorWarningForXseconds("Parameter unknown: " + intToString(static_cast<int>(param_enum)), WARNING_DURATION);
+    m_warning_system_ptr->queue_monitorWarningForXseconds("Parameter unknown: " + intToString(static_cast<int>(param_enum)), WARNING_DURATION);
     return false;
   }
   return true;
@@ -357,7 +359,7 @@ bool UAV_Model::setParameterAsync(Parameters param_enum, double value) const
           if (result != mavsdk::Action::Result::Success) {
               std::stringstream ss;
               ss << "Failed to set target speed: " << result;
-              m_warning_system_ptr->monitorWarningForXseconds(ss.str(), WARNING_DURATION);
+              m_warning_system_ptr->queue_monitorWarningForXseconds(ss.str(), WARNING_DURATION);
               return;
           } });
     break;
@@ -367,7 +369,7 @@ bool UAV_Model::setParameterAsync(Parameters param_enum, double value) const
           if (result != mavsdk::Action::Result::Success) {
               std::stringstream ss;
               ss << "Failed to set maximum speed: " << result;
-              m_warning_system_ptr->monitorWarningForXseconds(ss.str(), WARNING_DURATION);
+              m_warning_system_ptr->queue_monitorWarningForXseconds(ss.str(), WARNING_DURATION);
               return;
           } });
     break;
@@ -377,12 +379,12 @@ bool UAV_Model::setParameterAsync(Parameters param_enum, double value) const
           if (result != mavsdk::Action::Result::Success) {
               std::stringstream ss;
               ss << "Failed to set minimum speed: " << result;
-              m_warning_system_ptr->monitorWarningForXseconds(ss.str(), WARNING_DURATION);
+              m_warning_system_ptr->queue_monitorWarningForXseconds(ss.str(), WARNING_DURATION);
               return;
           } });
     break;
   default:
-    m_warning_system_ptr->monitorWarningForXseconds("Parameter unknown: " + intToString(static_cast<int>(param_enum)), WARNING_DURATION);
+    m_warning_system_ptr->queue_monitorWarningForXseconds("Parameter unknown: " + intToString(static_cast<int>(param_enum)), WARNING_DURATION);
     return false;
     break;
   }
@@ -392,6 +394,8 @@ bool UAV_Model::setParameterAsync(Parameters param_enum, double value) const
 
 bool UAV_Model::haveAutorythyToChangeMode() const
 {
+  // Read the values from the thread safe variables
+  auto m_flight_mode = mts_flight_mode.get();
 
   if (m_flight_mode == mavsdk::Telemetry::FlightMode::Mission                                                                   //   Mission mode is ardupilots AUTO mode
       || m_flight_mode == mavsdk::Telemetry::FlightMode::ReturnToLaunch || m_flight_mode == mavsdk::Telemetry::FlightMode::Hold // Also loiter mode
@@ -410,11 +414,12 @@ bool UAV_Model::haveAutorythyToChangeMode() const
 
 bool UAV_Model::commandGuidedMode(bool alt_hold)
 {
+
   if (!haveAutorythyToChangeMode())
   {
     std::stringstream ss;
-    ss << "Cannot change mode. Do not have autorithy. Flight mode in " << m_flight_mode;
-    m_warning_system_ptr->monitorWarningForXseconds(ss.str(), WARNING_DURATION);
+    ss << "Cannot change mode. Do not have autorithy. Flight mode in " << mts_flight_mode;
+    m_warning_system_ptr->queue_monitorWarningForXseconds(ss.str(), WARNING_DURATION);
     return false;
   }
 
@@ -426,7 +431,7 @@ bool UAV_Model::commandGuidedMode(bool alt_hold)
     {
       std::stringstream ss;
       ss << "Failed to exit Guided after hold is activated: " << result;
-      m_warning_system_ptr->monitorWarningForXseconds(ss.str(), WARNING_DURATION);
+      m_warning_system_ptr->queue_monitorWarningForXseconds(ss.str(), WARNING_DURATION);
       return false;
     }
 
@@ -442,7 +447,7 @@ bool UAV_Model::commandGuidedMode(bool alt_hold)
   {
     std::stringstream ss;
     ss << "Failed to enter Guided mode: " << result;
-    m_warning_system_ptr->monitorWarningForXseconds(ss.str(), WARNING_DURATION);
+    m_warning_system_ptr->queue_monitorWarningForXseconds(ss.str(), WARNING_DURATION);
     return false;
   }
 
@@ -457,8 +462,8 @@ bool UAV_Model::commandReturnToLaunchAsync() const
   if (!haveAutorythyToChangeMode())
   {
     std::stringstream ss;
-    ss << "Cannot change mode. Do not have autorithy. Flight mode in " << m_flight_mode;
-    m_warning_system_ptr->monitorWarningForXseconds(ss.str(), WARNING_DURATION);
+    ss << "Cannot change mode. Do not have autorithy. Flight mode in " << mts_flight_mode;
+    m_warning_system_ptr->queue_monitorWarningForXseconds(ss.str(), WARNING_DURATION);
     return false;
   }
 
@@ -467,7 +472,7 @@ bool UAV_Model::commandReturnToLaunchAsync() const
     if (result != mavsdk::Action::Result::Success) {
         std::stringstream ss;
         ss << "Return to launch failed: " << result;
-        m_warning_system_ptr->monitorWarningForXseconds(ss.str(), WARNING_DURATION);
+        m_warning_system_ptr->queue_monitorWarningForXseconds(ss.str(), WARNING_DURATION);
         return;
     } });
 
@@ -483,23 +488,24 @@ bool UAV_Model::commandLoiterAtPos(XYPoint pos, bool holdCurrentAltitude)
   // lat lon 0 0  should not be possible
   if (pos == XYPoint(0, 0))
   {
-    m_current_loiter_coord = XYPoint(m_position.latitude_deg, m_position.longitude_deg);
-    m_warning_system_ptr->monitorWarningForXseconds("Received empty loiter pos: Loitering at current position", WARNING_DURATION);
+    mts_current_loiter_coord = XYPoint(mts_position.get().latitude_deg, mts_position.get().longitude_deg);
+    m_warning_system_ptr->queue_monitorWarningForXseconds("Received empty loiter pos: Loitering at current position", WARNING_DURATION);
   }
   else
   {
-    m_current_loiter_coord = pos;
+    mts_current_loiter_coord = pos;
   }
 
-  if (commandGoToLocationXY(m_current_loiter_coord, holdCurrentAltitude))
+  if (commandGoToLocationXY(mts_current_loiter_coord, holdCurrentAltitude))
   {
+    auto m_coord = mts_current_loiter_coord.get();
     std::stringstream ss;
-    ss << "Loitering at (Lat/Long): " << m_current_loiter_coord.x() << "/" << m_current_loiter_coord.y() << "\n";
+    ss << "Loitering at (Lat/Long): " << m_coord.x() << "/" << m_coord.y() << "\n";
     reportEventFromCallback(ss.str());
     return true;
   }
 
-  m_warning_system_ptr->monitorWarningForXseconds("Loitering failed", WARNING_DURATION);
+  m_warning_system_ptr->queue_monitorWarningForXseconds("Loitering failed", WARNING_DURATION);
   return false;
 }
 
@@ -511,7 +517,7 @@ bool UAV_Model::commandAndSetAirSpeed(double speed)
     m_target_airspeed = speed;
     return true;
   };
-  m_warning_system_ptr->monitorWarningForXseconds("Failed to set airspeed to " + doubleToString(speed), WARNING_DURATION);
+  m_warning_system_ptr->queue_monitorWarningForXseconds("Failed to set airspeed to " + doubleToString(speed), WARNING_DURATION);
   return false;
 }
 
@@ -525,7 +531,7 @@ bool UAV_Model::commandArmAsync() const
         std::stringstream ss;
         ss << "Arming failed: " << result << '\n';
         std::cout << ss.str();
-        m_warning_system_ptr->monitorWarningForXseconds(ss.str(), WARNING_DURATION);
+        m_warning_system_ptr->queue_monitorWarningForXseconds(ss.str(), WARNING_DURATION);
     } });
 
   return true;
@@ -541,7 +547,7 @@ bool UAV_Model::commandDisarmAsync() const
           std::stringstream ss;
           ss << "Disarming failed: " << result << '\n';
           std::cout << ss.str();
-          m_warning_system_ptr->monitorWarningForXseconds(ss.str(), WARNING_DURATION);
+          m_warning_system_ptr->queue_monitorWarningForXseconds(ss.str(), WARNING_DURATION);
       } });
 
   return true;
@@ -551,6 +557,8 @@ bool UAV_Model::commandGoToLocationXY(const XYPoint pos, bool holdCurrentAltitud
 {
   if (!commandGuidedMode())
     return false;
+
+  auto m_position = mts_position.get();
 
   float alt_msl = m_position.absolute_altitude_m;
   double terrain_altitude = m_position.absolute_altitude_m - m_position.relative_altitude_m;
@@ -574,8 +582,8 @@ bool UAV_Model::commandGoToLocation(const mavsdk::Telemetry::Position &position)
   if (!haveAutorythyToChangeMode())
   {
     std::stringstream ss;
-    ss << "Cannot change mode. Do not have autorithy. Flight mode in " << m_flight_mode;
-    m_warning_system_ptr->monitorWarningForXseconds(ss.str(), WARNING_DURATION);
+    ss << "Cannot change mode. Do not have autorithy. Flight mode in " << mts_flight_mode;
+    m_warning_system_ptr->queue_monitorWarningForXseconds(ss.str(), WARNING_DURATION);
     return false;
   }
 
@@ -588,7 +596,7 @@ bool UAV_Model::commandGoToLocation(const mavsdk::Telemetry::Position &position)
   {
     std::stringstream ss;
     ss << "goto_location failed: " << res;
-    m_warning_system_ptr->monitorWarningForXseconds(ss.str(), WARNING_DURATION);
+    m_warning_system_ptr->queue_monitorWarningForXseconds(ss.str(), WARNING_DURATION);
     return false;
   }
 
@@ -597,9 +605,32 @@ bool UAV_Model::commandGoToLocation(const mavsdk::Telemetry::Position &position)
   return true;
 }
 
+// void UAV_Model::commandGoToLocation_async(const mavsdk::Telemetry::Position &position, std::function<void(bool)> callback)
+// {
+//   std::async(std::launch::async,
+//              [position, callback, this]()
+//              {
+//                bool res = commandGoToLocation(position);
+//                if (callback)
+//                  callback(res);
+//              });
+// }
+
+// void UAV_Model::commandGoToLocationXY_async(const XYPoint pos, bool holdCurrentAltitudeAGL, std::function<void(bool)> callback)
+// {
+//   std::async(std::launch::async,
+//              [pos, holdCurrentAltitudeAGL, callback, this]()
+//              {
+//                bool res = commandGoToLocationXY(pos, holdCurrentAltitudeAGL);
+//                if (callback)
+//                  callback(res);
+//              });
+// }
+
 bool UAV_Model::commandAndSetAltitudeAGL(double altitudeAGL_m)
 {
-  if(!commandGuidedMode(true)) return false;
+  if (!commandGuidedMode(true))
+    return false;
 
   m_target_altitudeAGL = altitudeAGL_m;
   return commandChangeAltitude_Guided(altitudeAGL_m, true);
@@ -610,18 +641,18 @@ bool UAV_Model::commandSpeed(double speed_m_s, SPEED_TYPE speed_type) const
 
   if (!m_in_air)
   {
-    m_warning_system_ptr->monitorWarningForXseconds("UAV is not in air! Cannot send speed", WARNING_DURATION);
+    m_warning_system_ptr->queue_monitorWarningForXseconds("UAV is not in air! Cannot send speed", WARNING_DURATION);
     return false;
   }
 
   if (speed_type == SPEED_TYPE::SPEED_TYPE_AIRSPEED)
   {
     // check if speed is within bounds
-    if (speed_m_s < m_polled_params.min_airspeed || speed_m_s > m_polled_params.max_airspeed)
+    if (speed_m_s < mts_polled_params.get().min_airspeed || speed_m_s > mts_polled_params.get().max_airspeed)
     {
       std::stringstream ss;
-      ss << "Speed out of bounds: " << speed_m_s << " min: " << m_polled_params.min_airspeed << " max: " << m_polled_params.max_airspeed;
-      m_warning_system_ptr->monitorWarningForXseconds(ss.str(), WARNING_DURATION);
+      ss << "Speed out of bounds: " << speed_m_s << " min: " << mts_polled_params.get().min_airspeed << " max: " << mts_polled_params.get().max_airspeed;
+      m_warning_system_ptr->queue_monitorWarningForXseconds(ss.str(), WARNING_DURATION);
       return false;
     }
 
@@ -668,7 +699,7 @@ bool UAV_Model::commandSpeed(double speed_m_s, SPEED_TYPE speed_type) const
       ss << doubleToString(speed_type);
       break;
     }
-    m_warning_system_ptr->monitorWarningForXseconds(ss.str(), WARNING_DURATION);
+    m_warning_system_ptr->queue_monitorWarningForXseconds(ss.str(), WARNING_DURATION);
     return false;
   }
 
@@ -682,13 +713,13 @@ bool UAV_Model::commandChangeAltitude_Guided(double altitude_m, bool relativeAlt
 
   if (!m_in_air)
   {
-    m_warning_system_ptr->monitorWarningForXseconds("UAV is not in air! Cannot send altitude", WARNING_DURATION);
+    m_warning_system_ptr->queue_monitorWarningForXseconds("UAV is not in air! Cannot send altitude", WARNING_DURATION);
     return false;
   }
 
   if (!isGuidedMode())
   {
-    m_warning_system_ptr->monitorWarningForXseconds("UAV is not in guided mode! Cannot send altitude", WARNING_DURATION);
+    m_warning_system_ptr->queue_monitorWarningForXseconds("UAV is not in guided mode! Cannot send altitude", WARNING_DURATION);
     return false;
   }
 
@@ -696,12 +727,11 @@ bool UAV_Model::commandChangeAltitude_Guided(double altitude_m, bool relativeAlt
   {
     std::stringstream ss;
     ss << "Altitude, " << doubleToString(altitude_m) << " m, is too low. Below in air threshold: " << IN_AIR_HIGHT_THRESHOLD;
-    m_warning_system_ptr->monitorWarningForXseconds(ss.str(), WARNING_DURATION);
+    m_warning_system_ptr->queue_monitorWarningForXseconds(ss.str(), WARNING_DURATION);
     return false;
   }
 
   // mavsdk::MavlinkCommandSender
-
 
   mavsdk::MavlinkPassthrough::CommandInt command_mode;
   command_mode.command = MAV_CMD_GUIDED_CHANGE_ALTITUDE;
@@ -717,26 +747,24 @@ bool UAV_Model::commandChangeAltitude_Guided(double altitude_m, bool relativeAlt
   command_mode.x = -1;      // unused
   command_mode.y = -1;      // unused
 
-  mavsdk::Action::ResultCallback retultFuncion = [altitude_m, this ](mavsdk::Action::Result result){
-    
+  mavsdk::Action::ResultCallback retultFuncion = [altitude_m, this](mavsdk::Action::Result result)
+  {
     std::cout << "Result: " << result << std::endl;
 
     if (result != mavsdk::Action::Result::Success)
     {
       std::stringstream ss;
       ss << "command Change Altitude error: " << result << " with altitude " << altitude_m;
-      m_warning_system_ptr->monitorWarningForXseconds(ss.str(), WARNING_DURATION);
-    } else{
-      reportEventFromCallback("command Change Altitude succeeded\n");
+      m_warning_system_ptr->queue_monitorWarningForXseconds(ss.str(), WARNING_DURATION);
     }
-
+    else
+    {
+      reportEventFromCallback("command Change Altitude succeeded\n");
+      MOOSTraceFromCallback("command Change Altitude succeeded\n");
+    }
   };
 
-
-
   m_action_ptr->send_command_async(command_mode, retultFuncion);
-
-
 
   // blocking
   // auto result = m_mavPass_ptr->send_command_int(command_mode);
@@ -749,8 +777,6 @@ bool UAV_Model::commandChangeAltitude_Guided(double altitude_m, bool relativeAlt
   //   return false;
   // }
 
-  MOOSTraceFromCallback("command Change Altitude succeeded\n");
-
   return true;
 }
 
@@ -759,13 +785,13 @@ bool UAV_Model::commandChangeHeading_Guided(double hdg_deg, HEADING_TYPE hdg_typ
 
   if (!m_in_air)
   {
-    m_warning_system_ptr->monitorWarningForXseconds("UAV is not in air! Cannot send heading", WARNING_DURATION);
+    m_warning_system_ptr->queue_monitorWarningForXseconds("UAV is not in air! Cannot send heading", WARNING_DURATION);
     return false;
   }
 
   if (!isGuidedMode())
   {
-    m_warning_system_ptr->monitorWarningForXseconds("UAV is not in guided mode! Cannot send heading", WARNING_DURATION);
+    m_warning_system_ptr->queue_monitorWarningForXseconds("UAV is not in guided mode! Cannot send heading", WARNING_DURATION);
     return false;
   }
 
@@ -773,7 +799,7 @@ bool UAV_Model::commandChangeHeading_Guided(double hdg_deg, HEADING_TYPE hdg_typ
   {
     std::stringstream ss;
     ss << "Heading, " << doubleToString(hdg_deg) << " deg, is out of bounds. Must be between 0 and 360";
-    m_warning_system_ptr->monitorWarningForXseconds(ss.str(), WARNING_DURATION);
+    m_warning_system_ptr->queue_monitorWarningForXseconds(ss.str(), WARNING_DURATION);
     return false;
   }
 
@@ -809,7 +835,7 @@ bool UAV_Model::commandChangeHeading_Guided(double hdg_deg, HEADING_TYPE hdg_typ
       ss << "HEADING_TYPE_DEFAULT";
       break;
     }
-    m_warning_system_ptr->monitorWarningForXseconds(ss.str(), WARNING_DURATION);
+    m_warning_system_ptr->queue_monitorWarningForXseconds(ss.str(), WARNING_DURATION);
     return false;
   }
 
@@ -824,13 +850,13 @@ bool UAV_Model::commandChangeSpeed_Guided(double speed_m_s, SPEED_TYPE speed_typ
 
   if (!m_in_air)
   {
-    m_warning_system_ptr->monitorWarningForXseconds("UAV is not in air! Cannot send speed", WARNING_DURATION);
+    m_warning_system_ptr->queue_monitorWarningForXseconds("UAV is not in air! Cannot send speed", WARNING_DURATION);
     return false;
   }
 
   if (!isGuidedMode())
   {
-    m_warning_system_ptr->monitorWarningForXseconds("UAV is not in guided mode! Cannot send speed", WARNING_DURATION);
+    m_warning_system_ptr->queue_monitorWarningForXseconds("UAV is not in guided mode! Cannot send speed", WARNING_DURATION);
     return false;
   }
 
@@ -867,7 +893,7 @@ bool UAV_Model::commandChangeSpeed_Guided(double speed_m_s, SPEED_TYPE speed_typ
       ss << doubleToString(speed_type);
       break;
     }
-    m_warning_system_ptr->monitorWarningForXseconds(ss.str(), WARNING_DURATION);
+    m_warning_system_ptr->queue_monitorWarningForXseconds(ss.str(), WARNING_DURATION);
     return false;
   }
 
@@ -890,8 +916,8 @@ void UAV_Model::setHeadingWyptFromHeading(double heading_deg)
   double heading_rad = deg_to_rad(heading_deg);
 
   // Get current position in radians
-  double lat_rad = deg_to_rad(m_position.latitude_deg);
-  double lon_rad = deg_to_rad(m_position.longitude_deg);
+  double lat_rad = deg_to_rad(mts_position.get().latitude_deg);
+  double lon_rad = deg_to_rad(mts_position.get().longitude_deg);
 
   // Calculate new latitude using the bearing formula
   double new_lat_rad = std::asin(
@@ -907,7 +933,7 @@ void UAV_Model::setHeadingWyptFromHeading(double heading_deg)
   double new_lat_deg = rad_to_deg(new_lat_rad);
   double new_lon_deg = rad_to_deg(new_lon_rad);
 
-  m_heading_waypoint_coord.set_vertex(new_lat_deg, new_lon_deg);
+  mts_heading_waypoint_coord->set_vertex(new_lat_deg, new_lon_deg);
 }
 
 bool UAV_Model::commandAndSetHeading(double heading, bool isAllowed)
@@ -915,22 +941,96 @@ bool UAV_Model::commandAndSetHeading(double heading, bool isAllowed)
 
   if (!m_in_air)
   {
-    m_warning_system_ptr->monitorWarningForXseconds("UAV is not in air! Cannot send heading", WARNING_DURATION);
+    m_warning_system_ptr->queue_monitorWarningForXseconds("UAV is not in air! Cannot send heading", WARNING_DURATION);
     return false;
   }
 
   m_target_heading = heading;
 
   if (isGuidedMode() && isAllowed)
-  { 
+  {
     return commandChangeHeading_Guided(heading, HEADING_TYPE::HEADING_TYPE_COURSE_OVER_GROUND);
   }
 
   setHeadingWyptFromHeading(heading);
 
   // Command the plane to the new location
-  return commandGoToLocationXY(m_heading_waypoint_coord);
+  return commandGoToLocationXY(mts_heading_waypoint_coord);
 }
+
+///////////////////////////////////////////////////////
+///// Threading
+///////////////////////////////////////////////////////
+void UAV_Model::start() {
+    if (!m_running) {
+        m_running = true;
+        m_thread = std::thread([this]() {
+            run()
+           }
+        );
+    }
+}
+
+void UAV_Model::run() {
+
+    // At startUP
+    subscribeToTelemetry();
+    
+
+    // Perform commands
+    while (m_running) {
+        std::unique_ptr<CommandBase> cmd;
+        {
+            std::unique_lock lock(m_queue_mutex);
+            m_queue_cv.wait(lock, [this]() { 
+                return !m_command_queue.empty() || !m_running; 
+            });
+            
+            if (!m_running) break;
+            
+            cmd = std::move(m_command_queue.front());
+            m_command_queue.pop();
+        }
+
+        if (cmd) {
+            cmd->execute(*this);
+        }
+
+        
+        pollAllParametersAsync();
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    }
+}
+
+void UAV_Model::stop() {
+    m_running = false;
+    m_queue_cv.notify_all();
+    if (m_thread.joinable()) m_thread.join();
+}
+
+template<typename Command>
+void UAV_Model::pushCommand(Command&& cmd) {
+    struct CommandWrapper : CommandBase {
+        Command cmd;
+        CommandWrapper(Command&& c) : cmd(std::move(c)) {}
+        void execute(UAV_Model& uav) override { cmd(uav); }
+    };
+    
+    {
+        std::lock_guard lock(m_queue_mutex);
+        m_command_queue.push(
+            std::make_unique<CommandWrapper>(std::forward<Command>(cmd))
+        );
+    }
+    m_queue_cv.notify_one();
+}
+
+
+
+///////////////////////////////////////////////////////
+///// Mission Start
+///////////////////////////////////////////////////////
+
 
 mavsdk::MissionRaw::MissionItem make_mission_item_wp(
     float latitude_deg1e7,
@@ -966,8 +1066,9 @@ mavsdk::MissionRaw::MissionItem make_mission_item_wp(
 
   return new_item;
 }
-bool create_missionPlan(std::vector<mavsdk::MissionRaw::MissionItem> &mission_plan, double lat_deg_home, double lon_deg_home)
-{
+
+
+bool create_missionPlan(std::vector<mavsdk::MissionRaw::MissionItem> &mission_plan, double lat_deg_home, double lon_deg_home){
 
   // in case of ardupilot we want to set lat lon to waypoint 0
   // Home position (same as original, set to lat/lon home)

@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "Troubleshooting.md",
+                "file": "Info/MAIN System architecture.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "Troubleshooting"
+              "title": "MAIN System architecture"
             }
           },
           {
@@ -117,7 +117,7 @@
             "state": {
               "type": "search",
               "state": {
-                "query": "gz",
+                "query": "extens",
                 "matchingCase": false,
                 "explainSearch": false,
                 "collapseAll": false,
@@ -230,6 +230,7 @@
   },
   "active": "da26bb1516200fb8",
   "lastOpenFiles": [
+    "Troubleshooting.md",
     "Info/ArduPilot & MavProx.md",
     "Info/ardupilot_gazebo plugin.md",
     "Info/Data Management.md",
@@ -241,7 +242,6 @@
     "Info/pMarineViewer - MOOS  IVP.md",
     "Info/Skywalker X8.md",
     "Info/Swarm.md",
-    "Troubleshooting.md",
     "attachments/Pasted image 20240829151142.png",
     "attachments/Pasted image 20240903114151.png",
     "Advantages of MOOS-IVP.md",

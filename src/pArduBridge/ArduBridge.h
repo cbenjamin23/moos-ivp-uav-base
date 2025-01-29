@@ -21,6 +21,8 @@
 #include <functional>
 #include <utility> // for std::pair
 
+#include <future>
+
 class ArduBridge : public AppCastingMOOSApp
 {
 public:
@@ -145,8 +147,45 @@ private: // Helperfunctions
 
   bool tryDoTakeoff();
   bool tryFlyToWaypoint();
-  bool tryRTL();
+  bool tryRTL(); // Non-blocking
   bool tryloiterAtPos(const XYPoint &loiter_coord = XYPoint(0, 0), bool holdCurrentAltitude = false);
+  
+
+protected: // async
+
+template <typename T>
+ class PromiseFuture{
+  public:
+  std::promise<T> prom;
+  std::future<T> fut = prom.get_future();
+
+  void reset() { 
+    prom = std::promise<T>();
+    fut = prom.get_future();
+  }
+ };
+
+struct ResultPair {
+    bool success;
+    std::string message;
+};
+
+/// @brief Future and promise for async functions
+template <typename T>
+std::optional<T> future_try_get(std::future<T>& future) {
+    if (future.wait_for(std::chrono::milliseconds(0)) == std::future_status::ready) {
+        return future.get(); // Retrieve the value if it's ready
+    }
+    return std::nullopt; // Return an empty optional if not ready
+}
+
+  void tryFlyToWaypoint_async();
+  PromiseFuture<ResultPair> m_fly_to_waypoint_promfut;
+
+  void tryLoiterAtPos_async(const XYPoint &loiter_coord = XYPoint(0, 0), bool holdCurrentAltitude = false);
+  PromiseFuture<ResultPair> m_loiter_at_pos_promfut;
+
+
 
 private: // State variables
   // For UAV

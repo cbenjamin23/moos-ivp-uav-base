@@ -29,6 +29,14 @@
 #include "definitions.h"
 #include "mavlinkDefinitionsArdupilot.h"
 
+// For threading
+#include "ThreadSafeVariable.h"
+#include <atomic>
+#include <condition_variable>
+#include <mutex>
+#include <queue>
+
+
 class UAV_Model
 {
 public:
@@ -53,13 +61,16 @@ public:
   // Actions and commands , blocking functions
   bool commandAndSetAirSpeed(double speed);
   bool commandGroundSpeed(double speed) const { return (commandSpeed(speed, SPEED_TYPE::SPEED_TYPE_GROUNDSPEED)); }
+  bool commandAndSetAltitudeAGL(double altitudeAGL_m); // requires guided mode
   bool commandGoToLocationXY(const XYPoint pos, bool holdCurrentAltitudeAGL = false);
   bool commandGoToLocation(const mavsdk::Telemetry::Position &position);
-  bool commandAndSetAltitudeAGL(double altitudeAGL_m); // requires guided mode
+
+  // void commandGoToLocationXY_async(const XYPoint pos, bool holdCurrentAltitudeAGL = false, std::function<void(bool)> callback = nullptr);
+  // void commandGoToLocation_async(const mavsdk::Telemetry::Position &position, std::function<void(bool)> callback = nullptr);
 
   bool commandReturnToLaunchAsync() const;
   bool commandLoiterAtPos(XYPoint pos, bool holdCurrentAltitude = true);
-  bool commandAndSetHeading(double heading, bool isAllowed=true); // command COG if in guided mode
+  bool commandAndSetHeading(double heading, bool isAllowed = true); // command COG if in guided mode
 
   bool commandGuidedMode(bool alt_hold = false);
 
@@ -71,8 +82,8 @@ public:
   void setCallbackReportRunW(const std::function<void(const std::string &)> &callback) { callbackReportRunW = callback; }
   void setCallbackRetractRunW(const std::function<void(const std::string &)> &callback) { callbackRetractRunW = callback; }
 
-  void setNextWaypointLatLon(const XYPoint &wp) { m_next_waypoint_coord = wp; }
-  void setLoiterLocationLatLon(const XYPoint &wp) { m_current_loiter_coord = wp; }
+  void setNextWaypointLatLon(const XYPoint &wp) { mts_next_waypoint_coord.set(wp); }
+  void setLoiterLocationLatLon(const XYPoint &wp) { mts_current_loiter_coord.set(wp); }
   void setHeadingWyptFromHeading(double heading);
   // void setTargetAltitudeAGL(double altitude) { m_target_altitudeAGL = altitude; }
 
@@ -81,37 +92,60 @@ public:
   // void setTargetHeading(double heading) { m_target_heading = heading; }
 
   // Getters
-  bool isHealthy() const { return (m_health_all_ok); }
+  bool isHealthy() const { return m_health_all_ok; }
   bool isArmed() const { return (m_is_armed); }
   bool isInAir() const { return (m_in_air); }
-  mavsdk::Telemetry::FlightMode getFlightMode() const { return (m_flight_mode); }
-  bool isGuidedMode() const { return (m_flight_mode == mavsdk::Telemetry::FlightMode::Guided); }
+  mavsdk::Telemetry::FlightMode getFlightMode() const { return (mts_flight_mode.get()); }
+  bool isGuidedMode() const { return (mts_flight_mode.get() == mavsdk::Telemetry::FlightMode::Guided); }
   bool isHoldHeadingGuidedSet() const { return (m_is_hold_heading_guided_set); }
 
-  XYPoint getNextWaypointLatLon() const { return (m_next_waypoint_coord); }
-  XYPoint getHeadingWaypointLatLon() const { return (m_heading_waypoint_coord); }
-  XYPoint getCurrentLoiterLatLon() const { return (m_current_loiter_coord); }
-  XYPoint getHomeLatLon() const { return (m_home_coord); }
-  double getLatitude() const { return (m_position.latitude_deg); }
-  double getLongitude() const { return (m_position.longitude_deg); }
+  XYPoint getNextWaypointLatLon() const { return (mts_next_waypoint_coord.get()); }
+  XYPoint getHeadingWaypointLatLon() const { return (mts_heading_waypoint_coord.get()); }
+  XYPoint getCurrentLoiterLatLon() const { return (mts_current_loiter_coord.get()); }
+  XYPoint getHomeLatLon() const { return (mts_home_coord.get()); }
+  double getLatitude() const { return (mts_position.get().latitude_deg); }
+  double getLongitude() const { return (mts_position.get().longitude_deg); }
 
-  double getMinAirSpeed() const { return (m_polled_params.min_airspeed); }
-  double getMaxAirSpeed() const { return (m_polled_params.max_airspeed); }
-  double getTargetCruiseSpeed() const { return (m_polled_params.target_airspeed_cruise); }
+  double getMinAirSpeed() const { return (mts_polled_params.get().min_airspeed); }
+  double getMaxAirSpeed() const { return (mts_polled_params.get().max_airspeed); }
+  double getTargetCruiseSpeed() const { return (mts_polled_params.get().target_airspeed_cruise); }
   double getTargetAirSpeed() const { return (m_target_airspeed); }
-  double getAirSpeed() const { return (sqrt(m_velocity_ned.north_m_s * m_velocity_ned.north_m_s + m_velocity_ned.east_m_s * m_velocity_ned.east_m_s) + m_velocity_ned.down_m_s * m_velocity_ned.down_m_s); }
-  double getSOG() const { return (sqrt(m_velocity_ned.north_m_s * m_velocity_ned.north_m_s + m_velocity_ned.east_m_s * m_velocity_ned.east_m_s)); }
-  double getHeading() const { return (angle360(m_attitude_ned.yaw_deg)); }
+  double getAirSpeed() const { return (sqrt(m_velocity_ned.get().north_m_s * m_velocity_ned.get().north_m_s + m_velocity_ned.get().east_m_s * m_velocity_ned.get().east_m_s) + m_velocity_ned.get().down_m_s * m_velocity_ned.get().down_m_s); }
+  double getSOG() const { return (sqrt(m_velocity_ned.get().north_m_s * m_velocity_ned.get().north_m_s + m_velocity_ned.get().east_m_s * m_velocity_ned.get().east_m_s)); }
+  double getHeading() const { return (angle360(mts_attitude_ned.get().yaw_deg)); }
 
-  double getAltitudeAGL() const { return (m_position.relative_altitude_m); }
-  double getAltitudeMSL() const { return (m_position.absolute_altitude_m); }
+  double getAltitudeAGL() const { return (mts_position.get().relative_altitude_m); }
+  double getAltitudeMSL() const { return (mts_position.get().absolute_altitude_m); }
   double getTargetAltitudeAGL() const { return (m_target_altitudeAGL); }
   double getLastSentTargetAltitudeAGL() const { return (m_last_sent_altitudeAGL); }
 
   double getTargetHeading() const { return (m_target_heading); }
 
-  double getRoll() const { return (m_attitude_ned.roll_deg); }
-  double getPitch() const { return (m_attitude_ned.pitch_deg); }
+  double getRoll() const { return (mts_attitude_ned.get().roll_deg); }
+  double getPitch() const { return (mts_attitude_ned.get().pitch_deg); }
+
+
+  // For threading:
+  void start(); // Signal the thread to start
+  void stop(); // Signal the thread to stop
+
+  // Thread-safe command queue
+  template<typename Command>
+  void pushCommand(Command&& cmd);
+
+private:
+  void run(); // Main loop for the UAV thread
+  std::atomic<bool> m_running{false};
+  std::thread m_thread;
+
+  struct CommandBase {
+      virtual ~CommandBase() = default;
+      virtual void execute(UAV_Model& uav) = 0;
+  };
+  std::queue<std::unique_ptr<CommandBase>> m_command_queue;
+  std::mutex m_queue_mutex;
+  std::condition_variable m_queue_cv;
+
 
 protected:
   enum class Parameters
@@ -128,12 +162,6 @@ protected:
     int max_airspeed = 0;
     double target_airspeed_cruise = 0;
   };
-
-  // Parameters not polled
-  double m_target_heading;
-  double m_target_airspeed;
-  double m_target_altitudeAGL;
-  double m_last_sent_altitudeAGL;
 
 protected:
   std::shared_ptr<WarningSystem> m_warning_system_ptr;
@@ -185,31 +213,38 @@ protected:
   std::unique_ptr<mavsdk::Param> m_param_ptr;
   std::unique_ptr<mavsdk::MavlinkPassthrough> m_mavPass_ptr;
 
-  bool m_health_all_ok;
-  bool m_is_armed;
-  bool m_in_air;
+  std::atomic<bool> m_health_all_ok;
+  std::atomic<bool> m_is_armed;
+  std::atomic<bool> m_in_air;
 
   // Exiting GUIDED returns aircraft to normal behaviour defined elsewhere
   // If hold heading is set, it will ignore further repositions command, and Guided mode has to be exited
-  bool m_is_hold_heading_guided_set;
+  std::atomic<bool> m_is_hold_heading_guided_set;
 
   // Telemetry
-  mavsdk::Telemetry::Position m_position;
-  mavsdk::Telemetry::EulerAngle m_attitude_ned;
-  mavsdk::Telemetry::VelocityNed m_velocity_ned;
+  ThreadSafeVariable<mavsdk::Telemetry::Position> mts_position;
+  ThreadSafeVariable<mavsdk::Telemetry::EulerAngle> mts_attitude_ned;
+  ThreadSafeVariable<mavsdk::Telemetry::VelocityNed> m_velocity_ned;
 
-  mavsdk::Telemetry::Battery m_battery;
+  ThreadSafeVariable<mavsdk::Telemetry::Battery> mts_battery;
 
-  mavsdk::Telemetry::FlightMode m_flight_mode;
+  ThreadSafeVariable<mavsdk::Telemetry::FlightMode> mts_flight_mode;
+
+  ThreadSafeVariable<XYPoint> mts_home_coord;
+  ThreadSafeVariable<XYPoint> mts_current_loiter_coord;
+  ThreadSafeVariable<XYPoint> mts_next_waypoint_coord;
+  ThreadSafeVariable<XYPoint> mts_heading_waypoint_coord;
 
   // Parameters
-  PolledParameters m_polled_params;
+  ThreadSafeVariable<PolledParameters> mts_polled_params;
 
-  XYPoint m_home_coord;
-  XYPoint m_current_loiter_coord;
-  XYPoint m_next_waypoint_coord;
-  XYPoint m_heading_waypoint_coord;
+  // Parameters not polled
+  std::atomic<double> m_target_heading;
+  std::atomic<double> m_target_airspeed;
+  std::atomic<double> m_target_altitudeAGL;
+  std::atomic<double> m_last_sent_altitudeAGL;
 };
+
 
 mavsdk::MissionRaw::MissionItem make_mission_item_wp(
     float latitude_deg1e7,
