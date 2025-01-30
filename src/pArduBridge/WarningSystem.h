@@ -9,6 +9,10 @@
 #include <mutex>
 #include <unordered_set>
 
+
+#include "Logger.h"
+
+
 class WarningSystem
 {
 public:
@@ -19,6 +23,7 @@ public:
 
     void queue_monitorWarningForXseconds(const std::string &warningKey, double seconds)
     {
+        Logger::warning("WarningSystem: " + warningKey);
         auto start_time = std::chrono::steady_clock::now();
         auto expiration_time = start_time + std::chrono::milliseconds(static_cast<int>(seconds * 1000));
 

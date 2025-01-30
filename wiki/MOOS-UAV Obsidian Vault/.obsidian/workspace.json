@@ -117,7 +117,7 @@
             "state": {
               "type": "search",
               "state": {
-                "query": "extens",
+                "query": "gaze",
                 "matchingCase": false,
                 "explainSearch": false,
                 "collapseAll": false,
@@ -230,14 +230,14 @@
   },
   "active": "da26bb1516200fb8",
   "lastOpenFiles": [
+    "Info/ardupilot_gazebo plugin.md",
+    "Info/Install, Build & Run MAVSDK.md",
+    "Info/MAIN System architecture.md",
     "Troubleshooting.md",
     "Info/ArduPilot & MavProx.md",
-    "Info/ardupilot_gazebo plugin.md",
     "Info/Data Management.md",
     "Info/Gazebo.md",
-    "Info/Install, Build & Run MAVSDK.md",
     "Info/Launching System.md",
-    "Info/MAIN System architecture.md",
     "Info/Mission Planner info.md",
     "Info/pMarineViewer - MOOS  IVP.md",
     "Info/Skywalker X8.md",

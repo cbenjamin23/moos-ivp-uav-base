@@ -2,8 +2,8 @@
 
 # Global simulation parameters
 simulation:
-  time_warp: 1
-  number_of_drones: 2
+  time_warp: 5
+  number_of_drones: 3
   ardupilot_ip: "0.0.0.0"
   ardupilot_protocol: "udp"
   home_altitude: 106.1

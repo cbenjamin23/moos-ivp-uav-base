@@ -35,7 +35,7 @@
 #include <condition_variable>
 #include <mutex>
 #include <queue>
-
+#include <thread>
 
 class UAV_Model
 {
@@ -49,7 +49,7 @@ public:
 
   bool startMission() const;
   // async function
-  bool sendArmCommandIfHealthyAndNotArmed() const;
+  bool sendArmCommandIfHealthyAndNotArmed_async() const;
 
   bool subscribeToTelemetry();
 
@@ -124,28 +124,50 @@ public:
   double getRoll() const { return (mts_attitude_ned.get().roll_deg); }
   double getPitch() const { return (mts_attitude_ned.get().pitch_deg); }
 
-
   // For threading:
-  void start(); // Signal the thread to start
-  void stop(); // Signal the thread to stop
+  void startCommandSender(); // Signal the thread to start
+  void stopCommandSender();  // Signal the thread to stop
+
+  void registerSendDesiredValuesFunction(std::function<void(UAV_Model &, bool)> sendDesiredValues);
+  void enableSendDesiredValues(bool enable = true);
 
   // Thread-safe command queue
-  template<typename Command>
-  void pushCommand(Command&& cmd);
+  template <typename Command>
+  void pushCommand(Command &&cmd)
+  {
+    struct CommandWrapper : CommandBase
+    {
+      Command cmd;
+      CommandWrapper(Command &&c) : cmd(std::move(c)) {}
+      void execute(UAV_Model &uav) override { cmd(uav); }
+    };
+
+    {
+      std::lock_guard lock(m_queue_mutex);
+      m_command_queue.push(
+          std::make_unique<CommandWrapper>(std::forward<Command>(cmd)));
+    }
+    m_thread_cv.notify_one();
+  }
 
 private:
-  void run(); // Main loop for the UAV thread
+  void runCommandsender(); // Main loop for the UAV thread
   std::atomic<bool> m_running{false};
   std::thread m_thread;
 
-  struct CommandBase {
-      virtual ~CommandBase() = default;
-      virtual void execute(UAV_Model& uav) = 0;
+  std::atomic<bool> m_sendValuesEnabled{false};
+
+  std::function<void(UAV_Model &, bool)> sendDesiredValues;
+  std::mutex m_sendDesiredValues_mutex;
+
+  struct CommandBase
+  {
+    virtual ~CommandBase() = default;
+    virtual void execute(UAV_Model &uav) = 0;
   };
   std::queue<std::unique_ptr<CommandBase>> m_command_queue;
   std::mutex m_queue_mutex;
-  std::condition_variable m_queue_cv;
-
+  std::condition_variable m_thread_cv;
 
 protected:
   enum class Parameters
@@ -244,7 +266,6 @@ protected:
   std::atomic<double> m_target_altitudeAGL;
   std::atomic<double> m_last_sent_altitudeAGL;
 };
-
 
 mavsdk::MissionRaw::MissionItem make_mission_item_wp(
     float latitude_deg1e7,

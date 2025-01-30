@@ -18,6 +18,7 @@
 #include <cmath>
 
 #include <future> // for async and promises
+#include "Logger.h"
 //------------------------------------------------------------------------
 // Constructor
 
@@ -28,6 +29,7 @@ UAV_Model::UAV_Model(std::shared_ptr<WarningSystem> ws) : m_mavsdk_ptr{std::make
                                                           callbackRetractRunW{nullptr},
                                                           callbackReportEvent{nullptr},
 
+                                                          m_is_hold_heading_guided_set{false},
                                                           m_health_all_ok{false},
                                                           m_is_armed{false},
                                                           m_in_air{false},
@@ -241,7 +243,7 @@ bool UAV_Model::startMission() const
   return true;
 }
 
-bool UAV_Model::sendArmCommandIfHealthyAndNotArmed() const
+bool UAV_Model::sendArmCommandIfHealthyAndNotArmed_async() const
 {
   if (m_health_all_ok && !m_is_armed)
   {
@@ -600,7 +602,8 @@ bool UAV_Model::commandGoToLocation(const mavsdk::Telemetry::Position &position)
     return false;
   }
 
-  MOOSTraceFromCallback("goto_location succeeded\n");
+  Logger::info("UAV_Model: goto_location succeeded");
+  // MOOSTraceFromCallback("goto_location succeeded\n");
 
   return true;
 }
@@ -947,11 +950,20 @@ bool UAV_Model::commandAndSetHeading(double heading, bool isAllowed)
 
   m_target_heading = heading;
 
-  if (isGuidedMode() && isAllowed)
+  if (/*isGuidedMode() &&*/ isAllowed)
   {
     return commandChangeHeading_Guided(heading, HEADING_TYPE::HEADING_TYPE_COURSE_OVER_GROUND);
   }
+  else
+  {
 
+    std::stringstream ss;
+    ss << "Helm must be active to command heading";
+    m_warning_system_ptr->queue_monitorWarningForXseconds(ss.str(), WARNING_DURATION);
+    return false;
+  }
+
+  Logger::error("UAV_Model: commandAndSetHeading using goto location with waypointHeading");
   setHeadingWyptFromHeading(heading);
 
   // Command the plane to the new location
@@ -961,76 +973,87 @@ bool UAV_Model::commandAndSetHeading(double heading, bool isAllowed)
 ///////////////////////////////////////////////////////
 ///// Threading
 ///////////////////////////////////////////////////////
-void UAV_Model::start() {
-    if (!m_running) {
-        m_running = true;
-        m_thread = std::thread([this]() {
-            run()
-           }
-        );
-    }
+void UAV_Model::startCommandSender()
+{
+  if (!m_running)
+  {
+    m_running = true;
+    m_thread = std::thread([this]()
+                           { runCommandsender(); });
+  }
 }
 
-void UAV_Model::run() {
+void UAV_Model::runCommandsender()
+{
 
-    // At startUP
-    subscribeToTelemetry();
-    
+  // At startUP
+  subscribeToTelemetry();
+  pollAllParametersAsync();
 
-    // Perform commands
-    while (m_running) {
-        std::unique_ptr<CommandBase> cmd;
-        {
-            std::unique_lock lock(m_queue_mutex);
-            m_queue_cv.wait(lock, [this]() { 
-                return !m_command_queue.empty() || !m_running; 
-            });
-            
-            if (!m_running) break;
-            
-            cmd = std::move(m_command_queue.front());
-            m_command_queue.pop();
-        }
-
-        if (cmd) {
-            cmd->execute(*this);
-        }
-
-        
-        pollAllParametersAsync();
-        std::this_thread::sleep_for(std::chrono::milliseconds(10));
-    }
-}
-
-void UAV_Model::stop() {
-    m_running = false;
-    m_queue_cv.notify_all();
-    if (m_thread.joinable()) m_thread.join();
-}
-
-template<typename Command>
-void UAV_Model::pushCommand(Command&& cmd) {
-    struct CommandWrapper : CommandBase {
-        Command cmd;
-        CommandWrapper(Command&& c) : cmd(std::move(c)) {}
-        void execute(UAV_Model& uav) override { cmd(uav); }
-    };
-    
+  // Perform commands
+  while (m_running)
+  {
+    std::unique_ptr<CommandBase> cmd;
     {
-        std::lock_guard lock(m_queue_mutex);
-        m_command_queue.push(
-            std::make_unique<CommandWrapper>(std::forward<Command>(cmd))
-        );
+      std::unique_lock lock(m_queue_mutex);
+      m_thread_cv.wait(lock, [this]()
+                       { return !m_command_queue.empty() || !m_running || m_sendValuesEnabled; });
+
+      if (!m_running)
+        break;
+
+      if (!m_command_queue.empty())
+      {
+        cmd = std::move(m_command_queue.front());
+        m_command_queue.pop();
+      }
     }
-    m_queue_cv.notify_one();
+
+    if (cmd)
+    {
+      cmd->execute(*this);
+      pollAllParametersAsync();
+    
+      Logger::info("UAV_Model THREAD: isGuidedMode: " + boolToString(isGuidedMode()) + " is_hold_heading_guided_set: " + boolToString(m_is_hold_heading_guided_set));
+      if (!isGuidedMode())
+      {
+        m_is_hold_heading_guided_set = false;
+      }
+    }
+
+    if (m_sendValuesEnabled && sendDesiredValues)
+    {
+      sendDesiredValues(*this, false);
+    }
+
+    auto sleep = !m_command_queue.empty() ? 10 : 100;
+    std::this_thread::sleep_for(std::chrono::milliseconds(sleep));
+  }
 }
 
+void UAV_Model::registerSendDesiredValuesFunction(std::function<void(UAV_Model &, bool)> func)
+{
+  std::lock_guard lock(m_sendDesiredValues_mutex);
+  this->sendDesiredValues = func;
+}
 
+void UAV_Model::enableSendDesiredValues(bool enable)
+{
+  m_sendValuesEnabled = enable;
+  m_thread_cv.notify_one();
+};
+
+void UAV_Model::stopCommandSender()
+{
+  m_running = false;
+  m_thread_cv.notify_all();
+  if (m_thread.joinable())
+    m_thread.join();
+}
 
 ///////////////////////////////////////////////////////
 ///// Mission Start
 ///////////////////////////////////////////////////////
-
 
 mavsdk::MissionRaw::MissionItem make_mission_item_wp(
     float latitude_deg1e7,
@@ -1067,8 +1090,8 @@ mavsdk::MissionRaw::MissionItem make_mission_item_wp(
   return new_item;
 }
 
-
-bool create_missionPlan(std::vector<mavsdk::MissionRaw::MissionItem> &mission_plan, double lat_deg_home, double lon_deg_home){
+bool create_missionPlan(std::vector<mavsdk::MissionRaw::MissionItem> &mission_plan, double lat_deg_home, double lon_deg_home)
+{
 
   // in case of ardupilot we want to set lat lon to waypoint 0
   // Home position (same as original, set to lat/lon home)

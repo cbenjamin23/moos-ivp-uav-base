@@ -280,7 +280,7 @@ ProcessConfig = pMarineViewer
   button_8  = TKOFF_ALL  # DO_TAKEOFF_ALL=true
   button_9  = TOWYP_ALL # FLY_WAYPOINT_ALL=true
 
-  button_10 = PARK_HELM_ALL # MOOS_MANUAL_OVERRIDE_ALL=true
+  // button_10 = PARK_HELM_ALL # MOOS_MANUAL_OVERRIDE_ALL=true
 
 
   ////////////////////////////////////////////////

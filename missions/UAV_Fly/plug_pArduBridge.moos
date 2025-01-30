@@ -13,7 +13,8 @@ ProcessConfig = pArduBridge
   prefix = NAV
 
   cmd_GS = false
-
+  
+  Logger = true
 
 #ifdef XMODE SIM
   is_Sim = true

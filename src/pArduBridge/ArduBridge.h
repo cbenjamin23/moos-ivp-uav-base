@@ -46,7 +46,7 @@ protected:
 
   void postSpeedUpdateToBehaviors(double speed);
   // Send command to UAV
-  void sendSetpointsToUAV(bool forceSend = false);
+  void sendDesiredValuesToUAV(UAV_Model &uav, bool forceSend = false);
 
 private: // Configuration variables
   std::string m_uav_prefix;
@@ -141,7 +141,8 @@ private: // Helperfunctions
   XYPoint transformLatLonToXY(const XYPoint &lat_lon);
   bool isHelmDrive() const { return (m_autopilot_mode != AutopilotHelmMode::HELM_INACTIVE && m_autopilot_mode != AutopilotHelmMode::HELM_INACTIVE_LOITERING && m_autopilot_mode != AutopilotHelmMode::HELM_PARKED); };
   bool isHelmCommanding() const { return (m_autopilot_mode == AutopilotHelmMode::HELM_SURVEYING || m_autopilot_mode == AutopilotHelmMode::HELM_TOWAYPT || m_autopilot_mode == AutopilotHelmMode::HELM_RETURNING); };
-  bool isHelmNothingTodo() const { return (m_autopilot_mode == AutopilotHelmMode::HELM_ACTIVE); };
+  bool isHelmDrive_NothingTodo() const { return (m_autopilot_mode == AutopilotHelmMode::HELM_ACTIVE); };
+  bool isHelmDrive_Busy() const { return (isHelmDrive() && !isHelmDrive_NothingTodo()); };
 
   void goToHelmMode(AutopilotHelmMode state, bool fromGCS = false);
 
@@ -149,43 +150,48 @@ private: // Helperfunctions
   bool tryFlyToWaypoint();
   bool tryRTL(); // Non-blocking
   bool tryloiterAtPos(const XYPoint &loiter_coord = XYPoint(0, 0), bool holdCurrentAltitude = false);
-  
 
 protected: // async
-
-template <typename T>
- class PromiseFuture{
+  template <typename T>
+  class PromiseFuture
+  {
   public:
-  std::promise<T> prom;
-  std::future<T> fut = prom.get_future();
+    std::promise<T> prom;
+    std::future<T> fut = prom.get_future();
 
-  void reset() { 
-    prom = std::promise<T>();
-    fut = prom.get_future();
-  }
- };
+    void reset()
+    {
+      prom = std::promise<T>();
+      fut = prom.get_future();
+    }
+  };
 
-struct ResultPair {
+  struct ResultPair
+  {
     bool success;
     std::string message;
-};
+    double display_time = WARNING_DURATION;
+  };
 
-/// @brief Future and promise for async functions
-template <typename T>
-std::optional<T> future_try_get(std::future<T>& future) {
-    if (future.wait_for(std::chrono::milliseconds(0)) == std::future_status::ready) {
-        return future.get(); // Retrieve the value if it's ready
+  /// @brief Future and promise for async functions
+  template <typename T>
+  std::optional<T> future_poll_result(std::future<T> &future)
+  {
+    if (future.wait_for(std::chrono::milliseconds(0)) == std::future_status::ready)
+    {
+      return future.get(); // Retrieve the value if it's ready
     }
     return std::nullopt; // Return an empty optional if not ready
-}
+  }
 
-  void tryFlyToWaypoint_async();
+  void flyToWaypoint_async();
   PromiseFuture<ResultPair> m_fly_to_waypoint_promfut;
 
-  void tryLoiterAtPos_async(const XYPoint &loiter_coord = XYPoint(0, 0), bool holdCurrentAltitude = false);
+  void loiterAtPos_async(const XYPoint &loiter_coord = XYPoint(0, 0), bool holdCurrentAltitude = false);
   PromiseFuture<ResultPair> m_loiter_at_pos_promfut;
 
-
+  void rtl_async();
+  PromiseFuture<ResultPair> m_rtl_promfut;
 
 private: // State variables
   // For UAV
@@ -197,7 +203,7 @@ private: // State variables
 
   std::shared_ptr<WarningSystem> m_warning_system_ptr;
   UAV_Model m_uav_model;
-  SetpointManager m_setpoint_manager;
+  ThreadSafeVariable<SetpointManager> m_helm_desiredValues;
 
   std::pair<bool, double> m_do_change_speed_pair;
   std::pair<bool, double> m_do_change_heading_pair;
@@ -207,7 +213,9 @@ private: // State variables
   bool m_do_takeoff;
   bool m_do_arm;
   bool m_do_return_to_launch;
-  bool m_do_loiter;
+
+  std::pair<bool, std::string> m_do_loiter_pair;
+
   bool m_do_helm_survey;
 
   AutopilotHelmMode m_autopilot_mode;
