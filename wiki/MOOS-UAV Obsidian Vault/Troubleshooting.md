@@ -89,8 +89,26 @@ Run the script: `gdb_attach_arduplane.sh` in `scripts/` after which you can ente
 - Arduplane processes command with functions defined here `~/ardupilot/libraries/GCS_MAVLink/GCS_Common.cpp`
 - To debug pArduBridge  add the alias:
   
-  ```bash
-  alias launchSkywalker_gdb='cd ~/moos-ivp-uav/missions/UAV_Fly;
+```bash
+alias launchSkywalker_gdb='cd ~/moos-ivp-uav/missions/UAV_Fly;
                        gdb --args env MAVSDK_CALLBACK_DEBUGGING=1 MAVSDK_COMMAND_DEBUGGING=1 MAVSDK_PARAMETER_DEBUGGING=1 pArduBridge targ_skywalker.moos;'
-
 ```
+
+
+# MOOS IVP SWARM
+
+### Fails building
+
+Ensure that the MOOSIVP_SOURCE_TREE_BASE in the `~/moos-ivp-swarm/CMakeLists.txt` is properly set by commenting in the appropriate `PATHS` varible. It should look like this:
+
+```cmake
+find_path( MOOSIVP_SOURCE_TREE_BASE
+			NAMES build-ivp.sh build-moos.sh configure-ivp.sh
+			PATHS "../moos-ivp" "../../moos-ivp" "../../moos-ivp/trunk/" "../moos-ivp/trunk/"
+			# PATHS "../../moos-ivp-git" "../moos-ivp-git/"
+			DOC "Base directory of the MOOS-IvP source tree"
+			NO_DEFAULT_PATH
+)
+```
+
+Edit the `string2NodeRecord(report, true)` to `string2NodeRecord(report)` to make it compatible with the new function definitions

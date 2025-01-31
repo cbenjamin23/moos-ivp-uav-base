@@ -59,10 +59,10 @@ which pHelmIvP
 
 It should produce:
 
-		$ which MOOSDB
-		/Users/you/moos-ivp/bin/MOOSDB
-		$ which pHelmIvP 
-		/Users/you/moos-ivp/bin/pHelmIvP
+	$ which MOOSDB
+	/Users/you/moos-ivp/bin/MOOSDB
+	$ which pHelmIvP 
+	/Users/you/moos-ivp/bin/pHelmIvP
 
 AND/OR run an example mission:
 ```
@@ -75,7 +75,7 @@ Add path to bin folder in moos-ivp-uav to bashrc: `PATH=$PATH:~/moos-ivp-uav/bin
 **NOTE**: When building moos-ivp, remember to use the `-m` flag to only build nongui apps: `.build.sh -m`
 
 
-### MOOS IVP Editor
+### MOOS IVP Editor for vscode
 Installed the moos-ivp editor extension for vscode by following this [guide](https://msis.github.io/2680notes/editors/vscode/10%20-%20Setting%20things%20up/#install-recommended-extensions):
 
 Install the file [moos-ivp-editor-0.2.0.vsix](https://github.com/msis/2680notes/blob/main/pages/editors/moos-ivp-editor-0.2.0.vsix) and run command:
@@ -86,6 +86,43 @@ code --install-extension moos-ivp-editor-0.2.0.vsix
 
 in your folder where you have the project.
 
+
+## Install MOOS IVP SWARM Toolbox
+
+**Note:** Codebase is currently being moved from svn to github
+
+Download the [codebase](https://oceanai.mit.edu/svn/moos-ivp-swarm-aro-j24 "https://oceanai.mit.edu/svn/moos-ivp-swarm-aro-j24")using svn to your home folder `~/.`
+
+```shell
+svn co https://oceanai.mit.edu/svn/moos-ivp-swarm-aro-j24/trunk moos-ivp-swarm
+```
+
+Checkout and build the library:
+```shell
+cd moos-ivp-swarm
+./build.sh
+```
+**PS**: Build with flag `-m` if building on vehicle
+
+*Note:* If bugs appear during the build process, fix them in the code base before retrying the build. More info in  [[Troubleshooting]]
+
+Update your environmental variables, `PATH` and `IVP_BEHAVIOR_DIRS`, in your `.bashrc` file.
+```shell
+IVP_BEHAVIOR_DIRS=$IVP_BEHAVIOR_DIRS:~/moos-ivp-swarm/lib
+export IVP_BEHAVIOR_DIRS
+
+PATH=$PATH:~/moos-ivp-swarm/bin
+export PATH
+```
+
+
+Verify that it is properly installed with:
+
+```bash
+which pMediator
+```
+
+**Output:** /Users/you/moos-ivp-swarm/bin/pMediator
 
 
 ---

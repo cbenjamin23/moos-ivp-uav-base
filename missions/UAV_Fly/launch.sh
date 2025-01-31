@@ -145,13 +145,15 @@ for ((i = 0; i < $NUM_VEHICLES; i++)); do
     if [ "$START_FROM_CONFIG" == "yes" ]; then
         VNAME=$(yq eval ".drones[$i].name" "$CONFIG_FILE")
         ARDUPILOT_IP=$(yq eval ".simulation.ardupilot_ip" "$CONFIG_FILE")
-        ARDUPILOT_PORT=$(yq eval ".drones[$i].simulation.ardupilot_port" "$CONFIG_FILE")
+        ARDUPILOT_PORT=$(yq eval ".simulation.ardupilot_port_default" "$CONFIG_FILE")
         x=$(yq eval ".drones[$i].start_orientaton_moos.x" "$CONFIG_FILE")
         y=$(yq eval ".drones[$i].start_orientaton_moos.y" "$CONFIG_FILE")
         
         ## Convert [m] to moos distance (1m = 2 moos distance)
         x=$(($x * 2))
         y=$(($y * 2))
+
+        ARDUPILOT_PORT=$(($ARDUPILOT_PORT + $i*10))
     
         START_POS="$x,$y"
 

@@ -826,17 +826,15 @@ bool ArduBridge::buildReport()
   auto uav_next_waypoint_latlon = m_uav_model.getNextWaypointLatLon();
   auto uav_heading_waypoint_latlon = m_uav_model.getHeadingWaypointLatLon();
 
-  double nav_x, nav_y;
-  if (m_geo_ok)
-  {
-    m_geodesy.LatLong2LocalGrid(lat, lon, nav_y, nav_x);
-  }
+
+  auto XY = transformLatLonToXY({lat, lon});
+
 
   m_msgs << "State Information: " << std::endl;
   m_msgs << "------------------ " << std::endl;
   m_msgs << "       Helm Autonomy Mode: " << helmModeToString(m_autopilot_mode) << std::endl;
   m_msgs << "  (Latitude , Longditute): " << lat << " , " << lon << std::endl;
-  m_msgs << "                  (X , Y): " << nav_x << " , " << nav_y << std::endl;
+  m_msgs << "                  (X , Y): " << XY.x() << " , " << XY.y() << std::endl;
   // m_msgs << "    Target Altitude (AGL): " << m_uav_model.getTargetAltitudeAGL() << " m" << "    Last Sent (AGL): " << m_uav_model.getLastSentTargetAltitudeAGL() << " m" << std::endl;
   // m_msgs << "           Altitude (AGL): " << m_uav_model.getAltitudeAGL() << " m (Depth/Z: " << -m_uav_model.getAltitudeAGL() << " m)" << std::endl;
   m_msgs << "           Altitude (MSL): " << uav_altitude_msl << " m" << std::endl;
@@ -960,16 +958,14 @@ void ArduBridge::postTelemetryUpdate(const std::string &prefix)
   auto uav_heading = m_uav_model.getHeading();
   auto uav_altitude_agl = m_uav_model.getAltitudeAGL();
 
-  if (m_geo_ok)
-  {
-    double nav_x, nav_y;
-    m_geodesy.LatLong2LocalGrid(lat, lon, nav_y, nav_x);
 
-    NotifyIfNonNan(prefix + "_X", nav_x, m_curr_time);
-    NotifyIfNonNan(prefix + "_Y", nav_y, m_curr_time);
+  auto XY = transformLatLonToXY({lat, lon});
 
-    visualizeHdgHoldTarget(isHelmDrive_Busy() || uav_isHoldHeadingGuided);
-  }
+  NotifyIfNonNan(prefix + "_X", XY.x(), m_curr_time);
+  NotifyIfNonNan(prefix + "_Y", XY.y(), m_curr_time);
+
+  visualizeHdgHoldTarget(isHelmDrive_Busy() || uav_isHoldHeadingGuided);
+
 
   NotifyIfNonNan(prefix + "_SPEED", uav_SOG, m_curr_time);
 
@@ -1000,18 +996,9 @@ void ArduBridge::visualizeHomeLocation()
     return;
   }
 
-  double nav_x, nav_y;
-  if (m_geo_ok)
-  {
-    m_geodesy.LatLong2LocalGrid(lat, lon, nav_y, nav_x);
-  }
-  else
-  {
-    m_warning_system_ptr->queue_monitorWarningForXseconds("Geodesy not initialized", 5);
-    return;
-  }
+  auto XY = transformLatLonToXY({lat, lon});
 
-  XYMarker marker(nav_x, nav_y);
+  XYMarker marker(XY.x(), XY.y());
   marker.set_label("Home_" + m_vname);
   marker.set_type("gateway");
   marker.set_width(MARKER_WIDTH);
@@ -1089,13 +1076,12 @@ void ArduBridge::visualizeHdgHoldTarget(bool visualize)
   auto uav_targetAirspeed = m_uav_model.getTargetAirSpeed();
   auto uav_targetHeading = m_uav_model.getTargetHeading();
 
-  if ((!lat || !lon || !m_geo_ok) && !visualize)
+  if ((!lat || !lon ) && !visualize)
     return; // If invald coord, return unless the goal is to remove from visualization
 
-  double nav_x, nav_y;
-  m_geodesy.LatLong2LocalGrid(lat, lon, nav_y, nav_x);
+  auto XY = transformLatLonToXY({lat, lon});
 
-  visualizeHdgVector(nav_x, nav_y, uav_targetAirspeed, uav_targetHeading, visualize);
+  visualizeHdgVector(XY.x(), XY.y(), uav_targetAirspeed, uav_targetHeading, visualize);
 }
 
 bool ArduBridge::parseCoordinateString(const std::string &input, double &lat, double &lon, double &x, double &y, std::string &vname) const

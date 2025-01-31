@@ -80,6 +80,7 @@ alias launchSkywalker='cd ~/moos-ivp-uav/missions/UAV_Fly;
 #-------------------------------------------------------
 # Some suggestions for MOOS-IvP aliases
 #-------------------------------------------------------
+# for moos-ivp
 alias cdm='cd ~/moos-ivp'
 alias cdmm='cdm; cd ivp/missions'
 alias cdmma='cdmm; cd s1_alpha'
@@ -93,10 +94,16 @@ alias cdmi='cduav; cd ./missions'
 alias cdmis='cdmi; cd ./UAV_Fly'
 alias bld='cduav; ./build.sh; cd -'
 
+# for moos-ivp-swarm
+alias cdsw='cd ~/moos-ivp-swarm/'
+alias cdswm='cdsw; cd ./missions'
+alias cdswsrc='cdsw; cd ./src'
 
 
-alias build_all='cd ~/moos-ivp; svn up; ./build.sh -m; cd -
-                 cd ~/moos-ivp-scnomeny; ./build.sh; cd -'; 
+# building for minirobot
+alias build_all_m='cdm; git pull; ./build.sh -m; cd -
+                   cdsw; svn up; ./build.sh -m; cd -
+                   cduav; ./build.sh; cd -'; 
 
 
 # The Odroid computer
@@ -151,6 +158,7 @@ PATH=$PATH:~/moos-ivp
 PATH=$PATH:~/moos-ivp/bin
 PATH=$PATH:~/moos-ivp/scripts
 PATH=$PATH:~/moos-ivp-uav/bin 
+PATH=$PATH:~/moos-ivp-swarm/bin 
 
 export PATH
 
@@ -164,7 +172,7 @@ else
     export IVP_BEHAVIOR_DIRS=~/moos-ivp/lib
 fi
 IVP_BEHAVIOR_DIRS=$IVP_BEHAVIOR_DIRS:~/moos-ivp-uav/lib
-
+IVP_BEHAVIOR_DIRS=$IVP_BEHAVIOR_DIRS:~/moos-ivp-swarm/lib
 export IVP_BEHAVIOR_DIRS
 
 

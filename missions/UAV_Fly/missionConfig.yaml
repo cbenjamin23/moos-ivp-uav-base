@@ -2,11 +2,13 @@
 
 # Global simulation parameters
 simulation:
-  time_warp: 5
-  number_of_drones: 3
+  time_warp: 1
+  number_of_drones: 1
   ardupilot_ip: "0.0.0.0"
   ardupilot_protocol: "udp"
   home_altitude: 106.1
+  fdm_port_in_default: 9002
+  ardupilot_port_default: 14550
 
 # Field deployment parameters
 field:
@@ -29,9 +31,9 @@ drones:
       x: 0
       y: 0
       hdg: 46 # deg
-    simulation: # Can be automated away (for now it is hardcoded)
-      ardupilot_port: 14550
-      fdm_port_in: 9002
+    # simulation: # Can be automated away (for now it is hardcoded)
+    #   ardupilot_port: 14550
+    #   fdm_port_in: 9002
 
   - name: "Skyfollower"
     color: "brown"
@@ -39,9 +41,9 @@ drones:
       x: -50
       y: -5
       hdg: 36 # deg
-    simulation:
-      ardupilot_port: 14560
-      fdm_port_in: 9012
+    # simulation:
+    #   ardupilot_port: 14560
+    #   fdm_port_in: 9012
 
   - name: "Skytrailer"
     color: "purple"
@@ -49,6 +51,6 @@ drones:
       x: 50
       y: -5
       hdg: 56 # deg
-    simulation:
-      ardupilot_port: 14570
-      fdm_port_in: 9022
+    # simulation:
+    #   ardupilot_port: 14570
+    #   fdm_port_in: 9022

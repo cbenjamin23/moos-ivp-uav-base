@@ -27,6 +27,7 @@ Processconfig = ANTLER
   Run = pArduBridge        @ NewConsole = true,XConfig=DBXConsoleSettings,  \[=\=]
   Run = uLoadWatch         @ NewConsole = false
 
+  HOLDSettings = -hold
   // xterm configuration settings for pArduBridge
   DBXConsoleSettings = -hold,-bg,#2e302c,-geometry,80x60+2+00,+sb,-T,pArduBridge-$(VNAME)
 }

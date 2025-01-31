@@ -24,6 +24,9 @@ def main(config_file, default_models_folder, destination_models_folder, destinat
     reason =  "will be forced overwritten" if force else "does not exist"
     print(f"{destination_world_path} {reason}. Generating necessary drones and world file...")
     
+
+    fdm_port_in_default = params['simulation']['fdm_port_in_default']
+
     # Process each drone     
     for i in range(num_drones):
         drone = params["drones"][i]
@@ -71,6 +74,10 @@ def main(config_file, default_models_folder, destination_models_folder, destinat
         
         with open(os.path.join(model_destination_path, "model.config"), "w") as model_config_file:
             model_config_file.write(model_config_content.strip())
+
+
+        
+        drone_fdm_port_in = fdm_port_in_default + i*10
 
         # Generate and save model.sdf
         model_sdf_content = f"""
@@ -623,7 +630,7 @@ def main(config_file, default_models_folder, destination_models_folder, destinat
     <plugin name="ArduPilotPlugin" filename="ArduPilotPlugin">
       <!-- Port settings -->
       <fdm_addr>127.0.0.1</fdm_addr>
-      <fdm_port_in>{drone['simulation']['fdm_port_in']}</fdm_port_in>
+      <fdm_port_in>{drone_fdm_port_in}</fdm_port_in>
       <connectionTimeoutMaxCount>5</connectionTimeoutMaxCount>
       <lock_step>1</lock_step>
 
