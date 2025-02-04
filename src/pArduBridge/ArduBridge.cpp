@@ -112,14 +112,17 @@ bool ArduBridge::OnNewMail(MOOSMSG_LIST &NewMail)
     }
     else if (key == "NEXT_WAYPOINT")
     {
+      Logger::info("OnNewMail NEXT_WAYPOINT: " + msg.GetString());
       std::string wp_str = msg.GetString();
       double lat, lon, x, y;
       std::string vname;
       if (parseCoordinateString(wp_str, lat, lon, x, y, vname))
       {
+        // Logger::info("OnNewMail Parsed info: " + doubleToString(lat) + " " + doubleToString(lon) + " " + doubleToString(x) + " " + doubleToString(y) + " " + vname);
+
         if (vname == m_vname || vname == "all")
         {
-          Logger::info("OnNewMail NEXT_WAYPOINT: " + msg.GetString());
+          Logger::info("OnNewMail Accepted Wailpoint");
           m_uav_model.setNextWaypointLatLon(XYPoint(lat, lon));
 
           m_tonext_waypointXY = XYPoint(x, y);
@@ -572,6 +575,7 @@ bool ArduBridge::OnStartUp()
     if (param == "vname")
     {
       m_vname = value;
+      MOOSToLower(m_vname);
       handled = true;
     }
     else if (param == "vcolor")
@@ -1112,6 +1116,7 @@ bool ArduBridge::parseCoordinateString(const std::string &input, double &lat, do
     else if (key == "vname")
     {
       vname = value;
+      MOOSToLower(vname);
     }
     else
     {

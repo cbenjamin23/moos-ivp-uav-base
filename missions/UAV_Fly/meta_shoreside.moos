@@ -198,7 +198,7 @@ ProcessConfig = pMarineViewer
 
 
   vehicles_shape_scale = 5.0
-  vehicles_name_mode   = names
+  vehicles_name_mode   = names+depth
   vehicles_active_color = skyblue // (87,ce,eb)
   vehicles_inactive_color = gray // (80,80,80)
 
@@ -241,6 +241,7 @@ ProcessConfig = pMarineViewer
   
   left_context[register_wypt_all] =  VIEW_MARKER = "type=gateway,x=$[XPOS],y=$[YPOS],scale=10,label=next_wpt_all,color=blue,width=10"
   left_context[register_wypt_all] =  NEXT_WAYPOINT = "lat=$[LAT],lon=$[LON],x=$[XPOS],y=$[YPOS],vname=all"
+  left_context[register_wypt_all] =  TOWAYPT_UPDATE = "points=x=$[XPOS],y=$[YPOS],vname=all"
   
   left_context[register_wypt_active_vehicle] =  VIEW_MARKER = "type=gateway,x=$[XPOS],y=$[YPOS],scale=10,label=next_wpt_$[VNAME],color=gray,width=10"
   left_context[register_wypt_active_vehicle] =  NEXT_WAYPOINT = "lat=$[LAT],lon=$[LON],x=$[XPOS],y=$[YPOS],vname=$[VNAME]"

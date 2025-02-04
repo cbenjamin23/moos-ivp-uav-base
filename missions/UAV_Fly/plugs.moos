@@ -1,0 +1,143 @@
+<tag><origin_warp>
+MOOSTimeWarp = $(WARP)
+                                               
+LatOrigin  = $(LatOrigin) // 42.358456                                                                
+LongOrigin = $(LonOrigin) // -71.087589 
+
+<tag><pHostInfo>
+//--------------------------------------------------
+// pHostInfo config block
+
+ProcessConfig = pHostInfo
+{
+  AppTick 	= 1
+  CommsTick = 1
+
+  default_hostip_force = $(IP_ADDR)
+}
+
+<tag><pShare>
+//---------------------------------------------------------
+// pShare Config Block 
+
+ProcessConfig = pShare
+{
+  AppTick    = 5
+  CommsTick  = 5
+
+  input = route =  $(IP_ADDR):$(PSHARE_PORT)
+}
+
+
+<tag><uProcessWatch>
+//------------------------------------------
+// uProcessWatch config block
+
+ProcessConfig = uProcessWatch                                   
+{                                                               
+  AppTick   = 1                                                 
+  CommsTick = 1  
+
+	watch_all = true
+	nowatch   = uXMS*
+	nowatch   = uMAC*
+	nowatch   = uPokeDB*
+	nowatch   = uQueryDB*
+	summary_wait = 5
+}
+
+
+
+<tag><uHelmScope>
+ProcessConfig = uHelmScope                                      
+{                                                               
+  AppTick   = 1    // MOOSApp default is 4                   
+  CommsTick = 1    // MOOSApp default is 4                   
+                                                                
+  paused    = false   // default                                
+                                                                
+  hz_memory = 5,100   // default                                
+                                                                
+  display_moos_scope = true     // default                   
+  display_bhv_posts  = true     // default                   
+  display_virgins    = true     // default                   
+  display_statevars  = true     // default                   
+  truncated_output   = false    // default                   
+  behaviors_concise  = true     // default                   
+                                                                
+  // var  = NAV_X, NAV_Y, NAV_SPEED, NAV_DEPTH   // MOOS vars are  
+  // var  = DESIRED_HEADING, DESIRED_SPEED       // case sensitive 
+  var  = IVPHELM LIFE EVENT
+}                                       
+
+
+
+<tag><pLogger>
+//--------------------------------------------------
+// pLogger Config Block
+ProcessConfig = pLogger
+{
+  AppTick 	= 10
+  CommsTick = 10
+  
+  File      = LOG_%(VNAME)
+  PATH      = ./Vlogs/
+  AsyncLog  = true
+  FileTimeStamp = true
+
+  Log = IVPHELM_LIFE_EVENT @ 0 nosync
+  Log = TEAM_ROSTER_DEBUG @ 0 nosync
+  Log = TSK_DEBUG @ 0 nosync
+  Log = TASK_DEBUG @ 0 nosync
+  Log = H_DEBUG @ 0 nosync
+
+  // Log it all!!!!!
+  LogAuxSrc = true
+  WildCardLogging = true 
+  WildCardOmitPattern = *_STATUS
+  WildCardOmitPattern = APPCAST
+  WildCardOmitPattern = DB_VARSUMMARY
+  WildCardOmitPattern = DB_RWSUMMARY
+
+  CompressAlogs = false
+}
+
+
+<tag><uTimerScript>                                                           
+//------------------------------------------
+// uTimerScript config block
+ProcessConfig = uTimerScript
+{
+  reset_max  = unlimited
+	reset_time = end
+  event      = var=RESCUE_REQUEST, val=vname=$(VNAME), time=1
+}
+
+
+<tag><uLoadWatch>                                                           
+ProcessConfig = uLoadWatch                                      
+{                                                               
+  AppTick   = 4                                                 
+  CommsTick = 4                                                 
+                                                                
+  thresh = app=pHelmIvP, gapthresh=1.5                          
+  thresh = app=any,      gapthresh=2.0                          
+                                                                
+  near_breach_thresh = 0.9  // default                          
+                                                                
+  breach_trigger = 1    // default (first offense forgiven)     
+                                                                
+  app_logging = true  // {true or file} By default disabled     
+} 
+
+<tag><uMemWatch>
+ProcessConfig = uMemWatch
+{
+  AppTick   = 0.4
+  CommsTick = 0.4
+
+  absolute_time_gap = 2
+}
+
+
+

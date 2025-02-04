@@ -65,8 +65,7 @@ bool UAV_Model::connectToUAV(std::string url)
     return false;
   }
 
-  MOOSTraceFromCallback("Connecting to the URL: " + url + "\n");
-
+  // MOOSTraceFromCallback("Connecting to the URL: " + url + "\n");
   std::cout << "Connecting to the URL: " << url << std::endl;
   mavsdk::ConnectionResult connection_result = m_mavsdk_ptr->add_any_connection(url);
 
@@ -84,7 +83,6 @@ bool UAV_Model::connectToUAV(std::string url)
 
   std::cout << "Connected to UAV\n";
 
-  MOOSTraceFromCallback("Connecting to the URL: " + url + "\n");
   MOOSTraceFromCallback("Waiting to discover system...\n");
 
   auto system = m_mavsdk_ptr->first_autopilot(3.0);

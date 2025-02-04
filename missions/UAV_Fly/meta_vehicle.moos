@@ -2,7 +2,7 @@ ServerHost = localhost
 ServerPort = $(MOOS_PORT)
 Community  = $(VNAME)
 
-#include plug_origin_warp.moos
+#include plugs.moos <origin_warp>
   
 //------------------------------------------------------------
 Processconfig = ANTLER
@@ -14,31 +14,40 @@ Processconfig = ANTLER
   Run = pNodeReporter      @ NewConsole = false
   Run = pDeadManPost       @ NewConsole = false
 
-  Run = pHelmIvP           @ NewConsole = false
+  Run = pHelmIvP           @ NewConsole = true, XConfig=HOLDSettings
   Run = pContactMgrV20     @ NewConsole = false
   Run = pShare             @ NewConsole = false
   Run = pHostInfo          @ NewConsole = false
 
   Run = uFldNodeBroker     @ NewConsole = false
   Run = uFldMessageHandler @ NewConsole = false
-  Run = uTimerScript       @ NewConsole = false
+  // Run = uTimerScript       @ NewConsole = false
   Run = pRealm             @ NewConsole = false
-  Run = uProcessWatch      @ NewConsole = false
   Run = pArduBridge        @ NewConsole = true,XConfig=DBXConsoleSettings,  \[=\=]
+  
+  
+  Run = uProcessWatch      @ NewConsole = false
   Run = uLoadWatch         @ NewConsole = false
+  Run = uMemWatch          @ NewConsole = false
 
   HOLDSettings = -hold
   // xterm configuration settings for pArduBridge
   DBXConsoleSettings = -hold,-bg,#2e302c,-geometry,80x60+2+00,+sb,-T,pArduBridge-$(VNAME)
 }
 
-// #include plug_uSimMarine.moos
 
-#include plug_pShare.moos
-#include plug_pHostInfo.moos
-#include plug_uProcessWatch.moos
+#include plugs.moos <pShare>
+#include plugs.moos <pHostInfo>
+#include plugs.moos <uProcessWatch>
+#include plugs.moos <uHelmScope>
 
-#include plug_pArduBridge.moos
+
+#include plugs.moos <pLogger>
+
+// #include plugs.moos <uTimerScript>
+
+#include plugs.moos <uLoadWatch>
+#include plugs.moos <uMemWatch>
 
 
 
@@ -55,21 +64,14 @@ ProcessConfig = pHelmIvP
   behaviors    = targ_$(VNAME).bhv  
   verbose      = false
   domain       = course:0:359:360
-  domain       = speed:10:30:301
-  domain       = altitude:10:300:291
+  domain       = speed:10:19:10
+  domain       = altitude:0:300:301
 
   hold_on_app  = pContactMgrV20
+
+  // app_logging  = true
 }
 
-//------------------------------------------
-// uTimerScript config block
-
-ProcessConfig = uTimerScript
-{
-  reset_max  = unlimited
-	reset_time = end
-  event      = var=RESCUE_REQUEST, val=vname=$(VNAME), time=1
-}
 
 //------------------------------------------
 // pRealm config block
@@ -130,21 +132,72 @@ ProcessConfig = pContactMgrV20
 {
   AppTick   = 2
   CommsTick = 2
+  app_logging = true
+
+  // alert = id=avd, onflag=CONTACT_INFO="name=avd_$[VNAME] # contact=$[VNAME]"   
+  // alert = id=avd, range=160, alert_range_color=white             
+  // alert = id=avd, cpa_range=190, cpa_range_color=gray50          
+  // alert = id=avd, ignore_name=hal, match_group=usv,ship 
+
+
+
+  // disable_var = XYZ_DISABLE_TARGET
+  //  enable_var = XYZ_REENABLE_TARGET
+  
+
+  // ------ Contact Management ------
+  decay = 30,60  // Policy for linear extrapolation of stale contacts. Last for 30 seconds (then decay speed to 0m/s at 60 seconds - Not possible)
+  contact_local_coords = force_lat_lon
+  contact_max_age = 35
+  reject_range   = 2000      // default is 2000 (meter)                               
+  recap_interval = 1         // default in 1 (second)    
+
+  contact_max_age  = 600             // 600 default in secs.       
+  max_retired_history = 5            // 5 default in # of ships  
+
+	// ------ Visuals ------
+  display_radii = true
+	// display_radii_id = avd
+  alert_range_color = gray70
+  cpa_range_color   = gray30
+
+  // ----- Debug Postings -----
+	post_closest_range   = false
+	post_all_ranges = false
+  alert_verbose = false
+  
+}
+
+ProcessConfig = pContactMgrV20
+{
+  AppTick   = 2
+  CommsTick = 2
 
   decay = 30,60
 
+	app_logging = true
   alert_verbose = true
 
-	post_all_ranges = true
+	contact_local_coords = force_lat_lon
 	
-  contact_max_age = 35
-	display_radii_id = avd
-  display_radii = false
+  contact_max_age   = 35
+  display_radii     = true
+	display_radii_id  = avd
   alert_range_color = gray70
   cpa_range_color   = gray30
+
+	alert = id=avdcol_, var=CONTACT_INFO, val="name=$[VNAME] # contact=$[VNAME]"
+  alert = id=avdcol_, alert_range=15, cpa_range=5
+	
+	//match_region = pts = {60,-40 : 60,-160 : 150,-160 : 180,-100 : 150,-40}
+	//match_type = kayak, uuv
+
+  disable_var = XYZ_DISABLE_TARGET
+  enable_var  = XYZ_REENABLE_TARGET
+	
+	post_closest_range   = true
+  hold_alerts_for_helm = true
 }
-
-
 //----------------------------------------
 // pNodeReporter config block
 
@@ -174,51 +227,31 @@ ProcessConfig = pDeadManPost
 }
 
 
-//--------------------------------------------------
-// pLogger Config Block
 
-ProcessConfig = pLogger
-{
-  AppTick 	= 10
-  CommsTick = 10
-  
-  File      = LOG_%(VNAME)
-  PATH      = ./Vlogs/
-  AsyncLog  = true
-  FileTimeStamp = true
-
-  Log = IVPHELM_LIFE_EVENT @ 0 nosync
-  Log = TEAM_ROSTER_DEBUG @ 0 nosync
-  Log = TSK_DEBUG @ 0 nosync
-  Log = TASK_DEBUG @ 0 nosync
-  Log = H_DEBUG @ 0 nosync
-
-  // Log it all!!!!!
-  LogAuxSrc = true
-  WildCardLogging = true 
-  WildCardOmitPattern = *_STATUS
-  WildCardOmitPattern = APPCAST
-  WildCardOmitPattern = DB_VARSUMMARY
-  WildCardOmitPattern = DB_RWSUMMARY
-
-  CompressAlogs = false
-}
-
-//=============================================================== 
-//uLoadWatch Example MOOS Configuration                           
-//=============================================================== 
-                                                                
-ProcessConfig = uLoadWatch                                      
+//------------------------------------------
+// pArduBridge config block
+ProcessConfig = pArduBridge                              
 {                                                               
   AppTick   = 4                                                 
   CommsTick = 4                                                 
-                                                                
-  thresh = app=pHelmIvP, gapthresh=1.5                          
-  thresh = app=any,      gapthresh=2.0                          
-                                                                
-  near_breach_thresh = 0.9  // default                          
-                                                                
-  breach_trigger = 1    // default (first offense forgiven)     
-                                                                
-  app_logging = true  // {true or file} By default disabled     
-} 
+
+  ArduPilotURL = $(AP_IP):$(AP_PORT)
+  url_protocol = $(AP_PROTOCOL)
+
+  vname = $(VNAME)
+  vcolor = $(COLOR)
+  prefix = NAV
+
+  cmd_GS = false
+  
+  Logger = true
+
+#ifdef XMODE SIM
+  is_Sim = true
+#else
+  is_Sim = false
+#endif
+
+}
+
+

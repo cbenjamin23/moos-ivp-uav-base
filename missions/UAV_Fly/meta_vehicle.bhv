@@ -122,37 +122,6 @@ Behavior = BHV_ConstantAltitude{
 }
 
 
-// //----------------------------------------------
-// Behavior = BHV_AvdColregsV22
-// {
-//   name       = avdcol_
-//   pwt        = 350
-//   condition  = AVOID = true 
-//   condition  = AUTOPILOT_MODE==ACTIVE
-//   condition  = AUTOPILOT_MODE!=ACTIVE:STATION-KEEPING
-//   updates    = CONTACT_INFO
-//   endflag    = CONTACT_RESOLVED = $[CONTACT]
-//   templating = spawn
-
-//             contact = to-be-set
-//    on_no_contact_ok = true
-//         extrapolate = true
-//               decay = 30,60
-
-//         headon_only = true
-
-// //	velocity_filter = min_spd=0.2, max_spd=1.0, pct=40
-	
-//        use_refinery = true
-
-//      pwt_outer_dist = 35
-//      pwt_inner_dist = 10
-//      completed_dist = 40
-//   min_util_cpa_dist = 10
-//   max_util_cpa_dist = 18
-//           pwt_grade = linear
-// //   bearing_line_config = white:0, green:0.65, yellow:0.8, red:1.0
-// }
 
 
 //----------------------------------------------
@@ -197,6 +166,48 @@ Behavior = BHV_Waypoint
     visual_hints = vertex_color = $(COLOR)   // default
 }
 
+
+
+// //----------------------------------------------
+Behavior = BHV_AvoidCollision
+{
+  name       = avdcol_
+  pwt        = 350
+  condition  = AVOID = true 
+  condition  = BHV_MODE==ACTIVE
+  updates    = CONTACT_INFO
+  endflag    = CONTACT_RESOLVED = $[CONTACT]
+  templating = spawn
+
+  // General Contact Behavior Parameters
+  // -----------------------------------
+            contact = to-be-set
+   on_no_contact_ok = true
+        extrapolate = true
+              decay = 30,60
+   no_alert_request = false
+
+        // headon_only = true
+        // can_disable = true  
+        
+  bearing_lines = true
+  bearing_line_config = white:0, green:0.65, yellow:0.8, red:1.0
+//	velocity_filter = min_spd=0.2, max_spd=1.0, pct=40
+	
+  // Parameters specific to this behavior
+  // ------------------------------------
+  // Distances are 2x real life in MOOS
+        use_refinery = true 
+      pwt_inner_dist = 100
+      pwt_outer_dist = 160  // Range to contact outside which the behavior has zero priority weight (alert_range). Default is 200
+      completed_dist = 190  // cpa_range
+           pwt_grade = quasi // Deafult is quasi
+
+    min_util_cpa_dist = 20 // 10 m
+    max_util_cpa_dist = 80 // 40 m
+}
+
+
 // //----------------------------------------------
 // Behavior = BHV_OpRegionRecover
 // {
@@ -223,3 +234,5 @@ Behavior = BHV_Waypoint
 // 	visual_hints = edge_size = 2
 // 	visual_hints = edge_color = gray30
 // }
+
+
