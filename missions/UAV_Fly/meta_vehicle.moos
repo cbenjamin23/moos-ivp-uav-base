@@ -139,8 +139,6 @@ ProcessConfig = pContactMgrV20
   // alert = id=avd, cpa_range=190, cpa_range_color=gray50          
   // alert = id=avd, ignore_name=hal, match_group=usv,ship 
 
-
-
   // disable_var = XYZ_DISABLE_TARGET
   //  enable_var = XYZ_REENABLE_TARGET
   
@@ -168,36 +166,6 @@ ProcessConfig = pContactMgrV20
   
 }
 
-ProcessConfig = pContactMgrV20
-{
-  AppTick   = 2
-  CommsTick = 2
-
-  decay = 30,60
-
-	app_logging = true
-  alert_verbose = true
-
-	contact_local_coords = force_lat_lon
-	
-  contact_max_age   = 35
-  display_radii     = true
-	display_radii_id  = avd
-  alert_range_color = gray70
-  cpa_range_color   = gray30
-
-	alert = id=avdcol_, var=CONTACT_INFO, val="name=$[VNAME] # contact=$[VNAME]"
-  alert = id=avdcol_, alert_range=15, cpa_range=5
-	
-	//match_region = pts = {60,-40 : 60,-160 : 150,-160 : 180,-100 : 150,-40}
-	//match_type = kayak, uuv
-
-  disable_var = XYZ_DISABLE_TARGET
-  enable_var  = XYZ_REENABLE_TARGET
-	
-	post_closest_range   = true
-  hold_alerts_for_helm = true
-}
 //----------------------------------------
 // pNodeReporter config block
 

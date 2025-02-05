@@ -5,7 +5,7 @@ ServerHost = localhost
 ServerPort = 9000
 Community  = shoreside
 
-#include plug_origin_warp.moos
+#include plugs.moos <origin_warp>
   
 //--------------------------------------------------------
 Processconfig = ANTLER
@@ -28,9 +28,12 @@ Processconfig = ANTLER
   // Run = uFldRescueMgr       @ NewConsole = false
 }
 
-#include plug_pHostInfo.moos
-#include plug_pShare.moos
-#include plug_uProcessWatch.moos
+
+#include plugs.moos <pShare>
+#include plugs.moos <pHostInfo>
+#include plugs.moos <uProcessWatch>
+
+
 
 //------------------------------------------
 // pRealm config block
@@ -52,25 +55,7 @@ ProcessConfig = pRealm
 	app_logging = true
 }
 	
-// //------------------------------------------
-// // uFldRescueMgr config block
 
-// ProcessConfig = uFldRescueMgr
-// {
-//   AppTick   = 4
-//   CommsTick = 4
-
-// 	app_logging = true
-
-// 	swim_file = $(SWIM_FILE)
-	
-// 	rescue_rng_min = 3
-// 	rescue_rng_max = 5
-// 	rescue_rng_pd  = 1.0
-
-// 	show_rescue_rng = true
-// 	rescue_rng_transparency = 0.1
-// }
 
 //--------------------------------------------------
 // uFldNodeComms config block

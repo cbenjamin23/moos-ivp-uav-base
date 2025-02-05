@@ -169,7 +169,7 @@ Behavior = BHV_Waypoint
 
 
 // //----------------------------------------------
-Behavior = BHV_AvoidCollision
+// Behavior = BHV_AvoidCollision
 {
   name       = avdcol_
   pwt        = 350
