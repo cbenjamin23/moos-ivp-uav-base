@@ -112,3 +112,5 @@ find_path( MOOSIVP_SOURCE_TREE_BASE
 ```
 
 Edit the `string2NodeRecord(report, true)` to `string2NodeRecord(report)` to make it compatible with the new function definitions
+
+Also, comment out the `geodaid` library if you experience linker issues.

@@ -10,9 +10,6 @@ initialize   AVOID  = true
 initialize BHV_MODE = INACTIVE
 
 
-// set BHV_MODE = INACTIVE {
-//   AUTOPILOT_MODE = HELM_INACTIVE
-// }
 
 set BHV_MODE = ACTIVE {
   AUTOPILOT_MODE != HELM_INACTIVE  
@@ -36,6 +33,10 @@ set BHV_MODE = SURVEY {
   AUTOPILOT_MODE = HELM_SURVEYING
 } 
 
+set BHV_MODE = VORONOI {
+  BHV_MODE = ACTIVE
+  AUTOPILOT_MODE = HELM_VORONOI
+} 
 
 // Set MAINTAIN_DEPTH = true {
 //   AUTOPILOT_MODE = HELM_SURVEYING  
@@ -236,3 +237,29 @@ Behavior = BHV_Waypoint
 // }
 
 
+
+
+Behavior = BHV_Voronoi
+{ 
+  name      = vcover
+  pwt       = 150
+  condition = BHV_MODE==VORONOI
+  UPDATES   = VCOVER_UPDATE
+  perpetual = true
+
+  // Parameters specific to this behavior
+  // ------------------------------------
+    capture_radius  = 32.5
+    activate_radius = 45.0
+              speed = $(SPEED)         
+   stale_nav_thresh = 5
+  stale_poly_thresh = 10
+
+       setpt_method = centroid
+ 
+   visual_hints = setpt_size   = 4 
+   visual_hints = setpt_color  = dodger_blue 
+   //  visual_hints = vertex_color  = yellow        // default
+   //  visual_hints = vertex_lcolor = aqua          // default
+    visual_hints = label         = zone3         // example
+}

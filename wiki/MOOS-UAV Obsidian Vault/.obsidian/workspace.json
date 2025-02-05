@@ -120,7 +120,8 @@
             "state": {
               "type": "file-explorer",
               "state": {
-                "sortOrder": "alphabetical"
+                "sortOrder": "alphabetical",
+                "autoReveal": false
               },
               "icon": "lucide-folder-closed",
               "title": "Files"
@@ -244,9 +245,9 @@
   },
   "active": "da26bb1516200fb8",
   "lastOpenFiles": [
-    "Info/Swarm.md",
     "Troubleshooting.md",
     "Info/MAIN System architecture.md",
+    "Info/Swarm.md",
     "Info/ArduPilot & MavProx.md",
     "Advantages of MOOS-IVP.md",
     "Info/Gazebo.md",

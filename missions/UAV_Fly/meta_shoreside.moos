@@ -23,6 +23,7 @@ Processconfig = ANTLER
   Run = uProcessWatch       @ NewConsole = false
   Run = uFldShoreBroker     @ NewConsole = false
   Run = uFldNodeComms       @ NewConsole = false
+  Run = uFldVoronoi         @ NewConsole = false
   // Run = uFldCollisionDetect @ NewConsole = false
   Run = pRealm              @ NewConsole = false
   // Run = uFldRescueMgr       @ NewConsole = false
@@ -33,6 +34,15 @@ Processconfig = ANTLER
 #include plugs.moos <pHostInfo>
 #include plugs.moos <uProcessWatch>
 
+
+ProcessConfig = uFldVoronoi
+{
+  AppTick    = 0.2
+  CommsTick  = 0.2
+
+  region = -100,460:-700,-200:-700,-920:620,-920:700,-222
+  
+} 
 
 
 //------------------------------------------
@@ -49,8 +59,8 @@ ProcessConfig = pRealm
   trunc_length = 270
   msg_max_hist = 30
                                                                 
-  hist_var  = SWIMMER_ALERT_ABE
-  hist_var  = SWIMMER_ALERT_BEN
+  hist_var  = NODE_REPORT
+  hist_var  = NODE_MESSAGE
                                                                 
 	app_logging = true
 }
@@ -65,11 +75,16 @@ ProcessConfig = uFldNodeComms
   AppTick   = 2
   CommsTick = 2
 
-  comms_range      = 500
-  critical_range   = 40
+  comms_range      = 5500
+  critical_range   = 1000
   min_msg_interval = 0
+  min_rpt_interval = 0
   max_msg_length   = 1000
   view_node_rpt_pulses = true
+
+  msg_color = white
+
+  pulse_duration = 12
 }
 
 //--------------------------------------------------
@@ -85,23 +100,17 @@ ProcessConfig = uFldShoreBroker
 	qbridge = SURVEY_UPDATE
   qbridge = NODE_COLOR_CHANGE
   
-  qbridge = VIZ_HOME
-  
-  qbridge = ARM_UAV, RESET_SPEED_MIN
-  qbridge = RETURN_TO_LAUNCH, LOITER, SURVEY
-  qbridge = DO_TAKEOFF, FLY_WAYPOINT
-
   qbridge = CHANGE_ALTITUDE, CHANGE_HEADING, CHANGE_SPEED
 
-  qbridge = HELM_STATUS, SURVEY, MOOS_MANUAL_OVERRIDE
+  qbridge = ARM_UAV, HELM_STATUS, MOOS_MANUAL_OVERRIDE
 
-  
+  qbridge = GCS_COMMAND // Most commands from the GCS
+
   qbridge = HEARTBEAT  // Heartbeat from the GCS to all vehicles
-  
-  bridge  = src=NEXT_WAYPOINT
 
+
+  bridge  = src=NEXT_WAYPOINT
   bridge  = src=REGION_INFO
-  
 
   // bridge  = src=RETURN_ALL, alias=RETURN
   // bridge  = src=RETURN_$V,  alias=RETURN
@@ -137,7 +146,6 @@ ProcessConfig = pMarineViewer
   AppTick    = 4
   CommsTick  = 4
 
-  trails_point_size    = 5.0
 
   //tiff_file            = MIT_SP.tif
   tiff_file            = NTNU_UAV_Airport_gsat.tif
@@ -148,15 +156,35 @@ ProcessConfig = pMarineViewer
   log_the_image = true
 
 
+
   beat_flag = HEARTBEAT_ALL=true
 
-  appcast_viewable     = true
-  appcast_color_scheme = indigo
 
-	procs_font_size = medium
+
+  ////////////////////////////////////////////////
+  // Scoping
+  ////////////////////////////////////////////////
+
+  scope = COLREGS_AVOID_MODE
+  scope = UVOI_RELATIVE_STD_DEV
+	scope = UNC_FULL_REPORT_REQ
+  scope = PMV_CENTER
+  scope = PROX_POLY_VIEW_ABE
+  scope = PHI_HOST_INFO
+
+  ////////////////////////////////////////////////
+  // Viewing 
+  ////////////////////////////////////////////////
+  
+	procs_font_size = medium // {xlarge, large, medium, small, xsmall}
 	nodes_font_size = medium
 	infocast_font_size = medium
 	
+  
+  appcast_viewable     = true
+  appcast_color_scheme = indigo
+  
+  
   polygon_viewable_all    = true
   polygon_viewable_labels = false
   seglist_viewable_all    = true
@@ -177,6 +205,7 @@ ProcessConfig = pMarineViewer
   bearing_lines_viewable  = true
   center_view             = average
   trails_color            = white
+  trails_point_size       = 5.0
 
   stale_report_thresh = 2
   stale_remove_thresh = 120
@@ -199,7 +228,7 @@ ProcessConfig = pMarineViewer
   action = BLOCK_HEARTBEAT = true
 	action+ = BLOCK_HEARTBEAT = false
 
-  action+ = menu_key=VisualizeHome # VIZ_HOME_ALL=true
+  action+ = menu_key=VisualizeHome # GCS_COMMAND_ALL=VIZ_HOME
 
   action = menu_key=all_vehicles_SPD # CHANGE_SPEED_ALL=1
   action =  CHANGE_SPEED_ALL=-1
@@ -258,13 +287,15 @@ ProcessConfig = pMarineViewer
   button_3    = HELM_ON_ALL  # HELM_STATUS_ALL=ON 
   button_4    = HELM_OFF_ALL # HELM_STATUS_ALL=OFF
   
-  button_5    = SURVEY_ALL  # SURVEY_ALL=true  
+  button_5    = SURVEY_ALL  # GCS_COMMAND_ALL=SURVEY  
   
-  button_6 = RTL_ALL  # RETURN_TO_LAUNCH_ALL=true 
-  button_7 = LOITER_ALL  # LOITER_ALL=true
+  button_6 = RTL_ALL  # GCS_COMMAND_ALL=RETURN_TO_LAUNCH 
+  button_7 = LOITER_ALL  # GCS_COMMAND_ALL=LOITER
 
-  button_8  = TKOFF_ALL  # DO_TAKEOFF_ALL=true
-  button_9  = TOWYP_ALL # FLY_WAYPOINT_ALL=true
+  button_8  = TKOFF_ALL  # GCS_COMMAND_ALL=DO_TAKEOFF
+  button_9  = TOWYP_ALL # GCS_COMMAND_ALL=FLY_WAYPOINT
+
+  button_10 = DO_VORONOI_ALL # GCS_COMMAND_ALL=DO_VORONOI
 
   // button_10 = PARK_HELM_ALL # MOOS_MANUAL_OVERRIDE_ALL=true
 
@@ -273,14 +304,15 @@ ProcessConfig = pMarineViewer
   // Commands
   ////////////////////////////////////////////////
 
-  cmd = label=TAKEOFF, var=DO_TAKEOFF, sval=true, receivers=all:$(VNAMES)
-  cmd = label=TOWAYPOINT, var=FLY_WAYPOINT, sval=true, receivers=all:$(VNAMES)
+  cmd = label=TAKEOFF, var=GCS_COMMAND, sval=DO_TAKEOFF, receivers=all:$(VNAMES)
+  cmd = label=TOWAYPOINT, var=GCS_COMMAND, sval=FLY_WAYPOINT, receivers=all:$(VNAMES)
+  cmd = label=RTL, var=GCS_COMMAND, sval=RETURN_TO_LAUNCH, receivers=all:$(VNAMES)
+  cmd = label=LOITER/HOLD, var=GCS_COMMAND, sval=LOITER, receivers=all:$(VNAMES)
+  cmd = label=SPEED_TO_MIN, var=GCS_COMMAND, sval=RESET_SPEED_MIN, receivers=all:$(VNAMES)
+  cmd = label=DO_VORONOI, var=GCS_COMMAND, sval=DO_VORONOI, receivers=all:$(VNAMES)
 
   cmd = label=ARM, var=ARM_UAV, sval=true, receivers=all:$(VNAMES)
   cmd = label=DISARM, var=ARM_UAV, sval=false, receivers=all:$(VNAMES)
-
-  cmd = label=RTL, var=RETURN_TO_LAUNCH, sval=true, receivers=all:$(VNAMES)
-  cmd = label=LOITER/HOLD, var=LOITER, sval=true, receivers=all:$(VNAMES)
 
   cmd = label=AIRSPD+1, var=CHANGE_SPEED, dval=1, receivers=all:$(VNAMES)
   cmd = label=AIRSPD-1, var=CHANGE_SPEED, dval=-1, receivers=all:$(VNAMES)
@@ -297,7 +329,6 @@ ProcessConfig = pMarineViewer
   cmd = label=HDG+10, var=CHANGE_HEADING, dval=10, receivers=all:$(VNAMES)
   cmd = label=HDG-10, var=CHANGE_HEADING, dval=-10, receivers=all:$(VNAMES)
 
-  cmd = label=SPEED_TO_MIN, var=RESET_SPEED_MIN, sval=true, receivers=all:$(VNAMES)
 
   cmd = label=HELM_ON, var=HELM_STATUS, sval=ON, receivers=all:$(VNAMES)
   cmd = label=HELM_OFF, var=HELM_STATUS, sval=OFF, receivers=all:$(VNAMES)

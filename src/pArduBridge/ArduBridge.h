@@ -64,18 +64,22 @@ private: // Configuration variables
 private: // Autopilot Helm states
   enum class AutopilotHelmMode
   {
+    HELM_UNKOWN,
     HELM_PARKED, // Helm is parked
 
-    // Inactive states where the Helm is not in control but still in Drive
+    // Inactive states where the Helm is not in control (MOOS_MANUAL_OVERRIDE = true) but still in Drive
     HELM_INACTIVE,
     HELM_INACTIVE_LOITERING,
 
     // Active states where the Helm is in control
     HELM_ACTIVE, // Helm has nothing to do
+
+    // Helm is commanding
     HELM_TOWAYPT,
-    HELM_SURVEYING,
     HELM_RETURNING,
-    HELM_UNKOWN,
+    HELM_SURVEYING,
+    HELM_VORONOI,
+
   };
 
   // map containing the stateName
@@ -85,8 +89,9 @@ private: // Autopilot Helm states
       {AutopilotHelmMode::HELM_INACTIVE_LOITERING, "HELM_INACTIVE_LOITERING"},
       {AutopilotHelmMode::HELM_ACTIVE, "HELM_ACTIVE"},
       {AutopilotHelmMode::HELM_TOWAYPT, "HELM_TOWAYPT"},
-      {AutopilotHelmMode::HELM_SURVEYING, "HELM_SURVEYING"},
       {AutopilotHelmMode::HELM_RETURNING, "HELM_RETURNING"},
+      {AutopilotHelmMode::HELM_SURVEYING, "HELM_SURVEYING"},
+      {AutopilotHelmMode::HELM_VORONOI, "HELM_VORONOI"},
       {AutopilotHelmMode::HELM_UNKOWN, "HELM_UNKOWN"},
   };
 
@@ -139,10 +144,10 @@ private: // Helperfunctions
 
   std::string xypointToString(const XYPoint &point) const;
   XYPoint transformLatLonToXY(const XYPoint &lat_lon);
-  bool isHelmDrive() const { return (m_autopilot_mode != AutopilotHelmMode::HELM_INACTIVE && m_autopilot_mode != AutopilotHelmMode::HELM_INACTIVE_LOITERING && m_autopilot_mode != AutopilotHelmMode::HELM_PARKED); };
-  bool isHelmCommanding() const { return (m_autopilot_mode == AutopilotHelmMode::HELM_SURVEYING || m_autopilot_mode == AutopilotHelmMode::HELM_TOWAYPT || m_autopilot_mode == AutopilotHelmMode::HELM_RETURNING); };
-  bool isHelmDrive_NothingTodo() const { return (m_autopilot_mode == AutopilotHelmMode::HELM_ACTIVE); };
-  bool isHelmDrive_Busy() const { return (isHelmDrive() && !isHelmDrive_NothingTodo()); };
+  bool isHelmOn() const { return (static_cast<int>(m_autopilot_mode) >= static_cast<int>(AutopilotHelmMode::HELM_ACTIVE)); };
+  bool isHelmCommanding() const { return (static_cast<int>(m_autopilot_mode) > static_cast<int>(AutopilotHelmMode::HELM_ACTIVE)); };
+  bool isHelmOn_NothingTodo() const { return (m_autopilot_mode == AutopilotHelmMode::HELM_ACTIVE); };
+  // bool isHelmOn_Busy() const { return (isHelmOn() && !isHelmOn_NothingTodo()); };
 
   void goToHelmMode(AutopilotHelmMode state, bool fromGCS = false);
 
@@ -209,14 +214,14 @@ private: // State variables
   std::pair<bool, double> m_do_change_heading_pair;
   std::pair<bool, double> m_do_change_altitude_pair;
   bool m_do_reset_speed;
-  bool m_do_fly_to_waypoint;
-  bool m_do_takeoff;
-  bool m_do_arm;
   bool m_do_return_to_launch;
+  bool m_do_arm;
+  bool m_do_takeoff;
+  bool m_do_fly_to_waypoint;
+  bool m_do_helm_survey;
+  bool m_do_helm_voronoi;
 
   std::pair<bool, std::string> m_do_loiter_pair;
-
-  bool m_do_helm_survey;
 
   AutopilotHelmMode m_autopilot_mode;
 

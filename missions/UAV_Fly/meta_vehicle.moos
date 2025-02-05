@@ -14,7 +14,7 @@ Processconfig = ANTLER
   Run = pNodeReporter      @ NewConsole = false
   Run = pDeadManPost       @ NewConsole = false
 
-  Run = pHelmIvP           @ NewConsole = true, XConfig=HOLDSettings
+  Run = pHelmIvP           @ NewConsole = false // XConfig=HOLDSettings
   Run = pContactMgrV20     @ NewConsole = false
   Run = pShare             @ NewConsole = false
   Run = pHostInfo          @ NewConsole = false
@@ -24,7 +24,7 @@ Processconfig = ANTLER
   // Run = uTimerScript       @ NewConsole = false
   Run = pRealm             @ NewConsole = false
   Run = pArduBridge        @ NewConsole = true,XConfig=DBXConsoleSettings,  \[=\=]
-  
+  Run = pProxonoi          @ NewConsole = false
   
   Run = uProcessWatch      @ NewConsole = false
   Run = uLoadWatch         @ NewConsole = false
@@ -48,6 +48,20 @@ Processconfig = ANTLER
 
 #include plugs.moos <uLoadWatch>
 #include plugs.moos <uMemWatch>
+
+
+
+
+//--------------------------------------------------
+// pProxonoi config block
+
+ProcessConfig = pProxonoi                                      
+{                                                               
+  AppTick   = 2
+  CommsTick = 2                                                 
+                                                                
+  region = -100,460:-700,-200:-700,-920:620,-920:700,-222 
+}                                            
 
 
 
@@ -81,9 +95,9 @@ ProcessConfig = pRealm
   AppTick   = 4
   CommsTick = 4
 
-	hist_var = MOB_ALERT
+	hist_var = AUTOPILOT_MODE
   hist_var = MODE
-	scope_set = name=msgs, vars=MOB_ALERT:MODE
+	scope_set = name=msgs, vars=AUTOPILOT_MODE:MODE
 }
 
 //--------------------------------------------------
@@ -109,6 +123,7 @@ ProcessConfig = uFldNodeBroker
 
   bridge = src=COLREGS_AVOID_MODE
   bridge = src=AVDCOL_MODE
+
   bridge = src=VIEW_POLYGON
   bridge = src=VIEW_POINT
   bridge = src=VIEW_MARKER
@@ -119,10 +134,12 @@ ProcessConfig = uFldNodeBroker
   bridge = src=NODE_REPORT_LOCAL,  alias=NODE_REPORT
   bridge = src=NODE_MESSAGE_LOCAL, alias=NODE_MESSAGE
 	bridge = src=VIEW_COMMS_PULSE
+
+  bridge = src=REALMCAST
+  bridge = src=REALMCAST_CHANNELS
   
 
-	bridge = src=RESCUE_REQUEST
-
+  bridge = src=BVOI_STATE
 }
 
 //--------------------------------------------------------
@@ -176,6 +193,9 @@ ProcessConfig = pNodeReporter
   
   platform_type = GLIDER
 	platform_color = $(COLOR)
+
+  platform_length    = 3        // meters.  Range [0,inf)    
+  platform_group     = drone    // subscribes to NODE_GROUP_UPDATE=<val>     
 
 
   cross_fill_policy=global

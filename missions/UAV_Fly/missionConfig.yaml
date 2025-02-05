@@ -25,7 +25,7 @@ moos:
     lon: 10.1435321
 
 drones:
-  - name: "Skywalker"
+  - name: "skywalker"
     color: "orange"
     start_orientaton_moos: # +x is east, +y is north [m] !!MOOS seems to double he distance,  so 50m east is a distance of 100 in MOOS!!
       x: 0
@@ -35,7 +35,7 @@ drones:
     #   ardupilot_port: 14550
     #   fdm_port_in: 9002
 
-  - name: "Skyfollower"
+  - name: "skyfollower"
     color: "brown"
     start_orientaton_moos: # +x is east, +y is north [m]
       x: -50
@@ -45,7 +45,7 @@ drones:
     #   ardupilot_port: 14560
     #   fdm_port_in: 9012
 
-  - name: "Skytrailer"
+  - name: "skytrailer"
     color: "purple"
     start_orientaton_moos: # +x is east, +y is north [m]
       x: 50
