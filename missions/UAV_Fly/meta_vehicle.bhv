@@ -76,7 +76,7 @@ Behavior = BHV_Waypoint
   updates    = SURVEY_UPDATE
   condition  = AUTOPILOT_MODE==HELM_SURVEYING
   perpetual  = true
-  endflag    = RETURN = true
+  endflag    = GCS_COMMAND=RETURN_TO_LAUNCH
 
           repeat = 1
            speed = $(SPEED)
@@ -133,7 +133,7 @@ Behavior = BHV_Waypoint
   updates    = TOWAYPT_UPDATE
   condition  = AUTOPILOT_MODE==HELM_TOWAYPT
   perpetual  = true
-  endflag    = LOITER = true
+  endflag    = GCS_COMMAND=LOITER
 
            speed = $(SPEED)
   capture_radius = 20 
@@ -154,7 +154,7 @@ Behavior = BHV_Waypoint
   updates    = RETURN_UPDATE
   condition  = AUTOPILOT_MODE==HELM_RETURNING
   perpetual  = true
-  endflag    = LOITER = true
+  endflag    = GCS_COMMAND=LOITER
 
 
            speed = $(SPEED)
@@ -170,7 +170,7 @@ Behavior = BHV_Waypoint
 
 
 // //----------------------------------------------
-// Behavior = BHV_AvoidCollision
+Behavior = BHV_AvoidCollision
 {
   name       = avdcol_
   pwt        = 350
@@ -189,7 +189,7 @@ Behavior = BHV_Waypoint
    no_alert_request = false
 
         // headon_only = true
-        // can_disable = true  
+        can_disable = true  
         
   bearing_lines = true
   bearing_line_config = white:0, green:0.65, yellow:0.8, red:1.0
@@ -198,7 +198,8 @@ Behavior = BHV_Waypoint
   // Parameters specific to this behavior
   // ------------------------------------
   // Distances are 2x real life in MOOS
-        use_refinery = true 
+
+        // use_refinery = true // causes the helm to crash
       pwt_inner_dist = 100
       pwt_outer_dist = 160  // Range to contact outside which the behavior has zero priority weight (alert_range). Default is 200
       completed_dist = 190  // cpa_range

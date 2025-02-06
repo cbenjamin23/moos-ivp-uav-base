@@ -78,7 +78,7 @@ ProcessConfig = pHelmIvP
   behaviors    = targ_$(VNAME).bhv  
   verbose      = false
   domain       = course:0:359:360
-  domain       = speed:10:19:10
+  domain       = speed:$(MIN_SPEED):$(MAX_SPEED):$(SPEED_STEPS)
   domain       = altitude:0:300:301
 
   hold_on_app  = pContactMgrV20
@@ -156,8 +156,8 @@ ProcessConfig = pContactMgrV20
   // alert = id=avd, cpa_range=190, cpa_range_color=gray50          
   // alert = id=avd, ignore_name=hal, match_group=usv,ship 
 
-  // disable_var = XYZ_DISABLE_TARGET
-  //  enable_var = XYZ_REENABLE_TARGET
+  disable_var = XYZ_DISABLE_TARGET
+  enable_var  = XYZ_REENABLE_TARGET
   
 
   // ------ Contact Management ------
@@ -234,11 +234,11 @@ ProcessConfig = pArduBridge
   
   Logger = true
 
-#ifdef XMODE SIM
-  is_Sim = true
-#else
-  is_Sim = false
-#endif
+  #ifdef XMODE SIM
+    is_Sim = true
+  #else
+    is_Sim = false
+  #endif
 
 }
 

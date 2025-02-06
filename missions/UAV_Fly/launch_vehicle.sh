@@ -47,7 +47,7 @@ CONFIG_FILE="./missionConfig.yaml"
 #  Functions
 #--------------------------------------------------------------
 
-get_field_by_drone_name() {
+get_val_by_drone_name() {
     local drone_name=$1
     local field_name=$2
 
@@ -70,6 +70,17 @@ get_field_by_drone_name() {
 
     # print an error and return 1
     echo "Error: Drone with name '$drone_name' not found." >&2
+    return 1
+}
+
+get_global_val() {
+    local field_name=$1
+    local val=$(yq eval ".$field_name" "$CONFIG_FILE")
+    if [ "$val" != "null" ]; then
+        echo "$val"
+        return 0
+    fi
+    echo "Error: Field '$field_name' not found in config file: $CONFIG_FILE." >&2
     return 1
 }
 
@@ -193,10 +204,17 @@ fi
 
 
 
-COLOR=$(get_field_by_drone_name "$VNAME" "color")
+COLOR=$(get_val_by_drone_name "$VNAME" "color")
 if [ $? -ne 0 ]; then exit 1; fi
 
 
+MAXSPD=$(get_global_val field.speed.max)
+if [ $? -ne 0 ]; then exit 1; fi
+MINSPD=$(get_global_val field.speed.min)
+if [ $? -ne 0 ]; then exit 1; fi
+
+# Define the interval in steps between the differen speeds
+SPD_STEPS=$(($MAXSPD - $MINSPD + 1))
 
 
 #---------------------------------------------------------------
@@ -222,6 +240,8 @@ if [ "${VERBOSE}" = "yes" ]; then
     echo "START_POS =     [${START_POS}]    "
     echo "SPEED =         [${SPEED}]        "
     echo "MAXSPD =        [${MAXSPD}]       "
+    echo "MINSPD =        [${MINSPD}]       "
+    echo "SPD_STEPS =     [${SPD_STEPS}]    "
     echo "----------------------------------"
     echo "LatOrigin =     [${LAT_ORIGIN}]    "
     echo "LonOrogin =     [${LON_ORIGIN}]    "
@@ -249,7 +269,8 @@ nsplug meta_vehicle.moos targ_$VNAME.moos $NSFLAGS WARP=$TIME_WARP \
        COLOR=$COLOR                 XMODE=$XMODE                          \
        LatOrigin=$LAT_ORIGIN        LonOrigin=$LON_ORIGIN     \
        AP_IP=$ARDUPILOT_IP          AP_PORT=$ARDUPILOT_PORT   \
-       AP_PROTOCOL=$ARDUPILOT_PROTOCOL                       
+       AP_PROTOCOL=$ARDUPILOT_PROTOCOL     \
+       MIN_SPEED=$MINSPD  MAX_SPEED=$MAXSPD SPEED_STEPS=$SPD_STEPS                  
 
 nsplug meta_vehicle.bhv targ_$VNAME.bhv $NSFLAGS VNAME=$VNAME \
        SPEED=$SPEED                  START_POS=$START_POS     \

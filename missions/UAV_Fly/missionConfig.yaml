@@ -15,6 +15,9 @@ field:
   ardupilot_ip: "ttySAC0" # serial port
   ardupilot_port: "115200" # baudrate
   ardupilot_protocol: "serial"
+  speed: 
+    max: 19
+    min: 11
 
 moos:
   defaultPorts:

@@ -13,9 +13,9 @@ Processconfig = ANTLER
   MSBetweenLaunches = 200
 
   Run = MOOSDB              @ NewConsole = false
-#ifdef LAUNCH_GUI yes
+  #ifdef LAUNCH_GUI yes
   Run = pMarineViewer       @ NewConsole = false
-#endif
+  #endif
 
   Run = pLogger             @ NewConsole = false
   Run = pShare              @ NewConsole = false
@@ -24,7 +24,7 @@ Processconfig = ANTLER
   Run = uFldShoreBroker     @ NewConsole = false
   Run = uFldNodeComms       @ NewConsole = false
   Run = uFldVoronoi         @ NewConsole = false
-  // Run = uFldCollisionDetect @ NewConsole = false
+  Run = uFldCollisionDetect @ NewConsole = false
   Run = pRealm              @ NewConsole = false
   // Run = uFldRescueMgr       @ NewConsole = false
 }
@@ -44,6 +44,30 @@ ProcessConfig = uFldVoronoi
   
 } 
 
+ProcessConfig = uFldCollisionDetect                             
+{                                                               
+  AppTick   = 4                                                 
+  CommsTick = 4                                                 
+
+  condition = AVOID = true                                 
+
+  encounter_flag = ENCOUNTER = $CPA                             
+  collision_flag = COLLISION = $CPA                             
+  near_miss_flag = NEAR_MISS = vname1=$V1, vname2=$V2, cpa=$CPA   
+
+  encounter_range = 150         // the default in meters       
+  near_miss_range = 50          // the default in meters       
+  collision_range = 20          // the default in meters       
+
+  // ignore_group = alpha                                          
+  // reject_group = bravo                                          
+
+  pulse_render   = true         // default true                 
+  pulse_range    = 20           // default is 20 meters         
+  pulse_duration = 10           // default is 10 seconds        
+
+  report_all_encounters = true  // default is false    
+}   
 
 //------------------------------------------
 // pRealm config block

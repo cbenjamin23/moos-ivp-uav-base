@@ -43,10 +43,6 @@ cd moos-ivp;
 git pull
 ```
 
-**NOTE:** Checkout the version used in development: 
-```bash
-git checkout 4f968688d2f61c47b8d89d4cf00c5d225203c746
-```
 
 Then build moos:
 

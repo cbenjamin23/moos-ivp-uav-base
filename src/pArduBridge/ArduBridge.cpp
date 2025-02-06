@@ -251,6 +251,7 @@ bool ArduBridge::OnNewMail(MOOSMSG_LIST &NewMail)
 
     else if (key != "APPCAST_REQ")
     { // handled by AppCastingMOOSApp
+      Logger::warning("Unhandled Mail: " + key);
       reportRunWarning("Unhandled Mail: " + key);
     }
   }
