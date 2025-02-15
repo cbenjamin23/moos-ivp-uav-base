@@ -11,7 +11,7 @@ NEW_TERMINAL="NO"
 
 GZ_ONLY=OFF
 
-READ_CONFIG=YES // Do that by default
+READ_CONFIG=YES # Do that by default
 
 CONFIG_FILE="$HOME/moos-ivp-uav/missions/UAV_Fly/missionConfig.yaml"
 FORCE=""

@@ -74,7 +74,7 @@ void showExampleConfigAndExit()
   blk("                                                                ");
   blk("  report_deltas = true         // default                       ");
   blk("  grid_var_name = VIEW_GRID    // default                       ");
-  blk("  grid_label    = psg          // default                       ");
+  blk("  grid_label    = gsv          // default                       ");
   blk("  match_name    = abe                                           ");
   blk("  ignore_name   = ben                                           ");
   blk("                                                                ");
@@ -110,14 +110,14 @@ void showInterfaceAndExit()
   blk("                      LON=-70.329755,SPD=2.0,HDG=118.8,         ");
   blk("                      YAW=118.8,DEPTH=4.6,LENGTH=3.8,           ");
   blk("                      MODE=MODE@ACTIVE:LOITERING                ");
-  blk("  PSG_GRID_RESET    = true                                      ");
+  blk("  GSV_GRID_RESET    = true                                      ");
   blk("                                                                ");
   blk("PUBLICATIONS:                                                   ");
   blk("------------------------------------                            ");
   blk("  VIEW_GRID = pts={-50,-40:-10,0:90,0:90,-90:50,-150:-50,-90},  ");
   blk("              cell_size=5, cell_vars=x:0:y:0:z:0,cell_min=x:0,  ");
   blk("              cell_max=x:50,cell=211:x:50, cell=212:x:50,       ");
-  blk("              cell=237:x:50,cell=238:x:50,label=psg             ");
+  blk("              cell=237:x:50,cell=238:x:50,label=gsv             ");
   blk("                                                                ");
   exit(0);
 }

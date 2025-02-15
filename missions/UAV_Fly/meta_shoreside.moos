@@ -173,12 +173,12 @@ ProcessConfig = pGridSearchViz
   CommsTick     = 1
 
   grid_config = pts={-100,460:-700,-200:-700,-920:620,-920:700,-222}
-  grid_config = cell_size=5
+  grid_config = cell_size=20
   grid_config = cell_vars=x:0:y:0
   grid_config = cell_min=x:0
-  grid_config = cell_max=x:10
+  grid_config = cell_max=x:20
 
-	report_deltas = true
+	report_deltas = false
 }
 
 

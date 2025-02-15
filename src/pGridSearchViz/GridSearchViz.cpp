@@ -14,6 +14,9 @@
 #include "XYGridUpdate.h"
 #include "ACTable.h"
 
+
+#include "XYCircle.h"
+
 using namespace std;
 
 //---------------------------------------------------------
@@ -22,7 +25,7 @@ using namespace std;
 GridSearchViz::GridSearchViz()
 {
   m_report_deltas = true;
-  m_grid_label    = "psg";
+  m_grid_label    = "gsv";
   m_grid_var_name = "VIEW_GRID";
 }
 
@@ -52,7 +55,7 @@ bool GridSearchViz::OnNewMail(MOOSMSG_LIST &NewMail)
 
     if((key == "NODE_REPORT") || (key == "NODE_REPORT_LOCAL"))
       handleMailNodeReport(sval);
-    else if(key == "PSG_RESET_GRID")
+    else if(key == "GSV_RESET_GRID")
       m_grid.reset();
   }
 
@@ -109,25 +112,25 @@ bool GridSearchViz::OnStartUp()
 
       bool handled = false;
       if(param == "grid_config") {
-	unsigned int len = grid_config.length();
-	if((len > 0) && (grid_config.at(len-1) != ','))
-	  grid_config += ",";
-	grid_config += value;
-	handled = true;
+        unsigned int len = grid_config.length();
+        if((len > 0) && (grid_config.at(len-1) != ','))
+          grid_config += ",";
+        grid_config += value;
+        handled = true;
       }	
       else if(param == "report_deltas") 
-	handled = setBooleanOnString(m_report_deltas, value);
+        handled = setBooleanOnString(m_report_deltas, value);
       else if(param == "ignore_name") 
-	handled = m_filter_set.addIgnoreName(value);
+        handled = m_filter_set.addIgnoreName(value);
       else if(param == "match_name") 
-	handled = m_filter_set.addMatchName(value); 
+        handled = m_filter_set.addMatchName(value); 
       else if(param == "grid_label") 
-	handled = setNonWhiteVarOnString(m_grid_label, value);
+        handled = setNonWhiteVarOnString(m_grid_label, value);
       else if(param == "grid_var_name")
-	handled = setNonWhiteVarOnString(m_grid_var_name, toupper(value));
+        handled = setNonWhiteVarOnString(m_grid_var_name, toupper(value));
       
       if(!handled)
-	reportUnhandledConfigWarning(orig);
+        reportUnhandledConfigWarning(orig);
     }
   }
 
@@ -136,7 +139,9 @@ bool GridSearchViz::OnStartUp()
   if(m_grid.size() == 0)
     reportConfigWarning("Unsuccessful ConvexGrid construction.");
 
-  m_grid.set_label("psg");
+  m_grid.set_label("gsv");
+
+  
   postGrid();
   registerVariables();
   return(true);
@@ -150,7 +155,7 @@ void GridSearchViz::registerVariables()
   AppCastingMOOSApp::RegisterVariables();
   Register("NODE_REPORT_LOCAL", 0);
   Register("NODE_REPORT", 0);
-  Register("PSG_RESET_GRID", 0);
+  Register("GSV_RESET_GRID", 0);
 }
 
 
@@ -166,14 +171,40 @@ void GridSearchViz::handleMailNodeReport(string str)
   double posx = record.getX();
   double posy = record.getY();
 
+  XYCircle sensorCover(posx, posy, 30); // Can be smart to correlate it with altitude
+
+  // TODO: Take the radius as a config parameter
+  // TODO: Paramter to configer radius to be proporsional to altitude
+  // TODO: Add cell size, region, and sensor coverage parameter to the config file
+  // TODO: The increments in grid values should happen after a minimum time interval (when same vehicle is incrementing)
+
+  // TODO: Calculate statistics of coreverage percentage in buildreport. time for 40, 60, 90+ coverage, vise verca coverage, etc.
+  // --->: Continues coverage percentage as afunction of time
+
+  // TODO: Add decaying values to the grid cells after a long time, add as parameter
+
+  // TODO: Ability to add or remove a region and then take that in consideration when calculating statistics.
+  // --->: Removing a region is the same as it having max value. Increment wont change it.
+
+
   for(unsigned int ix=0; ix<m_grid.size(); ix++) {
-    bool contained = m_grid.ptIntersect(ix, posx, posy);
-    if(contained) {
+    
+    const XYSquare& cell = m_grid.getElement(ix);
+
+    // if the the center of the cell is inside the sensor area
+    if(sensorCover.containsPoint(cell.getCenterX(), cell.getCenterY())) {
       m_map_deltas[ix] = m_map_deltas[ix] + 1;
       m_grid.incVal(ix, 1);
     }
+
+    // bool contained = m_grid.ptIntersect(ix, posx, posy);
+    // if(contained) {
+    //   m_map_deltas[ix] = m_map_deltas[ix] + 1;
+    //   m_grid.incVal(ix, 1);
+    // }
   }
 
+  // TODO: Post a view cirle to visualize the sensor area coverage
 }
 
 //------------------------------------------------------------

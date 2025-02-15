@@ -26,7 +26,7 @@ ARDUPILOT_PROTOCOL=udp
 
 VNAME="skywalker"
 
-START_FROM_CONFIG="yes"  // default is to start from config file
+START_FROM_CONFIG="yes"  # default is to start from config file
 CONFIG_FILE="./missionConfig.yaml"
 
 NUM_VEHICLES=1

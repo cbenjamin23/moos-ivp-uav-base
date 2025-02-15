@@ -99,6 +99,13 @@ alias cdsw='cd ~/moos-ivp-swarm/'
 alias cdswm='cdsw; cd ./missions'
 alias cdswsrc='cdsw; cd ./src'
 
+# for last opened shoreside moos log directoty 
+cdlastOpened(){
+    cdmis 
+    local log=$(cat ".LastOpenedMOOSLogDirectory")
+    ## remove .LastOpenedMOOSLogDirectory= from the beginning of log
+    cd ${log:29}
+}
 
 # building for minirobot
 alias build_all_m='cdm; git pull; ./build.sh -m; cd -
