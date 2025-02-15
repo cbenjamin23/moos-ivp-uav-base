@@ -33,23 +33,50 @@ SET( RUNTIME_OUTPUT_DIRECTORY "${IVP_EXTEND_BIN_DIR}"  CACHE PATH "" )
 find_package(MOOS 10.0)
 INCLUDE_DIRECTORIES(${MOOS_INCLUDE_DIRS})
 
+
 #=======================================================================
 # Find the "moos-ivp" base directory
 #=======================================================================
 
 # Search for the moos-ivp folder
 find_path( MOOSIVP_SOURCE_TREE_BASE
-           NAMES build-ivp.sh build-moos.sh configure-ivp.sh
-           PATHS "../moos-ivp" "../../moos-ivp" "../../moos-ivp/trunk/" "../moos-ivp/trunk/"
-           DOC "Base directory of the MOOS-IvP source tree"
-           NO_DEFAULT_PATH
+NAMES build-ivp.sh build-moos.sh configure-ivp.sh
+PATHS "../moos-ivp" "../../moos-ivp" "../../moos-ivp/trunk/" "../moos-ivp/trunk/"
+DOC "Base directory of the MOOS-IvP source tree"
+NO_DEFAULT_PATH
 )
 
 if (NOT MOOSIVP_SOURCE_TREE_BASE)
-    message("Please set MOOSIVP_SOURCE_TREE_BASE to  ")
-    message("the location of the \"moos-ivp\" folder ")
-    message( FATAL_ERROR "CMake will exit." )
+message("Please set MOOSIVP_SOURCE_TREE_BASE to  ")
+message("the location of the \"moos-ivp\" folder ")
+message( FATAL_ERROR "CMake will exit." )
 endif()
+
+
+#========================================================================
+# Add the swarm libraries to the include path
+#========================================================================
+
+# Search for the moos-ivp-swarm folder
+find_path( MOOSIVP_SWARM_TREE_BASE
+           NAMES src_private
+           PATHS "../moos-ivp-swarm" "../../moos-ivp-swarm" "../../moos-ivp-swarm/trunk/" "../moos-ivp-swarm/trunk/"
+           DOC "Base directory of the moos-ivp-swarm source tree"
+           NO_DEFAULT_PATH
+)
+
+if (NOT MOOSIVP_SWARM_TREE_BASE)
+message("Please set MOOSIVP_SWARM_TREE_BASE to  ")
+message("the location of the \"moos-ivp-swarm\" folder ")
+message( FATAL_ERROR "CMake will exit." )
+endif()
+
+FILE(GLOB SWARM_LIBRARY_DIRS ${MOOSIVP_SWARM_TREE_BASE}/src/lib_*)
+INCLUDE_DIRECTORIES(${SWARM_LIBRARY_DIRS})
+
+FILE(GLOB SWARM_LIBRARY_DIRS ${MOOSIVP_SWARM_TREE_BASE}/lib )
+LINK_DIRECTORIES(${SWARM_LIBRARY_DIRS})
+
 
 #======================================================================
 # Specify where to find IvP's headers and libraries...

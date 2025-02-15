@@ -25,14 +25,16 @@ find_package(MOOSGeodesy REQUIRED)
 # List the subdirectories to build...
 #============================================================================
 ADD_SUBDIRECTORY(lib_behaviors-test)
-ADD_SUBDIRECTORY(pExampleApp)
+# ADD_SUBDIRECTORY(pExampleApp)
 # ADD_SUBDIRECTORY(pXRelayTest)
 # ADD_SUBDIRECTORY(pOdometry)
 # ADD_SUBDIRECTORY(pPointAssign)
 # ADD_SUBDIRECTORY(pGenPath)
-ADD_SUBDIRECTORY(pGenRescue)
+# ADD_SUBDIRECTORY(pGenRescue)
 ADD_SUBDIRECTORY(pArduBridge)
 ADD_SUBDIRECTORY(lib_behaviors)
+ADD_SUBDIRECTORY(app_voiview)
+
 
 ##############################################################################
 #                           END of CMakeLists.txt
