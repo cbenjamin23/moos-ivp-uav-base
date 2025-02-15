@@ -31,9 +31,10 @@ ADD_SUBDIRECTORY(lib_behaviors-test)
 # ADD_SUBDIRECTORY(pPointAssign)
 # ADD_SUBDIRECTORY(pGenPath)
 # ADD_SUBDIRECTORY(pGenRescue)
+ADD_SUBDIRECTORY(app_voiview)
 ADD_SUBDIRECTORY(pArduBridge)
 ADD_SUBDIRECTORY(lib_behaviors)
-ADD_SUBDIRECTORY(app_voiview)
+ADD_SUBDIRECTORY(pGridSearchViz)
 
 
 ##############################################################################

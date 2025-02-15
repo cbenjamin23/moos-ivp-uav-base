@@ -11,7 +11,7 @@ NEW_TERMINAL="NO"
 
 GZ_ONLY=OFF
 
-READ_CONFIG=NO
+READ_CONFIG=YES // Do that by default
 
 CONFIG_FILE="$HOME/moos-ivp-uav/missions/UAV_Fly/missionConfig.yaml"
 FORCE=""
@@ -160,6 +160,9 @@ for (( i=1; i <= $#; i++ )); do
             ;;
     esac
 done
+
+
+
 
 # Verify that NUM_VEHICLES is a number
 if ! [[ "$NUM_VEHICLES" =~ ^[0-9]+$ ]]; then

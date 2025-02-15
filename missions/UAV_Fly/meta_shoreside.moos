@@ -26,13 +26,34 @@ Processconfig = ANTLER
   Run = uFldVoronoi         @ NewConsole = false
   Run = uFldCollisionDetect @ NewConsole = false
   Run = pRealm              @ NewConsole = false
-  // Run = uFldRescueMgr       @ NewConsole = false
+  Run = pGridSearchViz      @ NewConsole = false
 }
 
 
 #include plugs.moos <pShare>
 #include plugs.moos <pHostInfo>
 #include plugs.moos <uProcessWatch>
+
+
+//--------------------------------------------------
+// pLogger config block
+
+ProcessConfig = pLogger
+{
+  AppTick       = 10
+  CommsTick     = 10
+  
+  File          = XLOG_SHORESIDE
+  PATH          = ./Slogs/
+  AsyncLog      = true
+  FileTimeStamp = true
+
+	Log = MOB_ALERT @ 0 nosync
+	
+  // Log it all!!!!!
+  WildCardLogging = true 
+}
+
 
 
 ProcessConfig = uFldVoronoi
@@ -69,6 +90,7 @@ ProcessConfig = uFldCollisionDetect
   report_all_encounters = true  // default is false    
 }   
 
+
 //------------------------------------------
 // pRealm config block
 
@@ -89,7 +111,6 @@ ProcessConfig = pRealm
 	app_logging = true
 }
 	
-
 
 //--------------------------------------------------
 // uFldNodeComms config block
@@ -140,26 +161,25 @@ ProcessConfig = uFldShoreBroker
   // bridge  = src=RETURN_$V,  alias=RETURN
 }
 
+
+
+
 //--------------------------------------------------
-// pLogger config block
+// pSearchGrid Configuration Block
 
-ProcessConfig = pLogger
+ProcessConfig = pGridSearchViz
 {
-  AppTick       = 10
-  CommsTick     = 10
-  
-  File          = XLOG_SHORESIDE
-  PATH          = ./Slogs/
-  AsyncLog      = true
-  FileTimeStamp = true
+  AppTick       = 1
+  CommsTick     = 1
 
-	Log = MOB_ALERT @ 0 nosync
-	
-  // Log it all!!!!!
-  WildCardLogging = true 
+  grid_config = pts={-100,460:-700,-200:-700,-920:620,-920:700,-222}
+  grid_config = cell_size=5
+  grid_config = cell_vars=x:0:y:0
+  grid_config = cell_min=x:0
+  grid_config = cell_max=x:10
+
+	report_deltas = true
 }
-
-
 
 
 //--------------------------------------------------------

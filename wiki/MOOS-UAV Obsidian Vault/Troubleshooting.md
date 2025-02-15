@@ -114,3 +114,19 @@ find_path( MOOSIVP_SOURCE_TREE_BASE
 Edit the `string2NodeRecord(report, true)` to `string2NodeRecord(report)` to make it compatible with the new function definitions
 
 If you experience linker issues with `geodaid`, comment out the library.
+
+
+
+
+# VSCode not showing included MOOS files
+
+If you get red squiggles under you include files in VScode. Intellisense is not properly set up.
+![[Pasted image 20250215110203.png]]
+Solution: 
+```bash
+cd ~/moos-ivp
+./build.sh
+cd build/MOOS/MOOSCore
+sudo make install
+```
+This will install the header folder/structure to your `/usr/local/include` folder and make it accessible for Vscode intellisense to read from
