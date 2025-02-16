@@ -25,6 +25,7 @@ VNAMES=""
 LAT_ORIGIN=63.3975168 #-35.3632621
 LON_ORIGIN=10.1435321 #149.1652374
 
+CONFIG_FILE="./missionConfig.yaml"
 
 
 get_global_val() {
@@ -38,7 +39,12 @@ get_global_val() {
     return 1
 }
 
+get_global_val_in_moosDistance() {
 
+    local val=$(get_global_val $1)
+    if [ $? -ne 0 ]; then return 1; fi
+    echo $(echo "$val * 2" | bc)   
+}
 
 #--------------------------------------------------------------
 #  Part 2: Check for and handle command-line arguments
@@ -108,13 +114,22 @@ fi
 
 
 
-
-
-
-
-
 USE_MOOS_SIM_PID=$(get_global_val simulation.useMoosSimPid)
 if [ $? -ne 0 ]; then exit 1; fi
+
+
+ENCOUNTER_RADIUS=$(get_global_val_in_moosDistance "missionParams.encounter_radius")
+if [ $? -ne 0 ]; then exit 1; fi
+
+NEAR_MISS_RADIUS=$(get_global_val_in_moosDistance "missionParams.near_miss_radius")
+if [ $? -ne 0 ]; then exit 1; fi
+
+COLLISION_RADIUS=$(get_global_val_in_moosDistance "missionParams.collision_radius")
+if [ $? -ne 0 ]; then exit 1; fi
+
+
+SENSOR_RADIUS=$(get_global_val_in_moosDistance "missionParams.sensor_radius")
+
 
 
 #---------------------------------------------------------------
@@ -141,6 +156,10 @@ if [ "${VERBOSE}" = "yes" ]; then
     echo "LonOrogin =     [${LON_ORIGIN}]   "
     echo "----------------------------------"
     echo "USE_MOOS_SIM_PID = [${USE_MOOS_SIM_PID}]"
+    echo "ENCOUNTER_RADIUS = [${ENCOUNTER_RADIUS}]"
+    echo "NEAR_MISS_RADIUS = [${NEAR_MISS_RADIUS}]"
+    echo "COLLISION_RADIUS = [${COLLISION_RADIUS}]"
+    echo "SENSOR_RADIUS = [${SENSOR_RADIUS}]"
     echo "=================================="
     echo -n "Hit any key to continue launch "
     read ANSWER
@@ -155,11 +174,15 @@ if [ "${AUTO_LAUNCHED}" = "no" ]; then
 fi
 
 nsplug meta_shoreside.moos targ_shoreside.moos $NSFLAGS WARP=$TIME_WARP \
-       IP_ADDR=$IP_ADDR       PSHARE_PORT=$PSHARE_PORT      \
-       MOOS_PORT=$MOOS_PORT   LAUNCH_GUI=$LAUNCH_GUI        \
-       VNAMES=$VNAMES                                       \
-       LatOrigin=$LAT_ORIGIN   LonOrigin=$LON_ORIGIN        \
-       USE_MOOS_SIM_PID=$USE_MOOS_SIM_PID                
+    IP_ADDR=$IP_ADDR       PSHARE_PORT=$PSHARE_PORT      \
+    MOOS_PORT=$MOOS_PORT   LAUNCH_GUI=$LAUNCH_GUI        \
+    VNAMES=$VNAMES                                       \
+    LatOrigin=$LAT_ORIGIN   LonOrigin=$LON_ORIGIN        \
+    USE_MOOS_SIM_PID=$USE_MOOS_SIM_PID                   \
+    ENCOUNTER_RADIUS=$ENCOUNTER_RADIUS                   \
+    NEAR_MISS_RADIUS=$NEAR_MISS_RADIUS                   \
+    COLLISION_RADIUS=$COLLISION_RADIUS                   \
+    SENSOR_RADIUS=$SENSOR_RADIUS
 
 
 if [ ${JUST_MAKE} = "yes" ]; then

@@ -59,35 +59,7 @@ set BHV_MODE = VORONOI {
   AUTOPILOT_MODE = HELM_VORONOI
 } 
 
-// Set MAINTAIN_DEPTH = true {
-//   AUTOPILOT_MODE = HELM_SURVEYING  
-// }
-// set MAINTAIN_DEPTH = true {
-//   AUTOPILOT_MODE = HELM_RETURNING
-// }
-// set MAINTAIN_DEPTH = true {
-//   AUTOPILOT_MODE = HELM_TOWAYPT
-// } false
 
-// set AUTOPILOT_MODE = ACTIVE {
-//   DEPLOY = true
-// } INACTIVE
-
-// set AUTOPILOT_MODE = STATION-KEEPING {
-//   AUTOPILOT_MODE = ACTIVE
-//   STATION_KEEP = true
-// }                       
-
-// set AUTOPILOT_MODE = SURVEYING {
-//   AUTOPILOT_MODE = ACTIVE
-//   RETURN != true
-//   SURVEY = true
-// } 
-
-// set AUTOPILOT_MODE = RETURNING {
-//   AUTOPILOT_MODE = ACTIVE
-//   RETURN = true
-// } 
 
 //----------------------------------------------
 Behavior = BHV_Waypoint
@@ -104,8 +76,8 @@ Behavior = BHV_Waypoint
            speed = $(SPEED)
  
  #ifdef XMODE SIM
-  capture_radius = 100
-     slip_radius = 150
+  capture_radius = $(CAPTURE_RADIUS) // 100
+     slip_radius = $(SLIP_RADIUS)    // 150
             lead = 30
      lead_damper = 20
   #else

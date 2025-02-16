@@ -30,6 +30,19 @@ moos:
   datum:
     lat: 63.3975168
     lon: 10.1435321
+  
+missionParams:
+  # Waypoint parameters
+  capture_radius: 50  # m  - The distance from the waypoint that the drone must be within to consider it captured
+  slip_radius: 75     # m   (both currently modify sim parameters)
+
+  # Sensor parameters
+  sensor_radius: 30 # m - The distance from the drone that the other drone must be within to consider it detected
+
+  # Collision avoidance parameters
+  encounter_radius: 100 # m - The distance from the drone that the other drone must be within to consider it encountered
+  near_miss_radius: 50 # m - The distance from the drone that the other drone must be within to consider it near missed
+  collision_radius: 10 # m - The distance from the drone that the other drone must be within to consider it collided
 
 drones:
   - name: "skywalker"

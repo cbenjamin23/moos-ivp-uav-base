@@ -84,6 +84,12 @@ get_global_val() {
     return 1
 }
 
+get_global_val_in_moosDistance() {
+
+    local val=$(get_global_val $1)
+    if [ $? -ne 0 ]; then return 1; fi
+    echo $(echo "$val * 2" | bc)   
+}
 #-------------------------------------------------------
 #  Part 2: Check for and handle command-line arguments
 #-------------------------------------------------------
@@ -220,6 +226,16 @@ SPD_STEPS=$(($MAXSPD - $MINSPD + 1))
 USE_MOOS_SIM_PID=$(get_global_val simulation.useMoosSimPid)
 if [ $? -ne 0 ]; then exit 1; fi
 
+
+CAPTURE_RADIUS=$(get_global_val_in_moosDistance "missionParams.capture_radius")
+if [ $? -ne 0 ]; then exit 1; fi
+
+
+SLIP_RADIUS=$(get_global_val_in_moosDistance "missionParams.slip_radius")
+if [ $? -ne 0 ]; then exit 1; fi
+
+ENCOUNTER_RADIUS=$(get_global_val_in_moosDistance "missionParams.encounter_radius")
+
 #---------------------------------------------------------------
 #  Part 4: If verbose, show vars and confirm before launching
 #---------------------------------------------------------------
@@ -250,6 +266,8 @@ if [ "${VERBOSE}" = "yes" ]; then
     echo "LonOrogin =     [${LON_ORIGIN}]    "
     echo "----------------------------------"
     echo "USE_MOOS_SIM_PID = [${USE_MOOS_SIM_PID}]"
+    echo "CAPTURE_RADIUS = [${CAPTURE_RADIUS}]"
+    echo "SLIP_RADIUS =    [${SLIP_RADIUS}]"
     echo "----------------------------------"
     echo "ARDUPILOT_IP =  [${ARDUPILOT_IP}]  "
     echo "ARDUPILOT_PORT =[${ARDUPILOT_PORT}]"
@@ -282,7 +300,8 @@ nsplug meta_vehicle.bhv targ_$VNAME.bhv $NSFLAGS VNAME=$VNAME \
        SPEED=$SPEED                  START_POS=$START_POS     \
        LatOrigin=$LAT_ORIGIN         LonOrogin=$LON_ORIGIN    \
        XMODE=$XMODE                  COLOR=$COLOR             \
-       USE_MOOS_SIM_PID=$USE_MOOS_SIM_PID                
+       USE_MOOS_SIM_PID=$USE_MOOS_SIM_PID                     \
+       CAPTURE_RADIUS=$CAPTURE_RADIUS SLIP_RADIUS=$SLIP_RADIUS \
          
                                                 
        

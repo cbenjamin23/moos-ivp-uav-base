@@ -13,5 +13,8 @@ ProcessConfig = pGridSearchViz
   GRID_CONFIG = cell_min=x:0                                    
   GRID_CONFIG = cell_max=x:10                                   
   GRID_CONFIG = cell_min=y:0                                    
-  GRID_CONFIG = cell_max=y:1000                                                                     
+  GRID_CONFIG = cell_max=y:1000               
+
+
+  sensor_radius = 10                                                      
 }                                             
