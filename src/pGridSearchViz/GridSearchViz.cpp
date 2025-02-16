@@ -14,9 +14,8 @@
 #include "XYGridUpdate.h"
 #include "ACTable.h"
 
-#include "XYCircle.h"
+#include "../lib_common/Logger.h"
 
-using namespace std;
 
 //---------------------------------------------------------
 // Constructor()
@@ -27,6 +26,9 @@ GridSearchViz::GridSearchViz()
   m_grid_label = "gsv";
   m_grid_var_name = "VIEW_GRID";
   m_sensor_radius_max = 10;
+  m_sensor_color = "black";
+  m_missionStartTime = 0;
+  m_map_coverage_statistics["coverage_%"] = 0;
 }
 
 //---------------------------------------------------------
@@ -41,14 +43,14 @@ bool GridSearchViz::OnNewMail(MOOSMSG_LIST &NewMail)
   {
     CMOOSMsg &msg = *p;
 
-    string key = msg.GetKey();
-    string sval = msg.GetString();
+    std::string key = msg.GetKey();
+    std::string sval = msg.GetString();
     // double dval  = msg.GetDouble();
     // double mtime = msg.GetTime();
     // bool   mdbl  = msg.IsDouble();
     // bool   mstr  = msg.IsString();
     // string msrc  = msg.GetSource();
-    string community = msg.GetCommunity();
+    std::string community = msg.GetCommunity();
 
     bool ok_community = m_filter_set.filterCheckVName(community);
     if (!ok_community)
@@ -84,6 +86,8 @@ bool GridSearchViz::Iterate()
   else
     postGrid();
 
+
+  calculateCoverageStatistics();
   AppCastingMOOSApp::PostReport();
   return (true);
 }
@@ -97,20 +101,20 @@ bool GridSearchViz::OnStartUp()
 
   CMOOSApp::OnStartUp();
 
-  string grid_config;
+  std::string grid_config;
 
-  list<string> sParams;
+  std::list<std::string> sParams;
   m_MissionReader.EnableVerbatimQuoting(false);
   if (m_MissionReader.GetConfiguration(GetAppName(), sParams))
   {
 
-    list<string>::reverse_iterator p;
+    std::list<std::string>::reverse_iterator p;
     for (p = sParams.rbegin(); p != sParams.rend(); p++)
     {
-      string orig = *p;
-      string line = *p;
-      string param = tolower(biteStringX(line, '='));
-      string value = line;
+      std::string orig = *p;
+      std::string line = *p;
+      std::string param = tolower(biteStringX(line, '='));
+      std::string value = line;
 
       bool handled = false;
       if (param == "grid_config")
@@ -133,6 +137,10 @@ bool GridSearchViz::OnStartUp()
         handled = setNonWhiteVarOnString(m_grid_var_name, toupper(value));
       else if (param == "sensor_radius")
         handled = setDoubleOnString(m_sensor_radius_max, value);
+      else if (param == "sensor_color"){ 
+        m_sensor_color =  value;
+        handled = true;
+      }
 
       if (!handled)
         reportUnhandledConfigWarning(orig);
@@ -145,6 +153,9 @@ bool GridSearchViz::OnStartUp()
     reportConfigWarning("Unsuccessful ConvexGrid construction.");
 
   m_grid.set_label("gsv");
+
+
+  m_grid.set_transparency(0.2);
 
   postGrid();
   registerVariables();
@@ -165,33 +176,53 @@ void GridSearchViz::registerVariables()
 //------------------------------------------------------------
 // Procedure: handleMailNodeReport()
 
-void GridSearchViz::handleMailNodeReport(string str)
+void GridSearchViz::handleMailNodeReport(std::string str)
 {
   NodeRecord record = string2NodeRecord(str);
   if (!record.valid())
     return;
 
-  double sensor_radius = m_sensor_radius_max;
 
-  m_map_drone_sensor_radius.insert(std::pair<string, double>(record.getName(), sensor_radius));
-
+  std::string name = record.getName();
   double posx = record.getX();
   double posy = record.getY();
+  double altitude = record.getAltitude();
+
+  double sensor_radius = m_sensor_radius_max;
 
   XYCircle sensorArea(posx, posy, sensor_radius); // Can be smart to correlate it with altitude
 
-  // TODO: Take the radius as a config parameter
-  // TODO: Paramter to configer radius to be proporsional to altitude
-  // TODO: Add cell size, region, and sensor coverage parameter to the config file
-  // TODO: The increments in grid values should happen after a minimum time interval (when same vehicle is incrementing)
+  sensorArea.set_vertex_color(m_sensor_color);
+  sensorArea.set_edge_color(m_sensor_color);
+  sensorArea.set_edge_size(2);
+  sensorArea.set_label(name);
+  sensorArea.set_msg("sensor_area");
+  sensorArea.set_label_color(m_sensor_color);
+  // sensorArea.setDrawVertices(6);
 
-  // TODO: Calculate statistics of coreverage percentage in buildreport. time for 40, 60, 90+ coverage, vise verca coverage, etc.
-  // --->: Continues coverage percentage as afunction of time
+
+  // if the drone is not in the map, add it
+  if (m_map_drone_records.find(name) == m_map_drone_records.end())
+    m_map_drone_records[name] = DroneRecord(name, altitude, sensor_radius, sensorArea);
+  else{
+    DroneRecord& drone = m_map_drone_records.at(name);
+    drone.sensorArea = sensorArea;
+    drone.altitude = altitude;
+    drone.sensor_radius = sensor_radius;  
+  }
+
+
+
+
+  // TODO: Paramter to configer radius to be proporsional to altitude
+  // TODO: The increments in grid values should happen after a minimum time interval (when same vehicle is incrementing)
 
   // TODO: Add decaying values to the grid cells after a long time, add as parameter
 
   // TODO: Ability to add or remove a region and then take that in consideration when calculating statistics.
   // --->: Removing a region is the same as it having max value. Increment wont change it.
+
+  static bool registerMissionStartTime = false;
 
   for (unsigned int ix = 0; ix < m_grid.size(); ix++)
   {
@@ -202,7 +233,8 @@ void GridSearchViz::handleMailNodeReport(string str)
     if (sensorArea.containsPoint(cell.getCenterX(), cell.getCenterY()))
     {
       m_map_deltas[ix] = m_map_deltas[ix] + 1;
-      m_grid.incVal(ix, 1);
+      m_grid.incVal(ix, 1, 0); // Increment the value of the first cell variable ("x") 0 by 1
+      registerMissionStartTime = true;
     }
 
     // bool contained = m_grid.ptIntersect(ix, posx, posy);
@@ -212,7 +244,11 @@ void GridSearchViz::handleMailNodeReport(string str)
     // }
   }
 
-  // TODO: Post a view cirle to visualize the sensor area coverage
+  if (registerMissionStartTime && m_missionStartTime == 0)
+    m_missionStartTime = MOOSTime();
+
+  //Post a view cirle to visualize the sensor area coverage
+  Notify("VIEW_CIRCLE", sensorArea.get_spec() );
 }
 
 //------------------------------------------------------------
@@ -220,7 +256,7 @@ void GridSearchViz::handleMailNodeReport(string str)
 
 void GridSearchViz::postGrid()
 {
-  string spec = m_grid.get_spec();
+  std::string spec = m_grid.get_spec();
 
   // By default m_grid_var_name="VIEW_GRID"
   Notify(m_grid_var_name, spec);
@@ -236,14 +272,14 @@ void GridSearchViz::postGridUpdates()
 
   XYGridUpdate update(m_grid_label);
 
-  map<unsigned int, double>::iterator p;
+  std::map<unsigned int, double>::iterator p;
   for (p = m_map_deltas.begin(); p != m_map_deltas.end(); p++)
   {
     unsigned int ix = p->first;
     double delta = p->second;
     update.addUpdate(ix, "x", delta);
   }
-  string msg = update.get_spec();
+  std::string msg = update.get_spec();
 
   m_map_deltas.clear();
 
@@ -279,10 +315,10 @@ bool GridSearchViz::buildReport()
     cell_sizey = m_grid.getElement(0).getLengthY();
   }
 
-  m_msgs << "Grid characteristics: " << endl;
-  m_msgs << "      Cells: " << m_grid.size() << endl;
-  m_msgs << "  Cell size: " << doubleToStringX(cell_sizex) << "x" << doubleToStringX(cell_sizey, 4) << endl
-         << endl;
+  m_msgs << "Grid characteristics: " << std::endl;
+  m_msgs << "      Cells: " << m_grid.size() << std::endl;
+  m_msgs << "  Cell size: " << doubleToStringX(cell_sizex) << "x" << doubleToStringX(cell_sizey, 4) << std::endl
+         << std::endl;
 
   ACTable actab(6, 2);
   actab.setColumnJustify(1, "right");
@@ -295,14 +331,14 @@ bool GridSearchViz::buildReport()
   unsigned int i, cell_var_cnt = m_grid.getCellVarCnt();
   for (i = 0; i < cell_var_cnt; i++)
   {
-    string cell_var = m_grid.getVar(i);
-    string init_val = doubleToStringX(m_grid.getInitVal(i), 5);
-    string cell_min_sofar = doubleToStringX(m_grid.getMin(i), 5);
-    string cell_max_sofar = doubleToStringX(m_grid.getMax(i), 5);
+    std::string cell_var = m_grid.getVar(i);
+    std::string init_val = doubleToStringX(m_grid.getInitVal(i), 5);
+    std::string cell_min_sofar = doubleToStringX(m_grid.getMin(i), 5);
+    std::string cell_max_sofar = doubleToStringX(m_grid.getMax(i), 5);
     bool cell_min_limited = m_grid.cellVarMinLimited(i);
     bool cell_max_limited = m_grid.cellVarMinLimited(i);
-    string cell_min_limit = "-";
-    string cell_max_limit = "-";
+    std::string cell_min_limit = "-";
+    std::string cell_max_limit = "-";
     if (cell_min_limited)
       cell_min_limit = doubleToStringX(m_grid.getMinLimit(i), 5);
     if (cell_max_limited)
@@ -313,9 +349,9 @@ bool GridSearchViz::buildReport()
 
 
 
-  m_msgs << "\n\nSensor data " << endl;
-  m_msgs << "---------------------------------" << endl;
-  m_msgs << "       sensor_radius : " << doubleToStringX(m_sensor_radius_max, 1) << endl;
+  m_msgs << "\n\nSensor data " << std::endl;
+  m_msgs << "---------------------------------" << std::endl;
+  m_msgs << "       sensor_radius : " << doubleToStringX(m_sensor_radius_max, 1) << std::endl;
 
 
   ACTable actab2(3,1);
@@ -324,10 +360,81 @@ bool GridSearchViz::buildReport()
   actab2.setColumnJustify(2, "center");
   actab2 << "Vehicle | Sensor radius | Max";
   actab2.addHeaderLines();
-  for (const auto& [drone, radi] : m_map_drone_sensor_radius){
-    actab2 << drone << doubleToStringX(radi,3) << m_sensor_radius_max;
+  for (const auto& [drone, data] : m_map_drone_records){
+    actab2 << drone << doubleToStringX(data.sensor_radius,3) << m_sensor_radius_max;
   }
   m_msgs << actab2.getFormattedString();
 
+
+
+  m_msgs << "\n\nCoverage statistics " << std::endl;
+  m_msgs << "---------------------------------" << std::endl;
+  m_msgs << "   Mission started: " << boolToString(m_missionStartTime != 0) << std::endl;
+  m_msgs << "      Mission Time: " << doubleToStringX(m_map_coverage_statistics.at("time_elapsed"), 2) << std::endl;
+  m_msgs << "       Coverage % : " << doubleToStringX(m_map_coverage_statistics["coverage_%"], 2) << std::endl;
+ 
+  m_msgs << std::endl;
+
+  ACTable actab3(2,2);
+  actab3.setColumnJustify(0, "left");
+  actab3.setColumnJustify(1, "right");
+  actab3 << "Coverage % | Time";
+  actab3.addHeaderLines();
+  for (const auto& [key, value] : m_map_coverage_statistics){
+    // Logger::info("Key: " + key + " Value: " + doubleToStringX(value, 2));
+    
+    if((key.find("coverage_") == 0 && key != "coverage_%")){
+      // extract the perentage from key
+      std::string percentage = key.substr(9, key.length()-9);
+      actab3 << percentage << doubleToStringX(value, 2);
+      }
+  }
+  m_msgs << actab3.getFormattedString();
+
+
   return (true);
+}
+
+
+//------------------------------------------------------------
+// Procedure: calculateCoverageStatistics()
+void GridSearchViz::calculateCoverageStatistics(){
+
+  // Calculate the coverage statistics
+  double total_cells = m_grid.size();
+  double covered_cells = 0;
+  for (unsigned int ix = 0; ix < m_grid.size(); ix++)
+  {
+    if(m_grid.getVal(ix, 0) > 0)
+      covered_cells++;
+  }
+
+  double coverage_percentage = (covered_cells / total_cells) * 100;
+  m_map_coverage_statistics["coverage_%"] = coverage_percentage;
+
+  Notify("COVERAGE_PERCENTAGE", coverage_percentage);
+
+  // Calculate the time for 40, 60, 90+ coverage
+  if (m_missionStartTime == 0) return;
+
+  auto now  = MOOSTime();
+  double time_elapsed = now - m_missionStartTime;
+
+  m_map_coverage_statistics["time_elapsed"] = time_elapsed;
+
+  if (coverage_percentage >= 90 && m_map_coverage_statistics.find("coverage_90%") == m_map_coverage_statistics.end())
+    m_map_coverage_statistics["coverage_90%"] = time_elapsed;
+  else if (coverage_percentage >= 60 && m_map_coverage_statistics.find("coverage_60%") == m_map_coverage_statistics.end())
+    m_map_coverage_statistics["coverage_60%"] = time_elapsed;
+  else if (coverage_percentage >= 40 && m_map_coverage_statistics.find("coverage_40%") == m_map_coverage_statistics.end())
+    m_map_coverage_statistics["coverage_40%"] = time_elapsed;
+  else if (coverage_percentage >= 20 && m_map_coverage_statistics.find("coverage_20%") == m_map_coverage_statistics.end())
+    m_map_coverage_statistics["coverage_20%"] = time_elapsed;
+  else if (coverage_percentage >= 10 && m_map_coverage_statistics.find("coverage_10%") == m_map_coverage_statistics.end())
+    m_map_coverage_statistics["coverage_10%"] = time_elapsed;
+  
+
+
+
+
 }

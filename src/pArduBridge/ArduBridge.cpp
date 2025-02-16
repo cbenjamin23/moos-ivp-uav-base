@@ -16,7 +16,7 @@
 #include "ArduBridge.h"
 #include "definitions.h"
 
-#include "Logger.h"
+#include "../lib_common/Logger.h"
 
 //---------------------------------------------------------
 // Constructor()

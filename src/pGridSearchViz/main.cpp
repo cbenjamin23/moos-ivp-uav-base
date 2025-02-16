@@ -12,6 +12,9 @@
 #include "GridSearchViz.h"
 #include "GridSearchViz_Info.h"
 
+#include "../lib_common/Logger.h"
+
+
 using namespace std;
 
 int main(int argc, char *argv[])
@@ -43,6 +46,21 @@ int main(int argc, char *argv[])
   cout << termColor("green");
   cout << "pGridSearchViz launching as " << run_command << endl;
   cout << termColor() << endl;
+
+  
+  Logger::enable();
+  // Get the home directory from the environment variable
+  auto home_dir = getenv("HOME");
+  if (home_dir == nullptr)
+  {
+    Logger::error("Error: Could not get the home directory.");
+    std::cerr << "Error: Could not get the home directory." << std::endl;
+    return 1;
+  }
+  std::string save_path = std::string(home_dir) + "/moos-ivp-uav/missions/pGridSearch.log";
+  Logger::configure(save_path);
+
+
 
   GridSearchViz search_grid;
   search_grid.Run(run_command.c_str(), mission_file.c_str(), argc, argv);

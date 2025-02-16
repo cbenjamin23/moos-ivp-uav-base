@@ -66,7 +66,7 @@ ProcessConfig = pProxonoi
   AppTick   = 2
   CommsTick = 2                                                 
                                                                 
-  region = -100,460:-700,-200:-700,-920:620,-920:700,-222 
+  region = $(REGION)
 }                                            
 
 
@@ -90,7 +90,7 @@ ProcessConfig = pHelmIvP
     domain       = altitude:0:300:301
   #endif
 
-  
+
   hold_on_app  = pContactMgrV20
 
   // app_logging  = true

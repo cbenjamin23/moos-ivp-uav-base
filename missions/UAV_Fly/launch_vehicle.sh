@@ -47,49 +47,14 @@ CONFIG_FILE="./missionConfig.yaml"
 #  Functions
 #--------------------------------------------------------------
 
-get_val_by_drone_name() {
-    local drone_name=$1
-    local field_name=$2
+# check that ~/moos-ivp-uav/scripts/get_region_xy.sh exists and source it
+if [ ! -f ~/moos-ivp-uav/scripts/configfileHelperFunctions.sh ]; then
+    echo "Error: File ~/moos-ivp-uav/scripts/configfileHelperFunctions.sh not found." >&2
+    exit 1
+fi
+source ~/moos-ivp-uav/scripts/configfileHelperFunctions.sh
 
-    local total_drones=$(yq eval '.drones | length' "$CONFIG_FILE")
 
-    for i in $(seq 0 $((total_drones - 1))); do
-        local current_name=$(yq eval ".drones[$i].name" "$CONFIG_FILE")
-
-        if [ "$current_name" = "$drone_name" ]; then
-
-            local val=$(yq eval ".drones[$i].$field_name" "$CONFIG_FILE")
-            if [ "$val" != "null" ]; then
-                echo "$val"
-                return 0
-            fi
-            echo "Error: Field '$field_name' not found for drone with name '$drone_name'." >&2
-            return 1
-        fi
-    done
-
-    # print an error and return 1
-    echo "Error: Drone with name '$drone_name' not found." >&2
-    return 1
-}
-
-get_global_val() {
-    local field_name=$1
-    local val=$(yq eval ".$field_name" "$CONFIG_FILE")
-    if [ "$val" != "null" ]; then
-        echo "$val"
-        return 0
-    fi
-    echo "Error: Field '$field_name' not found in config file: $CONFIG_FILE." >&2
-    return 1
-}
-
-get_global_val_in_moosDistance() {
-
-    local val=$(get_global_val $1)
-    if [ $? -ne 0 ]; then return 1; fi
-    echo $(echo "$val * 2" | bc)   
-}
 #-------------------------------------------------------
 #  Part 2: Check for and handle command-line arguments
 #-------------------------------------------------------
@@ -210,32 +175,33 @@ fi
 
 
 
-COLOR=$(get_val_by_drone_name "$VNAME" "color")
+COLOR=$(get_val_by_drone_name $CONFIG_FILE "$VNAME" "color")
 if [ $? -ne 0 ]; then exit 1; fi
 
 
-MAXSPD=$(get_global_val field.speed.max)
+MAXSPD=$(get_global_val $CONFIG_FILE field.speed.max)
 if [ $? -ne 0 ]; then exit 1; fi
-MINSPD=$(get_global_val field.speed.min)
+MINSPD=$(get_global_val $CONFIG_FILE field.speed.min)
 if [ $? -ne 0 ]; then exit 1; fi
 
 # Define the interval in steps between the differen speeds
 SPD_STEPS=$(($MAXSPD - $MINSPD + 1))
 
 
-USE_MOOS_SIM_PID=$(get_global_val simulation.useMoosSimPid)
+USE_MOOS_SIM_PID=$(get_global_val $CONFIG_FILE simulation.useMoosSimPid)
 if [ $? -ne 0 ]; then exit 1; fi
 
 
-CAPTURE_RADIUS=$(get_global_val_in_moosDistance "missionParams.capture_radius")
+CAPTURE_RADIUS=$(get_global_val_in_moosDistance $CONFIG_FILE "missionParams.capture_radius")
 if [ $? -ne 0 ]; then exit 1; fi
 
 
-SLIP_RADIUS=$(get_global_val_in_moosDistance "missionParams.slip_radius")
+SLIP_RADIUS=$(get_global_val_in_moosDistance $CONFIG_FILE "missionParams.slip_radius")
 if [ $? -ne 0 ]; then exit 1; fi
 
-ENCOUNTER_RADIUS=$(get_global_val_in_moosDistance "missionParams.encounter_radius")
+ENCOUNTER_RADIUS=$(get_global_val_in_moosDistance $CONFIG_FILE "missionParams.encounter_radius")
 
+REGION=$(get_region_xy $CONFIG_FILE)
 #---------------------------------------------------------------
 #  Part 4: If verbose, show vars and confirm before launching
 #---------------------------------------------------------------
@@ -268,6 +234,7 @@ if [ "${VERBOSE}" = "yes" ]; then
     echo "USE_MOOS_SIM_PID = [${USE_MOOS_SIM_PID}]"
     echo "CAPTURE_RADIUS = [${CAPTURE_RADIUS}]"
     echo "SLIP_RADIUS =    [${SLIP_RADIUS}]"
+    echo "REGION =       [${REGION}]"
     echo "----------------------------------"
     echo "ARDUPILOT_IP =  [${ARDUPILOT_IP}]  "
     echo "ARDUPILOT_PORT =[${ARDUPILOT_PORT}]"
@@ -294,7 +261,8 @@ nsplug meta_vehicle.moos targ_$VNAME.moos $NSFLAGS WARP=$TIME_WARP \
        AP_IP=$ARDUPILOT_IP          AP_PORT=$ARDUPILOT_PORT   \
        AP_PROTOCOL=$ARDUPILOT_PROTOCOL      START_POS=$START_POS \
        MIN_SPEED=$MINSPD  MAX_SPEED=$MAXSPD SPEED_STEPS=$SPD_STEPS  \
-       USE_MOOS_SIM_PID=$USE_MOOS_SIM_PID                
+       USE_MOOS_SIM_PID=$USE_MOOS_SIM_PID                      \
+       REGION=$REGION
 
 nsplug meta_vehicle.bhv targ_$VNAME.bhv $NSFLAGS VNAME=$VNAME \
        SPEED=$SPEED                  START_POS=$START_POS     \

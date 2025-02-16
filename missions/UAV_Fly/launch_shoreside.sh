@@ -28,23 +28,15 @@ LON_ORIGIN=10.1435321 #149.1652374
 CONFIG_FILE="./missionConfig.yaml"
 
 
-get_global_val() {
-    local field_name=$1
-    local val=$(yq eval ".$field_name" "$CONFIG_FILE")
-    if [ "$val" != "null" ]; then
-        echo "$val"
-        return 0
-    fi
-    echo "Error: Field '$field_name' not found in config file: $CONFIG_FILE." >&2
-    return 1
-}
+# check that ~/moos-ivp-uav/scripts/get_region_xy.sh exists and source it
+if [ ! -f ~/moos-ivp-uav/scripts/configfileHelperFunctions.sh ]; then
+    echo "Error: File ~/moos-ivp-uav/scripts/configfileHelperFunctions.sh not found." >&2
+    exit 1
+fi
+source ~/moos-ivp-uav/scripts/configfileHelperFunctions.sh
 
-get_global_val_in_moosDistance() {
 
-    local val=$(get_global_val $1)
-    if [ $? -ne 0 ]; then return 1; fi
-    echo $(echo "$val * 2" | bc)   
-}
+
 
 #--------------------------------------------------------------
 #  Part 2: Check for and handle command-line arguments
@@ -114,23 +106,38 @@ fi
 
 
 
-USE_MOOS_SIM_PID=$(get_global_val simulation.useMoosSimPid)
+
+USE_MOOS_SIM_PID=$(get_global_val $CONFIG_FILE simulation.useMoosSimPid)
 if [ $? -ne 0 ]; then exit 1; fi
 
 
-ENCOUNTER_RADIUS=$(get_global_val_in_moosDistance "missionParams.encounter_radius")
+ENCOUNTER_RADIUS=$(get_global_val_in_moosDistance $CONFIG_FILE "missionParams.encounter_radius")
 if [ $? -ne 0 ]; then exit 1; fi
 
-NEAR_MISS_RADIUS=$(get_global_val_in_moosDistance "missionParams.near_miss_radius")
+NEAR_MISS_RADIUS=$(get_global_val_in_moosDistance $CONFIG_FILE "missionParams.near_miss_radius")
 if [ $? -ne 0 ]; then exit 1; fi
 
-COLLISION_RADIUS=$(get_global_val_in_moosDistance "missionParams.collision_radius")
+COLLISION_RADIUS=$(get_global_val_in_moosDistance $CONFIG_FILE "missionParams.collision_radius")
 if [ $? -ne 0 ]; then exit 1; fi
 
 
-SENSOR_RADIUS=$(get_global_val_in_moosDistance "missionParams.sensor_radius")
+SENSOR_RADIUS=$(get_global_val_in_moosDistance $CONFIG_FILE "missionParams.sensor_radius")
+if [ $? -ne 0 ]; then exit 1; fi
+SENSOR_COLOR=$(get_global_val $CONFIG_FILE "missionParams.sensor_color")
+if [ $? -ne 0 ]; then exit 1; fi
 
 
+GRID_CELL_SIZE=$(get_global_val_in_moosDistance $CONFIG_FILE "missionParams.grid_cell_size")
+if [ $? -ne 0 ]; then exit 1; fi
+
+GRID_CELL_MAX_COUNT=$(get_global_val $CONFIG_FILE "missionParams.grid_cell_max_count")
+if [ $? -ne 0 ]; then exit 1; fi
+
+
+
+# read region_XY from config file
+REGION=$(get_region_xy $CONFIG_FILE)
+if [ $? -ne 0 ]; then exit 1; fi
 
 #---------------------------------------------------------------
 #  Part 4: If verbose, show vars and confirm before launching
@@ -159,7 +166,13 @@ if [ "${VERBOSE}" = "yes" ]; then
     echo "ENCOUNTER_RADIUS = [${ENCOUNTER_RADIUS}]"
     echo "NEAR_MISS_RADIUS = [${NEAR_MISS_RADIUS}]"
     echo "COLLISION_RADIUS = [${COLLISION_RADIUS}]"
+    echo "----------------------------------"
     echo "SENSOR_RADIUS = [${SENSOR_RADIUS}]"
+    echo "SENSOR_COLOR = [${SENSOR_COLOR}]"
+    echo "GRID_CELL_SIZE = [${GRID_CELL_SIZE}]"
+    echo "GRID_CELL_MAX_COUNT = [${GRID_CELL_MAX_COUNT}]"
+    echo "----------------------------------"
+    echo "REGION = [${REGION}]"
     echo "=================================="
     echo -n "Hit any key to continue launch "
     read ANSWER
@@ -182,7 +195,11 @@ nsplug meta_shoreside.moos targ_shoreside.moos $NSFLAGS WARP=$TIME_WARP \
     ENCOUNTER_RADIUS=$ENCOUNTER_RADIUS                   \
     NEAR_MISS_RADIUS=$NEAR_MISS_RADIUS                   \
     COLLISION_RADIUS=$COLLISION_RADIUS                   \
-    SENSOR_RADIUS=$SENSOR_RADIUS
+    SENSOR_RADIUS=$SENSOR_RADIUS                         \
+    SENSOR_COLOR=$SENSOR_COLOR                           \
+    GRID_CELL_SIZE=$GRID_CELL_SIZE                       \
+    GRID_CELL_MAX_COUNT=$GRID_CELL_MAX_COUNT              \
+    REGION=$REGION
 
 
 if [ ${JUST_MAKE} = "yes" ]; then

@@ -16,5 +16,6 @@ ProcessConfig = pGridSearchViz
   GRID_CONFIG = cell_max=y:1000               
 
 
-  sensor_radius = 10                                                      
+  sensor_radius = 10        
+  sensor_color = brown                                              
 }                                             

@@ -51,7 +51,7 @@ public:
         getInstance().log(Level::ERROR, message);
     }
 
-    static void enable(bool enb) {
+    static void enable(bool enb=true) {
         getInstance().enabled = enb;
     }
 
