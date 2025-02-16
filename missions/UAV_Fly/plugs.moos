@@ -140,4 +140,57 @@ ProcessConfig = uMemWatch
 }
 
 
+<tag><SimMarine_PID_V22>
+// for testing with boat AvCol
+ProcessConfig = uSimMarineV22
+{
+  AppTick   = 10
+  CommsTick = 10
 
+  start_pos = $(START_POS), speed=1, heading=45
+  prefix    = NAV
+
+	//app_logging = true
+	max_speed   = 20
+	
+	turn_rate = 95
+	turn_spd_loss = 0.6
+
+	post_des_thrust = DESIRED_THRUSTX
+	post_des_rudder = DESIRED_RUDDERX
+	
+  //rotate_speed = 0.012
+  drift_x      = 1
+
+  //thrust_map = -100:-2, 0:0, 20:1, 40:2, 60:3, 80:5, 100:5
+  //thrust_map = -100:-2, 0:0, 20:1, 40:2, 60:3, 80:5, 100:5
+}
+ProcessConfig = pMarinePIDV22
+{
+  AppTick    = 10
+  CommsTick  = 10
+
+  verbose       = true
+  depth_control = false
+  active_start  = true
+  
+  // Yaw PID controller
+  yaw_pid_kp             = 1.2
+  yaw_pid_kd             = 0.1
+  yaw_pid_ki             = 0.3
+  yaw_pid_integral_limit = 0.07
+  
+  // Speed PID controller
+  speed_pid_kp           = 1.0
+  speed_pid_kd           = 0.0
+  speed_pid_ki           = 0.0
+  speed_pid_integral_limit = 0.07
+  
+  // Maximums
+  maxrudder  = 100
+  maxthrust  = 100
+  
+  // A non-zero SPEED_FACTOR overrides use of SPEED_PID
+  // Will set DESIRED_THRUST = DESIRED_SPEED * SPEED_FACTOR
+  speed_factor = 20
+}    

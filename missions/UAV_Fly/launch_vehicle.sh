@@ -217,6 +217,9 @@ if [ $? -ne 0 ]; then exit 1; fi
 SPD_STEPS=$(($MAXSPD - $MINSPD + 1))
 
 
+USE_MOOS_SIM_PID=$(get_global_val simulation.useMoosSimPid)
+if [ $? -ne 0 ]; then exit 1; fi
+
 #---------------------------------------------------------------
 #  Part 4: If verbose, show vars and confirm before launching
 #---------------------------------------------------------------
@@ -246,6 +249,8 @@ if [ "${VERBOSE}" = "yes" ]; then
     echo "LatOrigin =     [${LAT_ORIGIN}]    "
     echo "LonOrogin =     [${LON_ORIGIN}]    "
     echo "----------------------------------"
+    echo "USE_MOOS_SIM_PID = [${USE_MOOS_SIM_PID}]"
+    echo "----------------------------------"
     echo "ARDUPILOT_IP =  [${ARDUPILOT_IP}]  "
     echo "ARDUPILOT_PORT =[${ARDUPILOT_PORT}]"
     echo "ARDUPILOT_PROTOCOL =[${ARDUPILOT_PROTOCOL}]"
@@ -269,13 +274,16 @@ nsplug meta_vehicle.moos targ_$VNAME.moos $NSFLAGS WARP=$TIME_WARP \
        COLOR=$COLOR                 XMODE=$XMODE                          \
        LatOrigin=$LAT_ORIGIN        LonOrigin=$LON_ORIGIN     \
        AP_IP=$ARDUPILOT_IP          AP_PORT=$ARDUPILOT_PORT   \
-       AP_PROTOCOL=$ARDUPILOT_PROTOCOL     \
-       MIN_SPEED=$MINSPD  MAX_SPEED=$MAXSPD SPEED_STEPS=$SPD_STEPS                  
+       AP_PROTOCOL=$ARDUPILOT_PROTOCOL      START_POS=$START_POS \
+       MIN_SPEED=$MINSPD  MAX_SPEED=$MAXSPD SPEED_STEPS=$SPD_STEPS  \
+       USE_MOOS_SIM_PID=$USE_MOOS_SIM_PID                
 
 nsplug meta_vehicle.bhv targ_$VNAME.bhv $NSFLAGS VNAME=$VNAME \
        SPEED=$SPEED                  START_POS=$START_POS     \
        LatOrigin=$LAT_ORIGIN         LonOrogin=$LON_ORIGIN    \
-       XMODE=$XMODE                  COLOR=$COLOR 
+       XMODE=$XMODE                  COLOR=$COLOR             \
+       USE_MOOS_SIM_PID=$USE_MOOS_SIM_PID                
+         
                                                 
        
 if [ ${JUST_MAKE} = "yes" ]; then

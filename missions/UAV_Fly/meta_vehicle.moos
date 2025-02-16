@@ -23,8 +23,14 @@ Processconfig = ANTLER
   Run = uFldMessageHandler @ NewConsole = false
   // Run = uTimerScript       @ NewConsole = false
   Run = pRealm             @ NewConsole = false
-  Run = pArduBridge        @ NewConsole = true,XConfig=DBXConsoleSettings,  \[=\=]
   Run = pProxonoi          @ NewConsole = false
+
+  #ifdef USE_MOOS_SIM_PID true
+    Run = uSimMarineV22     @ NewConsole = false
+    Run = pMarinePIDV22     @ NewConsole = false
+  #else
+    Run = pArduBridge        @ NewConsole = true,XConfig=DBXConsoleSettings,  \[=\=]
+  #endif
   
   Run = uProcessWatch      @ NewConsole = false
   Run = uLoadWatch         @ NewConsole = false
@@ -79,8 +85,12 @@ ProcessConfig = pHelmIvP
   verbose      = false
   domain       = course:0:359:360
   domain       = speed:$(MIN_SPEED):$(MAX_SPEED):$(SPEED_STEPS)
-  domain       = altitude:0:300:301
+  
+  #ifdef USE_MOOS_SIM_PID false
+    domain       = altitude:0:300:301
+  #endif
 
+  
   hold_on_app  = pContactMgrV20
 
   // app_logging  = true
@@ -216,6 +226,13 @@ ProcessConfig = pDeadManPost
 
 
 
+
+#ifdef USE_MOOS_SIM_PID true
+   #include plugs.moos <SimMarine_PID_V22>
+
+#else
+  // connect to the real ArduPilot
+  
 //------------------------------------------
 // pArduBridge config block
 ProcessConfig = pArduBridge                              
@@ -242,4 +259,5 @@ ProcessConfig = pArduBridge
 
 }
 
+#endif
 

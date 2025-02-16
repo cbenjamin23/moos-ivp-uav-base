@@ -2,16 +2,20 @@
 
 # Global simulation parameters
 simulation:
-  time_warp: 1
+  useMoosSimPid: true # Use MOOS-IvP simulator
+  time_warp: 20
   number_of_drones: 3
+
   ardupilot_ip: "0.0.0.0"
   ardupilot_protocol: "udp"
-  home_altitude: 106.1
   fdm_port_in_default: 9002
   ardupilot_port_default: 14550
 
+  
+
 # Field deployment parameters
 field:
+  home_altitude: 106.1
   ardupilot_ip: "ttySAC0" # serial port
   ardupilot_port: "115200" # baudrate
   ardupilot_protocol: "serial"

@@ -25,6 +25,21 @@ VNAMES=""
 LAT_ORIGIN=63.3975168 #-35.3632621
 LON_ORIGIN=10.1435321 #149.1652374
 
+
+
+get_global_val() {
+    local field_name=$1
+    local val=$(yq eval ".$field_name" "$CONFIG_FILE")
+    if [ "$val" != "null" ]; then
+        echo "$val"
+        return 0
+    fi
+    echo "Error: Field '$field_name' not found in config file: $CONFIG_FILE." >&2
+    return 1
+}
+
+
+
 #--------------------------------------------------------------
 #  Part 2: Check for and handle command-line arguments
 #--------------------------------------------------------------
@@ -91,6 +106,17 @@ if [ "${AUTO_LAUNCHED}" = "no" -a "${IP_ADDR}" = "localhost" ]; then
     fi
 fi
 
+
+
+
+
+
+
+
+USE_MOOS_SIM_PID=$(get_global_val simulation.useMoosSimPid)
+if [ $? -ne 0 ]; then exit 1; fi
+
+
 #---------------------------------------------------------------
 #  Part 4: If verbose, show vars and confirm before launching
 #---------------------------------------------------------------
@@ -114,6 +140,8 @@ if [ "${VERBOSE}" = "yes" ]; then
     echo "LatOrigin =     [${LAT_ORIGIN}]   "
     echo "LonOrogin =     [${LON_ORIGIN}]   "
     echo "----------------------------------"
+    echo "USE_MOOS_SIM_PID = [${USE_MOOS_SIM_PID}]"
+    echo "=================================="
     echo -n "Hit any key to continue launch "
     read ANSWER
 fi
@@ -127,10 +155,12 @@ if [ "${AUTO_LAUNCHED}" = "no" ]; then
 fi
 
 nsplug meta_shoreside.moos targ_shoreside.moos $NSFLAGS WARP=$TIME_WARP \
-       IP_ADDR=$IP_ADDR       PSHARE_PORT=$PSHARE_PORT     \
-       MOOS_PORT=$MOOS_PORT   LAUNCH_GUI=$LAUNCH_GUI       \
-       VNAMES=$VNAMES                            \
-       LatOrigin=$LAT_ORIGIN   LonOrigin=$LON_ORIGIN
+       IP_ADDR=$IP_ADDR       PSHARE_PORT=$PSHARE_PORT      \
+       MOOS_PORT=$MOOS_PORT   LAUNCH_GUI=$LAUNCH_GUI        \
+       VNAMES=$VNAMES                                       \
+       LatOrigin=$LAT_ORIGIN   LonOrigin=$LON_ORIGIN        \
+       USE_MOOS_SIM_PID=$USE_MOOS_SIM_PID                
+
 
 if [ ${JUST_MAKE} = "yes" ]; then
     echo "$ME: Files assembled; nothing launched; exiting per request."

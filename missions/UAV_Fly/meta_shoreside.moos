@@ -157,6 +157,11 @@ ProcessConfig = uFldShoreBroker
   bridge  = src=NEXT_WAYPOINT
   bridge  = src=REGION_INFO
 
+
+  #ifdef USE_MOOS_SIM_PID true
+    qbridge = DEPLOY, TOWAYPT_UPDATE , RETURN
+  #endif
+
   // bridge  = src=RETURN_ALL, alias=RETURN
   // bridge  = src=RETURN_$V,  alias=RETURN
 }
@@ -294,15 +299,21 @@ ProcessConfig = pMarineViewer
   ////////////////////////////////////////////////
   // Mouse Contexts
   ////////////////////////////////////////////////
+  #ifdef USE_MOOS_SIM_PID true
+    left_context[register_wypt_all] =  VIEW_MARKER = "type=gateway,x=$[XPOS],y=$[YPOS],scale=10,label=next_wpt_all,color=blue,width=10"
+    left_context[register_wypt_all] =  TOWAYPT_UPDATE_ALL = "points=$[XPOS],$[YPOS]"   // for testing with boat AvCol
+    left_context[register_wypt_all] =  MOOS_MANUAL_OVERRIDE_ALL=false   // for testing with boat AvCol
 
-	// left_context[reg_waypoint]  = VIEW_POINT = x=$[XPOS],y=$[YPOS],label=next_wpt,vertex_size=4
-  
-  left_context[register_wypt_all] =  VIEW_MARKER = "type=gateway,x=$[XPOS],y=$[YPOS],scale=10,label=next_wpt_all,color=blue,width=10"
-  left_context[register_wypt_all] =  NEXT_WAYPOINT = "lat=$[LAT],lon=$[LON],x=$[XPOS],y=$[YPOS],vname=all"
-  left_context[register_wypt_all] =  TOWAYPT_UPDATE = "points=x=$[XPOS],y=$[YPOS],vname=all"
-  
-  left_context[register_wypt_active_vehicle] =  VIEW_MARKER = "type=gateway,x=$[XPOS],y=$[YPOS],scale=10,label=next_wpt_$[VNAME],color=gray,width=10"
-  left_context[register_wypt_active_vehicle] =  NEXT_WAYPOINT = "lat=$[LAT],lon=$[LON],x=$[XPOS],y=$[YPOS],vname=$[VNAME]"
+  #else
+    // left_context[reg_waypoint]  = VIEW_POINT = x=$[XPOS],y=$[YPOS],label=next_wpt,vertex_size=4
+    
+    left_context[register_wypt_all] =  VIEW_MARKER = "type=gateway,x=$[XPOS],y=$[YPOS],scale=10,label=next_wpt_all,color=blue,width=10"
+    left_context[register_wypt_all] =  NEXT_WAYPOINT = "lat=$[LAT],lon=$[LON],x=$[XPOS],y=$[YPOS],vname=all"
+    left_context[register_wypt_all] =  TOWAYPT_UPDATE = "points=x=$[XPOS],y=$[YPOS],vname=all"
+    
+    left_context[register_wypt_active_vehicle] =  VIEW_MARKER = "type=gateway,x=$[XPOS],y=$[YPOS],scale=10,label=next_wpt_$[VNAME],color=gray,width=10"
+    left_context[register_wypt_active_vehicle] =  NEXT_WAYPOINT = "lat=$[LAT],lon=$[LON],x=$[XPOS],y=$[YPOS],vname=$[VNAME]"
+  #endif  
 
   
   // left_context[reg_swimmer]   = XSWIMMER_ALERT = type=reg,x=$[XPOS],y=$[YPOS]
@@ -323,26 +334,33 @@ ProcessConfig = pMarineViewer
   ////////////////////////////////////////////////
   // Buttons
   ////////////////////////////////////////////////
-  
 
-  button_one   = ARM_ALL  # ARM_UAV_ALL=true
-  button_two   = DISARM_ALL   # ARM_UAV_ALL=false 
+  #ifdef USE_MOOS_SIM_PID true
+    button_1 = DEPLOY  # DEPLOY_ALL=true # RETURN_ALL=false # MOOS_MANUAL_OVERRIDE_ALL=false
+    button_2 = TOWAYPT # DEPLOY_ALL=false # RETURN_ALL=true # MOOS_MANUAL_OVERRIDE_ALL=false
+  #else
 
-  button_3    = HELM_ON_ALL  # HELM_STATUS_ALL=ON 
-  button_4    = HELM_OFF_ALL # HELM_STATUS_ALL=OFF
-  
-  button_5    = SURVEY_ALL  # GCS_COMMAND_ALL=SURVEY  
-  
-  button_6 = RTL_ALL  # GCS_COMMAND_ALL=RETURN_TO_LAUNCH 
-  button_7 = LOITER_ALL  # GCS_COMMAND_ALL=LOITER
 
-  button_8  = TKOFF_ALL  # GCS_COMMAND_ALL=DO_TAKEOFF
-  button_9  = TOWYP_ALL # GCS_COMMAND_ALL=FLY_WAYPOINT
+    button_1 = DEPLOY  # DEPLOY_ALL=true # MOOS_MANUAL_OVERRIDE_ALL=false
 
-  button_10 = DO_VORONOI_ALL # GCS_COMMAND_ALL=DO_VORONOI
+    button_one   = ARM_ALL  # ARM_UAV_ALL=true
+    button_two   = DISARM_ALL   # ARM_UAV_ALL=false 
 
-  // button_10 = PARK_HELM_ALL # MOOS_MANUAL_OVERRIDE_ALL=true
+    button_3    = HELM_ON_ALL  # HELM_STATUS_ALL=ON 
+    button_4    = HELM_OFF_ALL # HELM_STATUS_ALL=OFF
+    
+    button_5    = SURVEY_ALL  # GCS_COMMAND_ALL=SURVEY  
+    
+    button_6 = RTL_ALL  # GCS_COMMAND_ALL=RETURN_TO_LAUNCH 
+    button_7 = LOITER_ALL  # GCS_COMMAND_ALL=LOITER
 
+    button_8  = TKOFF_ALL  # GCS_COMMAND_ALL=DO_TAKEOFF
+    button_9  = TOWYP_ALL # GCS_COMMAND_ALL=FLY_WAYPOINT
+
+    button_10 = DO_VORONOI_ALL # GCS_COMMAND_ALL=DO_VORONOI
+
+    // button_10 = PARK_HELM_ALL # MOOS_MANUAL_OVERRIDE_ALL=true
+  #endif
 
   ////////////////////////////////////////////////
   // Commands

@@ -289,7 +289,7 @@ simulate_vehicles() {
     kill_drone_session
 
     local time_warp=$(yq eval '.simulation.time_warp' "$CONFIG_FILE")
-    local home_altitude=$(yq eval '.simulation.home_altitude' "$CONFIG_FILE")
+    local home_altitude=$(yq eval '.field.home_altitude' "$CONFIG_FILE")
     local datum_lat=$(yq eval '.moos.datum.lat' "$CONFIG_FILE")
     local datum_lon=$(yq eval '.moos.datum.lon' "$CONFIG_FILE")
 

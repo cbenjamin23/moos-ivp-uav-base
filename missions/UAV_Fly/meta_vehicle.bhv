@@ -1,7 +1,11 @@
 //--------    FILE: alpha.bhv  -------------
 
-// initialize   DEPLOY = false
-// initialize   RETURN = false
+
+#ifdef USE_MOOS_SIM_PID true
+  initialize   DEPLOY = false
+  initialize   RETURN = false
+#endif
+
 // initialize   SURVEY = false
 initialize   AVOID  = true
 
@@ -10,13 +14,30 @@ initialize   AVOID  = true
 initialize BHV_MODE = INACTIVE
 
 
+#ifdef USE_MOOS_SIM_PID true
+  set BHV_MODE = INACTIVE {
+    DEPLOY != true
+    RETURN != true
+  } ACTIVE
 
-set BHV_MODE = ACTIVE {
-  AUTOPILOT_MODE != HELM_INACTIVE  
-  AUTOPILOT_MODE != HELM_INACTIVE_LOITERING
-  AUTOPILOT_MODE != HELM_PARKED
-} INACTIVE
+  set BHV_MODE = VORONOI {
+    BHV_MODE = ACTIVE
+    DEPLOY = true
+  } 
 
+  set BHV_MODE = TOWAYPT {
+    BHV_MODE = ACTIVE
+    RETURN = true
+  }
+
+#else
+
+  set BHV_MODE = ACTIVE {
+    AUTOPILOT_MODE != HELM_INACTIVE  
+    AUTOPILOT_MODE != HELM_INACTIVE_LOITERING
+    AUTOPILOT_MODE != HELM_PARKED
+  } INACTIVE
+#endif
 
 set BHV_MODE = TOWAYPT {
   BHV_MODE = ACTIVE
@@ -74,7 +95,8 @@ Behavior = BHV_Waypoint
   name       = waypt_survey
   pwt        = 100
   updates    = SURVEY_UPDATE
-  condition  = AUTOPILOT_MODE==HELM_SURVEYING
+  // condition  = AUTOPILOT_MODE==HELM_SURVEYING
+  condition  = BHV_MODE==SURVEY
   perpetual  = true
   endflag    = GCS_COMMAND=RETURN_TO_LAUNCH
 
@@ -86,12 +108,12 @@ Behavior = BHV_Waypoint
      slip_radius = 150
             lead = 30
      lead_damper = 20
-#else
+  #else
   capture_radius = 100
      slip_radius = 200
             lead = 30
      lead_damper = 25
-#endif
+  #endif
 
           // points = 205,-125:320,-205:140,-300:250,-460:25,-500
           points = -390,10:55,381:333,35:-100,-290
@@ -104,6 +126,8 @@ Behavior = BHV_Waypoint
 
 
 //----------------------------------------------
+
+#ifdef USE_MOOS_SIM_PID false
 
 Behavior = BHV_ConstantAltitude{
   name       = const_altitude
@@ -122,7 +146,7 @@ Behavior = BHV_ConstantAltitude{
   duration = -1
 }
 
-
+#endif
 
 
 //----------------------------------------------
@@ -131,7 +155,8 @@ Behavior = BHV_Waypoint
   name       = waypt_next
   pwt        = 100
   updates    = TOWAYPT_UPDATE
-  condition  = AUTOPILOT_MODE==HELM_TOWAYPT
+  // condition  = AUTOPILOT_MODE==HELM_TOWAYPT
+  condition  = BHV_MODE==TOWAYPT
   perpetual  = true
   endflag    = GCS_COMMAND=LOITER
 
@@ -152,7 +177,8 @@ Behavior = BHV_Waypoint
   name       = waypt_return
   pwt        = 100
   updates    = RETURN_UPDATE
-  condition  = AUTOPILOT_MODE==HELM_RETURNING
+  // condition  = AUTOPILOT_MODE==HELM_RETURNING
+  condition  = BHV_MODE==RETURN
   perpetual  = true
   endflag    = GCS_COMMAND=LOITER
 
