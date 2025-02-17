@@ -133,7 +133,8 @@ if [ $? -ne 0 ]; then exit 1; fi
 GRID_CELL_MAX_COUNT=$(get_global_val $CONFIG_FILE "missionParams.grid_cell_max_count")
 if [ $? -ne 0 ]; then exit 1; fi
 
-
+GRID_CELL_DECAY_TIME=$(get_global_val $CONFIG_FILE "missionParams.grid_cell_decay_time")
+if [ $? -ne 0 ]; then exit 1; fi
 
 # read region_XY from config file
 REGION=$(get_region_xy $CONFIG_FILE)
@@ -167,10 +168,11 @@ if [ "${VERBOSE}" = "yes" ]; then
     echo "NEAR_MISS_RADIUS = [${NEAR_MISS_RADIUS}]"
     echo "COLLISION_RADIUS = [${COLLISION_RADIUS}]"
     echo "----------------------------------"
-    echo "SENSOR_RADIUS = [${SENSOR_RADIUS}]"
-    echo "SENSOR_COLOR = [${SENSOR_COLOR}]"
-    echo "GRID_CELL_SIZE = [${GRID_CELL_SIZE}]"
-    echo "GRID_CELL_MAX_COUNT = [${GRID_CELL_MAX_COUNT}]"
+    echo "SENSOR_RADIUS         = [${SENSOR_RADIUS}]"
+    echo "SENSOR_COLOR          = [${SENSOR_COLOR}]"
+    echo "GRID_CELL_SIZE        = [${GRID_CELL_SIZE}]"
+    echo "GRID_CELL_MAX_COUNT   = [${GRID_CELL_MAX_COUNT}]"
+    echo "GRID_CELL_DECAY_TIME  = [${GRID_CELL_DECAY_TIME}]"
     echo "----------------------------------"
     echo "REGION = [${REGION}]"
     echo "=================================="
@@ -199,6 +201,7 @@ nsplug meta_shoreside.moos targ_shoreside.moos $NSFLAGS WARP=$TIME_WARP \
     SENSOR_COLOR=$SENSOR_COLOR                           \
     GRID_CELL_SIZE=$GRID_CELL_SIZE                       \
     GRID_CELL_MAX_COUNT=$GRID_CELL_MAX_COUNT              \
+    GRID_CELL_DECAY_TIME=$GRID_CELL_DECAY_TIME            \
     REGION=$REGION
 
 

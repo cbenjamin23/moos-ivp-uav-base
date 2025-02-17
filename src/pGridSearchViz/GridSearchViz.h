@@ -11,7 +11,6 @@
 #include "XYConvexGrid.h"
 #include "ExFilterSet.h"
 
-
 #include "XYCircle.h"
 
 struct DroneRecord
@@ -23,11 +22,9 @@ struct DroneRecord
 
   DroneRecord() : name(""), altitude(0), sensor_radius(0), sensorArea() {}
 
-  DroneRecord(std::string name,  double altitude, double sensor_radius, XYCircle sensorA) 
-  : name(name),altitude(altitude), sensor_radius(sensor_radius), sensorArea(sensorA) {}
+  DroneRecord(std::string name, double altitude, double sensor_radius, XYCircle sensorA)
+      : name(name), altitude(altitude), sensor_radius(sensor_radius), sensorArea(sensorA) {}
 };
-
-
 
 class GridSearchViz : public AppCastingMOOSApp
 {
@@ -50,6 +47,10 @@ protected:
 
   void calculateCoverageStatistics();
 
+  void gridSetCell(const int ix, const double val);
+  // Increment the value of the first cell variable ("x") 0 by val
+  void gridModifyCell(const int ix, const double val);
+
 protected: // Config vars
   bool m_report_deltas;
   std::string m_grid_label;
@@ -60,6 +61,9 @@ protected: // Config vars
   // Sensor data
   double m_sensor_radius_max;
   std::string m_sensor_color;
+
+  // The min time seperation at which covered cells decay in value
+  double m_grid_cell_decay_time; // 0 means no decay
 
 protected: // State vars
   XYConvexGrid m_grid;

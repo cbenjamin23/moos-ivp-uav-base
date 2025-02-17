@@ -20,13 +20,18 @@ Processconfig = ANTLER
   Run = pLogger             @ NewConsole = false
   Run = pShare              @ NewConsole = false
   Run = pHostInfo           @ NewConsole = false
-  Run = uProcessWatch       @ NewConsole = false
   Run = uFldShoreBroker     @ NewConsole = false
   Run = uFldNodeComms       @ NewConsole = false
   Run = uFldVoronoi         @ NewConsole = false
   Run = uFldCollisionDetect @ NewConsole = false
   Run = pRealm              @ NewConsole = false
   Run = pGridSearchViz      @ NewConsole = false
+
+
+  Run = uProcessWatch       @ NewConsole = false
+  Run = uLoadWatch         @ NewConsole = false
+  Run = uMemWatch          @ NewConsole = false
+
 }
 
 
@@ -34,6 +39,9 @@ Processconfig = ANTLER
 #include plugs.moos <pHostInfo>
 #include plugs.moos <uProcessWatch>
 
+
+#include plugs.moos <uLoadWatch>
+#include plugs.moos <uMemWatch>
 
 //--------------------------------------------------
 // pLogger config block
@@ -183,11 +191,13 @@ ProcessConfig = pGridSearchViz
   grid_config = cell_min=x:0
   grid_config = cell_max=x:$(GRID_CELL_MAX_COUNT)
 
-	report_deltas = true
+	report_deltas = false
 
-  sensor_radius = $(SENSOR_RADIUS)
-  sensor_color  = $(SENSOR_COLOR)
-}
+  sensor_radius         = $(SENSOR_RADIUS)
+  sensor_color          = $(SENSOR_COLOR)
+  grid_cell_decay_time  = $(GRID_CELL_DECAY_TIME)
+
+} 
 
 
 //--------------------------------------------------------

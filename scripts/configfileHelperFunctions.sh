@@ -24,15 +24,15 @@ function get_region_xy() {
         datum_lon=$(yq eval '.moos.datum.lon' "$config_file")
         echo "Datum: lat=$datum_lat, lon=$datum_lon" >&2
         
-        # Define Earth's radius (m)
+        # Earth's radius (m)
         R=6378137
         # Conversion factor for degrees to radians
         rad_factor=$(echo "3.141592653589793/180" | bc -l)
-        # Compute cosine of datum latitude in radians (using awk for trigonometry)
+        # cosine of datum latitude in radians (awk for trigonometry)
         cos_datum=$(awk -v lat="$datum_lat" 'BEGIN { print cos(lat * 3.141592653589793/180) }')
         
         # Read the region_latlon block as a multi-line scalar.
-        region_string=$(yq eval '.missionParams.region_latlon' "$config_file")
+        region_string=$(yq eval '.missionParams.region_lonlat' "$config_file")
         
         result=""
         
@@ -49,7 +49,7 @@ function get_region_xy() {
             lon=$(echo "$line" | cut -d',' -f1 | tr -d ' ')
             lat=$(echo "$line" | cut -d',' -f2 | tr -d ' ')
             
-            # Calculate differences in degrees
+            # differences in degrees
             delta_lat=$(echo "$lat - $datum_lat" | bc -l)
             delta_lon=$(echo "$lon - $datum_lon" | bc -l)
             

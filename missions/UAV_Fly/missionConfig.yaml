@@ -38,7 +38,7 @@ missionParams:
   # TOOL: https://www.keene.edu/campus/maps/tool/
   use_moos_region: false
   region_XY: 100,460:-700,-200:-700,-920:620,-920:700,-222 # Directly in moos format for tesing
-  region_latlon: |
+  region_lonlat: |
     10.1354027, 63.4005544
     10.1202106, 63.3930786
     10.1268196, 63.3852164
@@ -53,6 +53,7 @@ missionParams:
   # Grid parameters
   grid_cell_size: 10      # m - The distance between each waypoint in the grid
   grid_cell_max_count: 20 # Max number og visit before it is fully coloured
+  grid_cell_decay_time: 10    # s - The decay rate of the grid cell value. Every x seconds it is decreased by 1
 
   # Sensor parameters
   sensor_radius: 30 # m - The distance from the drone that the other drone must be within to consider it detected
