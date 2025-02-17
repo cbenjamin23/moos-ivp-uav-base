@@ -14,7 +14,11 @@
 #include "XYGridUpdate.h"
 #include "ACTable.h"
 
+#include "XYFormatUtilsPoly.h"
+
 #include "../lib_common/Logger.h"
+
+#include <numeric>
 
 //---------------------------------------------------------
 // Constructor()
@@ -32,6 +36,8 @@ GridSearchViz::GridSearchViz()
   m_grid_cell_decay_time = 0; // 0 means no decay
   m_sensor_radius_fixed = true;
   m_sensor_altitude_max = 25;
+
+
 }
 
 //---------------------------------------------------------
@@ -63,6 +69,9 @@ bool GridSearchViz::OnNewMail(MOOSMSG_LIST &NewMail)
       handleMailNodeReport(sval);
     else if (key == "GSV_RESET_GRID")
       m_grid.reset();
+    else if (key == "IGNORED_REGION")
+      handleMailIgnoredRegion(sval);
+  
   }
 
   return (true);
@@ -168,6 +177,10 @@ bool GridSearchViz::OnStartUp()
 
   m_grid.set_transparency(0.2);
 
+  // create a increasing vector to m_grid.size()
+  m_valid_cell_indices.resize(m_grid.size());
+  std::iota(m_valid_cell_indices.begin(), m_valid_cell_indices.end(), 0);
+
   postGrid();
   registerVariables();
   return (true);
@@ -182,6 +195,8 @@ void GridSearchViz::registerVariables()
   Register("NODE_REPORT_LOCAL", 0);
   Register("NODE_REPORT", 0);
   Register("GSV_RESET_GRID", 0);
+
+  Register("IGNORED_REGION", 0);
 }
 
 //------------------------------------------------------------
@@ -201,10 +216,9 @@ void GridSearchViz::handleMailNodeReport(std::string str)
   Logger::info("NodeReport altidute: " + doubleToStringX(altitude, 2) + ", name: " + name);
 
   // max_sensor_altitude - altitude
-  double sensor_radius = (altitude > m_sensor_altitude_max || m_sensor_radius_fixed) ? m_sensor_radius_max : (m_sensor_radius_max * altitude);  
+  double sensor_radius = (altitude > m_sensor_altitude_max || m_sensor_radius_fixed) ? m_sensor_radius_max : (m_sensor_radius_max * altitude);
   if (sensor_radius <= 0)
     return;
-
 
   Logger::info("--->Sensor radius: " + doubleToStringX(sensor_radius, 2));
 
@@ -212,11 +226,13 @@ void GridSearchViz::handleMailNodeReport(std::string str)
 
   sensorArea.set_vertex_color(m_sensor_color);
   sensorArea.set_edge_color(m_sensor_color);
-  sensorArea.set_edge_size(2);
+  // sensorArea.set_edge_size(1);
   sensorArea.set_label(name);
   sensorArea.set_msg("sensor_area");
   sensorArea.set_label_color(m_sensor_color);
-  // sensorArea.setDrawVertices(6);
+
+  sensorArea.set_color("fill", m_sensor_color);
+  sensorArea.set_transparency(0.2);
 
   // if the drone is not in the map, add it
   if (m_map_drone_records.find(name) == m_map_drone_records.end())
@@ -229,7 +245,6 @@ void GridSearchViz::handleMailNodeReport(std::string str)
     drone.sensor_radius = sensor_radius;
   }
 
-  // TODO: Paramter to configure radius to be proporsional to altitude
   // todo: The increments in grid values should happen after a minimum time interval (when same vehicle is incrementing)
 
   // TODO: Ability to add or remove a region and then take that in consideration when calculating statistics.
@@ -237,7 +252,7 @@ void GridSearchViz::handleMailNodeReport(std::string str)
 
   static bool registerMissionStartTime = false;
 
-  for (unsigned int ix = 0; ix < m_grid.size(); ix++)
+  for (auto ix : m_valid_cell_indices)
   {
 
     const XYSquare &cell = m_grid.getElement(ix);
@@ -263,9 +278,46 @@ void GridSearchViz::handleMailNodeReport(std::string str)
   Notify("VIEW_CIRCLE", sensorArea.get_spec());
 }
 
+
+//------------------------------------------------------------
+// Procedure: handleMailIgnoredRegion()
+void GridSearchViz::handleMailIgnoredRegion(std::string str)
+{
+  // XYPolygon polygon = string2Poly(str);
+  // if (polygon.size() == 0)
+  //   return;
+
+  m_ignoredRegions.push_back(XYPolygon(150, 200, 50, 5, "water"));
+  m_ignoredRegions.push_back(XYPolygon(300, -200, 150, 8, "unfilled terraoin"));
+  
+
+  // polygon.set_label("ignored_region");
+  
+ 
+  for (auto &poly : m_ignoredRegions){
+    poly.set_color("fill", "red");
+    poly.set_transparency(0.4);
+
+    for (unsigned int ix = 0; ix < m_valid_cell_indices.size(); ix++)
+    {
+      const XYSquare &cell = m_grid.getElement(ix);
+
+      // if the the center of the cell is inside the sensor area
+      if (poly.contains(cell.getCenterX(), cell.getCenterY()))
+      {
+        gridSetCell(ix, m_grid.getMaxLimit(0)); // Increment the value of the first cell variable ("x") 0 by 1
+        ignoreCellIndex(ix);      
+      }
+    }
+    
+    Notify("VIEW_POLYGON", poly.get_spec());
+  }
+
+}
+
+
 //------------------------------------------------------------
 // Procedure: postGrid()
-
 void GridSearchViz::postGrid()
 {
   std::string spec = m_grid.get_spec();
@@ -328,8 +380,10 @@ bool GridSearchViz::buildReport()
   }
 
   m_msgs << "Grid characteristics: " << std::endl;
-  m_msgs << "      Cells: " << m_grid.size() << std::endl;
-  m_msgs << "  Cell size: " << doubleToStringX(cell_sizex) << "x" << doubleToStringX(cell_sizey, 4) << std::endl
+  m_msgs << "        Cells: " << m_grid.size() << std::endl;
+  m_msgs << "    Cell size: " << doubleToStringX(cell_sizex) << "x" << doubleToStringX(cell_sizey, 4) << std::endl;
+  m_msgs << "  Valid cells: " << m_valid_cell_indices.size() << std::endl;
+  m_msgs << "Ignored cells: " << m_ignored_cell_indices.size() << std::endl
          << std::endl;
 
   ACTable actab(6, 2);
@@ -432,6 +486,17 @@ void GridSearchViz::gridModifyCell(const int ix, const double val)
 }
 
 //------------------------------------------------------------
+// Procedure: ignoreCellIndex()
+void GridSearchViz::ignoreCellIndex(const int ix)
+{
+  m_ignored_cell_indices.push_back(ix);
+  auto it = std::find(m_valid_cell_indices.begin(), m_valid_cell_indices.end(), ix);
+  if (it != m_valid_cell_indices.end())
+    m_valid_cell_indices.erase(it);
+  
+}
+
+//------------------------------------------------------------
 // Procedure: calculateCoverageStatistics()
 void GridSearchViz::calculateCoverageStatistics()
 {
@@ -443,9 +508,9 @@ void GridSearchViz::calculateCoverageStatistics()
   bool should_decay = decay_time > 0 && time_elapsed > decay_time;
 
   // Calculate the coverage statistics
-  double total_cells = m_grid.size();
+  double total_cells = m_valid_cell_indices.size();
   double covered_cells = 0;
-  for (unsigned int ix = 0; ix < m_grid.size(); ix++)
+  for ( auto ix : m_valid_cell_indices)
   {
     auto value = m_grid.getVal(ix, 0);
 

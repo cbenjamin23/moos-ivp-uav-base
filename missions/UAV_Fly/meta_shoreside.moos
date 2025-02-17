@@ -331,6 +331,8 @@ ProcessConfig = pMarineViewer
     left_context[register_wypt_active_vehicle] =  NEXT_WAYPOINT = "lat=$[LAT],lon=$[LON],x=$[XPOS],y=$[YPOS],vname=$[VNAME]"
   #endif  
 
+
+  right_context[register_ignoredRegion] = IGNORED_REGION = "points=$[XPOS],$[YPOS],vname=all"
   
   // left_context[reg_swimmer]   = XSWIMMER_ALERT = type=reg,x=$[XPOS],y=$[YPOS]
   // left_context[reg_swimmer]   = SURVEY_ALL=true

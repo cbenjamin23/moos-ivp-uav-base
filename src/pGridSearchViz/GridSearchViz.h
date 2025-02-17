@@ -41,11 +41,13 @@ protected:
   bool buildReport();
   void registerVariables();
   void handleMailNodeReport(std::string);
+  void handleMailIgnoredRegion(std::string);
 
   void postGrid();
   void postGridUpdates();
 
   void calculateCoverageStatistics();
+  void ignoreCellIndex(const int ix);
 
   void gridSetCell(const int ix, const double val);
   // Increment the value of the first cell variable ("x") 0 by val
@@ -75,4 +77,10 @@ protected: // State vars
 
   std::map<std::string, double> m_map_coverage_statistics;
   double m_missionStartTime;
+
+
+  std::vector<int> m_valid_cell_indices;
+  std::vector<int> m_ignored_cell_indices;
+
+  std::vector<XYPolygon> m_ignoredRegions;
 };
