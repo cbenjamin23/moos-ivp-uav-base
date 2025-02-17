@@ -3,7 +3,7 @@
 # Global simulation parameters
 simulation:
   useMoosSimPid: true # Use MOOS-IvP simulator
-  time_warp: 20
+  time_warp: 10
   number_of_drones: 3
 
   ardupilot_ip: "0.0.0.0"
@@ -58,6 +58,8 @@ missionParams:
   # Sensor parameters
   sensor_radius: 30 # m - The distance from the drone that the other drone must be within to consider it detected
   sensor_color: black # The color of the sensor circle
+  sensor_altitude_max: 50 # m - The maximum altitude at which the sensor has a range of 100% (sensor_radius)
+  sensor_radius_fixed: false # If true, the sensor radius will be fixed at sensor_radius, regardless of altitude
 
   # Collision avoidance parameters
   encounter_radius: 100 # m - The distance from the drone that the other drone must be within to consider it encountered

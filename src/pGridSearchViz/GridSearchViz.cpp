@@ -30,6 +30,8 @@ GridSearchViz::GridSearchViz()
   m_map_coverage_statistics["coverage_%"] = 0;
 
   m_grid_cell_decay_time = 0; // 0 means no decay
+  m_sensor_radius_fixed = true;
+  m_sensor_altitude_max = 25;
 }
 
 //---------------------------------------------------------
@@ -117,6 +119,8 @@ bool GridSearchViz::OnStartUp()
       std::string param = tolower(biteStringX(line, '='));
       std::string value = line;
 
+      // Logger::info("OnStartUp: " + orig);
+
       bool handled = false;
       if (param == "grid_config")
       {
@@ -143,6 +147,10 @@ bool GridSearchViz::OnStartUp()
         m_sensor_color = value;
         handled = true;
       }
+      else if (param == "sensor_altitude_max")
+        handled = setDoubleOnString(m_sensor_altitude_max, value);
+      else if (param == "sensor_radius_fixed")
+        handled = setBooleanOnString(m_sensor_radius_fixed, value);
       else if (param == "grid_cell_decay_time")
         handled = setDoubleOnString(m_grid_cell_decay_time, value);
 
@@ -190,9 +198,17 @@ void GridSearchViz::handleMailNodeReport(std::string str)
   double posy = record.getY();
   double altitude = record.getAltitude();
 
-  double sensor_radius = m_sensor_radius_max;
+  Logger::info("NodeReport altidute: " + doubleToStringX(altitude, 2) + ", name: " + name);
 
-  XYCircle sensorArea(posx, posy, sensor_radius); // Can be smart to correlate it with altitude
+  // max_sensor_altitude - altitude
+  double sensor_radius = (altitude > m_sensor_altitude_max || m_sensor_radius_fixed) ? m_sensor_radius_max : (m_sensor_radius_max * altitude);  
+  if (sensor_radius <= 0)
+    return;
+
+
+  Logger::info("--->Sensor radius: " + doubleToStringX(sensor_radius, 2));
+
+  XYCircle sensorArea(posx, posy, m_sensor_radius_max); // Can be smart to correlate it with altitude
 
   sensorArea.set_vertex_color(m_sensor_color);
   sensorArea.set_edge_color(m_sensor_color);
@@ -213,10 +229,8 @@ void GridSearchViz::handleMailNodeReport(std::string str)
     drone.sensor_radius = sensor_radius;
   }
 
-  // TODO: Paramter to configer radius to be proporsional to altitude
-  // TODO: The increments in grid values should happen after a minimum time interval (when same vehicle is incrementing)
-
-  // TODO: Add decaying values to the grid cells after a long time, add as parameter
+  // TODO: Paramter to configure radius to be proporsional to altitude
+  // todo: The increments in grid values should happen after a minimum time interval (when same vehicle is incrementing)
 
   // TODO: Ability to add or remove a region and then take that in consideration when calculating statistics.
   // --->: Removing a region is the same as it having max value. Increment wont change it.
@@ -348,6 +362,10 @@ bool GridSearchViz::buildReport()
   m_msgs << "\n\nSensor data " << std::endl;
   m_msgs << "---------------------------------" << std::endl;
   m_msgs << "       sensor_radius : " << doubleToStringX(m_sensor_radius_max, 1) << std::endl;
+  m_msgs << "       sensor_color  : " << m_sensor_color << std::endl;
+  m_msgs << " sensor_altitude_max : " << doubleToStringX(m_sensor_altitude_max, 1) << std::endl;
+  m_msgs << " sensor_radius_fixed : " << boolToString(m_sensor_radius_fixed) << std::endl;
+  m_msgs << std::endl;
 
   ACTable actab2(3, 1);
   actab2.setColumnJustify(0, "left");
@@ -395,7 +413,8 @@ bool GridSearchViz::buildReport()
 void GridSearchViz::gridSetCell(const int ix, const double val)
 {
   const double curr = m_grid.getVal(ix, 0);
-  if(curr == val) return;
+  if (curr == val)
+    return;
 
   // m_grid.setVal(ix, val, 0);
 
@@ -403,7 +422,6 @@ void GridSearchViz::gridSetCell(const int ix, const double val)
   // m_map_deltas[ix] = m_map_deltas[ix] + delta; // std::max(std::min(delta, m_grid.getMaxLimit(0)), m_grid.getMinLimit(0));
 
   gridModifyCell(ix, delta);
-
 }
 //------------------------------------------------------------
 // Procedure: gridIncrementCell()
@@ -422,9 +440,8 @@ void GridSearchViz::calculateCoverageStatistics()
   const double MoosNow = MOOSTime();
   const double time_elapsed = MoosNow - m_missionStartTime;
 
-
   bool should_decay = decay_time > 0 && time_elapsed > decay_time;
-  
+
   // Calculate the coverage statistics
   double total_cells = m_grid.size();
   double covered_cells = 0;
@@ -444,8 +461,8 @@ void GridSearchViz::calculateCoverageStatistics()
     gridSetCell(ix, value);
   }
 
-  if(should_decay) decay_time+= m_grid_cell_decay_time;
-  
+  if (should_decay)
+    decay_time += m_grid_cell_decay_time;
 
   double coverage_percentage = (covered_cells / total_cells) * 100;
   m_map_coverage_statistics["coverage_%"] = coverage_percentage;
@@ -455,7 +472,6 @@ void GridSearchViz::calculateCoverageStatistics()
   // Calculate the time for 40, 60, 90+ coverage
   if (m_missionStartTime == 0)
     return;
-
 
   m_map_coverage_statistics["time_elapsed"] = time_elapsed;
 

@@ -125,14 +125,16 @@ SENSOR_RADIUS=$(get_global_val_in_moosDistance $CONFIG_FILE "missionParams.senso
 if [ $? -ne 0 ]; then exit 1; fi
 SENSOR_COLOR=$(get_global_val $CONFIG_FILE "missionParams.sensor_color")
 if [ $? -ne 0 ]; then exit 1; fi
+SENSOR_ALTITUDE_MAX=$(get_global_val_in_moosDistance $CONFIG_FILE "missionParams.sensor_altitude_max")
+if [ $? -ne 0 ]; then exit 1; fi
+SENSOR_RADIUS_FIXED=$(get_global_val $CONFIG_FILE "missionParams.sensor_radius_fixed")
+if [ $? -ne 0 ]; then exit 1; fi
 
 
 GRID_CELL_SIZE=$(get_global_val_in_moosDistance $CONFIG_FILE "missionParams.grid_cell_size")
 if [ $? -ne 0 ]; then exit 1; fi
-
 GRID_CELL_MAX_COUNT=$(get_global_val $CONFIG_FILE "missionParams.grid_cell_max_count")
 if [ $? -ne 0 ]; then exit 1; fi
-
 GRID_CELL_DECAY_TIME=$(get_global_val $CONFIG_FILE "missionParams.grid_cell_decay_time")
 if [ $? -ne 0 ]; then exit 1; fi
 
@@ -170,6 +172,9 @@ if [ "${VERBOSE}" = "yes" ]; then
     echo "----------------------------------"
     echo "SENSOR_RADIUS         = [${SENSOR_RADIUS}]"
     echo "SENSOR_COLOR          = [${SENSOR_COLOR}]"
+    echo "SENSOR_ALTITUDE_MAX   = [${SENSOR_ALTITUDE_MAX}]"
+    echo "SENSOR_RADIUS_FIXED   = [${SENSOR_RADIUS_FIXED}]"
+    echo "----------------------------------"
     echo "GRID_CELL_SIZE        = [${GRID_CELL_SIZE}]"
     echo "GRID_CELL_MAX_COUNT   = [${GRID_CELL_MAX_COUNT}]"
     echo "GRID_CELL_DECAY_TIME  = [${GRID_CELL_DECAY_TIME}]"
@@ -199,6 +204,8 @@ nsplug meta_shoreside.moos targ_shoreside.moos $NSFLAGS WARP=$TIME_WARP \
     COLLISION_RADIUS=$COLLISION_RADIUS                   \
     SENSOR_RADIUS=$SENSOR_RADIUS                         \
     SENSOR_COLOR=$SENSOR_COLOR                           \
+    SENSOR_ALTITUDE_MAX=$SENSOR_ALTITUDE_MAX             \
+    SENSOR_RADIUS_FIXED=$SENSOR_RADIUS_FIXED             \
     GRID_CELL_SIZE=$GRID_CELL_SIZE                       \
     GRID_CELL_MAX_COUNT=$GRID_CELL_MAX_COUNT              \
     GRID_CELL_DECAY_TIME=$GRID_CELL_DECAY_TIME            \

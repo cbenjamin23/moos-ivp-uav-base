@@ -195,6 +195,9 @@ ProcessConfig = pGridSearchViz
 
   sensor_radius         = $(SENSOR_RADIUS)
   sensor_color          = $(SENSOR_COLOR)
+  sensor_altitude_max   = $(SENSOR_ALTITUDE_MAX)
+  sensor_radius_fixed   = $(SENSOR_RADIUS_FIXED)
+
   grid_cell_decay_time  = $(GRID_CELL_DECAY_TIME)
 
 } 

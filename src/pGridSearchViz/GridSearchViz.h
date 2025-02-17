@@ -59,8 +59,10 @@ protected: // Config vars
   ExFilterSet m_filter_set;
 
   // Sensor data
-  double m_sensor_radius_max;
   std::string m_sensor_color;
+  double m_sensor_radius_max;
+  double m_sensor_altitude_max;
+  bool m_sensor_radius_fixed;
 
   // The min time seperation at which covered cells decay in value
   double m_grid_cell_decay_time; // 0 means no decay
