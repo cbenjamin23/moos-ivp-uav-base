@@ -3,7 +3,7 @@
 # Global simulation parameters
 simulation:
   useMoosSimPid: true # Use MOOS-IvP simulator
-  time_warp: 20
+  time_warp: 10
   number_of_drones: 3
 
   ardupilot_ip: "0.0.0.0"

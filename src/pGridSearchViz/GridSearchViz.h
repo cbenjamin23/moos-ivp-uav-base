@@ -12,6 +12,7 @@
 #include "ExFilterSet.h"
 
 #include "XYCircle.h"
+#include "XYMarker.h"
 
 struct DroneRecord
 {
@@ -24,6 +25,16 @@ struct DroneRecord
 
   DroneRecord(std::string name, double altitude, double sensor_radius, XYCircle sensorA)
       : name(name), altitude(altitude), sensor_radius(sensor_radius), sensorArea(sensorA) {}
+};
+
+struct PolyRegion
+{
+  XYPolygon region;
+  XYMarker marker;
+
+  std::vector<int> ignored_cell_indices;
+  PolyRegion(XYPolygon reg, XYMarker lab) : region(reg), marker(lab) {}
+  PolyRegion() = default;
 };
 
 class GridSearchViz : public AppCastingMOOSApp
@@ -43,11 +54,18 @@ protected:
   void handleMailNodeReport(std::string);
   void handleMailIgnoredRegion(std::string);
 
+  void registerIgnoredRegion(std::string str);
+  void unregisterIgnoredRegion(std::string str);
+  XYPolygon parseStringIgnoredRegion(std::string str, std::string type) const;
+  XYPolygon stringHexagon2Poly(std::string str) const;
+  XYPolygon stringRectangle2Poly(std::string str) const;
+
   void postGrid();
   void postGridUpdates();
 
   void calculateCoverageStatistics();
-  void ignoreCellIndex(const int ix);
+  std::vector<int>::iterator ignoreCellIndex( std::vector<int>::iterator it, std::vector<int> &cell_indices);
+  void registerCellIndeces(std::vector<int> &cell_indices);
 
   void gridSetCell(const int ix, const double val);
   // Increment the value of the first cell variable ("x") 0 by val
@@ -78,9 +96,16 @@ protected: // State vars
   std::map<std::string, double> m_map_coverage_statistics;
   double m_missionStartTime;
 
-
   std::vector<int> m_valid_cell_indices;
-  std::vector<int> m_ignored_cell_indices;
 
-  std::vector<XYPolygon> m_ignoredRegions;
+  std::vector<PolyRegion> m_ignoredRegions;
+
+  const std::vector<std::string> m_validRegionTypes = {
+      "ellipse", // "ellipse":  Format:  "format=ellipse, msg=val, x=val, y=val, major=val, minor=val, pts=val, degs=val, snap_value=val"
+      "radial",  // "circle":   Format:  "format=circle, msg=val, x=val, y=val, radius=val, pts=val, snap=val"
+      "oval",    // "oval":     Format:  "format=oval, msg=val, x=val, y=val, rad=val, len=val, draw_degs=val" // len > 2*rad
+      "hexagon", // "pylon":    Format:  "format=hexagon, msg=val, x=val, y=val rad=val, pts=val, snap_val=val
+      "rectangle"//  "rectangle"  //"rectangle": Format:  "format=rectangle, msg=val, cx=val, cy=val, width=val, height=val, degs=val"
+  };
+  const double REGION_MARKER_WIDTH = 10;
 };

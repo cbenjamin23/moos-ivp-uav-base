@@ -1057,7 +1057,7 @@ void ArduBridge::visualizeLoiterLocation(const XYPoint &loiter_coord, bool visua
   marker.set_type("gateway");
   marker.set_width(MARKER_WIDTH);
   marker.set_active(visualize);
-  std::string spec = marker.get_spec() + ",color=" + m_vcolor + ",scale=" + doubleToString(MARKER_WIDTH);
+  std::string spec = marker.get_spec(); //+ ",scale=" + doubleToString(MARKER_WIDTH);
   Notify("VIEW_MARKER", spec);
 
   reportEvent("Set marker at loiter location: " + spec);

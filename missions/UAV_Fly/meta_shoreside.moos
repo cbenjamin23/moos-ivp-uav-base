@@ -331,9 +331,20 @@ ProcessConfig = pMarineViewer
     left_context[register_wypt_active_vehicle] =  NEXT_WAYPOINT = "lat=$[LAT],lon=$[LON],x=$[XPOS],y=$[YPOS],vname=$[VNAME]"
   #endif  
 
+  // "ellipse":  Format:  "format=ellipse, msg=val, x=val, y=val, major=val, minor=val, pts=val, degs=val, snap_value=val"
+  // "circle":   Format:  "format=circle, msg=val, x=val, y=val, radius=val, pts=val, snap=val"
+  // "oval":     Format:  "format=oval, msg=val, x=val, y=val, rad=val, len=val, draw_degs=val" // len > 2*rad
+  // "pylon":    Format:  "format=hexagon, msg=val, x=val, y=val rad=val, pts=val, snap_val=val
+  //"rectangle": Format:  "format=rectangle, msg=val, cx=val, cy=val, width=val, height=val, degs=val"
 
-  right_context[register_ignoredRegion] = IGNORED_REGION = "points=$[XPOS],$[YPOS],vname=all"
-  
+  left_context[reg_ignoredRegion_ellipse] = IGNORED_REGION  = "reg:: format=ellipse, msg=water, x=$[XPOS], y=$[YPOS], major=200, minor=100, pts=15, degs=15, snap_value=1.0"
+  left_context[reg_ignoredRegion_circle] = IGNORED_REGION   = "reg:: format=radial, msg=building, x=$[XPOS], y=$[YPOS], radius=50, pts=16, snap=0.5"
+  left_context[reg_ignoredRegion_oval] = IGNORED_REGION     = "reg:: format=oval, msg=oval_office, x=$[XPOS], y=$[YPOS], rad=100, len=250, draw_degs=10"  // len > 2*rad
+  left_context[reg_ignoredRegion_hexagon] = IGNORED_REGION  = "reg:: format=hexagon, msg=wood_chop, x=$[XPOS], y=$[YPOS], rad=60, pts=8, snap_val=1.0"
+  // left_context[reg_ignoredRegion_rectangle] = IGNORED_REGION = "format=polygon, msg=predefined, pts={10,15:20,25:30,35}"
+  left_context[reg_ignoredRegion_rectangle] = IGNORED_REGION = "reg:: format=rectangle, msg=dessert, cx=$[XPOS], cy=$[YPOS], width=300, height=400, degs=10"
+
+  right_context[unreg_ignoredRegion] = IGNORED_REGION = "unreg:: x=$[XPOS], y=$[YPOS]"
   // left_context[reg_swimmer]   = XSWIMMER_ALERT = type=reg,x=$[XPOS],y=$[YPOS]
   // left_context[reg_swimmer]   = SURVEY_ALL=true
   // left_context[reg_swimmer]   = RETURN_ALL=false
