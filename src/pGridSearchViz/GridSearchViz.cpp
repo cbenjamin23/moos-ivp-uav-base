@@ -225,16 +225,6 @@ void GridSearchViz::handleMailNodeReport(std::string str)
   sensor_radius = std::min(sensor_radius, m_sensor_radius_max);
   // Logger::info("--->Sensor radius: " + doubleToStringX(sensor_radius, 2));
 
-  XYCircle sensorArea(posx, posy, sensor_radius);
-  sensorArea.set_vertex_color(m_sensor_color);
-  sensorArea.set_edge_color(m_sensor_color);
-  // sensorArea.set_edge_size(1);
-  sensorArea.set_label(name);
-  sensorArea.set_label_color("off");
-  // sensorArea.set_msg("sensor_area");
-
-  sensorArea.set_color("fill", m_sensor_color);
-  sensorArea.set_transparency(0.2);
 
   // if the drone is not in the map, add it
   if (m_map_drone_records.find(name) == m_map_drone_records.end())
@@ -245,7 +235,18 @@ void GridSearchViz::handleMailNodeReport(std::string str)
     drone.altitude = altitude;
     drone.sensor_radius = sensor_radius;
   }
+  
 
+  XYCircle sensorArea(posx, posy, sensor_radius);
+  sensorArea.set_vertex_color(m_sensor_color);
+  sensorArea.set_edge_color(m_sensor_color);
+  // sensorArea.set_edge_size(1);
+  sensorArea.set_label(name);
+  sensorArea.set_label_color("off");
+  // sensorArea.set_msg("sensor_area");
+
+  sensorArea.set_color("fill", m_sensor_color);
+  sensorArea.set_transparency(0.2);
   static bool registerMissionStartTime = false;
 
   for (auto ix : m_valid_cell_indices)
@@ -266,8 +267,8 @@ void GridSearchViz::handleMailNodeReport(std::string str)
   }
 
   // Only post the circle visualization if configured to do so
-  if (m_visualize_sensor_area)
-    Notify("VIEW_CIRCLE", sensorArea.get_spec());
+  sensorArea.set_active(m_visualize_sensor_area);
+  Notify("VIEW_CIRCLE", sensorArea.get_spec());
   
 }
 
