@@ -19,12 +19,11 @@ struct DroneRecord
   std::string name;
   double altitude;
   double sensor_radius;
-  XYCircle sensorArea;
 
-  DroneRecord() : name(""), altitude(0), sensor_radius(0), sensorArea() {}
+  DroneRecord() : name(""), altitude(0), sensor_radius(0) {}
 
-  DroneRecord(std::string name, double altitude, double sensor_radius, XYCircle sensorA)
-      : name(name), altitude(altitude), sensor_radius(sensor_radius), sensorArea(sensorA) {}
+  DroneRecord(std::string name, double altitude, double sensor_radius)
+      : name(name), altitude(altitude), sensor_radius(sensor_radius) {}
 };
 
 struct PolyRegion
@@ -64,7 +63,7 @@ protected:
   void postGridUpdates();
 
   void calculateCoverageStatistics();
-  std::vector<int>::iterator ignoreCellIndex( std::vector<int>::iterator it, std::vector<int> &cell_indices);
+  std::vector<int>::iterator ignoreCellIndex(std::vector<int>::iterator it, std::vector<int> &cell_indices);
   void registerCellIndeces(std::vector<int> &cell_indices);
 
   void gridSetCell(const int ix, const double val);
@@ -75,6 +74,7 @@ protected: // Config vars
   bool m_report_deltas;
   std::string m_grid_label;
   std::string m_grid_var_name;
+  bool m_visualize_sensor_area; 
 
   ExFilterSet m_filter_set;
 
@@ -101,11 +101,11 @@ protected: // State vars
   std::vector<PolyRegion> m_ignoredRegions;
 
   const std::vector<std::string> m_validRegionTypes = {
-      "ellipse", // "ellipse":  Format:  "format=ellipse, msg=val, x=val, y=val, major=val, minor=val, pts=val, degs=val, snap_value=val"
-      "radial",  // "circle":   Format:  "format=circle, msg=val, x=val, y=val, radius=val, pts=val, snap=val"
-      "oval",    // "oval":     Format:  "format=oval, msg=val, x=val, y=val, rad=val, len=val, draw_degs=val" // len > 2*rad
-      "hexagon", // "pylon":    Format:  "format=hexagon, msg=val, x=val, y=val rad=val, pts=val, snap_val=val
-      "rectangle"//  "rectangle"  //"rectangle": Format:  "format=rectangle, msg=val, cx=val, cy=val, width=val, height=val, degs=val"
+      "ellipse",  // "ellipse":  Format:  "format=ellipse, msg=val, x=val, y=val, major=val, minor=val, pts=val, degs=val, snap_value=val"
+      "radial",   // "circle":   Format:  "format=circle, msg=val, x=val, y=val, radius=val, pts=val, snap=val"
+      "oval",     // "oval":     Format:  "format=oval, msg=val, x=val, y=val, rad=val, len=val, draw_degs=val" // len > 2*rad
+      "hexagon",  // "pylon":    Format:  "format=hexagon, msg=val, x=val, y=val rad=val, pts=val, snap_val=val
+      "rectangle" //  "rectangle"  //"rectangle": Format:  "format=rectangle, msg=val, cx=val, cy=val, width=val, height=val, degs=val"
   };
   const double REGION_MARKER_WIDTH = 10;
 };

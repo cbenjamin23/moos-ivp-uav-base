@@ -20,7 +20,6 @@
 #include <numeric>
 #include <algorithm>
 
-
 //---------------------------------------------------------
 // Constructor()
 
@@ -37,6 +36,7 @@ GridSearchViz::GridSearchViz()
   m_grid_cell_decay_time = 0; // 0 means no decay
   m_sensor_radius_fixed = true;
   m_sensor_altitude_max = 25;
+  m_visualize_sensor_area = true; 
 }
 
 //---------------------------------------------------------
@@ -70,6 +70,8 @@ bool GridSearchViz::OnNewMail(MOOSMSG_LIST &NewMail)
       m_grid.reset();
     else if (key == "IGNORED_REGION")
       handleMailIgnoredRegion(sval);
+    else if (key == "GSV_VISUALIZE_SENSOR_AREA")
+      setBooleanOnString(m_visualize_sensor_area, sval);
   }
 
   return (true);
@@ -160,6 +162,8 @@ bool GridSearchViz::OnStartUp()
         handled = setBooleanOnString(m_sensor_radius_fixed, value);
       else if (param == "grid_cell_decay_time")
         handled = setDoubleOnString(m_grid_cell_decay_time, value);
+      else if (param == "visualize_sensor_area")
+        handled = setBooleanOnString(m_visualize_sensor_area, value);
 
       if (!handled)
         reportUnhandledConfigWarning(orig);
@@ -195,6 +199,7 @@ void GridSearchViz::registerVariables()
   Register("GSV_RESET_GRID", 0);
 
   Register("IGNORED_REGION", 0);
+  Register("GSV_VISUALIZE_SENSOR_AREA", 0);
 }
 
 //------------------------------------------------------------
@@ -213,17 +218,14 @@ void GridSearchViz::handleMailNodeReport(std::string str)
 
   // Logger::info("NodeReport altidute: " + doubleToStringX(altitude, 2) + ", name: " + name);
 
-  // max_sensor_altitude - altitude
-  double sensor_radius = (altitude > m_sensor_altitude_max || m_sensor_radius_fixed) ? m_sensor_radius_max : ((m_sensor_radius_max / m_sensor_altitude_max ) * altitude);
+  double sensor_radius = (altitude > m_sensor_altitude_max || m_sensor_radius_fixed) ? m_sensor_radius_max : ((m_sensor_radius_max / m_sensor_altitude_max) * altitude);
   if (sensor_radius <= 0)
     return;
 
-  
   sensor_radius = std::min(sensor_radius, m_sensor_radius_max);
   // Logger::info("--->Sensor radius: " + doubleToStringX(sensor_radius, 2));
 
-  XYCircle sensorArea(posx, posy, sensor_radius); // Can be smart to correlate it with altitude
-
+  XYCircle sensorArea(posx, posy, sensor_radius);
   sensorArea.set_vertex_color(m_sensor_color);
   sensorArea.set_edge_color(m_sensor_color);
   // sensorArea.set_edge_size(1);
@@ -231,78 +233,68 @@ void GridSearchViz::handleMailNodeReport(std::string str)
   sensorArea.set_label_color("off");
   // sensorArea.set_msg("sensor_area");
 
-
   sensorArea.set_color("fill", m_sensor_color);
   sensorArea.set_transparency(0.2);
 
   // if the drone is not in the map, add it
   if (m_map_drone_records.find(name) == m_map_drone_records.end())
-    m_map_drone_records[name] = DroneRecord(name, altitude, sensor_radius, sensorArea);
+    m_map_drone_records[name] = DroneRecord(name, altitude, sensor_radius);
   else
   {
     DroneRecord &drone = m_map_drone_records.at(name);
-    drone.sensorArea = sensorArea;
     drone.altitude = altitude;
     drone.sensor_radius = sensor_radius;
   }
-
-  // todo: The increments in grid values should happen after a minimum time interval (when same vehicle is incrementing)
-
 
   static bool registerMissionStartTime = false;
 
   for (auto ix : m_valid_cell_indices)
   {
-
     const XYSquare &cell = m_grid.getElement(ix);
-
     // if the the center of the cell is inside the sensor area
     if (sensorArea.containsPoint(cell.getCenterX(), cell.getCenterY()))
     {
       gridModifyCell(ix, 1); // Increment the value of the first cell variable ("x") 0 by 1
       registerMissionStartTime = true;
     }
-
   }
 
-  if (registerMissionStartTime && m_missionStartTime == 0){
+  if (registerMissionStartTime && m_missionStartTime == 0)
+  {
     m_missionStartTime = MOOSTime();
     Notify("MISSION_START_TIME", m_missionStartTime);
   }
 
-  // Post a view cirle to visualize the sensor area coverage
-  Notify("VIEW_CIRCLE", sensorArea.get_spec());
+  // Only post the circle visualization if configured to do so
+  if (m_visualize_sensor_area)
+    Notify("VIEW_CIRCLE", sensorArea.get_spec());
+  
 }
 
 //------------------------------------------------------------
 // Procedure: handleMailIgnoredRegion()
 void GridSearchViz::handleMailIgnoredRegion(std::string str)
 {
-  // m_ignoredRegions.push_back(Region(150, 200, 50, 5, "water"));
-  // m_ignoredRegions.push_back(Region(300, -200, 150, 8, "unfilled terraoin"));
-
   str = stripBlankEnds(str);
 
-  if(strContains(str, "unreg::")){
+  if (strContains(str, "unreg::"))
+  {
     unregisterIgnoredRegion(str.substr(7));
     return;
-  } 
-  else if(strContains(str, "reg::")){
+  }
+  else if (strContains(str, "reg::"))
+  {
     registerIgnoredRegion(str.substr(5));
     return;
-  } 
-  
+  }
+
   reportRunWarning("Received Invalid region string: " + str);
   Logger::warning("Received Invalid region string: " + str);
   return;
-
 }
 
 void GridSearchViz::registerIgnoredRegion(std::string str)
 {
-  // m_ignoredRegions.push_back(Region(150, 200, 50, 5, "water"));
-  // m_ignoredRegions.push_back(Region(300, -200, 150, 8, "unfilled terraoin"));
-
   str = stripBlankEnds(str);
 
   std::string type = tokStringParse(str, "format");
@@ -322,10 +314,9 @@ void GridSearchViz::registerIgnoredRegion(std::string str)
     return;
   }
 
-  // user it to iterate through
-
   std::vector<int>::iterator it = m_valid_cell_indices.begin();
-  while(it != m_valid_cell_indices.end()){
+  while (it != m_valid_cell_indices.end())
+  {
     const XYSquare &cell = m_grid.getElement(*it);
 
     // if the the center of the cell is inside the sensor area
@@ -334,17 +325,6 @@ void GridSearchViz::registerIgnoredRegion(std::string str)
     else
       it++;
   }
-
-
-  // for (unsigned int ix = 0; ix < m_valid_cell_indices.size(); ix++)
-  // {
-  //   const XYSquare &cell = m_grid.getElement(ix);
-
-  //   // if the the center of the cell is inside the sensor area
-  //   if (region.contains(cell.getCenterX(), cell.getCenterY()))
-  //     ignoreCellIndex(ix, polyRegion.ignored_cell_indices);
-    
-  // }
 
   // visualization
   std::string display_name = region.get_msg();
@@ -366,33 +346,33 @@ void GridSearchViz::registerIgnoredRegion(std::string str)
   marker.set_type("efield");
   marker.set_width(REGION_MARKER_WIDTH);
   marker.set_active(true);
+  marker.set_color("primary_color", "green");
+  marker.set_color("secondary_color", "yellow");
 
   Notify("VIEW_POLYGON", region.get_spec());
   Notify("VIEW_MARKER", marker.get_spec());
 
   polyRegion.region = region;
   polyRegion.marker = marker;
-  m_ignoredRegions.push_back( polyRegion );
-
+  m_ignoredRegions.push_back(polyRegion);
 }
 
-void GridSearchViz::unregisterIgnoredRegion(std::string str){
+void GridSearchViz::unregisterIgnoredRegion(std::string str)
+{
   str = stripBlankEnds(str);
   double x = tokDoubleParse(str, "x");
   double y = tokDoubleParse(str, "y");
 
-
   PolyRegion polyRegion;
-  
-  auto it = std::find_if(m_ignoredRegions.begin(), m_ignoredRegions.end(), 
-                      [&](const PolyRegion& polyreg){ return polyreg.region.contains(x, y); });
 
+  auto it = std::find_if(m_ignoredRegions.begin(), m_ignoredRegions.end(),
+                         [&](const PolyRegion &polyreg)
+                         { return polyreg.region.contains(x, y); });
 
-  if (it == m_ignoredRegions.end()) 
+  if (it == m_ignoredRegions.end())
     return;
-  
 
-  PolyRegion& polyreg = *it; 
+  PolyRegion &polyreg = *it;
 
   polyreg.region.set_active(false);
   polyreg.marker.set_active(false);
@@ -401,42 +381,44 @@ void GridSearchViz::unregisterIgnoredRegion(std::string str){
   Notify("VIEW_MARKER", polyreg.marker.get_spec());
 
   registerCellIndeces(polyreg.ignored_cell_indices);
-  
-  m_ignoredRegions.erase(it); 
+
+  m_ignoredRegions.erase(it);
 }
 
-
-
-XYPolygon GridSearchViz::parseStringIgnoredRegion(std::string str, std::string type) const{
+XYPolygon GridSearchViz::parseStringIgnoredRegion(std::string str, std::string type) const
+{
   XYPolygon region;
-  if (type == "hexagon"){
+  if (type == "hexagon")
+  {
     // Logger::info("Parsing hexagon: " + str);
     region = stringHexagon2Poly(str);
   }
-  else if (type == "rectangle"){
+  else if (type == "rectangle")
+  {
     // Logger::info("Parsing rectangle: " + str);
     region = stringRectangle2Poly(str);
   }
-  else{
+  else
+  {
     Logger::info("Parsing poly: " + str);
     region = string2Poly(str);
 
-    //since, oval doesn't seem to register the message:
-    if (type=="oval")
+    // since, oval doesn't seem to register the message:
+    if (type == "oval")
       region.set_msg(tokStringParse(str, "msg"));
   }
   return region;
 }
 
-
-XYPolygon GridSearchViz::stringHexagon2Poly(std::string str) const{
+XYPolygon GridSearchViz::stringHexagon2Poly(std::string str) const
+{
   std::string msg = tokStringParse(str, "msg");
   double x = tokDoubleParse(str, "x");
   double y = tokDoubleParse(str, "y");
   double rad = tokDoubleParse(str, "rad");
   unsigned int pts = floor(tokDoubleParse(str, "pts"));
   double snap = tokDoubleParse(str, "snap_val");
-  
+
   // Logger::info("Hexagon: x: " + doubleToStringX(x) + ", y: " + doubleToStringX(y) + ", rad: " + doubleToStringX(rad) + ", pts: " + doubleToStringX(pts) + ", snap: " + doubleToStringX(snap));
 
   XYPolygon region = XYPolygon(x, y, rad, pts);
@@ -445,7 +427,8 @@ XYPolygon GridSearchViz::stringHexagon2Poly(std::string str) const{
   return region;
 }
 
-XYPolygon GridSearchViz::stringRectangle2Poly(std::string str) const{
+XYPolygon GridSearchViz::stringRectangle2Poly(std::string str) const
+{
   std::string msg = tokStringParse(str, "msg");
   double cx = tokDoubleParse(str, "cx");
   double cy = tokDoubleParse(str, "cy");
@@ -457,10 +440,10 @@ XYPolygon GridSearchViz::stringRectangle2Poly(std::string str) const{
   XYSegList corners;
   double half_width = width / 2.0;
   double half_height = height / 2.0;
-  corners.add_vertex(cx + half_width, cy + half_height);// Top-right
-  corners.add_vertex(cx - half_width, cy + half_height);// Top-left
-  corners.add_vertex(cx - half_width, cy - half_height);// Bottom-left
-  corners.add_vertex(cx + half_width, cy - half_height);// Bottom-right
+  corners.add_vertex(cx + half_width, cy + half_height); // Top-right
+  corners.add_vertex(cx - half_width, cy + half_height); // Top-left
+  corners.add_vertex(cx - half_width, cy - half_height); // Bottom-left
+  corners.add_vertex(cx + half_width, cy - half_height); // Bottom-right
 
   XYPolygon region = XYPolygon(corners);
   region.rotate(degs);
@@ -468,7 +451,6 @@ XYPolygon GridSearchViz::stringRectangle2Poly(std::string str) const{
 
   return region;
 }
-
 
 //------------------------------------------------------------
 // Procedure: postGrid()
@@ -533,8 +515,7 @@ bool GridSearchViz::buildReport()
     cell_sizey = m_grid.getElement(0).getLengthY();
   }
 
-
-  unsigned int ignored_cells = m_grid.size() - m_valid_cell_indices.size(); 
+  unsigned int ignored_cells = m_grid.size() - m_valid_cell_indices.size();
   m_msgs << "Grid characteristics: " << std::endl;
   m_msgs << "        Cells: " << m_grid.size() << std::endl;
   m_msgs << "    Cell size: " << doubleToStringX(cell_sizex) << "x" << doubleToStringX(cell_sizey, 4) << std::endl;
@@ -575,6 +556,7 @@ bool GridSearchViz::buildReport()
   m_msgs << "       sensor_color  : " << m_sensor_color << std::endl;
   m_msgs << " sensor_altitude_max : " << doubleToStringX(m_sensor_altitude_max, 1) << std::endl;
   m_msgs << " sensor_radius_fixed : " << boolToString(m_sensor_radius_fixed) << std::endl;
+  m_msgs << "     viz_sensor_area : " << boolToString(m_visualize_sensor_area) << std::endl;
   m_msgs << std::endl;
 
   m_msgs << "Sensor Radius" << std::endl;
@@ -595,7 +577,7 @@ bool GridSearchViz::buildReport()
   m_msgs << "\n\nCoverage statistics " << std::endl;
   m_msgs << "---------------------------------" << std::endl;
   m_msgs << "   Mission started: " << boolToString(m_missionStartTime != 0) << std::endl;
-  if(m_missionStartTime != 0)
+  if (m_missionStartTime != 0)
     m_msgs << "Mission Start Time: " << doubleToStringX(m_missionStartTime, 2) << std::endl;
   m_msgs << "       Coverage % : " << doubleToStringX(m_map_coverage_statistics["coverage_%"], 2) << std::endl;
   m_msgs << "        Decay time: " << doubleToStringX(m_grid_cell_decay_time, 2) << " s" << std::endl;
@@ -650,27 +632,26 @@ void GridSearchViz::gridModifyCell(const int ix, const double val)
 // Procedure: ignoreCellIndex()
 std::vector<int>::iterator GridSearchViz::ignoreCellIndex(std::vector<int>::iterator it, std::vector<int> &cell_indices)
 {
-  if (it == m_valid_cell_indices.end()) 
+  if (it == m_valid_cell_indices.end())
     return it;
-  
+
   gridSetCell(*it, m_grid.getMaxLimit(0)); // Increment the value of the first cell variable ("x") 0 by 1
   cell_indices.push_back(*it);
 
   return m_valid_cell_indices.erase(it);
-
 }
 //------------------------------------------------------------
 // Procedure: ignoreCellIndex()
-void GridSearchViz::registerCellIndeces( std::vector<int> &cell_indices)
+void GridSearchViz::registerCellIndeces(std::vector<int> &cell_indices)
 {
 
-  for(const int &ix : cell_indices){
+  for (const int &ix : cell_indices)
+  {
     gridSetCell(ix, m_grid.getMinLimit(0)); // Increment the value of the first cell variable ("x") 0 by 1
     m_valid_cell_indices.push_back(ix);
   }
   cell_indices.clear();
 }
-
 
 //------------------------------------------------------------
 // Procedure: calculateCoverageStatistics()
@@ -678,9 +659,9 @@ void GridSearchViz::calculateCoverageStatistics()
 {
   if (m_missionStartTime == 0)
     return;
-  
+
   static double decay_time = m_grid_cell_decay_time;
-  
+
   const double MoosNow = MOOSTime();
   const double time_elapsed = MoosNow - m_missionStartTime;
 
