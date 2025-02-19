@@ -214,13 +214,15 @@ void GridSearchViz::handleMailNodeReport(std::string str)
   // Logger::info("NodeReport altidute: " + doubleToStringX(altitude, 2) + ", name: " + name);
 
   // max_sensor_altitude - altitude
-  double sensor_radius = (altitude > m_sensor_altitude_max || m_sensor_radius_fixed) ? m_sensor_radius_max : (m_sensor_radius_max * altitude);
+  double sensor_radius = (altitude > m_sensor_altitude_max || m_sensor_radius_fixed) ? m_sensor_radius_max : ((m_sensor_radius_max / m_sensor_altitude_max ) * altitude);
   if (sensor_radius <= 0)
     return;
 
+  
+  sensor_radius = std::min(sensor_radius, m_sensor_radius_max);
   // Logger::info("--->Sensor radius: " + doubleToStringX(sensor_radius, 2));
 
-  XYCircle sensorArea(posx, posy, m_sensor_radius_max); // Can be smart to correlate it with altitude
+  XYCircle sensorArea(posx, posy, sensor_radius); // Can be smart to correlate it with altitude
 
   sensorArea.set_vertex_color(m_sensor_color);
   sensorArea.set_edge_color(m_sensor_color);
@@ -263,8 +265,10 @@ void GridSearchViz::handleMailNodeReport(std::string str)
 
   }
 
-  if (registerMissionStartTime && m_missionStartTime == 0)
+  if (registerMissionStartTime && m_missionStartTime == 0){
     m_missionStartTime = MOOSTime();
+    Notify("MISSION_START_TIME", m_missionStartTime);
+  }
 
   // Post a view cirle to visualize the sensor area coverage
   Notify("VIEW_CIRCLE", sensorArea.get_spec());
@@ -573,22 +577,26 @@ bool GridSearchViz::buildReport()
   m_msgs << " sensor_radius_fixed : " << boolToString(m_sensor_radius_fixed) << std::endl;
   m_msgs << std::endl;
 
-  ACTable actab2(3, 1);
+  m_msgs << "Sensor Radius" << std::endl;
+  m_msgs << "---------------------------------" << std::endl;
+  ACTable actab2(4, 1);
   actab2.setColumnJustify(0, "left");
   actab2.setColumnJustify(1, "center");
   actab2.setColumnJustify(2, "center");
-  actab2 << "Vehicle | Sensor radius | Max";
+  actab2.setColumnJustify(3, "center");
+  actab2 << "Vehicle | current | max | altitude";
   actab2.addHeaderLines();
   for (const auto &[drone, data] : m_map_drone_records)
   {
-    actab2 << drone << doubleToStringX(data.sensor_radius, 3) << m_sensor_radius_max;
+    actab2 << drone << doubleToStringX(data.sensor_radius, 3) << m_sensor_radius_max << doubleToStringX(data.altitude, 2);
   }
   m_msgs << actab2.getFormattedString();
 
   m_msgs << "\n\nCoverage statistics " << std::endl;
   m_msgs << "---------------------------------" << std::endl;
   m_msgs << "   Mission started: " << boolToString(m_missionStartTime != 0) << std::endl;
-  m_msgs << "      Mission Time: " << doubleToStringX(m_map_coverage_statistics.at("time_elapsed"), 2) << std::endl;
+  if(m_missionStartTime != 0)
+    m_msgs << "Mission Start Time: " << doubleToStringX(m_missionStartTime, 2) << std::endl;
   m_msgs << "       Coverage % : " << doubleToStringX(m_map_coverage_statistics["coverage_%"], 2) << std::endl;
   m_msgs << "        Decay time: " << doubleToStringX(m_grid_cell_decay_time, 2) << " s" << std::endl;
   m_msgs << std::endl;
@@ -607,6 +615,7 @@ bool GridSearchViz::buildReport()
       // extract the perentage from key
       std::string percentage = key.substr(9, key.length() - 9);
       actab3 << percentage << doubleToStringX(value, 2);
+      Notify("COVERAGE_TIME_" + percentage, value);
     }
   }
   m_msgs << actab3.getFormattedString();
@@ -667,8 +676,11 @@ void GridSearchViz::registerCellIndeces( std::vector<int> &cell_indices)
 // Procedure: calculateCoverageStatistics()
 void GridSearchViz::calculateCoverageStatistics()
 {
+  if (m_missionStartTime == 0)
+    return;
+  
   static double decay_time = m_grid_cell_decay_time;
-
+  
   const double MoosNow = MOOSTime();
   const double time_elapsed = MoosNow - m_missionStartTime;
 
@@ -704,8 +716,6 @@ void GridSearchViz::calculateCoverageStatistics()
   Notify("COVERAGE_PERCENTAGE", coverage_percentage);
 
   // Calculate the time for 40, 60, 90+ coverage
-  if (m_missionStartTime == 0)
-    return;
 
   m_map_coverage_statistics["time_elapsed"] = time_elapsed;
 

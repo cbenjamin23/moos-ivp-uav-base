@@ -26,7 +26,7 @@ COLOR="yellow"
 XMODE="REAL"
 
 START_POS="50,50"  
-SPEED="20"
+SPEED="15"
 RETURN_POS="0,0"
 MAXSPD="30"
 
@@ -170,7 +170,7 @@ fi
 
 
 if [ "${XMODE}" = "SIM" ]; then
-    SPEED=12 # It is 12 in simulation
+    SPEED=15 # It is 12 in simulation
 fi
 
 

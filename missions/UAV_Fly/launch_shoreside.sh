@@ -125,7 +125,7 @@ SENSOR_RADIUS=$(get_global_val_in_moosDistance $CONFIG_FILE "missionParams.senso
 if [ $? -ne 0 ]; then exit 1; fi
 SENSOR_COLOR=$(get_global_val $CONFIG_FILE "missionParams.sensor_color")
 if [ $? -ne 0 ]; then exit 1; fi
-SENSOR_ALTITUDE_MAX=$(get_global_val_in_moosDistance $CONFIG_FILE "missionParams.sensor_altitude_max")
+SENSOR_ALTITUDE_MAX=$(get_global_val $CONFIG_FILE "missionParams.sensor_altitude_max")
 if [ $? -ne 0 ]; then exit 1; fi
 SENSOR_RADIUS_FIXED=$(get_global_val $CONFIG_FILE "missionParams.sensor_radius_fixed")
 if [ $? -ne 0 ]; then exit 1; fi

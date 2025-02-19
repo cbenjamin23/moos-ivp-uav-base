@@ -810,6 +810,7 @@ void ArduBridge::registerVariables()
 
 bool ArduBridge::buildReport()
 {
+  const int sdigits = 2;
   m_msgs << "============================================" << std::endl;
   m_msgs << "File: pArduBridge                           " << std::endl;
   m_msgs << "============================================" << std::endl;
@@ -841,12 +842,13 @@ bool ArduBridge::buildReport()
   auto guidedHold = m_uav_model.isHoldHeadingGuidedSet();
   m_msgs << "    Helm On BUSY: " << boolToString(isHelmCommanding()) << std::endl;
   m_msgs << "   Helm GUIDED HOLD: " << boolToString(guidedHold) << std::endl;
-  m_msgs << "do_loiter_pair.second: " << m_do_loiter_pair.second << std::endl;
+  // m_msgs << "do_loiter_pair.second: " << m_do_loiter_pair.second << std::endl;
+  m_msgs << std::endl;
 
   m_msgs << "UAV Parameters: " << std::endl;
   m_msgs << "------------------ " << std::endl;
-  m_msgs << "       Min AirSpeed: " << uav_minAirSpeed << " m/s" << std::endl;
-  m_msgs << "       Max AirSpeed: " << uav_maxAirSpeed << " m/s" << std::endl;
+  m_msgs << "       Min AirSpeed: " << doubleToStringX(uav_minAirSpeed, sdigits) << " m/s" << std::endl;
+  m_msgs << "       Max AirSpeed: " << doubleToStringX(uav_maxAirSpeed, sdigits) << " m/s" << std::endl;
 
   double lat = m_uav_model.getLatitude();
   double lon = m_uav_model.getLongitude();
@@ -873,10 +875,10 @@ bool ArduBridge::buildReport()
   m_msgs << "                  (X , Y): " << XY.x() << " , " << XY.y() << std::endl;
   // m_msgs << "    Target Altitude (AGL): " << m_uav_model.getTargetAltitudeAGL() << " m" << "    Last Sent (AGL): " << m_uav_model.getLastSentTargetAltitudeAGL() << " m" << std::endl;
   // m_msgs << "           Altitude (AGL): " << m_uav_model.getAltitudeAGL() << " m (Depth/Z: " << -m_uav_model.getAltitudeAGL() << " m)" << std::endl;
-  m_msgs << "           Altitude (MSL): " << uav_altitude_msl << " m" << std::endl;
+  m_msgs << "           Altitude (MSL): " << doubleToStringX(uav_altitude_msl, sdigits) << " m" << std::endl;
   // m_msgs << "          Target Airspeed: " << m_uav_model.getTargetAirSpeed() << " m/s" << std::endl;
   // m_msgs << "          AirSpeed (SOG) : " << m_uav_model.getSOG() << " m/s)" << std::endl;
-  m_msgs << "     Target Heading (COG): " << uav_targetHeading << " deg" << std::endl;
+  m_msgs << "     Target Heading (COG): " << doubleToStringX(uav_targetHeading, sdigits) << " deg" << std::endl;
   // m_msgs << "                  Heading: " << m_uav_model.getHeading() << " deg" << std::endl;
 
   m_msgs << "-------------------------------------------" << std::endl;
@@ -884,9 +886,9 @@ bool ArduBridge::buildReport()
   ACTable actb(4);
   actb << "States | Measurments | Helm | Targets";
   actb.addHeaderLines();
-  actb << "Speed:" << uav_SOG << m_helm_desiredValues->readDesiredSpeed() << uav_targetAirspeed;
-  actb << "Heading:" << uav_heading << m_helm_desiredValues->readDesiredHeading() << uav_targetHeading;
-  actb << "Altitude:" << uav_altitude_agl << m_helm_desiredValues->readDesiredAltitudeAGL() << uav_targetAltitudeAGL;
+  actb << "Speed:" << doubleToStringX(uav_SOG, sdigits) << doubleToStringX(m_helm_desiredValues->readDesiredSpeed(),sdigits) << doubleToStringX(uav_targetAirspeed, sdigits);
+  actb << "Heading:" << doubleToStringX(uav_heading, sdigits) << doubleToStringX(m_helm_desiredValues->readDesiredHeading(), sdigits) << doubleToStringX(uav_targetHeading, sdigits);
+  actb << "Altitude:" << doubleToStringX(uav_altitude_agl, sdigits) << doubleToStringX(m_helm_desiredValues->readDesiredAltitudeAGL(), sdigits) << doubleToStringX(uav_targetAltitudeAGL, sdigits);;
 
   m_msgs << actb.getFormattedString() << std::endl;
   m_msgs << "-------------------------------------------" << std::endl;

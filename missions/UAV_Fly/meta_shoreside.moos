@@ -25,12 +25,14 @@ Processconfig = ANTLER
   Run = uFldVoronoi         @ NewConsole = false
   Run = uFldCollisionDetect @ NewConsole = false
   Run = pRealm              @ NewConsole = false
-  Run = pGridSearchViz      @ NewConsole = false
+  Run = pGridSearchViz      @ NewConsole = false //, XConfig=HOLDSettings
 
 
   Run = uProcessWatch       @ NewConsole = false
   Run = uLoadWatch         @ NewConsole = false
   Run = uMemWatch          @ NewConsole = false
+
+  HOLDSettings = -hold
 
 }
 

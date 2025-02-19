@@ -20,8 +20,8 @@ field:
   ardupilot_port: "115200" # baudrate
   ardupilot_protocol: "serial"
   speed: 
-    max: 19
-    min: 11
+    max: 19 # m/s
+    min: 11 # m/s
 
 moos:
   defaultPorts:
@@ -38,14 +38,22 @@ missionParams:
   # TOOL: https://www.keene.edu/campus/maps/tool/
   use_moos_region: false
   region_XY: 100,460:-700,-200:-700,-920:620,-920:700,-222 # Directly in moos format for tesing
+  # region_lonlat: |
+  #   10.1354027, 63.4005544
+  #   10.1202106, 63.3930786
+  #   10.1268196, 63.3852164
+  #   10.1547146, 63.3869467
+  #   10.1695633, 63.3984791
+  #   10.1502943, 63.4049352
   region_lonlat: |
-    10.1354027, 63.4005544
-    10.1202106, 63.3930786
-    10.1268196, 63.3852164
-    10.1547146, 63.3869467
-    10.1695633, 63.3984791
-    10.1502943, 63.4049352
-
+    10.1187944, 63.3949045
+    10.1129580, 63.3923098
+    10.1120996, 63.3864276
+    10.1217127, 63.3841782
+    10.1499081, 63.3840052
+    10.1596069, 63.3867929
+    10.1602077, 63.3924059
+    10.1540709, 63.3949622
   # Waypoint parameters
   capture_radius: 50  # m  - The distance from the waypoint that the drone must be within to consider it captured
   slip_radius: 75     # m   (both currently modify sim parameters)
@@ -53,12 +61,12 @@ missionParams:
   # Grid parameters
   grid_cell_size: 10      # m - The distance between each waypoint in the grid
   grid_cell_max_count: 20 # Max number og visit before it is fully coloured
-  grid_cell_decay_time: 10    # s - The decay rate of the grid cell value. Every x seconds it is decreased by 1
+  grid_cell_decay_time: 30  # s - The decay rate of the grid cell value. Every x seconds it is decreased by 1
 
   # Sensor parameters
   sensor_radius: 30 # m - The distance from the drone that the other drone must be within to consider it detected
   sensor_color: black # The color of the sensor circle
-  sensor_altitude_max: 50 # m - The maximum altitude at which the sensor has a range of 100% (sensor_radius)
+  sensor_altitude_max: 130 # m - The maximum altitude at which the sensor has a range of 100% (sensor_radius)
   sensor_radius_fixed: true # If true, the sensor radius will be fixed at sensor_radius, regardless of altitude
 
   # Collision avoidance parameters
