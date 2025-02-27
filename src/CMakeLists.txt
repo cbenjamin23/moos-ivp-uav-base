@@ -35,6 +35,8 @@ ADD_SUBDIRECTORY(app_voiview)
 ADD_SUBDIRECTORY(pArduBridge)
 ADD_SUBDIRECTORY(lib_behaviors)
 ADD_SUBDIRECTORY(pGridSearchViz)
+ADD_SUBDIRECTORY(lib_fires)
+ADD_SUBDIRECTORY(uFldFireSim)
 
 
 ##############################################################################

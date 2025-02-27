@@ -90,7 +90,9 @@ ProcessConfig = uFldCollisionDetect
   collision_range = $(COLLISION_RADIUS)              
 
   // ignore_group = alpha                                          
-  // reject_group = bravo                                          
+  // reject_group = bravo                            
+
+  encounter_rings = false              
 
   pulse_render   = true         // default true                 
   pulse_range    = 20           // default is 20 meters         
@@ -154,7 +156,7 @@ ProcessConfig = uFldShoreBroker
 	qbridge = SURVEY_UPDATE
   qbridge = NODE_COLOR_CHANGE
   
-  qbridge = CHANGE_ALTITUDE, CHANGE_HEADING, CHANGE_SPEED
+  qbridge = FIRE_ALERT
 
   qbridge = ARM_UAV, HELM_STATUS, MOOS_MANUAL_OVERRIDE
 
