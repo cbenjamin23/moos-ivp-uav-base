@@ -1,24 +1,8 @@
 /*****************************************************************/
-/*    NAME: Michael Benjamin                                     */
-/*    ORGN: Dept of Mechanical Eng / CSAIL, MIT Cambridge MA     */
+/*    NAME: Michael Benjamin, modified by Steve Nomeny           */
 /*    FILE: main.cpp                                             */
-/*    DATE: Feb 18th 2022                                        */
+/*    DATE: Feb 2022                                             */
 /*                                                               */
-/* This file is part of MOOS-IvP                                 */
-/*                                                               */
-/* MOOS-IvP is free software: you can redistribute it and/or     */
-/* modify it under the terms of the GNU General Public License   */
-/* as published by the Free Software Foundation, either version  */
-/* 3 of the License, or (at your option) any later version.      */
-/*                                                               */
-/* MOOS-IvP is distributed in the hope that it will be useful,   */
-/* but WITHOUT ANY WARRANTY; without even the implied warranty   */
-/* of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See  */
-/* the GNU General Public License for more details.              */
-/*                                                               */
-/* You should have received a copy of the GNU General Public     */
-/* License along with MOOS-IvP.  If not, see                     */
-/* <http://www.gnu.org/licenses/>.                               */
 /*****************************************************************/
 
 #include <iostream>
@@ -49,8 +33,8 @@ int main(int argc, char *argv[])
       mission_file = argv[i];
     else if(strBegins(argi, "--alias="))
       run_command = argi.substr(8);
-    else if((argi == "-w") || (argi == "--web") || (argi == "-web"))
-      openURLX("https://oceanai.mit.edu/ivpman/apps/uFldSwimSensor");
+    // else if((argi == "-w") || (argi == "--web") || (argi == "-web"))
+      // openURLX("https://oceanai.mit.edu/ivpman/apps/uFldSwimSensor");
     else if(i == 2)
       run_command = argi;
   }
@@ -59,7 +43,7 @@ int main(int argc, char *argv[])
     showHelpAndExit();
 
   cout << termColor("green");
-  cout << "uFldSwimSensor launching as " << run_command << endl;
+  cout << "uFldFireSim launching as " << run_command << endl;
   cout << termColor() << endl;
 
   FireSim firesim;

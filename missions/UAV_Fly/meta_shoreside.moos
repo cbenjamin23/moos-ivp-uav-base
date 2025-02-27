@@ -26,6 +26,7 @@ Processconfig = ANTLER
   Run = uFldCollisionDetect @ NewConsole = false
   Run = pRealm              @ NewConsole = false
   Run = pGridSearchViz      @ NewConsole = false //, XConfig=HOLDSettings
+  Run = uFldFireSim         @ NewConsole = false
 
 
   Run = uProcessWatch       @ NewConsole = false
@@ -178,6 +179,26 @@ ProcessConfig = uFldShoreBroker
 }
 
 
+//------------------------------------------
+// uFldFireSim config block
+
+ProcessConfig = uFldFireSim
+{
+  AppTick   = 4
+  CommsTick = 4
+
+	// app_logging = true
+
+	fire_file = fires_01.txt
+	
+	detect_rng_min = 10 //$(SENSOR_RADIUS)
+	detect_rng_max = 20 //$(SENSOR_RADIUS)
+	detect_rng_pd  = 1.0
+
+	show_detect_rng = true
+	detect_rng_transparency = 0.1
+}
+
 
 
 //--------------------------------------------------
@@ -202,7 +223,7 @@ ProcessConfig = pGridSearchViz
   sensor_radius_fixed   = $(SENSOR_RADIUS_FIXED)
 
   grid_cell_decay_time  = $(GRID_CELL_DECAY_TIME)
-  visualize_sensor_area = true
+  visualize_sensor_area = false
 
 } 
 

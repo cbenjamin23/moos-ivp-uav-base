@@ -21,9 +21,11 @@ Processconfig = ANTLER
 
   Run = uFldNodeBroker     @ NewConsole = false
   Run = uFldMessageHandler @ NewConsole = false
-  // Run = uTimerScript       @ NewConsole = false
+  Run = uTimerScript       @ NewConsole = false
+
   Run = pRealm             @ NewConsole = false
   Run = pProxonoi          @ NewConsole = false
+
 
   #ifdef USE_MOOS_SIM_PID true
     Run = uSimMarineV22     @ NewConsole = false
@@ -150,6 +152,8 @@ ProcessConfig = uFldNodeBroker
   
 
   bridge = src=BVOI_STATE
+
+  bridge = src=SCOUT_REQUEST
 }
 
 //--------------------------------------------------------
@@ -207,6 +211,7 @@ ProcessConfig = pNodeReporter
   platform_length    = 3        // meters.  Range [0,inf)    
   platform_group     = drone    // subscribes to NODE_GROUP_UPDATE=<val>     
 
+  // platform_group    = scout
 
   cross_fill_policy=global
 }
@@ -225,6 +230,19 @@ ProcessConfig = pDeadManPost
 }
 
 
+
+
+
+//------------------------------------------
+// uTimerScript config block
+
+ProcessConfig = uTimerScript
+{
+  reset_max  = unlimited
+	reset_time = end
+  // event      = var=DISCOVER_REQUEST, val=vname=$(VNAME), time=1
+  event      = var=SCOUT_REQUEST, val= "vname=$(VNAME), tmate=shoreside" , time=1
+}
 
 
 #ifdef USE_MOOS_SIM_PID true
