@@ -45,8 +45,9 @@ FireSim::FireSim()
   m_last_broadcast = 0;
   m_vname_leader = "tie";
 
-  mission_starttime = 0;
-  mission_duration = 0;
+  m_mission_start_utc = 0;
+  m_mission_duration_s = 0;
+  m_mission_endtime_utc = 0;
 
   m_ac.setMaxEvents(20);
 }
@@ -99,7 +100,7 @@ bool FireSim::OnNewMail(MOOSMSG_LIST &NewMail)
     }
     else if (key == "MISSION_START_TIME")
     {
-      mission_starttime = dval;
+      m_mission_start_utc = dval;
       handled = true;
     }
 
@@ -143,7 +144,7 @@ bool FireSim::Iterate()
 {
   AppCastingMOOSApp::Iterate();
 
-  if (!m_finished && mission_starttime != 0) // Mission is running
+  if (!m_finished && m_mission_start_utc != 0) // Mission is running
     tryScouts();
 
   postScoutRngPolys();
@@ -197,7 +198,7 @@ bool FireSim::OnStartUp()
     else if ((param == "detect_rng_transparency") && isNumber(value))
       handled = setNonNegDoubleOnString(m_scout_rng_transparency, value);
     else if (param == "mission_duration")
-      handled = setDoubleOnString(mission_duration, value);
+      handled = setDoubleOnString(m_mission_duration_s, value);
     else if (param == "winner_flag")
       handled = addVarDataPairOnString(m_winner_flags, value);
     else if (param == "leader_flag")
@@ -356,6 +357,9 @@ void FireSim::tryScoutsVNameFire(std::string vname, std::string fname)
   if (result)
   {
 
+    // Logger::info("FireSim::tryScoutsVNameFire: " + vname + " discovered " + fname);
+    // auto prev_discCount = fire.getDiscoverCnt();
+
     fire.incDiscoverCnt();
     m_fireset.modFire(fire);
 
@@ -363,6 +367,10 @@ void FireSim::tryScoutsVNameFire(std::string vname, std::string fname)
       return;
 
     declareDiscoveredFire(vname, fname);
+
+    // auto new_discCount = fire.getDiscoverCnt();
+
+    // Logger::info("FireSim::tryScoutsVNameFire: DiscCount (prev/after): " + std::to_string(prev_discCount) + "/" + std::to_string(new_discCount));
   }
 }
 
@@ -490,15 +498,14 @@ void FireSim::updateFinishStatus()
 
   // Are all fires discovered?
   bool finished = false;
-  unsigned int fires_undiscovered = m_fireset.size() - m_fireset.getTotalFiresDiscovered();
 
   // First and most general criteria for finishing is when all
   // fires have been discovered
-  if (fires_undiscovered == 0)
+  if (m_fireset.allFiresDiscovered())
     finished = true;
 
   // Second criteria if misson deadline has passed .
-  bool deadline_reached = m_curr_time > (mission_starttime + mission_duration);
+  bool deadline_reached = MOOSTime() > (m_mission_start_utc + m_mission_duration_s);
   if (deadline_reached)
     finished = true;
 
@@ -506,6 +513,9 @@ void FireSim::updateFinishStatus()
     return;
 
   m_finished = true;
+  m_mission_endtime_utc = m_curr_time;
+
+  Notify("MISSION_FINISHED_TIME", doubleToString(m_mission_endtime_utc));
   Notify("UFFS_FINISHED", boolToString(m_finished));
   postFlags(m_finish_flags);
 
@@ -895,19 +905,24 @@ bool FireSim::buildReport()
   m_msgs << "Leader vehicle: " << m_vname_leader << std::endl;
   m_msgs << "Winner vehicle: " << m_vname_winner << std::endl;
 
-  std::string running = boolToString(mission_starttime != 0);
+  std::string running = boolToString(m_mission_start_utc != 0);
   m_msgs << "Mission Started (" << running << "): ";
-  if (mission_starttime == 0)
+  if (m_mission_start_utc == 0)
   {
     m_msgs << "-" << std::endl;
   }
   else
   {
     m_msgs << std::endl;
-    m_msgs << "  Start time: " << doubleToString(mission_starttime, 3) << std::endl;
-    m_msgs << "  Duration:   " << doubleToString(mission_duration, 3) << std::endl;
-    m_msgs << "  Current time: " << doubleToString(m_curr_time, 3) << std::endl;
-    m_msgs << "  Time remaining: " << doubleToString(mission_duration - (m_curr_time - mission_starttime), 0) << std::endl;
+    m_msgs << "  Start time: " << doubleToString(m_mission_start_utc, 3) << std::endl;
+    m_msgs << "  Duration:   " << doubleToString(m_mission_duration_s, 3) << std::endl;
+    if (!m_finished)
+    {
+      m_msgs << "  Elapsed time: " << doubleToString(m_curr_time - m_mission_start_utc, 3) << std::endl;
+      m_msgs << "  Time remaining: " << doubleToString(m_mission_duration_s - (m_curr_time - m_mission_start_utc), 0) << std::endl;
+    } else {
+      m_msgs << "  Mission Finished time: " << doubleToString(m_mission_endtime_utc, 3) << std::endl;
+    }
     m_msgs << "Mission Finished: " << finished_str << std::endl;
   }
   m_msgs << std::endl;
@@ -945,7 +960,9 @@ bool FireSim::buildReport()
     std::string id = fire.getID();
     std::string state = FireStateToString(fire.getState());
     std::string tries = uintToString(fire.getScoutTries());
+
     std::string discoveries = uintToString(fire.getDiscoverCnt());
+    // Logger::info("FireSim::buildReport: DiscCount: " + discoveries);
 
     double xpos = fire.getCurrX();
     double ypos = fire.getCurrY();
@@ -970,6 +987,8 @@ bool FireSim::buildReport()
   m_msgs << actab.getFormattedString();
   m_msgs << std::endl
          << std::endl;
+
+  // Logger::info("\n");
 
   return (true);
 }

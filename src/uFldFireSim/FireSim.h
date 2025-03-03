@@ -104,8 +104,9 @@ protected: // State variables
   bool m_scouts_inplay;
   bool m_finished;
 
-  double mission_starttime; // Time at which the mission starts
-  double mission_duration;  // Duration of the mission
+  double m_mission_start_utc;   // Time at which the mission starts
+  double m_mission_duration_s;  // Duration of the mission
+  double m_mission_endtime_utc; // Time at which the mission ends
 
 protected: // Configuration variables
   std::vector<VarDataPair> m_winner_flags;

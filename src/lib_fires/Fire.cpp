@@ -26,6 +26,7 @@ Fire::Fire(string fname)
     m_name = fname;
 
     m_scout_tries = 0;
+    m_discoverCnt = 0;
 }
 
 void Fire::initXY(double x, double y)

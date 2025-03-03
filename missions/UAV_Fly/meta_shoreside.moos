@@ -201,12 +201,16 @@ ProcessConfig = uFldFireSim
 
 	fire_file = fires_01.txt
 	
-	detect_rng_min = 10 //$(SENSOR_RADIUS)
-	detect_rng_max = 20 //$(SENSOR_RADIUS)
+	detect_rng_min = 10 //60
+	detect_rng_max = 20 //60
 	detect_rng_pd  = 1.0
+
+  mission_duration = 3600
 
 	show_detect_rng = true
 	detect_rng_transparency = 0.1
+
+  finish_flag = MISSION_COMPLETE=true
 }
 
 
