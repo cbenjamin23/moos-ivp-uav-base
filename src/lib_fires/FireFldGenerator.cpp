@@ -17,7 +17,6 @@ using namespace std;
 FireFldGenerator::FireFldGenerator()
 {
     m_fire_amt = 1;
-    m_unreg_amt = 0;
     m_buffer_dist = 10;
 }
 
@@ -26,10 +25,6 @@ bool FireFldGenerator::setFireAmt(string amt)
     return (setUIntOnString(m_fire_amt, amt));
 }
 
-bool FireFldGenerator::setUnregAmt(string amt)
-{
-    return (setUIntOnString(m_unreg_amt, amt));
-}
 
 bool FireFldGenerator::setBufferDist(string str)
 {
@@ -38,7 +33,7 @@ bool FireFldGenerator::setBufferDist(string str)
 
 bool FireFldGenerator::generate()
 {
-    unsigned int total = m_fire_amt + m_unreg_amt;
+    unsigned int total = m_fire_amt;
     if (total == 0)
     {
         cout << "No fires requested. No fires generated." << endl;
@@ -79,7 +74,7 @@ bool FireFldGenerator::generate()
         cout << "poly = " << poly_spec << endl;
     }
 
-    // Output registered fires
+    // Output fires
     for (unsigned int i = 0; i < m_fire_amt; i++)
     {
         string fire_name = "f";
@@ -88,28 +83,12 @@ bool FireFldGenerator::generate()
         fire_name += uintToString(i + 1);
         double xval = points[i].get_vx();
         double yval = points[i].get_vy();
-        if (m_unreg_amt > 0)
-            cout << "fire = type=reg, name=" << fire_name;
-        else
-            cout << "fire = name=" << fire_name;
+        
+        cout << "fire = name=" << fire_name;
         cout << ", x=" << doubleToStringX(xval, 2);
         cout << ", y=" << doubleToStringX(yval, 2) << endl;
     }
 
-    // Output unreg fires
-    for (unsigned int i = m_fire_amt; i < points.size(); i++)
-    {
-        string unreg_name = "h"; // h for heat signature
-        unsigned int index = (i - m_fire_amt) + 1;
-        if (index < 10)
-            unreg_name += "0";
-        unreg_name += uintToString(index);
-        double xval = points[i].get_vx();
-        double yval = points[i].get_vy();
-        cout << "fire = type=unreg, name=" << unreg_name;
-        cout << ", x=" << doubleToStringX(xval, 2);
-        cout << ", y=" << doubleToStringX(yval, 2) << endl;
-    }
 
     return (true);
 }

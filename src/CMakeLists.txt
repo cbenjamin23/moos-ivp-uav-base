@@ -13,6 +13,7 @@ FILE(GLOB LOCAL_LIBRARY_DIRS ./lib_*)
 INCLUDE_DIRECTORIES(${LOCAL_LIBRARY_DIRS})
 
 
+include_directories("${CMAKE_CURRENT_SOURCE_DIR}/src/lib_common")
 
 # Finds MAVSDK when installed system wide.
 find_package(MAVSDK REQUIRED)

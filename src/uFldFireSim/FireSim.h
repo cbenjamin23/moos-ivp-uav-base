@@ -38,17 +38,17 @@ protected: // Configuration utility
 
 protected: // Incoming mail utility
   bool handleMailNodeReport(const std::string &);
-  bool handleMailDiscoverRequest(std::string);
+  // bool handleMailDiscoverRequest(std::string);
   bool handleMailScoutRequest(std::string);
 
 protected: // Outgoing mail utility
   void declareDiscoveredFire(std::string vname, std::string fname);
-  void declareScoutedFire(std::string vname, std::string fname);
+  // void declareScoutedFire(std::string vname, std::string fname);
 
 protected: // Utilities
-  void tryDiscovers();
-  void tryDiscoversVName(std::string vname);
-  void tryDiscoversVNameFire(std::string vname, std::string fname);
+  // void tryDiscovers();
+  // void tryDiscoversVName(std::string vname);
+  // void tryDiscoversVNameFire(std::string vname, std::string fname);
 
   void tryScouts();
   void tryScoutsVName(std::string vname);
@@ -59,18 +59,15 @@ protected: // Utilities
   void updateFinishStatus();
 
   // TODO: Remove dtype... not used
-  bool rollDice(std::string vname, std::string, std::string dtype);
+  bool rollDice(std::string vname, std::string);
 
-  void postDetectRngPolys();
   void postScoutRngPolys();
-  void postRangePolys(std::string vname, std::string tag, bool active);
+  void postRangePolys(std::string vname, bool active);
   void postFireMarkers();
   void postFireMarker(std::string fname);
 
   void postFlags(const std::vector<VarDataPair> &flags);
   void broadcastFires();
-
-  void applyTMateColors();
 
   void addNotable(std::string vname, std::string fname);
   bool isNotable(std::string fname);
@@ -83,33 +80,32 @@ protected: // State variables
   // Key for each map below is the vehicle name.
   std::map<std::string, NodeRecord> m_map_node_records;
   std::map<std::string, std::string> m_map_node_vroles;
-
   std::map<std::string, double> m_map_node_last_discover_req;
-  std::map<std::string, double> m_map_node_last_discover_try;
-  std::map<std::string, double> m_map_node_last_discover_utc;
-  std::map<std::string, unsigned int> m_map_node_discover_reqs;
-  std::map<std::string, unsigned int> m_map_node_discover_tries;
-  std::map<std::string, unsigned int> m_map_node_discovers;
+  std::map<std::string, std::list<std::string>> m_map_notables;
+
+  std::map<std::string, unsigned int> m_map_node_discoveries;
 
   std::map<std::string, double> m_map_node_last_scout_req;
   std::map<std::string, double> m_map_node_last_scout_try;
+  std::map<std::string, double> m_map_node_last_discover_utc;
   std::map<std::string, unsigned int> m_map_node_scout_reqs;
   std::map<std::string, unsigned int> m_map_node_scout_tries;
-  std::map<std::string, unsigned int> m_map_node_scouts;
+  // std::map<std::string, unsigned int> m_map_node_scouts;
 
   // Key for this map is the scout vname
-  std::map<std::string, std::string> m_map_node_tmate;
+  // std::map<std::string, std::string> m_map_node_tmate;
 
   // Notables map key is vname to list of recent fires discovered
-  std::map<std::string, std::list<std::string>> m_map_notables;
+  // std::map<std::string, std::list<std::string>> m_map_notables;
 
   unsigned int m_total_discoverers;
   std::string m_vname_leader;
   std::string m_vname_winner;
-  bool m_finished;
   bool m_scouts_inplay;
+  bool m_finished;
 
-  unsigned int m_known_undiscovered;
+  double mission_starttime; // Time at which the mission starts
+  double mission_duration;  // Duration of the mission
 
 protected: // Configuration variables
   std::vector<VarDataPair> m_winner_flags;
@@ -122,10 +118,8 @@ protected: // Configuration variables
 
   std::string m_fire_color;
 
-  bool m_finish_upon_win;
-
-  bool m_detect_rng_show;
-  double m_detect_rng_transparency;
+  bool m_scout_rng_show;
+  double m_scout_rng_transparency;
 };
 
 #endif

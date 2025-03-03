@@ -18,7 +18,7 @@
 #include <cmath>
 
 #include <future> // for async and promises
-#include "../lib_common/Logger.h"
+#include "Logger.h"
 //------------------------------------------------------------------------
 // Constructor
 

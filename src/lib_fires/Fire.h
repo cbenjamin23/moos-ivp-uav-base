@@ -19,6 +19,9 @@ class Fire
   ~Fire() {}; 
 
   void   initXY(double, double);
+  
+  enum FireState {UNDISCOVERED, DISCOVERED, UNKNOWN};
+
 
  public: // Setters
   void   setStartX(double v) {m_start_x=v;}
@@ -29,15 +32,14 @@ class Fire
   void   setTimeEnter(double v)   {m_time_enter=v;}
   void   setTimeDiscovered(double v) {m_time_discovered=v;}
 
-  bool   setState(std::string s);
-  void   setDiscoverer(std::string s)       {m_discoverer=s;}
-  bool   setType(std::string s);
+  bool   setStateFromString(std::string s);
+  bool   setState(FireState s);
+  void   setDiscoverer(std::string s)   {m_discoverer=s;}
   void   setName(std::string s)         {m_name=s;}
   void   setID(std::string s)           {m_id=s;}
-  void   setDiscoverTries(unsigned int v) {m_discover_tries=v;}
   void   setScoutTries(unsigned int v)  {m_scout_tries=v;}
   void   addScouted(std::string s)      {m_set_scouted.insert(s);}
-  void   incDiscoverTries()               {m_discover_tries++;}
+  void   incDiscoverCnt()               {m_discoverCnt++;}
   void   incScoutTries()                {m_scout_tries++;}
   
  public: // Getters
@@ -49,12 +51,11 @@ class Fire
   double getTimeEnter() const {return(m_time_enter);}
   double getTimeDiscovered() const {return(m_time_discovered);}
 
-  std::string  getState() const  {return(m_state);}
+  FireState getState() const  {return(m_state);}
   std::string  getDiscoverer() const {return(m_discoverer);}
-  std::string  getType() const   {return(m_type);}
   std::string  getName() const   {return(m_name);}
   std::string  getID() const     {return(m_id);}
-  unsigned int getDiscoverTries() const  {return(m_discover_tries);}
+  unsigned int getDiscoverCnt() const {return(m_discoverCnt);}
   unsigned int getScoutTries() const   {return(m_scout_tries);}
 
   std::set<std::string> getScoutSet() {return(m_set_scouted);}
@@ -69,18 +70,20 @@ class Fire
   double       m_curr_y;
   double       m_time_enter;   // time fire started
   double       m_time_discovered; // time discovered
-  std::string  m_state;        // burning or discovered
+  FireState    m_state;        // undiscovered or discovered
   std::string  m_discoverer;   // who discovered
-  std::string  m_type;         // reg or unreg
   std::string  m_name;         // key identifier
   std::string  m_id;       
-
-  std::set<std::string> m_set_scouted;
   
-  unsigned int m_discover_tries;
+  unsigned int m_discoverCnt;  // number of times discovered
+  std::set<std::string> m_set_scouted;
   unsigned int m_scout_tries;
 };
 
 Fire stringToFire(std::string);
+
+std::string FireStateToString(Fire::FireState state);
+
+Fire::FireState stringToFireState(std::string state);
 
 #endif

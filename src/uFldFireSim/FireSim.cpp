@@ -22,7 +22,7 @@
 #include "XYFormatUtilsPoly.h"
 #include "XYPolyExpander.h"
 
-using namespace std;
+#include "Logger.h"
 
 //---------------------------------------------------------
 // Constructor
@@ -34,19 +34,19 @@ FireSim::FireSim()
   m_detect_rng_max = 40;
   m_detect_rng_pd = 0.5;
 
-  m_detect_rng_transparency = 0.1;
-  m_detect_rng_show = true;
-  m_finish_upon_win = false;
+  m_scout_rng_transparency = 0.1;
+  m_scout_rng_show = true;
+  m_scouts_inplay = false;
   m_fire_color = "red";
 
   // State vars
   m_finished = false;
-  m_scouts_inplay = false;
   m_total_discoverers = 0;
   m_last_broadcast = 0;
   m_vname_leader = "tie";
 
-  m_known_undiscovered = 0;
+  mission_starttime = 0;
+  mission_duration = 0;
 
   m_ac.setMaxEvents(20);
 }
@@ -64,39 +64,43 @@ bool FireSim::OnNewMail(MOOSMSG_LIST &NewMail)
     // p->Trace();
     CMOOSMsg msg = *p;
 
-    string key = msg.GetKey();
-    string sval = msg.GetString();
-    string comm = msg.GetCommunity();
+    std::string key = msg.GetKey();
+    std::string sval = msg.GetString();
+    double dval = msg.GetDouble();
+    std::string comm = msg.GetCommunity();
 
     bool handled = false;
-    string warning;
+    std::string warning;
     if ((key == "NODE_REPORT") || (key == "NODE_REPORT_LOCAL"))
       handled = handleMailNodeReport(sval);
-    else if (key == "DISCOVER_REQUEST")
-      handled = handleMailDiscoverRequest(sval);
     else if (key == "SCOUT_REQUEST")
       handled = handleMailScoutRequest(sval);
-    else if ((key == "XFIRE_ALERT") && (comm == "shoreside"))
+    else if ((key == "FIRE_ALERT") && (comm == "shoreside"))
     {
       handled = m_fireset.fireAlert(sval, m_curr_time, warning);
       updateFinishStatus();
       postFireMarkers();
     }
-    else if ((key == "XFOUND_FIRE") && (comm == "shoreside"))
+    else if ((key == "DISCOVERED_FIRE") && (comm == "shoreside"))
     {
-      string xstr = tokStringParse(sval, "x");
-      string ystr = tokStringParse(sval, "y");
+      std::string xstr = tokStringParse(sval, "x");
+      std::string ystr = tokStringParse(sval, "y");
       if ((xstr == "") || (ystr == ""))
         handled = false;
       else
       {
         double xval = atof(xstr.c_str());
         double yval = atof(ystr.c_str());
-        string fname = m_fireset.getNameClosestFire(xval, yval);
+        std::string fname = m_fireset.getNameClosestFire(xval, yval);
         declareDiscoveredFire("nature", fname);
         postFireMarkers();
         handled = true;
       }
+    }
+    else if (key == "MISSION_START_TIME")
+    {
+      mission_starttime = dval;
+      handled = true;
     }
 
     if (!handled)
@@ -124,12 +128,12 @@ void FireSim::registerVariables()
 {
   AppCastingMOOSApp::RegisterVariables();
 
-  Register("XFIRE_ALERT", 0);
-  Register("XFOUND_FIRE", 0);
+  Register("FIRE_ALERT", 0);
+  Register("DISCOVERED_FIRE", 0);
   Register("NODE_REPORT", 0);
   Register("NODE_REPORT_LOCAL", 0);
-  Register("DISCOVER_REQUEST", 0);
   Register("SCOUT_REQUEST", 0);
+  Register("MISSION_START_TIME", 0);
 }
 
 //---------------------------------------------------------
@@ -139,20 +143,15 @@ bool FireSim::Iterate()
 {
   AppCastingMOOSApp::Iterate();
 
-  if (!m_finished)
-  {
-    tryDiscovers();
+  if (!m_finished && mission_starttime != 0) // Mission is running
     tryScouts();
-  }
 
-  postDetectRngPolys();
   postScoutRngPolys();
 
   // periodically broadcast fire info to all vehicles
   if ((m_curr_time - m_last_broadcast) > 15)
   {
     broadcastFires();
-    applyTMateColors();
     m_last_broadcast = m_curr_time;
   }
 
@@ -174,13 +173,13 @@ bool FireSim::OnStartUp()
   STRING_LIST::iterator p;
   for (p = sParams.begin(); p != sParams.end(); p++)
   {
-    string orig = *p;
-    string line = *p;
-    string param = biteStringX(line, '=');
-    string value = line;
+    std::string orig = *p;
+    std::string line = *p;
+    std::string param = biteStringX(line, '=');
+    std::string value = line;
 
     bool handled = false;
-    string warning;
+    std::string warning;
     if (param == "fire_file")
     {
       handled = m_fireset.handleFireFile(value, m_curr_time, warning);
@@ -188,7 +187,7 @@ bool FireSim::OnStartUp()
       updateFinishStatus();
     }
     else if (param == "show_detect_rng")
-      handled = setBooleanOnString(m_detect_rng_show, value);
+      handled = setBooleanOnString(m_scout_rng_show, value);
     else if (param == "detect_rng_min")
       handled = handleConfigDetectRangeMin(value);
     else if (param == "detect_rng_max")
@@ -196,7 +195,9 @@ bool FireSim::OnStartUp()
     else if (param == "detect_rng_pd")
       handled = handleConfigDetectRangePd(value);
     else if ((param == "detect_rng_transparency") && isNumber(value))
-      handled = setNonNegDoubleOnString(m_detect_rng_transparency, value);
+      handled = setNonNegDoubleOnString(m_scout_rng_transparency, value);
+    else if (param == "mission_duration")
+      handled = setDoubleOnString(mission_duration, value);
     else if (param == "winner_flag")
       handled = addVarDataPairOnString(m_winner_flags, value);
     else if (param == "leader_flag")
@@ -205,8 +206,6 @@ bool FireSim::OnStartUp()
       handled = addVarDataPairOnString(m_finish_flags, value);
     else if (param == "fire_color")
       handled = setColorOnString(m_fire_color, value);
-    else if (param == "finish_upon_win")
-      handled = setBooleanOnString(m_finish_upon_win, value);
 
     if (!handled)
     {
@@ -227,7 +226,7 @@ bool FireSim::OnStartUp()
 //------------------------------------------------------------
 // Procedure: handleConfigDetectRangeMin()
 
-bool FireSim::handleConfigDetectRangeMin(string str)
+bool FireSim::handleConfigDetectRangeMin(std::string str)
 {
   if (!isNumber(str))
     return (false);
@@ -245,7 +244,7 @@ bool FireSim::handleConfigDetectRangeMin(string str)
 //------------------------------------------------------------
 // Procedure: handleConfigDetectRangeMax()
 
-bool FireSim::handleConfigDetectRangeMax(string str)
+bool FireSim::handleConfigDetectRangeMax(std::string str)
 {
   if (!isNumber(str))
     return (false);
@@ -263,7 +262,7 @@ bool FireSim::handleConfigDetectRangeMax(string str)
 //------------------------------------------------------------
 // Procedure: handleConfigDetectRangePd()
 
-bool FireSim::handleConfigDetectRangePd(string str)
+bool FireSim::handleConfigDetectRangePd(std::string str)
 {
   if (!isNumber(str))
     return (false);
@@ -285,7 +284,7 @@ bool FireSim::handleConfigDetectRangePd(string str)
 //            SPD=2.00, HDG=119.06,YAW=119.05677,DEPTH=0.00,
 //            LENGTH=4.0,MODE=ENGAGED
 
-bool FireSim::handleMailNodeReport(const string &node_report_str)
+bool FireSim::handleMailNodeReport(const std::string &node_report_str)
 {
   NodeRecord new_record = string2NodeRecord(node_report_str);
 
@@ -301,7 +300,7 @@ bool FireSim::handleMailNodeReport(const string &node_report_str)
   // mostly a startup timing issue. Sometimes a sensor request is
   // received before a node report. Only a problem if the node report
   // never comes. Once we get one, it's no longer a problem.
-  string vname = new_record.getName();
+  std::string vname = new_record.getName();
   retractRunWarning("No NODE_REPORT received for " + vname);
 
   if (m_map_node_records.count(vname) == 0)
@@ -317,19 +316,16 @@ bool FireSim::handleMailNodeReport(const string &node_report_str)
 
 void FireSim::tryScouts()
 {
+
   // For each vehicle, check if pending scout actions are to be applied
-  map<string, NodeRecord>::iterator p;
-  for (p = m_map_node_records.begin(); p != m_map_node_records.end(); p++)
-  {
-    string vname = p->first;
+  for (const auto &[vname, _] : m_map_node_records)
     tryScoutsVName(vname);
-  }
 }
 
 //---------------------------------------------------------
 // Procedure: tryScoutsVName()
 
-void FireSim::tryScoutsVName(string vname)
+void FireSim::tryScoutsVName(std::string vname)
 {
   // If vehicle has not posted a scout request recently, then the
   // scout ability is off for this vehicle.
@@ -337,90 +333,37 @@ void FireSim::tryScoutsVName(string vname)
   if (elapsed_req > 5)
     return;
   double elapsed_try = m_curr_time - m_map_node_last_scout_try[vname];
-  if (elapsed_try < 1.5)
-    return;
-  if (m_map_node_vroles[vname] != "scout")
+  if (elapsed_try < 1) // Allow 1 seconds between scout tries
     return;
 
   m_map_node_last_scout_try[vname] = m_curr_time;
   m_map_node_scout_tries[vname]++;
 
-  set<string> fire_names = m_fireset.getFireNames();
-  set<string>::iterator p;
-  for (p = fire_names.begin(); p != fire_names.end(); p++)
-  {
-    string fname = *p;
+  std::set<std::string> fire_names = m_fireset.getFireNames();
+
+  for (const auto &fname : fire_names)
     tryScoutsVNameFire(vname, fname);
-  }
 }
 
 //---------------------------------------------------------
 // Procedure: tryScoutsVNameFire()
 
-void FireSim::tryScoutsVNameFire(string vname, string fname)
+void FireSim::tryScoutsVNameFire(std::string vname, std::string fname)
 {
   Fire fire = m_fireset.getFire(fname);
-  if (fire.getState() == "discovered")
-    return;
 
-  bool result = rollDice(vname, fname, "scout");
+  bool result = rollDice(vname, fname);
   if (result)
-    declareScoutedFire(vname, fname);
-}
-
-//---------------------------------------------------------
-// Procedure: tryDiscovers()
-
-void FireSim::tryDiscovers()
-{
-  map<string, NodeRecord>::iterator p;
-  for (p = m_map_node_records.begin(); p != m_map_node_records.end(); p++)
   {
-    string vname = p->first;
-    tryDiscoversVName(vname);
-  }
-}
 
-//---------------------------------------------------------
-// Procedure: tryDiscoversVName()
+    fire.incDiscoverCnt();
+    m_fireset.modFire(fire);
 
-void FireSim::tryDiscoversVName(string vname)
-{
-  // If vehicle has has not posted a discover request recently, then the
-  // discover ability is off for this vehicle.
-  double elapsed_req = m_curr_time - m_map_node_last_discover_req[vname];
-  if (elapsed_req > 5)
-    return;
-  double elapsed_try = m_curr_time - m_map_node_last_discover_try[vname];
-  if (elapsed_try < 1)
-    return;
-  if (m_map_node_vroles[vname] != "discover")
-    return;
+    if (fire.getState() == Fire::FireState::DISCOVERED)
+      return;
 
-  m_map_node_last_discover_try[vname] = m_curr_time;
-  m_map_node_discover_tries[vname]++;
-
-  set<string> fire_names = m_fireset.getFireNames();
-  set<string>::iterator p;
-  for (p = fire_names.begin(); p != fire_names.end(); p++)
-  {
-    string fname = *p;
-    tryDiscoversVNameFire(vname, fname);
-  }
-}
-
-//---------------------------------------------------------
-// Procedure: tryDiscoversVNameFire()
-
-void FireSim::tryDiscoversVNameFire(string vname, string fname)
-{
-  Fire fire = m_fireset.getFire(fname);
-  if (fire.getState() == "discovered")
-    return;
-
-  bool detect_result = rollDice(vname, fname, "discover"); // TODO: modify discover
-  if (detect_result)
     declareDiscoveredFire(vname, fname);
+  }
 }
 
 //------------------------------------------------------------
@@ -429,12 +372,12 @@ void FireSim::tryDiscoversVNameFire(string vname, string fname)
 void FireSim::updateLeaderStatus()
 {
   // Part 1: Note prev leader to detect a lead change
-  string prev_leader = m_vname_leader;
+  std::string prev_leader = m_vname_leader;
 
   // Part 2: Calc highest number of discoveries over any vehicle
   unsigned int highest_discover_count = 0;
-  map<string, unsigned int>::iterator p;
-  for (p = m_map_node_discovers.begin(); p != m_map_node_discovers.end(); p++)
+  std::map<std::string, unsigned int>::iterator p;
+  for (p = m_map_node_discoveries.begin(); p != m_map_node_discoveries.end(); p++)
   {
     unsigned int discovers = p->second;
     if (discovers > highest_discover_count)
@@ -442,10 +385,10 @@ void FireSim::updateLeaderStatus()
   }
 
   // Part 3: Calc vector of vnames having highest discover count
-  vector<string> leader_vnames;
-  for (p = m_map_node_discovers.begin(); p != m_map_node_discovers.end(); p++)
+  std::vector<std::string> leader_vnames;
+  for (p = m_map_node_discoveries.begin(); p != m_map_node_discoveries.end(); p++)
   {
-    string vname = p->first;
+    std::string vname = p->first;
     unsigned int discovers = p->second;
     if (discovers == highest_discover_count)
       leader_vnames.push_back(vname);
@@ -461,7 +404,7 @@ void FireSim::updateLeaderStatus()
   if (m_vname_leader == prev_leader)
     return;
 
-  Notify("UFRM_LEADER", m_vname_leader);
+  Notify("UFFS_LEADER", m_vname_leader);
   postFlags(m_leader_flags);
 }
 
@@ -475,29 +418,27 @@ void FireSim::updateWinnerStatus(bool finished)
     return;
 
   // Part 2: Determine the threshold for winning
-  unsigned int known_fire_cnt = m_fireset.getKnownFireCnt();
+  unsigned int known_fire_cnt = m_fireset.size();
   double win_thresh = (double)(known_fire_cnt) / 2;
 
   // Part 3: Calc vector of vnames having reached the win threshold
   // Possibly >1 winner for now. Will handle tie-breaker afterwards.
-  vector<string> winner_vnames;
-  map<string, unsigned int>::iterator p;
-  for (p = m_map_node_discovers.begin(); p != m_map_node_discovers.end(); p++)
+  std::vector<std::string> winner_vnames;
+
+  for (const auto &[vname, discoveries] : m_map_node_discoveries)
   {
-    string vname = p->first;
-    unsigned int discovers = p->second;
-    if (discovers >= win_thresh)
+    if (discoveries >= win_thresh)
       winner_vnames.push_back(vname);
   }
 
   // Part 4: If no winners then done for now
   if (winner_vnames.size() == 0)
   {
-    Notify("UFRM_WINNER", "pending");
+    Notify("UFFS_WINNER", "pending");
     return;
   }
 
-  string would_be_winner;
+  std::string would_be_winner;
 
   // Part 5: If one winner, set the winner
   if (winner_vnames.size() == 1)
@@ -506,43 +447,36 @@ void FireSim::updateWinnerStatus(bool finished)
   // Part 6: If multiple vnames meeting win threshold, do tiebreaker
   if (winner_vnames.size() > 1)
   {
-    string first_winner;
+    std::string first_winner;
     double first_winner_utc = 0;
-    map<string, double>::iterator q;
-    for (q = m_map_node_last_discover_utc.begin();
-         q != m_map_node_last_discover_utc.end(); q++)
+    for (const auto &[vname, utc] : m_map_node_last_discover_utc)
     {
-      string vname = q->first;
-      double utc = q->second;
-      if ((first_winner == "") || (utc < first_winner_utc))
+      if (utc >= win_thresh)
       {
-        first_winner = vname;
-        first_winner_utc = utc;
+        if ((first_winner == "") || (utc < first_winner_utc))
+        {
+          first_winner = vname;
+          first_winner_utc = utc;
+        }
       }
     }
     would_be_winner = first_winner;
   }
 
-  // If this competition has scout vehicles, and we're not yet
+  // If scouting in play, and we're not yet
   // finished, then hold off on declaring a winner.
-  if (m_scouts_inplay && !finished && !m_finish_upon_win)
+  if (m_scouts_inplay && !finished)
     return;
 
   m_vname_winner = would_be_winner;
-  Notify("UFRM_WINNER", m_vname_winner);
+  Notify("UFFS_WINNER", m_vname_winner);
   postFlags(m_winner_flags);
 }
 
 //------------------------------------------------------------
 // Procedure: updateFinishStatus()
-//   Purpose: Completion is when all KNOWN fires have been
-//            discovered. A fire is known if either (a) it is
-//            a registered fire known at the outset, or (b)
-//            it has been scouted.
-//      Note: It is possible that after completion, further
-//            vehicles could become scouted, but scouting will
-//            be disabled, once the complete state has been
-//            reached.
+//   Purpose: Completion is when all fires have been
+//            discovered.
 
 void FireSim::updateFinishStatus()
 {
@@ -550,47 +484,29 @@ void FireSim::updateFinishStatus()
   if (m_finished)
     return;
 
-  set<string> fnames = m_fireset.getFireNames();
+  std::set<std::string> fnames = m_fireset.getFireNames();
   if (fnames.size() == 0)
     return;
 
-  // Assume finished is true until we find undiscovered fire
-  m_known_undiscovered = 0;
-  set<string>::iterator p;
-  for (p = fnames.begin(); p != fnames.end(); p++)
-  {
-    string fname = *p;
-    Fire fire = m_fireset.getFire(fname);
-    bool fire_is_known = false;
-
-    if (fire.getType() == "reg")
-      fire_is_known = true;
-    else
-    {
-      if (fire.hasBeenScouted())
-        fire_is_known = true;
-    }
-
-    if (fire_is_known && (fire.getState() != "discovered"))
-      m_known_undiscovered++;
-  }
-
+  // Are all fires discovered?
   bool finished = false;
+  unsigned int fires_undiscovered = m_fireset.size() - m_fireset.getTotalFiresDiscovered();
+
   // First and most general criteria for finishing is when all
-  // known fires have been discovered
-  if (m_known_undiscovered == 0)
+  // fires have been discovered
+  if (fires_undiscovered == 0)
     finished = true;
 
-  // Second criteria if no scouts in play, and a majority has been
-  // discovered by one team (winner declared), AND finish_upon_win is
-  // set to true, then we can finish.
-  if (m_finish_upon_win && (m_vname_winner != "") && !m_scouts_inplay)
+  // Second criteria if misson deadline has passed .
+  bool deadline_reached = m_curr_time > (mission_starttime + mission_duration);
+  if (deadline_reached)
     finished = true;
+
   if (!finished)
     return;
 
   m_finished = true;
-  Notify("UFRM_FINISHED", boolToString(m_finished));
+  Notify("UFFS_FINISHED", boolToString(m_finished));
   postFlags(m_finish_flags);
 
   updateWinnerStatus(true);
@@ -613,7 +529,7 @@ void FireSim::updateFinishStatus()
 //         range from fire to ownship
 //
 
-bool FireSim::rollDice(string vname, string fname, string dtype)
+bool FireSim::rollDice(std::string vname, std::string fname)
 {
   // Part 1: Sanity checking
   if (!m_fireset.hasFire(fname))
@@ -646,11 +562,9 @@ bool FireSim::rollDice(string vname, string fname, string dtype)
 
   if (range_to_fire <= m_detect_rng_max)
   {
-    if (dtype == "discover")
-      fire.incDiscoverTries();
-    else if (dtype == "scout")
-      fire.incScoutTries();
+    fire.incScoutTries();
   }
+
   m_fireset.modFire(fire);
 
   // Apply the dice role to the Pd
@@ -661,68 +575,18 @@ bool FireSim::rollDice(string vname, string fname, string dtype)
 }
 
 //---------------------------------------------------------
-// Procedure: handleMailDiscoverRequest()
-//   Example: vname=alpha
-
-bool FireSim::handleMailDiscoverRequest(string request)
-{
-  string vname = tokStringParse(request, "vname");
-
-  if (vname == "")
-    return (reportRunWarning("Discover request with no vname"));
-
-  // Ensure this vname has not previously been a scout vehicle
-  if (m_map_node_vroles.count(vname))
-  {
-    if (m_map_node_vroles[vname] != "discover")
-      return (reportRunWarning(vname + " is discover double-agent"));
-  }
-  else
-  {
-    m_map_node_vroles[vname] = "discover";
-    m_total_discoverers++;
-  }
-
-  m_map_node_discover_reqs[vname]++;
-  m_map_node_last_discover_req[vname] = MOOSTime();
-  return (true);
-}
-
-//---------------------------------------------------------
 // Procedure: handleMailScoutRequest()
-//   Example: vname=cal, tmate=abe
+//   Example: vname=cal
 
-bool FireSim::handleMailScoutRequest(string request)
+bool FireSim::handleMailScoutRequest(std::string request)
 {
-  string vname = tokStringParse(request, "vname");
-  string tmate = tokStringParse(request, "tmate");
+  std::string vname = tokStringParse(request, "vname");
 
   // Sanity Check 1: check for empty vname or tname
   if (vname == "")
     return (reportRunWarning("Scout request with no vname"));
-  if (tmate == "")
-    return (reportRunWarning("Scout request with no teammate name"));
 
   m_scouts_inplay = true;
-  m_finish_upon_win = true;
-
-  // Sanity Check 2: check vname has not before been a discover vehicle
-  if (m_map_node_vroles.count(vname))
-  {
-    if (m_map_node_vroles[vname] != "scout")
-      return (reportRunWarning(vname + " is scout double-agent"));
-  }
-  else
-    m_map_node_vroles[vname] = "scout";
-
-  // Sanity Check 3: check vname has had different teammate before
-  if (m_map_node_tmate.count(vname))
-  {
-    if (m_map_node_tmate[vname] != tmate)
-      return (reportRunWarning(vname + " is disloyal scout"));
-  }
-  else
-    m_map_node_tmate[vname] = tmate;
 
   m_map_node_scout_reqs[vname]++;
   m_map_node_last_scout_req[vname] = MOOSTime();
@@ -733,9 +597,8 @@ bool FireSim::handleMailScoutRequest(string request)
 // Procedure: declareDiscoveredFire()
 //     Notes: Example postings:
 //            DISCOVERED_FIRE = id=f1, finder=abe
-//            FOUND_FIRE = id=f1, finder=abe   (deprecated)
 
-void FireSim::declareDiscoveredFire(string vname, string fname)
+void FireSim::declareDiscoveredFire(std::string vname, std::string fname)
 {
   // Part 1: Sanity check
   if (!m_fireset.hasFire(fname))
@@ -748,12 +611,12 @@ void FireSim::declareDiscoveredFire(string vname, string fname)
   // Part 3: Update the fire status, mark the discoverer. Note the
   // check for fire being not yet discovered was done earlier
   Fire fire = m_fireset.getFire(fname);
-  fire.setState("discovered");
+  fire.setState(Fire::FireState::DISCOVERED);
   fire.setDiscoverer(vname);
   m_fireset.modFire(fire);
 
   // Part 4: Update the discover stats for this vehicle
-  m_map_node_discovers[vname]++;
+  m_map_node_discoveries[vname]++;
   m_map_node_last_discover_utc[vname] = m_curr_time;
 
   // Part 5: Update the leader, winner and finish status
@@ -766,67 +629,10 @@ void FireSim::declareDiscoveredFire(string vname, string fname)
 
   postFireMarkers();
 
-  string idstr = m_fireset.getFire(fname).getID();
+  std::string idstr = m_fireset.getFire(fname).getID();
   idstr = findReplace(idstr, "id", "");
-  string msg = "id=" + idstr + ", finder=" + vname;
+  std::string msg = "id=" + idstr + ", finder=" + vname;
   Notify("DISCOVERED_FIRE", msg);
-  Notify("FOUND_FIRE", msg); // (deprecated)
-}
-
-//------------------------------------------------------------
-// Procedure: declareScoutedFire()
-//     Notes: Example postings:
-//            SCOUTED_FIRE_AB = id=f1, x=23, y=34
-
-void FireSim::declareScoutedFire(string vname, string fname)
-{
-  if (!m_fireset.hasFire(fname))
-    return;
-
-  Fire fire = m_fireset.getFire(fname);
-  if (fire.getType() != "unreg")
-    return;
-  if (fire.hasBeenScouted(vname))
-    return;
-
-  fire.addScouted(vname);
-  m_fireset.modFire(fire);
-
-  m_map_node_scouts[vname]++;
-  reportEvent("Fire " + fname + " has been scouted by " + vname + "!");
-
-  postFireMarkers();
-
-  string idstr = m_fireset.getFire(fname).getID();
-  idstr = findReplace(idstr, "id", "");
-
-  string msg = "id=" + idstr;
-  msg += ", x=" + doubleToString(fire.getCurrX(), 2);
-  msg += ", y=" + doubleToString(fire.getCurrY(), 2);
-  Notify("SCOUTED_FIRE_" + toupper(vname), msg);
-}
-
-//------------------------------------------------------------
-// Procedure: postDetectRngPolys()
-
-void FireSim::postDetectRngPolys()
-{
-  if (!m_detect_rng_show)
-    return;
-
-  map<string, double>::iterator p;
-  for (p = m_map_node_last_discover_req.begin();
-       p != m_map_node_last_discover_req.end(); p++)
-  {
-
-    string vname = p->first;
-    double last_req = p->second;
-    double elapsed = m_curr_time - last_req;
-    if (elapsed < 3)
-      postRangePolys(vname, "discover", true);
-    else
-      postRangePolys(vname, "discover", false);
-  }
 }
 
 //------------------------------------------------------------
@@ -834,28 +640,22 @@ void FireSim::postDetectRngPolys()
 
 void FireSim::postScoutRngPolys()
 {
-  if (!m_detect_rng_show)
+  if (!m_scout_rng_show)
     return;
 
-  map<string, double>::iterator p;
-  for (p = m_map_node_last_scout_req.begin();
-       p != m_map_node_last_scout_req.end(); p++)
+  std::map<std::string, double>::iterator p;
+  for (const auto [vname, last_req] : m_map_node_last_scout_req)
   {
-
-    string vname = p->first;
-    double last_req = p->second;
     double elapsed = m_curr_time - last_req;
-    if (elapsed < 3)
-      postRangePolys(vname, "scout", true);
-    else
-      postRangePolys(vname, "scout", false);
+    bool active = elapsed < 3;
+    postRangePolys(vname, active);
   }
 }
 
 //------------------------------------------------------------
 // Procedure: postRangePolys()
 
-void FireSim::postRangePolys(string vname, string tag, bool active)
+void FireSim::postRangePolys(std::string vname, bool active)
 {
   if (m_map_node_records.count(vname) == 0)
     return;
@@ -864,20 +664,20 @@ void FireSim::postRangePolys(string vname, string tag, bool active)
   double y = m_map_node_records[vname].getY();
 
   XYCircle circ(x, y, m_detect_rng_max);
-  circ.set_label("sensor_max_" + tag + "_" + vname);
+  circ.set_label("sensor_max_" + vname);
   circ.set_active(active);
   circ.set_vertex_color("off");
   circ.set_label_color("off");
   circ.set_edge_color("off");
   circ.set_color("fill", "white");
-  circ.set_transparency(m_detect_rng_transparency);
+  circ.set_transparency(m_scout_rng_transparency);
 
-  string spec1 = circ.get_spec();
+  std::string spec1 = circ.get_spec();
   Notify("VIEW_CIRCLE", spec1);
 
-  circ.set_label("sensor_min_" + tag + "_" + vname);
+  circ.set_label("sensor_min_" + vname);
   circ.setRad(m_detect_rng_min);
-  string spec2 = circ.get_spec();
+  std::string spec2 = circ.get_spec();
   Notify("VIEW_CIRCLE", spec2);
 }
 
@@ -887,47 +687,20 @@ void FireSim::postRangePolys(string vname, string tag, bool active)
 
 void FireSim::broadcastFires()
 {
-  map<string, NodeRecord>::const_iterator p;
-  for (p = m_map_node_records.begin(); p != m_map_node_records.end(); p++)
+  for (const auto &[vname, _] : m_map_node_records)
   {
-    string vname = p->first;
-    string var = "FIRE_ALERT_" + toupper(vname);
+    std::string var = "FIRE_ALERT_" + toupper(vname);
+    std::set<std::string> fires = m_fireset.getFireNames();
 
-    set<string> fires = m_fireset.getFireNames();
-    set<string>::const_iterator q;
-    for (q = fires.begin(); q != fires.end(); q++)
+    for (const auto &fname : fires)
     {
-      string fname = *q;
       Fire fire = m_fireset.getFire(fname);
-      string ftype = fire.getType();
-      if (ftype == "reg")
-      {
-        string id_str = fire.getID();
-        id_str = findReplace(id_str, "id", ""); // convert "id23" ot "23"
-        string msg = "x=" + doubleToStringX(fire.getCurrX(), 1);
-        msg += ", y=" + doubleToStringX(fire.getCurrY(), 1);
-        msg += ", id=" + id_str;
-        Notify(var, msg);
-      }
-    }
-  }
-}
-
-//------------------------------------------------------------
-// Procedure: applyTMateColors()
-
-void FireSim::applyTMateColors()
-{
-  map<string, string>::iterator p;
-  for (p = m_map_node_tmate.begin(); p != m_map_node_tmate.end(); p++)
-  {
-    string scout_vname = p->first;
-    string discover_vname = p->second;
-
-    if (m_map_node_records.count(discover_vname))
-    {
-      string discover_color = m_map_node_records[discover_vname].getColor();
-      Notify("NODE_COLOR_CHANGE_" + toupper(scout_vname), discover_color);
+      std::string id_str = fire.getID();
+      id_str = findReplace(id_str, "id", "");
+      std::string msg = "x=" + doubleToStringX(fire.getCurrX(), 1);
+      msg += ", y=" + doubleToStringX(fire.getCurrY(), 1);
+      msg += ", id=" + id_str;
+      Notify(var, msg);
     }
   }
 }
@@ -937,13 +710,10 @@ void FireSim::applyTMateColors()
 
 void FireSim::postFireMarkers()
 {
-  set<string> fire_names = m_fireset.getFireNames();
-  set<string>::iterator p;
-  for (p = fire_names.begin(); p != fire_names.end(); p++)
-  {
-    string fname = *p;
+  std::set<std::string> fire_names = m_fireset.getFireNames();
+
+  for (const auto &fname : fire_names)
     postFireMarker(fname);
-  }
 
   XYPolygon poly = m_fireset.getSearchRegion();
   if (poly.is_convex())
@@ -956,70 +726,65 @@ void FireSim::postFireMarkers()
 //------------------------------------------------------------
 // Procedure: postFireMarker()
 
-void FireSim::postFireMarker(string fname)
+void FireSim::postFireMarker(std::string fname)
 {
   if (!m_fireset.hasFire(fname))
     return;
 
   Fire fire = m_fireset.getFire(fname);
-  string ftype = fire.getType();
-  string discoverer = fire.getDiscoverer();
+  std::string discoverer = fire.getDiscoverer();
 
   bool notable = isNotable(fname);
 
   XYMarker marker;
   marker.set_label(fname);
-  marker.set_type("triangle");
+  marker.set_type("diamond");
   marker.set_vx(fire.getCurrX());
   marker.set_vy(fire.getCurrY());
   marker.set_width(3);
   marker.set_edge_color("green");
   marker.set_transparency(0.3);
 
-  if ((ftype == "reg") || (discoverer != ""))
+  if ((discoverer != "")) // Fire is discovered by vehicle or GCS
   {
-    string marker_color = m_fire_color;
-    string discoverer = fire.getDiscoverer();
-    if ((discoverer != "") && (discoverer != "nature"))
+    std::string marker_color = m_fire_color;
+
+    if (discoverer == "nature") // Fire is discovered by nature/GCS
+      marker.set_color("primary_color", m_fire_color);
+
+    else if ((discoverer != "nature")) // Fire is discovered by vehicle
     {
       marker_color = m_map_node_records[discoverer].getColor();
+      marker.set_color("primary_color", marker_color);
+
       if (!notable)
         marker.set_transparency(0.7);
       else
         marker.set_transparency(0.1);
     }
-    if (discoverer == "nature")
-      marker.set_color("primary_color", "gray50");
-    else
-      marker.set_color("primary_color", marker_color);
   }
-  else
+  else // Fire is undiscovered
   {
-    string color1 = "gray50";
-    string color2 = "gray50";
-    set<string> scouts = fire.getScoutSet();
-    if ((scouts.size() == 1) || (scouts.size() == 2))
-    {
-      set<string>::iterator p;
-      for (p = scouts.begin(); p != scouts.end(); p++)
-      {
-        string scout = *p;
-        string scout_tmate = m_map_node_tmate[scout];
-        string color = m_map_node_records[scout_tmate].getColor();
-        if (isColor(color) && (color1 == "gray50"))
-          color1 = color;
-        else if (isColor(color) && (color2 == "gray50"))
-          color2 = color;
-      }
-    }
-    marker.set_type("efield");
+    std::string color1 = "gray50";
+    // std::string color2 = "gray50";
+    // std::set<std::string> scouts = fire.getScoutSet();
+    // if ((scouts.size() == 1) || (scouts.size() == 2))
+    // {
+    //   std::set<std::string>::iterator p;
+    //   for (p = scouts.begin(); p != scouts.end(); p++)
+    //   {
+    //     std::string scout = *p;
+    //     std::string scout_tmate = m_map_node_tmate[scout];
+    //     std::string color = m_map_node_records[scout_tmate].getColor();
+    //     if (isColor(color) && (color1 == "gray50"))
+    //       color1 = color;
+    //     else if (isColor(color) && (color2 == "gray50"))
+    //       color2 = color;
+    //   }
+    // }
+    marker.set_type("triangle");
     marker.set_color("primary_color", color1);
-    marker.set_color("secondary_color", color2);
-
-#if 0
-    marker.set_type("circle");
-    marker.set_color("primary_color", "gray50");
-#endif
+    // marker.set_color("secondary_color", color2);
   }
 
   Notify("VIEW_MARKER", marker.get_spec());
@@ -1028,12 +793,12 @@ void FireSim::postFireMarker(string fname)
 //------------------------------------------------------------
 // Procedure: postFlags()
 
-void FireSim::postFlags(const vector<VarDataPair> &flags)
+void FireSim::postFlags(const std::vector<VarDataPair> &flags)
 {
   for (unsigned int i = 0; i < flags.size(); i++)
   {
     VarDataPair pair = flags[i];
-    string moosvar = pair.get_var();
+    std::string moosvar = pair.get_var();
 
     // If posting is a double, just post. No macro expansion
     if (!pair.is_string())
@@ -1044,7 +809,7 @@ void FireSim::postFlags(const vector<VarDataPair> &flags)
     // Otherwise if string posting, handle macro expansion
     else
     {
-      string sval = pair.get_sdata();
+      std::string sval = pair.get_sdata();
       sval = macroExpand(sval, "LEADER", m_vname_leader);
       sval = macroExpand(sval, "WINNER", m_vname_winner);
 
@@ -1064,52 +829,35 @@ void FireSim::postFlags(const vector<VarDataPair> &flags)
 //            since they represent the most recent fires that
 //            provide the leading vehicle with the lead.
 
-void FireSim::addNotable(string vname, string fname)
+void FireSim::addNotable(std::string vname, std::string fname)
 {
   if (vname == "nature")
     return;
 
-#if 0
-  string ftype = m_fireset.getFire(fname).getType();
-  if(m_fireset.getFire(fname).getType() == "person") 
-    m_map_notables[vname].push_front(fname);
-  else
-    return;
-#endif
-#if 1
   m_map_notables[vname].push_front(fname);
-#endif
 
   bool some_empty = false;
-  map<string, list<string>>::iterator p;
-  for (p = m_map_notables.begin(); p != m_map_notables.end(); p++)
-  {
-    if (p->second.size() == 0)
+  for (const auto &[_, fires] : m_map_notables)
+    if (fires.size() == 0)
       some_empty = true;
-  }
 
-  if (some_empty)
-    return;
-  if (m_map_notables.size() < m_total_discoverers)
-    return;
-  if (m_map_notables.size() == 1)
+  if (some_empty ||
+      (m_map_notables.size() < m_total_discoverers) ||
+      (m_map_notables.size() == 1))
     return;
 
-  for (p = m_map_notables.begin(); p != m_map_notables.end(); p++)
-    p->second.pop_back();
+  for (auto &[_, fires] : m_map_notables)
+    fires.pop_back();
 }
 
 //------------------------------------------------------------
 // Procedure: isNotable()
 
-bool FireSim::isNotable(string fname)
+bool FireSim::isNotable(std::string fname)
 {
-  map<string, list<string>>::iterator p;
-  for (p = m_map_notables.begin(); p != m_map_notables.end(); p++)
-  {
-    if (listContains(p->second, fname))
+  for (const auto &[_, fires] : m_map_notables)
+    if (listContains(fires, fname))
       return (true);
-  }
 
   return (false);
 }
@@ -1119,99 +867,109 @@ bool FireSim::isNotable(string fname)
 
 bool FireSim::buildReport()
 {
-  string str_rng_min = doubleToStringX(m_detect_rng_min, 1);
-  string str_rng_max = doubleToStringX(m_detect_rng_max, 1);
-  string str_rng_pd = doubleToStringX(m_detect_rng_pd, 2);
-  string str_trans = doubleToString(m_detect_rng_transparency, 2);
+  std::string str_rng_min = doubleToStringX(m_detect_rng_min, 1);
+  std::string str_rng_max = doubleToStringX(m_detect_rng_max, 1);
+  std::string str_rng_pd = doubleToStringX(m_detect_rng_pd, 2);
+  std::string str_trans = doubleToString(m_scout_rng_transparency, 2);
 
-  m_msgs << "======================================" << endl;
-  m_msgs << "FireSim Configuration " << endl;
-  m_msgs << "======================================" << endl;
-  m_msgs << "detect_rng_min: " << str_rng_min << endl;
-  m_msgs << "detect_rng_max: " << str_rng_max << endl;
-  m_msgs << "detect_rng_pd:  " << str_rng_pd << endl;
-  m_msgs << "detect_rng_show: " << boolToString(m_detect_rng_show) << endl;
-  m_msgs << "transparency:   " << str_trans << endl;
-  m_msgs << "fire_file:      " << m_fireset.getFireFile() << endl;
-  m_msgs << endl;
+  m_msgs << "======================================" << std::endl;
+  m_msgs << "FireSim Configuration " << std::endl;
+  m_msgs << "======================================" << std::endl;
+  m_msgs << "detect_rng_min: " << str_rng_min << std::endl;
+  m_msgs << "detect_rng_max: " << str_rng_max << std::endl;
+  m_msgs << "detect_rng_pd:  " << str_rng_pd << std::endl;
+  m_msgs << "detect_rng_show: " << boolToString(m_scout_rng_show) << std::endl;
+  m_msgs << "transparency:   " << str_trans << std::endl;
+  m_msgs << "fire_file:      " << m_fireset.getFireFile() << std::endl;
+  m_msgs << std::endl;
 
-  m_msgs << "======================================" << endl;
-  m_msgs << "Vehicle Discover Summary " << endl;
-  m_msgs << "======================================" << endl;
+  m_msgs << "======================================" << std::endl;
+  m_msgs << "Vehicle Discover Summary " << std::endl;
+  m_msgs << "======================================" << std::endl;
 
-  ACTable actab = ACTable(7);
-  actab << "Vehi | Discover | Discover | Fires       | Scout | Scout | Fires";
-  actab << "Name | Reqs     | Tries    | Discovered  | Reqs  | Tries | Scouted ";
+  auto undiscovered = m_fireset.size() - m_fireset.getTotalFiresDiscovered();
+  std::string finished_str = boolToString(m_finished);
+  finished_str += " (" + uintToString(undiscovered) + " remaining)";
+
+  m_msgs << "Total vehicles: " << m_map_node_records.size() << std::endl;
+  m_msgs << "Leader vehicle: " << m_vname_leader << std::endl;
+  m_msgs << "Winner vehicle: " << m_vname_winner << std::endl;
+
+  std::string running = boolToString(mission_starttime != 0);
+  m_msgs << "Mission Started (" << running << "): ";
+  if (mission_starttime == 0)
+  {
+    m_msgs << "-" << std::endl;
+  }
+  else
+  {
+    m_msgs << std::endl;
+    m_msgs << "  Start time: " << doubleToString(mission_starttime, 3) << std::endl;
+    m_msgs << "  Duration:   " << doubleToString(mission_duration, 3) << std::endl;
+    m_msgs << "  Current time: " << doubleToString(m_curr_time, 3) << std::endl;
+    m_msgs << "  Time remaining: " << doubleToString(mission_duration - (m_curr_time - mission_starttime), 0) << std::endl;
+    m_msgs << "Mission Finished: " << finished_str << std::endl;
+  }
+  m_msgs << std::endl;
+
+  ACTable actab = ACTable(4);
+  actab << "Vehi | Fires       | Scout | Scout ";
+  actab << "Name | Discovered  | Reqs  | Tries  ";
   actab.addHeaderLines();
 
-  string finished_str = boolToString(m_finished);
-  finished_str += " (" + uintToString(m_known_undiscovered) + " remaining)";
-
-  m_msgs << "Total vehicles: " << m_map_node_records.size() << endl;
-  m_msgs << "Leader vehicle: " << m_vname_leader << endl;
-  m_msgs << "Winner vehicle: " << m_vname_winner << endl;
-  m_msgs << "Mission Finished: " << finished_str << endl;
-  m_msgs << endl;
-
-  map<string, NodeRecord>::iterator q;
-  for (q = m_map_node_records.begin(); q != m_map_node_records.end(); q++)
+  for (const auto &[vname, _] : m_map_node_records)
   {
-    string vname = q->first;
-    string ds_reqs = uintToString(m_map_node_discover_reqs[vname]);
-    string ds_tries = uintToString(m_map_node_discover_tries[vname]);
-    string discovers = uintToString(m_map_node_discovers[vname]);
-    string sc_reqs = uintToString(m_map_node_scout_reqs[vname]);
-    string sc_tries = uintToString(m_map_node_scout_tries[vname]);
-    string scouts = uintToString(m_map_node_scouts[vname]);
-    actab << vname << ds_reqs << ds_tries << discovers;
-    actab << sc_reqs << sc_tries << scouts;
+    std::string discoveries = uintToString(m_map_node_discoveries[vname]);
+    std::string sc_reqs = uintToString(m_map_node_scout_reqs[vname]);
+    std::string sc_tries = uintToString(m_map_node_scout_tries[vname]);
+    actab << vname << discoveries << sc_reqs << sc_tries;
   }
   m_msgs << actab.getFormattedString();
+  m_msgs << std::endl
+         << std::endl;
 
-  m_msgs << endl
-         << endl;
-  m_msgs << "======================================" << endl;
-  m_msgs << "Fire Summary " << endl;
-  m_msgs << "======================================" << endl;
+  m_msgs << "======================================" << std::endl;
+  m_msgs << "Fire Summary " << std::endl;
+  m_msgs << "======================================" << std::endl;
   actab = ACTable(9);
-  actab << "Name | ID | Type | Pos| State | Discoverer| Tries | Scouts | Time ";
+  actab << "Name | ID | Pos| State | Discoveries | Discoverer| Tries | Scouts | Time ";
   actab.addHeaderLines();
 
-  set<string> fire_names = m_fireset.getFireNames();
+  std::set<std::string> fire_names = m_fireset.getFireNames();
 
-  set<string>::iterator p;
+  std::set<std::string>::iterator p;
   for (p = fire_names.begin(); p != fire_names.end(); p++)
   {
-    string fname = *p;
+    std::string fname = *p;
     Fire fire = m_fireset.getFire(fname);
-    string id = fire.getID();
-    string ftype = fire.getType();
-    string state = fire.getState();
-    string tries = uintToString(fire.getDiscoverTries());
+    std::string id = fire.getID();
+    std::string state = FireStateToString(fire.getState());
+    std::string tries = uintToString(fire.getScoutTries());
+    std::string discoveries = uintToString(fire.getDiscoverCnt());
 
     double xpos = fire.getCurrX();
     double ypos = fire.getCurrY();
-    string pos = doubleToStringX(xpos, 0) + "," + doubleToStringX(ypos, 0);
+    std::string pos = doubleToStringX(xpos, 0) + "," + doubleToStringX(ypos, 0);
 
-    string discoverer = "-";
+    std::string discoverer = "-";
     double duration = m_curr_time - fire.getTimeEnter();
-    if (state == "discovered")
+    if (state == FireStateToString(Fire::DISCOVERED))
     {
       duration = fire.getTimeDiscovered();
       discoverer = fire.getDiscoverer();
     }
 
-    set<string> scout_set = fire.getScoutSet();
-    string scouts = stringSetToString(scout_set);
+    std::set<std::string> scout_set = fire.getScoutSet();
+    std::string scouts = stringSetToString(scout_set);
 
-    string dur_str = doubleToStringX(duration, 1);
+    std::string dur_str = doubleToStringX(duration, 1);
 
-    actab << fname << id << ftype << pos << state;
+    actab << fname << id << pos << state << discoveries;
     actab << discoverer << tries << scouts << dur_str;
   }
   m_msgs << actab.getFormattedString();
-  m_msgs << endl
-         << endl;
+  m_msgs << std::endl
+         << std::endl;
 
   return (true);
 }

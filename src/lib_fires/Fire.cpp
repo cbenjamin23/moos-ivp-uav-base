@@ -22,11 +22,9 @@ Fire::Fire(string fname)
     m_time_enter = 0;
     m_time_discovered = 0;
 
-    m_state = "burning";
-    m_type = "reg";
+    m_state = FireState::UNDISCOVERED;
     m_name = fname;
 
-    m_discover_tries = 0;
     m_scout_tries = 0;
 }
 
@@ -38,28 +36,19 @@ void Fire::initXY(double x, double y)
     m_curr_y = y;
 }
 
-bool Fire::setState(string str)
+bool Fire::setStateFromString(string s){
+    return(setState(stringToFireState(s)));
+}
+
+bool Fire::setState(FireState s)
 {
-    str = tolower(str);
-    if ((str != "burning") && (str != "discovered"))
+    if (s != FireState::UNDISCOVERED && s != FireState::DISCOVERED)
         return (false);
 
-    m_state = str;
+    m_state = s;
     return (true);
 }
 
-bool Fire::setType(string str)
-{
-    str = tolower(str);
-    if ((str == "fire") || (str == "reg"))
-        m_type = "reg";
-    else if ((str == "heat") || (str == "unreg"))
-        m_type = "unreg";
-    else
-        return (false);
-
-    return (true);
-}
 
 //---------------------------------------------------------
 // Procedure: hasBeenScouted()
@@ -81,7 +70,10 @@ bool Fire::hasBeenScouted(string vname) const
 
 string Fire::getSpec() const
 {
-    string spec = "type=" + m_type + ", name=" + m_name;
+    string spec = "name=" + m_name;
+    std::string state = FireStateToString(m_state);
+    if ( state != "")
+        spec += ", state=" + state;
     if (m_start_x != 0)
         spec += ", start_x=" + doubleToStringX(m_start_x, 2);
     if (m_start_y != 0)
@@ -94,14 +86,10 @@ string Fire::getSpec() const
         spec += ", time_enter=" + doubleToStringX(m_time_enter, 2);
     if (m_time_discovered != 0)
         spec += ", time_discovered=" + doubleToStringX(m_time_discovered, 2);
-    if (m_state != "")
-        spec += ", state=" + m_state;
     if (m_discoverer != "")
         spec += ", discoverer=" + m_discoverer;
     if (m_id != "")
         spec += ", id=" + m_id;
-    if (m_discover_tries != 0)
-        spec += ", discover_tries=" + uintToString(m_discover_tries);
     if (m_scout_tries != 0)
         spec += ", scout_tries=" + uintToString(m_scout_tries);
 
@@ -113,6 +101,7 @@ Fire stringToFire(std::string str)
     Fire null_fire;
     Fire fire;
 
+    bool ok = true;
     vector<string> svector = parseString(str, ',');
     for (unsigned int i = 0; i < svector.size(); i++)
     {
@@ -142,21 +131,38 @@ Fire stringToFire(std::string str)
             fire.setTimeEnter(dval);
         else if (param == "time_discovered")
             fire.setTimeDiscovered(dval);
-        else if (param == "type")
-            fire.setType(value);
         else if (param == "name")
             fire.setName(value);
         else if (param == "id")
             fire.setID(value);
         else if (param == "state")
-            fire.setState(value);
+            ok = fire.setStateFromString(value);
         else if (param == "discoverer")
             fire.setDiscoverer(value);
-        else if (param == "discover_tries")
-            fire.setDiscoverTries((unsigned int)(dval));
         else if (param == "scout_tries")
             fire.setScoutTries((unsigned int)(dval));
     }
 
+    if(!ok)
+        return(null_fire);
+
     return (fire);
 }
+
+std::string FireStateToString(Fire::FireState state){
+    switch (state) {
+      case Fire::UNDISCOVERED:
+        return "undiscovered";
+      case Fire::DISCOVERED:
+        return "dicovered";
+    }
+    return "unknown";
+  }
+Fire::FireState stringToFireState(std::string state){
+    if (state == "undiscovered")
+      return Fire::FireState::UNDISCOVERED;
+    else if (state == "discovered")
+      return Fire::FireState::DISCOVERED;
+    
+    return Fire::FireState::UNKNOWN;
+  }

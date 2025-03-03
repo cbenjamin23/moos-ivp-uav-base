@@ -155,9 +155,19 @@ ProcessConfig = uFldShoreBroker
   qbridge = NODE_REPORT, NODE_MESSAGE
   qbridge = APPCAST_REQ
 	qbridge = SURVEY_UPDATE
-  qbridge = NODE_COLOR_CHANGE
+  // qbridge = NODE_COLOR_CHANGE
   
-  qbridge = FIRE_ALERT
+  qbridge  = FIRE_ALERT
+
+
+
+  bridge  = src=UFFS_LEADER
+  bridge  = src=UFFS_WINNER
+  bridge  = src=UFFS_FINISH
+  bridge  = src=DISCOVERED_FIRE
+  bridge  = src=MISSION_COMPLETE
+  // bridge  = src=RESCUE_REGION
+
 
   qbridge = ARM_UAV, HELM_STATUS, MOOS_MANUAL_OVERRIDE
 

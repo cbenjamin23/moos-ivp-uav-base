@@ -12,6 +12,8 @@
 #include "FireSim.h"
 #include "FireSim_Info.h"
 
+#include "Logger.h"
+
 using namespace std;
 
 int main(int argc, char *argv[])
@@ -45,6 +47,20 @@ int main(int argc, char *argv[])
   cout << termColor("green");
   cout << "uFldFireSim launching as " << run_command << endl;
   cout << termColor() << endl;
+
+
+  Logger::enable();
+  // Get the home directory from the environment variable
+  auto home_dir = getenv("HOME");
+  if (home_dir == nullptr)
+  {
+    Logger::error("Error: Could not get the home directory.");
+    std::cerr << "Error: Could not get the home directory." << std::endl;
+    return 1;
+  }
+  std::string save_path = std::string(home_dir) + "/moos-ivp-uav/missions/uFldFireSim.log";
+  Logger::configure(save_path);
+
 
   FireSim firesim;
   firesim.Run(run_command.c_str(), mission_file.c_str(), argc, argv);

@@ -10,7 +10,7 @@
 #include <unordered_set>
 
 
-#include "../lib_common/Logger.h"
+#include "Logger.h"
 
 
 class WarningSystem

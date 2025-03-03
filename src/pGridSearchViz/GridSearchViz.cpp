@@ -15,7 +15,7 @@
 #include "ACTable.h"
 #include "XYFormatUtilsPoly.h"
 
-#include "../lib_common/Logger.h"
+#include "Logger.h"
 
 #include <numeric>
 #include <algorithm>

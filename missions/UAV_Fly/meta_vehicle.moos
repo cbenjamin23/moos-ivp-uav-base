@@ -240,8 +240,7 @@ ProcessConfig = uTimerScript
 {
   reset_max  = unlimited
 	reset_time = end
-  // event      = var=DISCOVER_REQUEST, val=vname=$(VNAME), time=1
-  event      = var=SCOUT_REQUEST, val= "vname=$(VNAME), tmate=shoreside" , time=1
+  event      = var=SCOUT_REQUEST, val= "vname=$(VNAME)" , time=1
 }
 
 
