@@ -53,6 +53,10 @@ FireSim::FireSim()
   m_mission_endtime_utc = 0;
 
   m_ac.setMaxEvents(20);
+
+  m_mission_duration_s = 600;  // Default to 10 minutes
+  m_mission_start_utc = 0;
+  m_estimated_coverage_pct = 0.0;
 }
 
 //---------------------------------------------------------
@@ -276,6 +280,9 @@ bool FireSim::OnStartUp()
   srand(time(NULL));
 
   registerVariables();
+
+  // Initialize the mission scorer
+  m_mission_scorer.Initialize(m_fireset.size(), m_mission_duration_s, 0.0);
 
   return (true);
 }
@@ -604,6 +611,9 @@ void FireSim::updateFinishStatus()
   postFlags(m_finish_flags);
 
   updateWinnerStatus(true);
+  
+  // Calculate and publish the mission score
+  calculateMissionScore();
 }
 
 //------------------------------------------------------------
@@ -1089,4 +1099,36 @@ bool FireSim::buildReport()
   // Logger::info("\n");
 
   return (true);
+}
+
+//------------------------------------------------------------
+// Procedure: calculateMissionScore()
+
+void FireSim::calculateMissionScore()
+{
+  if(m_mission_scorer.isScoreCalculated())
+    return;
+  
+  // Calculate estimated coverage percentage based on vehicle paths
+  // This is just a placeholder - you would need a proper implementation
+  // based on your coverage calculation method
+  m_estimated_coverage_pct = 75.0;  // Example value
+  
+  // Calculate score using the FireSet
+  double score = m_mission_scorer.CalculateScoreFromFireSet(m_fireset, m_estimated_coverage_pct);
+  
+  // Publish score information to the MOOSDB
+  std::function <void(std::string, std::string)> reportFnc = [&,this](std::string key, std::string value) {
+    this->Notify(key, value);
+  };
+  m_mission_scorer.PublishScore(reportFnc);
+  // Save score to file
+  std::string score_filename = "fire_mission_score_" + 
+                               doubleToStringX(MOOSTime(),0) + ".txt";
+  m_mission_scorer.SaveScoreToFile(score_filename);
+  
+  // Send score summary to info_buffer for appcast
+  reportEvent("Mission Score: " + doubleToStringX(score, 2) + "/100");
+  reportEvent("Score details saved to: " + score_filename);
+  
 }

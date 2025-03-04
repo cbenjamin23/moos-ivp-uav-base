@@ -14,6 +14,7 @@
 #include "NodeRecord.h"
 #include "FireSet.h"
 #include "VarDataPair.h"
+#include "FireMissionScorer.h"
 
 constexpr double FIREMARKER_WIDTH = 10;
 constexpr double FIREMARKER_TRANSPARENCY_UNDISC = 0.3;
@@ -62,6 +63,9 @@ protected: // Utilities
   void updateLeaderStatus();
   void updateWinnerStatus(bool finished = false);
   void updateFinishStatus();
+  void calculateMissionScore();
+
+  bool missionStarted() const { return (m_mission_start_utc != 0); }
   bool missionDeadlineReached() const { return (MOOSTime() >= (m_mission_start_utc + m_mission_duration_s)); }
 
   bool rollDice(std::string vname, std::string);
@@ -78,7 +82,6 @@ protected: // Utilities
 
   void addNotable(std::string vname, std::string fname);
   bool isNotable(std::string fname);
-  bool missionStarted() const { return (m_mission_start_utc != 0); }
 
 protected: // State variables
   FireSet m_fireset;
@@ -115,6 +118,9 @@ protected: // State variables
   double m_mission_start_utc;   // Time at which the mission starts
   double m_mission_duration_s;  // Duration of the mission
   double m_mission_endtime_utc; // Time at which the mission ends
+
+  FireMissionScorer m_mission_scorer;  // Mission scoring object
+  double m_estimated_coverage_pct;     // Estimated coverage percentage
 
 protected: // Configuration variables
   std::vector<VarDataPair> m_winner_flags;

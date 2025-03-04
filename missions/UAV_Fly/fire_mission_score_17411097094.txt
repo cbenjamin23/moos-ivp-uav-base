@@ -1,0 +1,16 @@
+======= FIRE MISSION SCORE SUMMARY =======
+Total Score: 0.00 / 100
+----------------------------------------
+Completeness Score: 25.00 / 50
+Time Efficiency Score: 0.00 / 50
+Coverage Score: 7.50 / 10
+Redundant Detection Penalty: -80.33
+----------------------------------------
+Fires Detected: 6 / 12
+Latest Detection Time: 17411097039.52 seconds
+Average Detection Time: 17411096823.42 seconds
+Median Detection Time: 17411096841.16 seconds
+----------------------------------------
+Total Detections: 247
+Area Coverage: 75.00%
+========================================
