@@ -199,16 +199,20 @@ ProcessConfig = uFldFireSim
 
 	// app_logging = true
 
-	fire_file = fires_01.txt
+	fire_file = $(FIRE_FILE)
 	
-	detect_rng_min = 10 //60
-	detect_rng_max = 20 //60
-	detect_rng_pd  = 1.0
+	detect_rng_min = $(SENSOR_RADIUS_MIN) 
+	detect_rng_max = $(SENSOR_RADIUS_MAX) 
+	detect_rng_pd  = $(SENSOR_DETECT_PD)
+  detect_alt_max    = $(SENSOR_ALTITUDE_MAX)
+  detect_rng_fixed  = $(SENSOR_RADIUS_FIXED)
 
-  mission_duration = 3600
+  fire_color = $(FIRE_COLOR)  // "color, or vehicle if the fire should take the color of the vehicle"
+  
+  mission_duration = $(MISSION_DURATION)
 
+	scout_rng_transparency = 0.1
 	show_detect_rng = true
-	detect_rng_transparency = 0.1
 
   finish_flag = MISSION_COMPLETE=true
 }
@@ -231,10 +235,11 @@ ProcessConfig = pGridSearchViz
 
 	report_deltas = false
 
-  sensor_radius         = $(SENSOR_RADIUS)
+  sensor_radius         = $(SENSOR_RADIUS_MAX)
   sensor_color          = $(SENSOR_COLOR)
   sensor_altitude_max   = $(SENSOR_ALTITUDE_MAX)
   sensor_radius_fixed   = $(SENSOR_RADIUS_FIXED)
+  sensor_transparency   = 0.2
 
   grid_cell_decay_time  = $(GRID_CELL_DECAY_TIME)
   visualize_sensor_area = false
@@ -332,6 +337,10 @@ ProcessConfig = pMarineViewer
   action = BLOCK_HEARTBEAT = true
 	action+ = BLOCK_HEARTBEAT = false
 
+
+  action+ = menu_key=GSV_show_sensor  #  GSV_VISUALIZE_SENSOR_AREA=true
+  action+ = menu_key=UFFS_show_sensor #  GSV_VISUALIZE_SENSOR_AREA=false
+
   action+ = menu_key=VisualizeHome # GCS_COMMAND_ALL=VIZ_HOME
 
   action = menu_key=all_vehicles_SPD # CHANGE_SPEED_ALL=1
@@ -384,18 +393,14 @@ ProcessConfig = pMarineViewer
   left_context[reg_ignoredRegion_rectangle] = IGNORED_REGION = "reg:: format=rectangle, msg=dessert, cx=$[XPOS], cy=$[YPOS], width=300, height=400, degs=10"
 
   right_context[unreg_ignoredRegion] = IGNORED_REGION = "unreg:: x=$[XPOS], y=$[YPOS]"
-  // left_context[reg_swimmer]   = XSWIMMER_ALERT = type=reg,x=$[XPOS],y=$[YPOS]
-  // left_context[reg_swimmer]   = SURVEY_ALL=true
-  // left_context[reg_swimmer]   = RETURN_ALL=false
-	
-	// left_context[unreg_swimmer]   = XSWIMMER_ALERT = type=unreg,x=$[XPOS],y=$[YPOS]
-  // left_context[unreg_swimmer]   = SURVEY_ALL=true
-  // left_context[unreg_swimmer]   = RETURN_ALL=false
-	
-	// right_context[rescue]  = XFOUND_SWIMMER = x=$[XPOS],y=$[YPOS]
+  
+
+
+  // Fire related
+  left_context[add_fire]   = XFIRE_ALERT = x=$[XPOS],y=$[YPOS]
+
+	right_context[discover_fire]  = XDISCOVERED_FIRE = x=$[XPOS],y=$[YPOS]
  
-
-
 
 
 

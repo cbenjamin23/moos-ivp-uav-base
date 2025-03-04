@@ -33,6 +33,9 @@ public:
     std::set<std::string> getFireNames() const;
 
     XYPolygon getSearchRegion() const { return (m_search_region); }
+    void setSearchReagion(XYPolygon poly) { m_search_region = poly; }
+    bool isSearchRegionValid() const { return (m_search_region.size() > 0 && m_search_region.is_convex()); }
+
     std::string getFireFile() const { return (m_fire_file); }
 
     void tagFireID(Fire &fire);

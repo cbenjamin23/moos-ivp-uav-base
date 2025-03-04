@@ -80,6 +80,7 @@ protected: // Config vars
 
   // Sensor data
   std::string m_sensor_color;
+  double m_sensor_transparency;
   double m_sensor_radius_max;
   double m_sensor_altitude_max;
   bool m_sensor_radius_fixed;

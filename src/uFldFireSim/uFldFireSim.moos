@@ -19,6 +19,9 @@ ProcessConfig = uFldFireSim
 	show_detect_rng = true
 	detect_rng_transparency = 0.1
 
+    fire_color = red  // "color, or vehicle if the fire should take the color of the vehicle"
+    fire_color_from_vehicle = false // Deprecated
+
     finish_flag = MISSION_COMPLETE=true
 }
 

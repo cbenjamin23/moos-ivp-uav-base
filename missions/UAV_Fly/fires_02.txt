@@ -1,0 +1,12 @@
+// default state is undiscovered
+fire = name=f01, x=8, y=-50    
+fire = name=f02, x=67, y=-75   
+fire = name=f03, x=-19, y=-60  
+fire = name=f04, x=-28, y=-32  
+fire = name=f05, x=-25, y=-72  
+fire = name=f06, x=-46, y=-67  
+fire = name=f07, x=-34, y=-42  
+fire = name=f08, x=-3, y=-22   
+fire = name=f09, x=64, y=-2    
+fire = name=f10, x=22, y=-78   
+

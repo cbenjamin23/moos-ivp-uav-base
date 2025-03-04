@@ -30,6 +30,9 @@ GridSearchViz::GridSearchViz()
   m_grid_var_name = "VIEW_GRID";
   m_sensor_radius_max = 10;
   m_sensor_color = "black";
+  m_sensor_transparency = 0.2;
+
+
   m_missionStartTime = 0;
   m_map_coverage_statistics["coverage_%"] = 0;
 
@@ -152,10 +155,9 @@ bool GridSearchViz::OnStartUp()
       else if (param == "sensor_radius")
         handled = setDoubleOnString(m_sensor_radius_max, value);
       else if (param == "sensor_color")
-      {
-        m_sensor_color = value;
-        handled = true;
-      }
+        handled = setColorOnString(m_sensor_color, value);
+      else if (param == "sensor_transparency")
+        handled = setDoubleOnString(m_sensor_transparency, value);
       else if (param == "sensor_altitude_max")
         handled = setDoubleOnString(m_sensor_altitude_max, value);
       else if (param == "sensor_radius_fixed")
@@ -222,7 +224,6 @@ void GridSearchViz::handleMailNodeReport(std::string str)
   if (sensor_radius <= 0)
     return;
 
-  sensor_radius = std::min(sensor_radius, m_sensor_radius_max);
   // Logger::info("--->Sensor radius: " + doubleToStringX(sensor_radius, 2));
 
 
@@ -239,14 +240,13 @@ void GridSearchViz::handleMailNodeReport(std::string str)
 
   XYCircle sensorArea(posx, posy, sensor_radius);
   sensorArea.set_vertex_color(m_sensor_color);
-  sensorArea.set_edge_color(m_sensor_color);
-  // sensorArea.set_edge_size(1);
+  sensorArea.set_edge_color("off");
   sensorArea.set_label(name);
   sensorArea.set_label_color("off");
   // sensorArea.set_msg("sensor_area");
 
   sensorArea.set_color("fill", m_sensor_color);
-  sensorArea.set_transparency(0.2);
+  sensorArea.set_transparency(m_sensor_transparency);
   static bool registerMissionStartTime = false;
 
   for (auto ix : m_valid_cell_indices)

@@ -15,6 +15,11 @@
 #include "FireSet.h"
 #include "VarDataPair.h"
 
+constexpr double FIREMARKER_WIDTH = 10;
+constexpr double FIREMARKER_TRANSPARENCY_UNDISC = 0.3;
+constexpr double FIREMARKER_TRANSPARENCY_DISC = 0.5;
+constexpr double FIREMARKER_TRANSPARENCY_DISC_NOTABLE = 0.7;
+
 class FireSim : public AppCastingMOOSApp
 {
 public:
@@ -58,8 +63,9 @@ protected: // Utilities
   void updateWinnerStatus(bool finished = false);
   void updateFinishStatus();
 
-  // TODO: Remove dtype... not used
   bool rollDice(std::string vname, std::string);
+
+  double altScaledRange(double range_limit, std::string vname) const;
 
   void postScoutRngPolys();
   void postRangePolys(std::string vname, bool active);
@@ -71,6 +77,7 @@ protected: // Utilities
 
   void addNotable(std::string vname, std::string fname);
   bool isNotable(std::string fname);
+  bool missionStarted() const { return (m_mission_start_utc != 0); }
 
 protected: // State variables
   FireSet m_fireset;
@@ -116,8 +123,11 @@ protected: // Configuration variables
   double m_detect_rng_min;
   double m_detect_rng_max;
   double m_detect_rng_pd;
+  double m_detect_alt_max;
+  bool m_detect_rng_fixed;
 
   std::string m_fire_color;
+  bool m_fire_color_from_vehicle;
 
   bool m_scout_rng_show;
   double m_scout_rng_transparency;

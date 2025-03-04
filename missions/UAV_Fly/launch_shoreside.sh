@@ -106,22 +106,23 @@ fi
 
 
 
-
 USE_MOOS_SIM_PID=$(get_global_val $CONFIG_FILE simulation.useMoosSimPid)
 if [ $? -ne 0 ]; then exit 1; fi
 
 
 ENCOUNTER_RADIUS=$(get_global_val_in_moosDistance $CONFIG_FILE "missionParams.encounter_radius")
 if [ $? -ne 0 ]; then exit 1; fi
-
 NEAR_MISS_RADIUS=$(get_global_val_in_moosDistance $CONFIG_FILE "missionParams.near_miss_radius")
 if [ $? -ne 0 ]; then exit 1; fi
-
 COLLISION_RADIUS=$(get_global_val_in_moosDistance $CONFIG_FILE "missionParams.collision_radius")
 if [ $? -ne 0 ]; then exit 1; fi
 
 
-SENSOR_RADIUS=$(get_global_val_in_moosDistance $CONFIG_FILE "missionParams.sensor_radius")
+SENSOR_DETECT_PD=$(get_global_val $CONFIG_FILE "missionParams.sensor_detect_pd")
+if [ $? -ne 0 ]; then exit 1; fi
+SENSOR_RADIUS_MAX=$(get_global_val_in_moosDistance $CONFIG_FILE "missionParams.sensor_radius_max")
+if [ $? -ne 0 ]; then exit 1; fi
+SENSOR_RADIUS_MIN=$(get_global_val_in_moosDistance $CONFIG_FILE "missionParams.sensor_radius_min")
 if [ $? -ne 0 ]; then exit 1; fi
 SENSOR_COLOR=$(get_global_val $CONFIG_FILE "missionParams.sensor_color")
 if [ $? -ne 0 ]; then exit 1; fi
@@ -129,6 +130,19 @@ SENSOR_ALTITUDE_MAX=$(get_global_val $CONFIG_FILE "missionParams.sensor_altitude
 if [ $? -ne 0 ]; then exit 1; fi
 SENSOR_RADIUS_FIXED=$(get_global_val $CONFIG_FILE "missionParams.sensor_radius_fixed")
 if [ $? -ne 0 ]; then exit 1; fi
+
+
+
+MISSION_DURATION=$(get_global_val $CONFIG_FILE "missionParams.mission_duration")
+if [ $? -ne 0 ]; then exit 1; fi
+
+
+FIRE_FILE=$(get_global_val $CONFIG_FILE "missionParams.fire_file")
+if [ $? -ne 0 ]; then exit 1; fi
+FIRE_COLOR=$(get_global_val $CONFIG_FILE "missionParams.fire_color")
+if [ $? -ne 0 ]; then exit 1; fi
+
+
 
 
 GRID_CELL_SIZE=$(get_global_val_in_moosDistance $CONFIG_FILE "missionParams.grid_cell_size")
@@ -141,6 +155,8 @@ if [ $? -ne 0 ]; then exit 1; fi
 # read region_XY from config file
 REGION=$(get_region_xy $CONFIG_FILE)
 if [ $? -ne 0 ]; then exit 1; fi
+
+
 
 #---------------------------------------------------------------
 #  Part 4: If verbose, show vars and confirm before launching
@@ -170,10 +186,17 @@ if [ "${VERBOSE}" = "yes" ]; then
     echo "NEAR_MISS_RADIUS = [${NEAR_MISS_RADIUS}]"
     echo "COLLISION_RADIUS = [${COLLISION_RADIUS}]"
     echo "----------------------------------"
-    echo "SENSOR_RADIUS         = [${SENSOR_RADIUS}]"
+    echo "SENSOR_DETECT_PD         = [${SENSOR_DETECT_PD}]"
+    echo "SENSOR_RADIUS_MAX         = [${SENSOR_RADIUS_MAX}]"
+    echo "SENSOR_RADIUS_MIN         = [${SENSOR_RADIUS_MIN}]"
     echo "SENSOR_COLOR          = [${SENSOR_COLOR}]"
     echo "SENSOR_ALTITUDE_MAX   = [${SENSOR_ALTITUDE_MAX}]"
     echo "SENSOR_RADIUS_FIXED   = [${SENSOR_RADIUS_FIXED}]"
+    echo "----------------------------------"
+    echo "FIRE_FILE = [${FIRE_FILE}]"
+    echo "FIRE_COLOR = [${FIRE_COLOR}]"
+    echo "----------------------------------"
+    echo "MISSION_DURATION = [${MISSION_DURATION}]"
     echo "----------------------------------"
     echo "GRID_CELL_SIZE        = [${GRID_CELL_SIZE}]"
     echo "GRID_CELL_MAX_COUNT   = [${GRID_CELL_MAX_COUNT}]"
@@ -202,14 +225,19 @@ nsplug meta_shoreside.moos targ_shoreside.moos $NSFLAGS WARP=$TIME_WARP \
     ENCOUNTER_RADIUS=$ENCOUNTER_RADIUS                   \
     NEAR_MISS_RADIUS=$NEAR_MISS_RADIUS                   \
     COLLISION_RADIUS=$COLLISION_RADIUS                   \
-    SENSOR_RADIUS=$SENSOR_RADIUS                         \
+    SENSOR_DETECT_PD=$SENSOR_DETECT_PD                   \
+    SENSOR_RADIUS_MAX=$SENSOR_RADIUS_MAX                 \
+    SENSOR_RADIUS_MIN=$SENSOR_RADIUS_MIN                 \
     SENSOR_COLOR=$SENSOR_COLOR                           \
     SENSOR_ALTITUDE_MAX=$SENSOR_ALTITUDE_MAX             \
     SENSOR_RADIUS_FIXED=$SENSOR_RADIUS_FIXED             \
+    FIRE_FILE=$FIRE_FILE                                 \
+    FIRE_COLOR=$FIRE_COLOR                               \
     GRID_CELL_SIZE=$GRID_CELL_SIZE                       \
     GRID_CELL_MAX_COUNT=$GRID_CELL_MAX_COUNT              \
     GRID_CELL_DECAY_TIME=$GRID_CELL_DECAY_TIME            \
-    REGION=$REGION
+    REGION=$REGION                                        \
+    MISSION_DURATION=$MISSION_DURATION
 
 
 if [ ${JUST_MAKE} = "yes" ]; then

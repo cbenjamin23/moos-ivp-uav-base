@@ -33,8 +33,16 @@ moos:
   
 missionParams:
   
+  mission_duration : 600 # s - The duration of the mission
 
-  # Region: The region in which the mission is to be conducted
+
+  # Fire parameters:
+  fire_file: "fires_02.txt" # The file containing the fire data
+  fire_color: red # The color of the fire, or "vehicle" if the fire should take the color of the vehicle as well
+  # fire_count: 3 # The number of fires to be placed in the region
+
+
+  # Region parameters: The region in which the mission is to be conducted
   # TOOL: https://www.keene.edu/campus/maps/tool/
   use_moos_region: false
   region_XY: 100,460:-700,-200:-700,-920:620,-920:700,-222 # Directly in moos format for tesing
@@ -74,9 +82,11 @@ missionParams:
   grid_cell_decay_time: 30  # s - The decay rate of the grid cell value. Every x seconds it is decreased by 1
 
   # Sensor parameters
-  sensor_radius: 30 # m - The distance from the drone that the other drone must be within to consider it detected
-  sensor_color: black # The color of the sensor circle
-  sensor_altitude_max: 130 # m - The maximum altitude at which the sensor has a range of 100% (sensor_radius)
+  sensor_detect_pd  : 1.0 # Probability of detection of fire
+  sensor_radius_min : 20 # m - The farthest distance from the drone from which the drone has a possibility to detect fires with detect_pd
+  sensor_radius_max : 30 # m - The distance from which after sensor_radius_min the probability of detection drops linearly to 0
+  sensor_color: white # The color of the sensor circle/area
+  sensor_altitude_max: 130 # m - The maximum altitude at which the sensor has a range of 100% (sensor_radius_max)
   sensor_radius_fixed: true # If true, the sensor radius will be fixed at sensor_radius, regardless of altitude
 
   # Collision avoidance parameters
@@ -97,7 +107,7 @@ drones:
     #   fdm_port_in: 9002
 
   - name: "skyfollower"
-    color: "brown"
+    color: "hotpink"
     start_orientaton_moos: # +x is east, +y is north [m]
       x: -50
       y: -5

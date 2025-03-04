@@ -94,7 +94,8 @@ vector<string> FireSet::getFireFileSpec() const
 {
     vector<string> svector;
 
-    svector.push_back("poly = " + m_search_region.get_spec_pts());
+    if (isSearchRegionValid())
+        svector.push_back("poly = " + m_search_region.get_spec_pts());
 
     map<string, Fire>::const_iterator p;
     for (p = m_map_fires.begin(); p != m_map_fires.end(); p++)
@@ -126,6 +127,8 @@ bool FireSet::fireAlert(string str, double curr_time, string &warning)
     string fstate = tokStringParse(str, "state");
     double x = tokDoubleParse(str, "x");
     double y = tokDoubleParse(str, "y");
+
+    fstate = fstate.empty() ? "undiscovered" : fstate; // default state is undiscovered
 
     return (addFire(fname, fstate, x, y, curr_time, warning));
 }

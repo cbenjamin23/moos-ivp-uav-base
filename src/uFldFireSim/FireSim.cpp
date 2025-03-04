@@ -33,11 +33,14 @@ FireSim::FireSim()
   m_detect_rng_min = 25;
   m_detect_rng_max = 40;
   m_detect_rng_pd = 0.5;
+  m_detect_alt_max = 25;
+  m_detect_rng_fixed = true;
 
   m_scout_rng_transparency = 0.1;
   m_scout_rng_show = true;
   m_scouts_inplay = false;
   m_fire_color = "red";
+  m_fire_color_from_vehicle = false;
 
   // State vars
   m_finished = false;
@@ -76,13 +79,13 @@ bool FireSim::OnNewMail(MOOSMSG_LIST &NewMail)
       handled = handleMailNodeReport(sval);
     else if (key == "SCOUT_REQUEST")
       handled = handleMailScoutRequest(sval);
-    else if ((key == "FIRE_ALERT") && (comm == "shoreside"))
+    else if ((key == "XFIRE_ALERT") && (comm == "shoreside"))
     {
       handled = m_fireset.fireAlert(sval, m_curr_time, warning);
       updateFinishStatus();
       postFireMarkers();
     }
-    else if ((key == "DISCOVERED_FIRE") && (comm == "shoreside"))
+    else if ((key == "XDISCOVERED_FIRE") && (comm == "shoreside"))
     {
       std::string xstr = tokStringParse(sval, "x");
       std::string ystr = tokStringParse(sval, "y");
@@ -102,6 +105,20 @@ bool FireSim::OnNewMail(MOOSMSG_LIST &NewMail)
     {
       m_mission_start_utc = dval;
       handled = true;
+    }
+    else if (key == "GSV_VISUALIZE_SENSOR_AREA")
+    {
+      bool bval;
+      handled = setBooleanOnString(bval, sval);
+      m_scout_rng_show = !bval;
+
+      if (!m_scout_rng_show)
+      {
+        for (const auto &[vname, _] : m_map_node_scout_reqs)
+        {
+          postRangePolys(vname, false);
+        }
+      }
     }
 
     if (!handled)
@@ -129,12 +146,14 @@ void FireSim::registerVariables()
 {
   AppCastingMOOSApp::RegisterVariables();
 
-  Register("FIRE_ALERT", 0);
-  Register("DISCOVERED_FIRE", 0);
+  Register("XFIRE_ALERT", 0);
+  Register("XDISCOVERED_FIRE", 0);
   Register("NODE_REPORT", 0);
   Register("NODE_REPORT_LOCAL", 0);
   Register("SCOUT_REQUEST", 0);
   Register("MISSION_START_TIME", 0);
+
+  Register("GSV_VISUALIZE_SENSOR_AREA", 0);
 }
 
 //---------------------------------------------------------
@@ -144,7 +163,7 @@ bool FireSim::Iterate()
 {
   AppCastingMOOSApp::Iterate();
 
-  if (!m_finished && m_mission_start_utc != 0) // Mission is running
+  if (!m_finished && missionStarted()) // Mission is running
     tryScouts();
 
   postScoutRngPolys();
@@ -195,7 +214,11 @@ bool FireSim::OnStartUp()
       handled = handleConfigDetectRangeMax(value);
     else if (param == "detect_rng_pd")
       handled = handleConfigDetectRangePd(value);
-    else if ((param == "detect_rng_transparency") && isNumber(value))
+    else if (param == "detect_alt_max")
+      handled = setDoubleOnString(m_detect_alt_max, value);
+    else if (param == "detect_rng_fixed")
+      handled = setBooleanOnString(m_detect_rng_fixed, value);
+    else if ((param == "scout_rng_transparency") && isNumber(value))
       handled = setNonNegDoubleOnString(m_scout_rng_transparency, value);
     else if (param == "mission_duration")
       handled = setDoubleOnString(m_mission_duration_s, value);
@@ -206,7 +229,17 @@ bool FireSim::OnStartUp()
     else if (param == "finish_flag")
       handled = addVarDataPairOnString(m_finish_flags, value);
     else if (param == "fire_color")
-      handled = setColorOnString(m_fire_color, value);
+    {
+      if (value == "vehicle")
+      {
+        m_fire_color_from_vehicle = true;
+        handled = true;
+      }
+      else
+        handled = setColorOnString(m_fire_color, value);
+    }
+    else if (param == "fire_color_from_vehicle") // Deprecated
+      handled = setBooleanOnString(m_fire_color_from_vehicle, value);
 
     if (!handled)
     {
@@ -318,6 +351,7 @@ bool FireSim::handleMailNodeReport(const std::string &node_report_str)
 void FireSim::tryScouts()
 {
 
+  // Logger::info("Trying to Scout for all vehicles");
   // For each vehicle, check if pending scout actions are to be applied
   for (const auto &[vname, _] : m_map_node_records)
     tryScoutsVName(vname);
@@ -328,15 +362,22 @@ void FireSim::tryScouts()
 
 void FireSim::tryScoutsVName(std::string vname)
 {
+  // Logger::info("Trying to scout for vehicle with Vname given");
   // If vehicle has not posted a scout request recently, then the
   // scout ability is off for this vehicle.
   double elapsed_req = m_curr_time - m_map_node_last_scout_req[vname];
   if (elapsed_req > 5)
+  {
+    Logger::warning("Elapsed request time > 5 ");
     return;
+  }
+
   double elapsed_try = m_curr_time - m_map_node_last_scout_try[vname];
   if (elapsed_try < 1) // Allow 1 seconds between scout tries
+  {
+    Logger::warning("Elapsed try time < 1 ");
     return;
-
+  }
   m_map_node_last_scout_try[vname] = m_curr_time;
   m_map_node_scout_tries[vname]++;
 
@@ -351,6 +392,8 @@ void FireSim::tryScoutsVName(std::string vname)
 
 void FireSim::tryScoutsVNameFire(std::string vname, std::string fname)
 {
+  // Logger::info("Trying to scout for vehicle with Vname and fire name given");
+
   Fire fire = m_fireset.getFire(fname);
 
   bool result = rollDice(vname, fname);
@@ -372,6 +415,14 @@ void FireSim::tryScoutsVNameFire(std::string vname, std::string fname)
 
     // Logger::info("FireSim::tryScoutsVNameFire: DiscCount (prev/after): " + std::to_string(prev_discCount) + "/" + std::to_string(new_discCount));
   }
+}
+
+double FireSim::altScaledRange(double range_limit, std::string vname) const
+{
+  double altitude = m_map_node_records.at(vname).getAltitude();
+  double range_scaling = (altitude > range_limit || m_detect_rng_fixed) ? 1.0 : (altitude / range_limit);
+  double rng = range_limit * range_scaling;
+  return (rng < 0) ? 0 : rng;
 }
 
 //------------------------------------------------------------
@@ -489,7 +540,7 @@ void FireSim::updateWinnerStatus(bool finished)
 void FireSim::updateFinishStatus()
 {
   // Once we are finished, we are always finished
-  if (m_finished)
+  if (m_finished || !missionStarted())
     return;
 
   std::set<std::string> fnames = m_fireset.getFireNames();
@@ -508,6 +559,14 @@ void FireSim::updateFinishStatus()
   bool deadline_reached = MOOSTime() > (m_mission_start_utc + m_mission_duration_s);
   if (deadline_reached)
     finished = true;
+
+  // log the moostime, deadline, and if all fires are discovered
+
+  // Logger::info("uPdateFinishStatus: MOOSTime: " + doubleToString(MOOSTime()));
+  // Logger::info("uPdateFinishStatus: Mission Start: " + doubleToString(m_mission_start_utc));
+  // Logger::info("uPdateFinishStatus: Mission Deadline: " + doubleToString((m_mission_start_utc + m_mission_duration_s)));
+  // Logger::info("uPdateFinishStatus: Deadline reached: " + boolToString(deadline_reached));
+  // Logger::info("uPdateFinishStatus: All fires discovered: " + boolToString(m_fireset.allFiresDiscovered()) );
 
   if (!finished)
     return;
@@ -560,17 +619,20 @@ bool FireSim::rollDice(std::string vname, std::string fname)
   int rand_int = rand() % 10000;
   double dice_roll = (double)(rand_int) / 10000;
 
+  double range_max = altScaledRange(m_detect_rng_max, vname);
+  double range_min = altScaledRange(m_detect_rng_min, vname);
+
   double pd = m_detect_rng_pd;
-  if (range_to_fire >= m_detect_rng_max)
+  if (range_to_fire >= range_max)
     pd = 0;
-  else if (range_to_fire >= m_detect_rng_min)
+  else if (range_to_fire >= range_min)
   {
-    double pct = m_detect_rng_max - range_to_fire;
-    pct = pct / (m_detect_rng_max - m_detect_rng_min);
+    double pct = range_max - range_to_fire;
+    pct = pct / (range_max - range_min);
     pd = pct * pd;
   }
 
-  if (range_to_fire <= m_detect_rng_max)
+  if (range_to_fire <= range_max)
   {
     fire.incScoutTries();
   }
@@ -623,6 +685,7 @@ void FireSim::declareDiscoveredFire(std::string vname, std::string fname)
   Fire fire = m_fireset.getFire(fname);
   fire.setState(Fire::FireState::DISCOVERED);
   fire.setDiscoverer(vname);
+  fire.setTimeDiscovered(MOOSTime());
   m_fireset.modFire(fire);
 
   // Part 4: Update the discover stats for this vehicle
@@ -673,7 +736,7 @@ void FireSim::postRangePolys(std::string vname, bool active)
   double x = m_map_node_records[vname].getX();
   double y = m_map_node_records[vname].getY();
 
-  XYCircle circ(x, y, m_detect_rng_max);
+  XYCircle circ(x, y, altScaledRange(m_detect_rng_max, vname));
   circ.set_label("sensor_max_" + vname);
   circ.set_active(active);
   circ.set_vertex_color("off");
@@ -686,7 +749,7 @@ void FireSim::postRangePolys(std::string vname, bool active)
   Notify("VIEW_CIRCLE", spec1);
 
   circ.set_label("sensor_min_" + vname);
-  circ.setRad(m_detect_rng_min);
+  circ.setRad(altScaledRange(m_detect_rng_min, vname));
   std::string spec2 = circ.get_spec();
   Notify("VIEW_CIRCLE", spec2);
 }
@@ -751,9 +814,9 @@ void FireSim::postFireMarker(std::string fname)
   marker.set_type("diamond");
   marker.set_vx(fire.getCurrX());
   marker.set_vy(fire.getCurrY());
-  marker.set_width(3);
+  marker.set_width(FIREMARKER_WIDTH);
   marker.set_edge_color("green");
-  marker.set_transparency(0.3);
+  marker.set_transparency(FIREMARKER_TRANSPARENCY_UNDISC);
 
   if ((discoverer != "")) // Fire is discovered by vehicle or GCS
   {
@@ -761,21 +824,26 @@ void FireSim::postFireMarker(std::string fname)
 
     if (discoverer == "nature") // Fire is discovered by nature/GCS
       marker.set_color("primary_color", m_fire_color);
-
-    else if ((discoverer != "nature")) // Fire is discovered by vehicle
+    else // Fire is discovered by vehicle
     {
-      marker_color = m_map_node_records[discoverer].getColor();
+      if (m_fire_color_from_vehicle)
+      {
+        marker_color = m_map_node_records[discoverer].getColor();
+        marker.set_type("efield");
+        marker.set_color("secondary_color", m_fire_color);
+      }
+
       marker.set_color("primary_color", marker_color);
 
       if (!notable)
-        marker.set_transparency(0.7);
+        marker.set_transparency(FIREMARKER_TRANSPARENCY_DISC_NOTABLE);
       else
-        marker.set_transparency(0.1);
+        marker.set_transparency(FIREMARKER_TRANSPARENCY_DISC);
     }
   }
   else // Fire is undiscovered
   {
-    std::string color1 = "gray50";
+    std::string gray = "gray50";
     // std::string color2 = "gray50";
     // std::set<std::string> scouts = fire.getScoutSet();
     // if ((scouts.size() == 1) || (scouts.size() == 2))
@@ -786,14 +854,14 @@ void FireSim::postFireMarker(std::string fname)
     //     std::string scout = *p;
     //     std::string scout_tmate = m_map_node_tmate[scout];
     //     std::string color = m_map_node_records[scout_tmate].getColor();
-    //     if (isColor(color) && (color1 == "gray50"))
-    //       color1 = color;
+    //     if (isColor(color) && (gray == "gray50"))
+    //       gray = color;
     //     else if (isColor(color) && (color2 == "gray50"))
     //       color2 = color;
     //   }
     // }
     marker.set_type("triangle");
-    marker.set_color("primary_color", color1);
+    marker.set_color("primary_color", gray);
     // marker.set_color("secondary_color", color2);
   }
 
@@ -889,6 +957,9 @@ bool FireSim::buildReport()
   m_msgs << "detect_rng_max: " << str_rng_max << std::endl;
   m_msgs << "detect_rng_pd:  " << str_rng_pd << std::endl;
   m_msgs << "detect_rng_show: " << boolToString(m_scout_rng_show) << std::endl;
+  m_msgs << "detect_alt_max: " << doubleToString(m_detect_alt_max, 1) << std::endl;
+  m_msgs << "detect_rng_fixed: " << boolToString(m_detect_rng_fixed) << std::endl;
+  m_msgs << "fire_color:     " << m_fire_color << std::endl;
   m_msgs << "transparency:   " << str_trans << std::endl;
   m_msgs << "fire_file:      " << m_fireset.getFireFile() << std::endl;
   m_msgs << std::endl;
@@ -905,7 +976,7 @@ bool FireSim::buildReport()
   m_msgs << "Leader vehicle: " << m_vname_leader << std::endl;
   m_msgs << "Winner vehicle: " << m_vname_winner << std::endl;
 
-  std::string running = boolToString(m_mission_start_utc != 0);
+  std::string running = boolToString(missionStarted());
   m_msgs << "Mission Started (" << running << "): ";
   if (m_mission_start_utc == 0)
   {
@@ -920,7 +991,9 @@ bool FireSim::buildReport()
     {
       m_msgs << "  Elapsed time: " << doubleToString(m_curr_time - m_mission_start_utc, 3) << std::endl;
       m_msgs << "  Time remaining: " << doubleToString(m_mission_duration_s - (m_curr_time - m_mission_start_utc), 0) << std::endl;
-    } else {
+    }
+    else
+    {
       m_msgs << "  Mission Finished time: " << doubleToString(m_mission_endtime_utc, 3) << std::endl;
     }
     m_msgs << "Mission Finished: " << finished_str << std::endl;
@@ -972,7 +1045,7 @@ bool FireSim::buildReport()
     double duration = m_curr_time - fire.getTimeEnter();
     if (state == FireStateToString(Fire::DISCOVERED))
     {
-      duration = fire.getTimeDiscovered();
+      duration = fire.getTimeDiscovered() - fire.getTimeEnter();
       discoverer = fire.getDiscoverer();
     }
 
