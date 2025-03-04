@@ -190,6 +190,9 @@ bool FireSim::OnStartUp()
   if (!m_MissionReader.GetConfiguration(GetAppName(), sParams))
     reportConfigWarning("No config block found for " + GetAppName());
 
+
+  std::string fire_config;
+
   STRING_LIST::iterator p;
   for (p = sParams.begin(); p != sParams.end(); p++)
   {
@@ -200,11 +203,13 @@ bool FireSim::OnStartUp()
 
     bool handled = false;
     std::string warning;
-    if (param == "fire_file")
+    if (param == "fire_config")
     {
-      handled = m_fireset.handleFireFile(value, m_curr_time, warning);
-      Notify("PLOGGER_CMD", "COPY_FILE_REQUEST=" + value);
-      updateFinishStatus();
+      unsigned int len = fire_config.length();
+      if ((len > 0) && (fire_config.at(len - 1) != ','))
+        fire_config += ",";
+      fire_config += value;
+      handled = true;
     }
     else if (param == "show_detect_rng")
       handled = setBooleanOnString(m_scout_rng_show, value);
@@ -228,26 +233,44 @@ bool FireSim::OnStartUp()
       handled = addVarDataPairOnString(m_leader_flags, value);
     else if (param == "finish_flag")
       handled = addVarDataPairOnString(m_finish_flags, value);
-    else if (param == "fire_color")
-    {
-      if (value == "vehicle")
-      {
-        m_fire_color_from_vehicle = true;
-        handled = true;
-      }
-      else
-        handled = setColorOnString(m_fire_color, value);
-    }
-    else if (param == "fire_color_from_vehicle") // Deprecated
+    else if (param == "fire_color_from_vehicle") // Deprecated (dont use explicitly)
       handled = setBooleanOnString(m_fire_color_from_vehicle, value);
+    else if (param == "fire_color")
+      {
+        if (value == "vehicle")
+        {
+          m_fire_color_from_vehicle = true;
+          handled = true;
+        }
+        else
+          handled = setColorOnString(m_fire_color, value);
+      }
 
     if (!handled)
     {
       reportUnhandledConfigWarning(orig);
       if (warning != "")
         reportUnhandledConfigWarning(warning);
+      }
     }
-  }
+  
+  Logger::info("FireSim::OnStartUp: Fire Config: " + fire_config);
+
+  std::string warning;
+  bool ok = m_fireset.handleFireConfig(fire_config, m_curr_time, warning);
+  if(!ok)
+    reportUnhandledConfigWarning(warning);
+  
+
+  Notify("PLOGGER_CMD", "COPY_FILE_REQUEST=" + m_fireset.getFireFile());
+  updateFinishStatus();
+
+  // // Set up fireSet
+  // if(m_fireset.handleFireFile(fire_file, m_curr_time, warning))
+  //   reportUnhandledConfigWarning(warning);
+
+
+
   postFireMarkers();
 
   srand(time(NULL));
@@ -355,6 +378,9 @@ void FireSim::tryScouts()
   // For each vehicle, check if pending scout actions are to be applied
   for (const auto &[vname, _] : m_map_node_records)
     tryScoutsVName(vname);
+  
+  if(missionDeadlineReached())
+    updateFinishStatus();
 }
 
 //---------------------------------------------------------
@@ -375,7 +401,7 @@ void FireSim::tryScoutsVName(std::string vname)
   double elapsed_try = m_curr_time - m_map_node_last_scout_try[vname];
   if (elapsed_try < 1) // Allow 1 seconds between scout tries
   {
-    Logger::warning("Elapsed try time < 1 ");
+    // Logger::warning("Elapsed try time < 1 ");
     return;
   }
   m_map_node_last_scout_try[vname] = m_curr_time;
@@ -556,17 +582,16 @@ void FireSim::updateFinishStatus()
     finished = true;
 
   // Second criteria if misson deadline has passed .
-  bool deadline_reached = MOOSTime() > (m_mission_start_utc + m_mission_duration_s);
-  if (deadline_reached)
+  if (missionDeadlineReached())
     finished = true;
 
   // log the moostime, deadline, and if all fires are discovered
 
-  // Logger::info("uPdateFinishStatus: MOOSTime: " + doubleToString(MOOSTime()));
-  // Logger::info("uPdateFinishStatus: Mission Start: " + doubleToString(m_mission_start_utc));
-  // Logger::info("uPdateFinishStatus: Mission Deadline: " + doubleToString((m_mission_start_utc + m_mission_duration_s)));
-  // Logger::info("uPdateFinishStatus: Deadline reached: " + boolToString(deadline_reached));
-  // Logger::info("uPdateFinishStatus: All fires discovered: " + boolToString(m_fireset.allFiresDiscovered()) );
+  Logger::info("uPdateFinishStatus: MOOSTime: " + doubleToString(MOOSTime()));
+  Logger::info("uPdateFinishStatus: Mission Start: " + doubleToString(m_mission_start_utc));
+  Logger::info("uPdateFinishStatus: Mission Deadline: " + doubleToString((m_mission_start_utc + m_mission_duration_s)));
+  Logger::info("uPdateFinishStatus: Deadline reached: " + boolToString(missionDeadlineReached()));
+  Logger::info("uPdateFinishStatus: All fires discovered: " + boolToString(m_fireset.allFiresDiscovered()) );
 
   if (!finished)
     return;
@@ -953,15 +978,15 @@ bool FireSim::buildReport()
   m_msgs << "======================================" << std::endl;
   m_msgs << "FireSim Configuration " << std::endl;
   m_msgs << "======================================" << std::endl;
-  m_msgs << "detect_rng_min: " << str_rng_min << std::endl;
-  m_msgs << "detect_rng_max: " << str_rng_max << std::endl;
-  m_msgs << "detect_rng_pd:  " << str_rng_pd << std::endl;
-  m_msgs << "detect_rng_show: " << boolToString(m_scout_rng_show) << std::endl;
-  m_msgs << "detect_alt_max: " << doubleToString(m_detect_alt_max, 1) << std::endl;
+  m_msgs << "  detect_rng_min: " << str_rng_min << std::endl;
+  m_msgs << "  detect_rng_max: " << str_rng_max << std::endl;
+  m_msgs << "   detect_rng_pd: " << str_rng_pd << std::endl;
+  m_msgs << " detect_rng_show: " << boolToString(m_scout_rng_show) << std::endl;
+  m_msgs << "  detect_alt_max: " << doubleToString(m_detect_alt_max, 1) << std::endl;
   m_msgs << "detect_rng_fixed: " << boolToString(m_detect_rng_fixed) << std::endl;
-  m_msgs << "fire_color:     " << m_fire_color << std::endl;
-  m_msgs << "transparency:   " << str_trans << std::endl;
-  m_msgs << "fire_file:      " << m_fireset.getFireFile() << std::endl;
+  m_msgs << "      fire_color: " << m_fire_color << std::endl;
+  m_msgs << "    transparency: " << str_trans << std::endl;
+  m_msgs << "       fire_file: " << m_fireset.getFireFile() << std::endl;
   m_msgs << std::endl;
 
   m_msgs << "======================================" << std::endl;
@@ -985,16 +1010,16 @@ bool FireSim::buildReport()
   else
   {
     m_msgs << std::endl;
-    m_msgs << "  Start time: " << doubleToString(m_mission_start_utc, 3) << std::endl;
-    m_msgs << "  Duration:   " << doubleToString(m_mission_duration_s, 3) << std::endl;
+    m_msgs << "     Start time: " << doubleToString(m_mission_start_utc, 3) << std::endl;
+    m_msgs << "       Duration: " << doubleToString(m_mission_duration_s, 3) << std::endl;
     if (!m_finished)
     {
-      m_msgs << "  Elapsed time: " << doubleToString(m_curr_time - m_mission_start_utc, 3) << std::endl;
-      m_msgs << "  Time remaining: " << doubleToString(m_mission_duration_s - (m_curr_time - m_mission_start_utc), 0) << std::endl;
+      m_msgs << "   Elapsed time: " << doubleToString(m_curr_time - m_mission_start_utc, 3) << std::endl;
+      m_msgs << " Time remaining: " << doubleToString(m_mission_duration_s - (m_curr_time - m_mission_start_utc), 0) << std::endl;
     }
     else
     {
-      m_msgs << "  Mission Finished time: " << doubleToString(m_mission_endtime_utc, 3) << std::endl;
+      m_msgs << "   Finished time: " << doubleToString(m_mission_endtime_utc, 3) << std::endl;
     }
     m_msgs << "Mission Finished: " << finished_str << std::endl;
   }

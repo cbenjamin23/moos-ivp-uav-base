@@ -199,15 +199,23 @@ ProcessConfig = uFldFireSim
 
 	// app_logging = true
 
-	fire_file = $(FIRE_FILE)
-	
+  fire_config = generate = $(FIRE_GENERATE)
+  fire_config = file = $(FIRE_FILE_DEFAULT)
+  fire_config = count = $(FIRE_COUNT)
+  fire_config = sep_min = $(FIRE_SEP_MIN)
+  fire_config = region = {$(REGION)}
+  fire_config = save_path = "missions/UAV_Fly/" // is withing the moos-ivp-uav folder
+
+  
+  fire_color = $(FIRE_COLOR)  // "color, or vehicle if the fire should take the color of the vehicle"
+
+
 	detect_rng_min = $(SENSOR_RADIUS_MIN) 
 	detect_rng_max = $(SENSOR_RADIUS_MAX) 
 	detect_rng_pd  = $(SENSOR_DETECT_PD)
   detect_alt_max    = $(SENSOR_ALTITUDE_MAX)
   detect_rng_fixed  = $(SENSOR_RADIUS_FIXED)
 
-  fire_color = $(FIRE_COLOR)  // "color, or vehicle if the fire should take the color of the vehicle"
   
   mission_duration = $(MISSION_DURATION)
 

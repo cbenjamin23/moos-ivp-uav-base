@@ -62,6 +62,7 @@ protected: // Utilities
   void updateLeaderStatus();
   void updateWinnerStatus(bool finished = false);
   void updateFinishStatus();
+  bool missionDeadlineReached() const { return (MOOSTime() >= (m_mission_start_utc + m_mission_duration_s)); }
 
   bool rollDice(std::string vname, std::string);
 

@@ -37,10 +37,13 @@ missionParams:
 
 
   # Fire parameters:
-  fire_file: "fires_02.txt" # The file containing the fire data
-  fire_color: red # The color of the fire, or "vehicle" if the fire should take the color of the vehicle as well
-  # fire_count: 3 # The number of fires to be placed in the region
-
+  fire_generate       : true # If true, the fires will be generated randomly, otherwise they will be read from a file
+  fire_file_default   : "fires_01.txt" # The file containing the fire data if generate not set
+  fire_count          : 12 # The number of fires to be placed in the region
+  fire_sep_min        : 150 # m - The minimum separation between fires
+  fire_color          : red # The color of the fire, or "vehicle" if the fire should take the color of the vehicle as well
+  fire_ignored_regions: 3 # The number of regions to generate and ignore when placing fires
+  
 
   # Region parameters: The region in which the mission is to be conducted
   # TOOL: https://www.keene.edu/campus/maps/tool/
@@ -74,7 +77,7 @@ missionParams:
     10.1519251, 63.4015728
   # Waypoint parameters
   capture_radius: 50  # m  - The distance from the waypoint that the drone must be within to consider it captured
-  slip_radius: 75     # m   (both currently modify sim parameters)
+  slip_radius   : 75     # m   (both currently modify sim parameters)
 
   # Grid parameters
   grid_cell_size: 10      # m - The distance between each waypoint in the grid
@@ -82,12 +85,12 @@ missionParams:
   grid_cell_decay_time: 30  # s - The decay rate of the grid cell value. Every x seconds it is decreased by 1
 
   # Sensor parameters
-  sensor_detect_pd  : 1.0 # Probability of detection of fire
-  sensor_radius_min : 20 # m - The farthest distance from the drone from which the drone has a possibility to detect fires with detect_pd
-  sensor_radius_max : 30 # m - The distance from which after sensor_radius_min the probability of detection drops linearly to 0
-  sensor_color: white # The color of the sensor circle/area
-  sensor_altitude_max: 130 # m - The maximum altitude at which the sensor has a range of 100% (sensor_radius_max)
-  sensor_radius_fixed: true # If true, the sensor radius will be fixed at sensor_radius, regardless of altitude
+  sensor_detect_pd    : 1.0 # Probability of detection of fire
+  sensor_radius_min   : 20 # m - The farthest distance from the drone from which the drone has a possibility to detect fires with detect_pd
+  sensor_radius_max   : 30 # m - The distance from which after sensor_radius_min the probability of detection drops linearly to 0
+  sensor_color        : white # The color of the sensor circle/area
+  sensor_altitude_max : 130 # m - The maximum altitude at which the sensor has a range of 100% (sensor_radius_max)
+  sensor_radius_fixed : true # If true, the sensor radius will be fixed at sensor_radius, regardless of altitude
 
   # Collision avoidance parameters
   encounter_radius: 100 # m - The distance from the drone that the other drone must be within to consider it encountered

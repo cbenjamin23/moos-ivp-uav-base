@@ -12,12 +12,14 @@
 #include "FireFldGenerator.h"
 #include "MBUtils.h"
 
+#include "common.h"
+
 using namespace std;
 
 FireFldGenerator::FireFldGenerator()
 {
     m_fire_amt = 1;
-    m_buffer_dist = 10;
+    m_buffer_dist = 200;
 }
 
 bool FireFldGenerator::setFireAmt(string amt)
@@ -31,17 +33,17 @@ bool FireFldGenerator::setBufferDist(string str)
     return (setNonNegDoubleOnString(m_buffer_dist, str));
 }
 
-bool FireFldGenerator::generate()
+bool FireFldGenerator::generate(std::stringstream& out)
 {
     unsigned int total = m_fire_amt;
     if (total == 0)
     {
-        cout << "No fires requested. No fires generated." << endl;
+        out << "No fires requested. No fires generated." << endl;
         return (false);
     }
     if (m_generator.size() == 0)
     {
-        cout << "No region specified. No fires generated" << endl;
+        out << "No region specified. No fires generated" << endl;
         return (false);
     }
 
@@ -66,12 +68,12 @@ bool FireFldGenerator::generate()
 
     // Output results
     double nearest = m_generator.getGlobalNearest();
-    cout << "// Lowest dist between fires: ";
-    cout << doubleToString(nearest, 2) << endl;
+    out << "// Lowest dist between fires: ";
+    out << doubleToString(nearest * MOOSDIST2METERS, 2) << endl;
     for (unsigned int i = 0; i < m_generator.size(); i++)
     {
         string poly_spec = m_generator.getPolygon(i).get_spec(4);
-        cout << "poly = " << poly_spec << endl;
+        out << "poly = " << poly_spec << endl;
     }
 
     // Output fires
@@ -84,9 +86,9 @@ bool FireFldGenerator::generate()
         double xval = points[i].get_vx();
         double yval = points[i].get_vy();
         
-        cout << "fire = name=" << fire_name;
-        cout << ", x=" << doubleToStringX(xval, 2);
-        cout << ", y=" << doubleToStringX(yval, 2) << endl;
+        out << "fire = name=" << fire_name;
+        out << ", x=" << doubleToStringX(xval, 2);
+        out << ", y=" << doubleToStringX(yval, 2) << endl;
     }
 
 

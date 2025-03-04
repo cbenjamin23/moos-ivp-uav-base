@@ -13,8 +13,10 @@ public:
     FireSet();
     virtual ~FireSet() {}
 
+    bool handleFireConfig(std::string str, double curr_time, std::string &warning);
     bool handleFireFile(std::string, double, std::string &warning);
-    bool fireAlert(std::string, double, std::string &warning);
+    bool handleSearchRegionStr(std::string str, std::string &warning);
+    bool fireAlert(std::string str, double, std::string &warning);
     bool modFire(Fire);
 
     std::string getNameClosestFire(double x, double y, double rng = 10);

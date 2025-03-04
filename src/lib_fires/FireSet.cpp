@@ -10,6 +10,7 @@
 #include <numeric>
 #include <algorithm>
 #include <cmath>
+#include <fstream>
 
 #include "FireSet.h"
 #include "ColorParse.h"
@@ -17,7 +18,10 @@
 #include "FileBuffer.h"
 #include "XYFormatUtilsPoly.h"
 
-using namespace std;
+#include "FireFldGenerator.h"
+
+#include "Logger.h"
+#include "common.h"
 
 FireSet::FireSet()
 {
@@ -25,9 +29,73 @@ FireSet::FireSet()
     shuffleIDs();
 }
 
-bool FireSet::handleFireFile(string str, double curr_time, string &warning)
+// Format: generate = true, file = fire.txt, count = 10, sep_min = 10, region = {x0,y0:x1,y1:...:x2,y2}, save_path = "missions/UAV_FLY"
+
+bool FireSet::handleFireConfig(std::string str, double curr_time, std::string &warning)
 {
-    vector<string> lines = fileBuffer(str);
+
+    std::string generate_str = tokStringParse(str, "generate");
+    bool generate = false;
+    setBooleanOnString(generate, generate_str);
+
+    std::string file = tokStringParse(str, "file");
+    std::string count_str = tokStringParse(str, "count");
+    std::string sep_min_str = tokStringParse(str, "sep_min");
+    std::string region_str = tokStringParse(str, "region");
+    region_str = "pts=" + region_str;
+    std::string save_path = tokStringParse(str, "save_path");
+
+    if( !generate && file.empty())
+        warning = "Bad FireConfig Line (need a file if not generating): " + str;
+    if (generate && count_str.empty())  
+        warning = "Bad FireConfig Line (need count w/ generating): " + str;
+    if (generate && sep_min_str.empty())
+        warning = "Bad FireConfig Line (need sep_min w/ generating): " + str;
+    if (generate && region_str.empty())
+        warning = "Bad FireConfig Line (need region w/ generating): " + str;
+    if (generate && save_path.empty())
+        warning = "Bad FireConfig Line (need save_path w/ generating): " + str;    
+    if(!warning.empty())
+        return false;
+    
+    if (!generate)
+        return handleFireFile(file, curr_time, warning);
+        
+    FireFldGenerator generator;
+    generator.setFireAmt(count_str);
+    generator.setBufferDist(sep_min_str);
+    generator.addPolygon(region_str);
+    
+    std::stringstream ss;
+    if(!generator.generate(ss))
+    {
+        warning = "Failed to generate fires with fire_config line: " + str;
+        return false;
+    }
+    std::string result = ss.str();
+
+    double sep_min_meters;
+    setDoubleOnString(sep_min_meters, sep_min_str);
+    sep_min_meters *= MOOSDIST2METERS;
+
+    std::string file_name = "fires_c" + count_str + "_sep" + doubleToStringX(sep_min_meters,0)  +  ".txt";
+    // find absolute path to moos-ivp-uav folder
+    std::string file_path = getenv("HOME");
+    file_path += "/moos-ivp-uav/" + save_path + file_name;
+
+    // save result to file name
+    std::ofstream file_out(file_path, std::ios::out);
+    file_out << result;
+    file_out.close();
+
+ 
+    Logger::info("Generated fires saved to: " + file_path);
+    return handleFireFile(file_path, curr_time, warning);
+}
+
+bool FireSet::handleFireFile(std::string str, double curr_time, std::string &warning)
+{
+    std::vector<std::string> lines = fileBuffer(str);
     if (lines.size() == 0)
     {
         warning = "File not found, or empty: " + str;
@@ -36,18 +104,18 @@ bool FireSet::handleFireFile(string str, double curr_time, string &warning)
 
     for (unsigned int i = 0; i < lines.size(); i++)
     {
-        string orig = lines[i];
-        string line = stripBlankEnds(stripComment(lines[i], "//"));
+        std::string orig = lines[i];
+        std::string line = stripBlankEnds(stripComment(lines[i], "//"));
         if (line == "")
             continue;
 
-        string param = biteStringX(line, '=');
-        string value = line;
+        std::string param = biteStringX(line, '=');
+        std::string value = line;
 
         if (param == "fire")
         {
             Fire fire = stringToFire(value);
-            string fname = fire.getName();
+            std::string fname = fire.getName();
             if (m_map_fires.count(fname) != 0)
             {
                 warning = "Bad FireFile Line: " + orig;
@@ -60,12 +128,10 @@ bool FireSet::handleFireFile(string str, double curr_time, string &warning)
         }
         else if ((param == "region") || (param == "poly"))
         {
-            m_search_region = string2Poly(value);
-            m_search_region.set_color("edge", "gray90");
-            m_search_region.set_color("vertex", "dodger_blue");
-            m_search_region.set_vertex_size(5);
-            if (!m_search_region.is_convex())
-            {
+            std::string _;
+            bool ok = handleSearchRegionStr(value, _);
+            if (!ok){
+                Logger::info("FireSet::handleFireFile: " + value);
                 warning = "Bad FireFile Line: " + orig;
                 return (false);
             }
@@ -76,11 +142,29 @@ bool FireSet::handleFireFile(string str, double curr_time, string &warning)
     return (true);
 }
 
-vector<Fire> FireSet::getFires() const
-{
-    vector<Fire> fvector;
+bool FireSet::handleSearchRegionStr(std::string str, std::string &warning){
+    m_search_region = string2Poly(str);
+    m_search_region.set_color("edge", "gray90");
+    m_search_region.set_color("vertex", "dodger_blue");
+    m_search_region.set_vertex_size(5);
 
-    map<string, Fire>::const_iterator p;
+    // Logger::info("FireSet::handleSearchRegionStr: " + str);
+    // Logger::info("FireSet Search reagion convex: " + boolToString(m_search_region.is_convex()));
+    if (!m_search_region.is_convex())
+    {
+        warning = "Bad Search Reagion std::String: " + str;
+        return (false);
+    }
+
+    return true;
+}
+
+
+std::vector<Fire> FireSet::getFires() const
+{
+    std::vector<Fire> fvector;
+
+    std::map<std::string, Fire>::const_iterator p;
     for (p = m_map_fires.begin(); p != m_map_fires.end(); p++)
     {
         Fire fire = p->second;
@@ -90,24 +174,24 @@ vector<Fire> FireSet::getFires() const
     return (fvector);
 }
 
-vector<string> FireSet::getFireFileSpec() const
+std::vector<std::string> FireSet::getFireFileSpec() const
 {
-    vector<string> svector;
+    std::vector<std::string> svector;
 
     if (isSearchRegionValid())
         svector.push_back("poly = " + m_search_region.get_spec_pts());
 
-    map<string, Fire>::const_iterator p;
+    std::map<std::string, Fire>::const_iterator p;
     for (p = m_map_fires.begin(); p != m_map_fires.end(); p++)
     {
-        string name = p->first;
+        std::string name = p->first;
         Fire fire = p->second;
         double start_x = fire.getStartX();
         double start_y = fire.getStartX();
-        string x_str = doubleToStringX(start_x);
-        string y_str = doubleToStringX(start_y);
+        std::string x_str = doubleToStringX(start_x);
+        std::string y_str = doubleToStringX(start_y);
 
-        string line = "fire = name=" + name;
+        std::string line = "fire = name=" + name;
         line += ", x=" + x_str + ", y=" + y_str;
         svector.push_back(line);
     }
@@ -121,10 +205,10 @@ vector<string> FireSet::getFireFileSpec() const
 //            state=undiscovered, x=2, y=3
 //      Note: XFIRE_ALERT
 
-bool FireSet::fireAlert(string str, double curr_time, string &warning)
+bool FireSet::fireAlert(std::string str, double curr_time, std::string &warning)
 {
-    string fname = tokStringParse(str, "name");
-    string fstate = tokStringParse(str, "state");
+    std::string fname = tokStringParse(str, "name");
+    std::string fstate = tokStringParse(str, "state");
     double x = tokDoubleParse(str, "x");
     double y = tokDoubleParse(str, "y");
 
@@ -133,10 +217,10 @@ bool FireSet::fireAlert(string str, double curr_time, string &warning)
     return (addFire(fname, fstate, x, y, curr_time, warning));
 }
 
-bool FireSet::addFire(string fname, string fstate,
+bool FireSet::addFire(std::string fname, std::string fstate,
                       double x, double y,
                       double curr_time,
-                      string &warning)
+                      std::string &warning)
 {
     if ((stringToFireState(fstate) == Fire::FireState::UNKNOWN))
     {
@@ -171,18 +255,18 @@ bool FireSet::addFire(string fname, string fstate,
     return (true);
 }
 
-string FireSet::getNameClosestFire(double x, double y, double min_range)
+std::string FireSet::getNameClosestFire(double x, double y, double min_range)
 {
     if (m_map_fires.size() == 0)
         return ("");
 
-    string closest_fname;
+    std::string closest_fname;
     double closest_range = -1;
 
-    map<string, Fire>::iterator p;
+    std::map<std::string, Fire>::iterator p;
     for (p = m_map_fires.begin(); p != m_map_fires.end(); p++)
     {
-        string fname = p->first;
+        std::string fname = p->first;
         Fire fire = p->second;
         if (fire.getState() == Fire::FireState::DISCOVERED)
             continue;
@@ -203,9 +287,9 @@ string FireSet::getNameClosestFire(double x, double y, double min_range)
     return (closest_fname);
 }
 
-set<string> FireSet::getFireNames() const
+std::set<std::string> FireSet::getFireNames() const
 {
-    set<string> fire_names;
+    std::set<std::string> fire_names;
     for (const auto &[key, _] : m_map_fires)
         fire_names.insert(key);
 
@@ -214,7 +298,7 @@ set<string> FireSet::getFireNames() const
 
 bool FireSet::modFire(Fire fire)
 {
-    string fname = fire.getName();
+    std::string fname = fire.getName();
     if (m_map_fires.count(fname) == 0)
         return (false);
 
@@ -222,14 +306,14 @@ bool FireSet::modFire(Fire fire)
     return (true);
 }
 
-bool FireSet::hasFire(string fname) const
+bool FireSet::hasFire(std::string fname) const
 {
     if (m_map_fires.count(fname) == 0)
         return (false);
     return (true);
 }
 
-Fire FireSet::getFire(string fname) const
+Fire FireSet::getFire(std::string fname) const
 {
     Fire null_fire;
     if (m_map_fires.count(fname) == 0)
@@ -238,20 +322,20 @@ Fire FireSet::getFire(string fname) const
     return (m_map_fires.at(fname));
 }
 
-bool FireSet::hasFireByID(string id) const
+bool FireSet::hasFireByID(std::string id) const
 {
     if (m_map_fire_ids.count(id) == 0)
         return (false);
     return (true);
 }
 
-Fire FireSet::getFireByID(string id) const
+Fire FireSet::getFireByID(std::string id) const
 {
     Fire null_fire;
     if (m_map_fire_ids.count(id) == 0)
         return (null_fire);
 
-    string fname = m_map_fire_ids.at(id);
+    std::string fname = m_map_fire_ids.at(id);
     if (m_map_fires.count(fname) == 0)
         return (null_fire);
 
@@ -269,7 +353,7 @@ void FireSet::shuffleIDs()
 
 void FireSet::tagFireID(Fire &fire)
 {
-    string new_id;
+    std::string new_id;
     if (m_map_fires.size() >= m_shuffled_ids.size())
         new_id = "id" + uintToString(m_map_fires.size(), 2);
     else
@@ -293,7 +377,7 @@ unsigned int FireSet::getTotalFiresDiscovered() const
 
     return (total);
 }
-unsigned int FireSet::getTotalFiresDiscoveredBy(string vname) const
+unsigned int FireSet::getTotalFiresDiscoveredBy(std::string vname) const
 {
     if (vname == "")
         return (0);

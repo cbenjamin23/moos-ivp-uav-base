@@ -137,9 +137,15 @@ MISSION_DURATION=$(get_global_val $CONFIG_FILE "missionParams.mission_duration")
 if [ $? -ne 0 ]; then exit 1; fi
 
 
-FIRE_FILE=$(get_global_val $CONFIG_FILE "missionParams.fire_file")
+FIRE_FILE_DEFAULT=$(get_global_val $CONFIG_FILE "missionParams.fire_file_default")
 if [ $? -ne 0 ]; then exit 1; fi
 FIRE_COLOR=$(get_global_val $CONFIG_FILE "missionParams.fire_color")
+if [ $? -ne 0 ]; then exit 1; fi
+FIRE_GENERATE=$(get_global_val $CONFIG_FILE "missionParams.fire_generate")
+if [ $? -ne 0 ]; then exit 1; fi
+FIRE_COUNT=$(get_global_val $CONFIG_FILE "missionParams.fire_count")
+if [ $? -ne 0 ]; then exit 1; fi
+FIRE_SEP_MIN=$(get_global_val_in_moosDistance $CONFIG_FILE "missionParams.fire_sep_min")
 if [ $? -ne 0 ]; then exit 1; fi
 
 
@@ -193,8 +199,11 @@ if [ "${VERBOSE}" = "yes" ]; then
     echo "SENSOR_ALTITUDE_MAX   = [${SENSOR_ALTITUDE_MAX}]"
     echo "SENSOR_RADIUS_FIXED   = [${SENSOR_RADIUS_FIXED}]"
     echo "----------------------------------"
-    echo "FIRE_FILE = [${FIRE_FILE}]"
+    echo "FIRE_FILE_DEFAULT = [${FIRE_FILE_DEFAULT}]"
     echo "FIRE_COLOR = [${FIRE_COLOR}]"
+    echo "FIRE_GENERATE = [${FIRE_GENERATE}]"
+    echo "FIRE_COUNT = [${FIRE_COUNT}]"
+    echo "FIRE_SEP_MIN = [${FIRE_SEP_MIN}]"
     echo "----------------------------------"
     echo "MISSION_DURATION = [${MISSION_DURATION}]"
     echo "----------------------------------"
@@ -231,8 +240,11 @@ nsplug meta_shoreside.moos targ_shoreside.moos $NSFLAGS WARP=$TIME_WARP \
     SENSOR_COLOR=$SENSOR_COLOR                           \
     SENSOR_ALTITUDE_MAX=$SENSOR_ALTITUDE_MAX             \
     SENSOR_RADIUS_FIXED=$SENSOR_RADIUS_FIXED             \
-    FIRE_FILE=$FIRE_FILE                                 \
+    FIRE_FILE_DEFAULT=$FIRE_FILE_DEFAULT                 \
     FIRE_COLOR=$FIRE_COLOR                               \
+    FIRE_GENERATE=$FIRE_GENERATE                         \
+    FIRE_COUNT=$FIRE_COUNT                               \
+    FIRE_SEP_MIN=$FIRE_SEP_MIN                           \
     GRID_CELL_SIZE=$GRID_CELL_SIZE                       \
     GRID_CELL_MAX_COUNT=$GRID_CELL_MAX_COUNT              \
     GRID_CELL_DECAY_TIME=$GRID_CELL_DECAY_TIME            \
