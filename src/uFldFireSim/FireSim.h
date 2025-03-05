@@ -16,10 +16,14 @@
 #include "VarDataPair.h"
 #include "FireMissionScorer.h"
 
-constexpr double FIREMARKER_WIDTH = 10;
+constexpr double FIREMARKER_WIDTH = 20;
 constexpr double FIREMARKER_TRANSPARENCY_UNDISC = 0.3;
 constexpr double FIREMARKER_TRANSPARENCY_DISC = 0.5;
 constexpr double FIREMARKER_TRANSPARENCY_DISC_NOTABLE = 0.7;
+
+constexpr double FIRE_PULSE_RANGE = 60; //moosDistance
+constexpr double FIRE_PULSE_DURATION = 4; 
+
 
 class FireSim : public AppCastingMOOSApp
 {
@@ -52,21 +56,19 @@ protected: // Outgoing mail utility
   // void declareScoutedFire(std::string vname, std::string fname);
 
 protected: // Utilities
-  // void tryDiscovers();
-  // void tryDiscoversVName(std::string vname);
-  // void tryDiscoversVNameFire(std::string vname, std::string fname);
-
   void tryScouts();
   void tryScoutsVName(std::string vname);
   void tryScoutsVNameFire(std::string vname, std::string fname);
 
+  void trySpawnFire();
+
   void updateLeaderStatus();
   void updateWinnerStatus(bool finished = false);
   void updateFinishStatus();
-  void calculateMissionScore();
+  void calculateMissionScore(bool imputeTime = false);
 
-  bool missionStarted() const { return (m_mission_start_utc != 0); }
-  bool missionDeadlineReached() const { return (MOOSTime() >= (m_mission_start_utc + m_mission_duration_s)); }
+  bool isMissionDeadlineReached() const {return (MOOSTime() >= (m_mission_start_utc + m_mission_duration_s)); }
+  bool isMissionRunning() const { return (m_mission_start_utc) && !m_finished; }
 
   bool rollDice(std::string vname, std::string);
 
@@ -76,6 +78,7 @@ protected: // Utilities
   void postRangePolys(std::string vname, bool active);
   void postFireMarkers();
   void postFireMarker(std::string fname);
+  void postPulseMessage(Fire fire, double time,  std::string discoverer="");
 
   void postFlags(const std::vector<VarDataPair> &flags);
   void broadcastFires();
@@ -119,8 +122,8 @@ protected: // State variables
   double m_mission_duration_s;  // Duration of the mission
   double m_mission_endtime_utc; // Time at which the mission ends
 
-  FireMissionScorer m_mission_scorer;  // Mission scoring object
-  double m_estimated_coverage_pct;     // Estimated coverage percentage
+  FireMissionScorer m_mission_scorer; // Mission scoring object
+  bool m_imputeTime;
 
 protected: // Configuration variables
   std::vector<VarDataPair> m_winner_flags;

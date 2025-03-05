@@ -26,6 +26,7 @@
 FireSet::FireSet()
 {
     m_max_size = 99;
+    m_min_sep = 0;
     shuffleIDs();
 }
 
@@ -45,29 +46,29 @@ bool FireSet::handleFireConfig(std::string str, double curr_time, std::string &w
     region_str = "pts=" + region_str;
     std::string save_path = tokStringParse(str, "save_path");
 
-    if( !generate && file.empty())
+    if (!generate && file.empty())
         warning = "Bad FireConfig Line (need a file if not generating): " + str;
-    if (generate && count_str.empty())  
+    if (generate && count_str.empty())
         warning = "Bad FireConfig Line (need count w/ generating): " + str;
     if (generate && sep_min_str.empty())
         warning = "Bad FireConfig Line (need sep_min w/ generating): " + str;
     if (generate && region_str.empty())
         warning = "Bad FireConfig Line (need region w/ generating): " + str;
     if (generate && save_path.empty())
-        warning = "Bad FireConfig Line (need save_path w/ generating): " + str;    
-    if(!warning.empty())
+        warning = "Bad FireConfig Line (need save_path w/ generating): " + str;
+    if (!warning.empty())
         return false;
-    
+
     if (!generate)
         return handleFireFile(file, curr_time, warning);
-        
+
     FireFldGenerator generator;
     generator.setFireAmt(count_str);
     generator.setBufferDist(sep_min_str);
     generator.addPolygon(region_str);
-    
+
     std::stringstream ss;
-    if(!generator.generate(ss))
+    if (!generator.generate(ss))
     {
         warning = "Failed to generate fires with fire_config line: " + str;
         return false;
@@ -78,17 +79,19 @@ bool FireSet::handleFireConfig(std::string str, double curr_time, std::string &w
     setDoubleOnString(sep_min_meters, sep_min_str);
     sep_min_meters *= MOOSDIST2METERS;
 
-    std::string file_name = "fires_c" + count_str + "_sep" + doubleToStringX(sep_min_meters,0)  +  ".txt";
+    std::string file_name = "fires_c" + count_str + "_sep" + doubleToStringX(sep_min_meters, 0) + ".txt";
     // find absolute path to moos-ivp-uav folder
-    std::string file_path = getenv("HOME");
-    file_path += "/moos-ivp-uav/" + save_path + file_name;
+    m_fire_config_save_path = getenv("HOME");
+    m_fire_config_save_path += "/moos-ivp-uav/" + save_path;
 
+    std::string file_path = m_fire_config_save_path + file_name;
     // save result to file name
     std::ofstream file_out(file_path, std::ios::out);
     file_out << result;
     file_out.close();
 
- 
+    m_min_sep = generator.getMinSep();
+
     Logger::info("Generated fires saved to: " + file_path);
     return handleFireFile(file_path, curr_time, warning);
 }
@@ -114,15 +117,23 @@ bool FireSet::handleFireFile(std::string str, double curr_time, std::string &war
 
         if (param == "fire")
         {
+            
             Fire fire = stringToFire(value);
             std::string fname = fire.getName();
             if (m_map_fires.count(fname) != 0)
             {
-                warning = "Bad FireFile Line: " + orig;
+                warning = "Bad FireFile Line (fname already exist): " + orig;
                 return (false);
             }
-
+            
+            double spawntime = tokDoubleParse(value, "spawntime");
+            if(spawntime > 0){
+                m_vec_spawnable_fires.push_back(std::make_pair(spawntime, value));
+                continue;
+            }
+            
             fire.setTimeEnter(curr_time);
+
             tagFireID(fire);
             m_map_fires[fname] = fire;
         }
@@ -130,7 +141,8 @@ bool FireSet::handleFireFile(std::string str, double curr_time, std::string &war
         {
             std::string _;
             bool ok = handleSearchRegionStr(value, _);
-            if (!ok){
+            if (!ok)
+            {
                 Logger::info("FireSet::handleFireFile: " + value);
                 warning = "Bad FireFile Line: " + orig;
                 return (false);
@@ -142,7 +154,8 @@ bool FireSet::handleFireFile(std::string str, double curr_time, std::string &war
     return (true);
 }
 
-bool FireSet::handleSearchRegionStr(std::string str, std::string &warning){
+bool FireSet::handleSearchRegionStr(std::string str, std::string &warning)
+{
     m_search_region = string2Poly(str);
     m_search_region.set_color("edge", "gray90");
     m_search_region.set_color("vertex", "dodger_blue");
@@ -159,6 +172,41 @@ bool FireSet::handleSearchRegionStr(std::string str, std::string &warning){
     return true;
 }
 
+std::vector<Fire> FireSet::tryAddSpawnableFire(double mission_start_utc, double curr_time_utc){
+
+    
+    std::vector<Fire> spawned_fires;
+    if(m_vec_spawnable_fires.empty())
+        return spawned_fires;
+    
+
+    std::vector<std::pair<double, std::string>>::iterator it;
+    for( it = m_vec_spawnable_fires.begin(); it != m_vec_spawnable_fires.end();){
+        double spawntime = it->first;
+        std::string fire_str = it->second;
+        
+        double missionDuration = curr_time_utc - mission_start_utc;
+        if(missionDuration >= spawntime){
+            std::string dummy_str;
+            fireAlert(fire_str, curr_time_utc, dummy_str);
+            
+            std::string fname = tokStringParse(fire_str, "name");
+            spawned_fires.push_back(m_map_fires.at(fname));
+
+            it = m_vec_spawnable_fires.erase(it);
+        } 
+        else
+            it++;
+    }
+    
+    return spawned_fires;
+}
+
+void FireSet::setMissionStartEndTimeOnFires(double v)
+{
+    for (auto &[_, fire] : m_map_fires)
+        fire.setTimeEnter(v);
+}
 
 std::vector<Fire> FireSet::getFires() const
 {

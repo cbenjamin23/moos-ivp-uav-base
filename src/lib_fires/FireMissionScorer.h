@@ -11,17 +11,15 @@
 class FireMissionScorer
 {
 public:
-    // Constructor
     FireMissionScorer();
 
-    // Initialization with mission parameters
-    void Initialize(int totalFires, double deadlineSeconds, double totalCoverageArea);
+    // init with mission parameters
+    void init(int totalFires, double deadlineSeconds, double totalCoverageArea);
 
-    // Calculate score directly from FireSet
-    double CalculateScoreFromFireSet(const FireSet &fireSet, double coveragePercentage);
+    double calculateScoreFromFireSet(const FireSet &fireSet, bool imputeTime = false);
 
-    // Original methods for backward compatibility
-    void SetCoveragePercentage(double percentage);
+    void setCoveragePercentage(double pct) { m_coveragePercentage = pct; };
+    double getCoveragePercentage() const { return m_coveragePercentage; }
 
     // Get detailed score components
     double GetCompletenessScore() const { return m_completenessScore; }
@@ -29,20 +27,21 @@ public:
     double GetCoverageScore() const { return m_coverageScore; }
     double GetRedundantDetectionPenalty() const { return m_redundantDetectionPenalty; }
 
-    // Publish score to MOOSDB
-    bool PublishScore(std::function <void(std::string, std::string)> reportFnc);
-
-    // Save score to file
+    // save and publish score to MOOSDB
     bool SaveScoreToFile(const std::string &filename);
+    bool PublishScore(std::function<void(std::string, std::string)> reportFnc);
 
     // Get a formatted summary
     std::string GetScoreSummary();
-
     bool isScoreCalculated() const { return m_scoreCalculated; }
 
 private:
     // Calculate scores internally (shared by both calculation methods)
-    void CalculateScoreComponents(int detectedCount, int totalDetections, double latestDetectionTime);
+    void calculateScoreComponents(int detectedCount, int totalDetections, 
+                                 double averageDetectionTime,
+                                 double medianDetectionTime,
+                                 double latestDetectionTime,
+                                 bool imputeTime=false );
 
     // Mission parameters
     int m_totalFires;

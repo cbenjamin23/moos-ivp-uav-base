@@ -60,7 +60,7 @@ class Fire
 
   std::set<std::string> getScoutSet() {return(m_set_scouted);}
   bool hasBeenScouted(std::string vname="") const;
-  
+  bool isDiscovered() const {return(m_state == DISCOVERED);}
   std::string getSpec() const;
   
  private:  

@@ -598,7 +598,7 @@ bool GridSearchViz::buildReport()
       // extract the perentage from key
       std::string percentage = key.substr(9, key.length() - 9);
       actab3 << percentage << doubleToStringX(value, 2);
-      Notify("COVERAGE_TIME_" + percentage, value);
+      Notify("GSV_COVERAGE_TIME_" + percentage, value);
     }
   }
   m_msgs << actab3.getFormattedString();
@@ -695,7 +695,7 @@ void GridSearchViz::calculateCoverageStatistics()
   double coverage_percentage = (covered_cells / total_cells) * 100;
   m_map_coverage_statistics["coverage_%"] = coverage_percentage;
 
-  Notify("COVERAGE_PERCENTAGE", coverage_percentage);
+  Notify("GSV_COVERAGE_PERCENTAGE", coverage_percentage);
 
   // Calculate the time for 40, 60, 90+ coverage
 

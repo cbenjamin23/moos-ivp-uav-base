@@ -1,8 +1,0 @@
-// Lowest dist between fires: 655.04
-poly = pts={-392.4,351:-878,-44.8:-1008.5,-586.1:247.2,-900.6:1137.2,-121.8:1109.4,278.3:418.4,451.5}
-fire = name=f01, x=-869, y=-227
-fire = name=f02, x=739, y=-269
-fire = name=f03, x=-103, y=-307
-fire = name=f04, x=444, y=376
-fire = name=f05, x=225, y=-874
-fire = name=f06, x=-387, y=331

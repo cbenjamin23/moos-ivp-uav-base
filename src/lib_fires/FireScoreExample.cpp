@@ -34,7 +34,7 @@ int main(int argc, char *argv[])
     // Calculate score using FireSet
     FireMissionScorer scorerA;
     scorerA.Initialize(2, 600.0, 1000.0);                               // 2 fires, 10-minute deadline, 1000 m² area
-    double scoreA = scorerA.CalculateScoreFromFireSet(fireSetA, 100.0); // 100% coverage
+    double scoreA = scorerA.calculateScoreFromFireSet(fireSetA, 100.0); // 100% coverage
 
     std::cout << "Score from FireSet: " << scoreA << std::endl;
     std::cout << scorerA.GetScoreSummary() << std::endl;
@@ -67,7 +67,7 @@ int main(int argc, char *argv[])
     // Calculate score
     FireMissionScorer scorerD;
     scorerD.Initialize(2, 600.0, 1000.0);
-    double scoreD = scorerD.CalculateScoreFromFireSet(fireSetD, 100.0);
+    double scoreD = scorerD.calculateScoreFromFireSet(fireSetD, 100.0);
 
     std::cout << "Score with redundant detections: " << scoreD << std::endl;
     std::cout << scorerD.GetScoreSummary() << std::endl;

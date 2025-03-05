@@ -3,7 +3,7 @@
 # Global simulation parameters
 simulation:
   useMoosSimPid: true # Use MOOS-IvP simulator
-  time_warp: 10
+  time_warp: 20
   number_of_drones: 3
 
   ardupilot_ip: "0.0.0.0"
@@ -37,11 +37,15 @@ missionParams:
 
 
   # Fire parameters:
-  fire_generate       : true # If true, the fires will be generated randomly, otherwise they will be read from a file
-  fire_file_default   : "fires_01.txt" # The file containing the fire data if generate not set
-  fire_count          : 12 # The number of fires to be placed in the region
-  fire_sep_min        : 150 # m - The minimum separation between fires
+  fire_generate       : false # If true, the fires will be generated randomly, otherwise they will be read from a file
+  fire_file_default   : "fires_02.txt" # The file containing the fire data if generate not set
+  fire_count          : 16 # The number of fires to be placed in the region at launch
+  fire_sep_min        : 10 # m - The minimum separation between fires
   fire_color          : red # The color of the fire, or "vehicle" if the fire should take the color of the vehicle as well
+  
+  fire_spawn_count    : 0 # The number of fires to spawn after the mission has started
+  fire_spawn_interval : 300, 500 # s - The time interval for which the delayed fires will be spawned (randomly) ( 0 <= [tmin,tmax] <= mission_duration)
+  
   fire_ignored_regions: 3 # The number of regions to generate and ignore when placing fires
   
 

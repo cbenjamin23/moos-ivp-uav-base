@@ -19,7 +19,8 @@ public:
     bool addPolygon(XYPolygon poly) { return (m_generator.addPolygon(poly)); }
 
     bool generate(std::stringstream& ss);
-    // bool generate_aux(double = 1);
+    
+    double getMinSep() { return (m_generator.getGlobalNearest()); };
 
 protected: // Config variables
     unsigned int m_fire_amt;
