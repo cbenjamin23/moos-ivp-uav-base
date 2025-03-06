@@ -47,7 +47,7 @@ bool FireFldGenerator::setSpawnInterval(string interval)
     if(!(setUIntOnString(m_spawn_tmin, tmin) && setUIntOnString(m_spawn_tmax, tmax)))
         return (false);
     
-    if(m_spawn_tmin >= m_spawn_tmax)
+    if(m_spawn_tmin > m_spawn_tmax)
         return (false);
 
     return true;    
