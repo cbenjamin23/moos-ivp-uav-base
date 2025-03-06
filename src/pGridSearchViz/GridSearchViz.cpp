@@ -32,14 +32,13 @@ GridSearchViz::GridSearchViz()
   m_sensor_color = "black";
   m_sensor_transparency = 0.2;
 
-
   m_missionStartTime = 0;
   m_map_coverage_statistics["coverage_%"] = 0;
 
   m_grid_cell_decay_time = 0; // 0 means no decay
   m_sensor_radius_fixed = true;
   m_sensor_altitude_max = 25;
-  m_visualize_sensor_area = true; 
+  m_visualize_sensor_area = true;
 }
 
 //---------------------------------------------------------
@@ -71,8 +70,8 @@ bool GridSearchViz::OnNewMail(MOOSMSG_LIST &NewMail)
       handleMailNodeReport(sval);
     else if (key == "GSV_RESET_GRID")
       m_grid.reset();
-    else if (key == "IGNORED_REGION")
-      handleMailIgnoredRegion(sval);
+    else if (key == "IGNORED_REGION_ALERT")
+      handleMailIgnoredRegionAlert(sval);
     else if (key == "GSV_VISUALIZE_SENSOR_AREA")
       setBooleanOnString(m_visualize_sensor_area, sval);
   }
@@ -200,8 +199,9 @@ void GridSearchViz::registerVariables()
   Register("NODE_REPORT", 0);
   Register("GSV_RESET_GRID", 0);
 
-  Register("IGNORED_REGION", 0);
+  // Register("IGNORED_REGION", 0);
   Register("GSV_VISUALIZE_SENSOR_AREA", 0);
+  Register("IGNORED_REGION_ALERT", 0);
 }
 
 //------------------------------------------------------------
@@ -226,7 +226,6 @@ void GridSearchViz::handleMailNodeReport(std::string str)
 
   // Logger::info("--->Sensor radius: " + doubleToStringX(sensor_radius, 2));
 
-
   // if the drone is not in the map, add it
   if (m_map_drone_records.find(name) == m_map_drone_records.end())
     m_map_drone_records[name] = DroneRecord(name, altitude, sensor_radius);
@@ -236,7 +235,6 @@ void GridSearchViz::handleMailNodeReport(std::string str)
     drone.altitude = altitude;
     drone.sensor_radius = sensor_radius;
   }
-  
 
   XYCircle sensorArea(posx, posy, sensor_radius);
   sensorArea.set_vertex_color(m_sensor_color);
@@ -269,12 +267,11 @@ void GridSearchViz::handleMailNodeReport(std::string str)
   // Only post the circle visualization if configured to do so
   sensorArea.set_active(m_visualize_sensor_area);
   Notify("VIEW_CIRCLE", sensorArea.get_spec());
-  
 }
 
 //------------------------------------------------------------
 // Procedure: handleMailIgnoredRegion()
-void GridSearchViz::handleMailIgnoredRegion(std::string str)
+void GridSearchViz::handleMailIgnoredRegionAlert(std::string str)
 {
   str = stripBlankEnds(str);
 
@@ -298,23 +295,26 @@ void GridSearchViz::registerIgnoredRegion(std::string str)
 {
   str = stripBlankEnds(str);
 
-  std::string type = tokStringParse(str, "format");
-  if (std::find(m_validRegionTypes.begin(), m_validRegionTypes.end(), type) == m_validRegionTypes.end())
+  IgnoredRegion ignoredRegion = stringToIgnoredRegion(str);
+  if (!ignoredRegion.isValid())
   {
-    reportRunWarning("Received Invalid region type: " + type);
-    Logger::warning("Received Invalid region type: " + type);
+    reportRunWarning("Bad IgnoredRegion string: " + str);
+    Logger::warning("Bad IgnoredRegion string: " + str);
     return;
   }
 
-  PolyRegion polyRegion;
-  XYPolygon region = parseStringIgnoredRegion(str, type);
-  if (region.size() == 0)
+  std::string name = ignoredRegion.getName();
+
+  if (m_map_ignored_cell_indices.count(name) != 0)
   {
-    reportRunWarning("Received Invalid region string: " + str);
-    Logger::warning("Received Invalid region string: " + str);
+    reportRunWarning("Region name already exist: " + name);
+    Logger::warning("Region name already exist: " + name);
     return;
   }
 
+
+  XYPolygon region = ignoredRegion.getRegion();
+ 
   std::vector<int>::iterator it = m_valid_cell_indices.begin();
   while (it != m_valid_cell_indices.end())
   {
@@ -322,68 +322,26 @@ void GridSearchViz::registerIgnoredRegion(std::string str)
 
     // if the the center of the cell is inside the sensor area
     if (region.contains(cell.getCenterX(), cell.getCenterY()))
-      it = ignoreCellIndex(it, polyRegion.ignored_cell_indices);
+      it = ignoreCellIndex(it, m_map_ignored_cell_indices[name]);
     else
       it++;
   }
 
-  // visualization
-  std::string display_name = region.get_msg();
-  const int id = m_ignoredRegions.size();
-  std::string label_id = display_name + "_" + std::to_string(id);
-  region.set_active(true);
-  region.set_label(label_id);
-  region.set_label_color("off");
-  region.set_vertex_color("off");
-  region.set_edge_color("off");
-  region.set_color("fill", "brown");
-  region.set_transparency(0.4);
 
-  XYMarker marker(region.get_center_x(), region.get_center_y());
-  marker.set_label("marker_" + label_id);
-  marker.set_msg(display_name);
-  Logger::info("Display name: " + display_name);
-  marker.set_label_color("white");
-  marker.set_type("efield");
-  marker.set_width(REGION_MARKER_WIDTH);
-  marker.set_active(true);
-  marker.set_color("primary_color", "green");
-  marker.set_color("secondary_color", "yellow");
-
-  Notify("VIEW_POLYGON", region.get_spec());
-  Notify("VIEW_MARKER", marker.get_spec());
-
-  polyRegion.region = region;
-  polyRegion.marker = marker;
-  m_ignoredRegions.push_back(polyRegion);
 }
 
-void GridSearchViz::unregisterIgnoredRegion(std::string str)
+void GridSearchViz::unregisterIgnoredRegion(std::string name)
 {
-  str = stripBlankEnds(str);
-  double x = tokDoubleParse(str, "x");
-  double y = tokDoubleParse(str, "y");
+  name = stripBlankEnds(name);
 
-  PolyRegion polyRegion;
-
-  auto it = std::find_if(m_ignoredRegions.begin(), m_ignoredRegions.end(),
-                         [&](const PolyRegion &polyreg)
-                         { return polyreg.region.contains(x, y); });
-
-  if (it == m_ignoredRegions.end())
+  if(m_map_ignored_cell_indices.count(name) == 0)
     return;
+  
+  std::vector<int> &cell_indices = m_map_ignored_cell_indices[name];
+  
+  registerCellIndeces(cell_indices);
 
-  PolyRegion &polyreg = *it;
-
-  polyreg.region.set_active(false);
-  polyreg.marker.set_active(false);
-
-  Notify("VIEW_POLYGON", polyreg.region.get_spec());
-  Notify("VIEW_MARKER", polyreg.marker.get_spec());
-
-  registerCellIndeces(polyreg.ignored_cell_indices);
-
-  m_ignoredRegions.erase(it);
+  m_map_ignored_cell_indices.erase(name);
 }
 
 XYPolygon GridSearchViz::parseStringIgnoredRegion(std::string str, std::string type) const

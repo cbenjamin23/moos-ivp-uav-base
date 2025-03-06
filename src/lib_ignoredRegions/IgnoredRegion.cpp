@@ -67,8 +67,6 @@ string IgnoredRegion::getSpec() const
     
     spec += ", type=" + regionTypeToString(m_region_type);
 
-    if(m_format_spec != "")
-        spec += ", " + m_format_spec;
     if (m_time_enter != 0)
         spec += ", time_enter=" + doubleToStringX(m_time_enter, 2);
     if (m_time_discovered != 0)
@@ -80,7 +78,9 @@ string IgnoredRegion::getSpec() const
     if (m_scout_tries != 0)
         spec += ", scout_tries=" + uintToString(m_scout_tries);
 
-    spec += ", format=" + m_format_spec;
+    if(m_format_spec != "")
+        spec += ", format=" + m_format_spec;
+
     
     return (spec);
 }

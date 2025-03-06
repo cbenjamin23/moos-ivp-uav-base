@@ -200,6 +200,9 @@ void FireSim::registerRemoveIgnoredRegion(std::string pos_str, bool doRegister){
 
     postIgnoredRegions();
     m_ignoredRegionset.removeIgnoreRegion(rname);
+
+    std::string alert_spec = "unreg::" + rname;
+    Notify("IGNORED_REGION_ALERT", alert_spec);
   }
 
 }
@@ -902,7 +905,8 @@ void FireSim::declareDiscoveredIgnoredRegion(std::string vname, std::string rnam
   postIgnoredRegions();
   postIgnoredRegionPulseMessage(ignoredRegion, m_curr_time, vname);
 
-  Notify("DISCOVERED_IGNORED_REGION", ignoredRegion.getSpec());
+  std::string alert_spec = "reg::" + ignoredRegion.getSpec();
+  Notify("IGNORED_REGION_ALERT", alert_spec);
 }
 
 //------------------------------------------------------------

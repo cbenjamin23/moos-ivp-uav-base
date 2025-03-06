@@ -12,7 +12,8 @@ SET(SRC
 ADD_EXECUTABLE(pGridSearchViz ${SRC})
 
 TARGET_LINK_LIBRARIES(pGridSearchViz
-   ${MOOS_LIBRARIES}
+  ignoredregions
+  ${MOOS_LIBRARIES}
    bhvutil
    contacts
    geometry

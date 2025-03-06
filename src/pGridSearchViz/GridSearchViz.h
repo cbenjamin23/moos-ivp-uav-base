@@ -14,6 +14,8 @@
 #include "XYCircle.h"
 #include "XYMarker.h"
 
+#include "IgnoredRegion.h"
+
 struct DroneRecord
 {
   std::string name;
@@ -26,15 +28,6 @@ struct DroneRecord
       : name(name), altitude(altitude), sensor_radius(sensor_radius) {}
 };
 
-struct PolyRegion
-{
-  XYPolygon region;
-  XYMarker marker;
-
-  std::vector<int> ignored_cell_indices;
-  PolyRegion(XYPolygon reg, XYMarker lab) : region(reg), marker(lab) {}
-  PolyRegion() = default;
-};
 
 class GridSearchViz : public AppCastingMOOSApp
 {
@@ -51,10 +44,10 @@ protected:
   bool buildReport();
   void registerVariables();
   void handleMailNodeReport(std::string);
-  void handleMailIgnoredRegion(std::string);
+  void handleMailIgnoredRegionAlert(std::string);
 
   void registerIgnoredRegion(std::string str);
-  void unregisterIgnoredRegion(std::string str);
+  void unregisterIgnoredRegion(std::string name);
   XYPolygon parseStringIgnoredRegion(std::string str, std::string type) const;
   XYPolygon stringHexagon2Poly(std::string str) const;
   XYPolygon stringRectangle2Poly(std::string str) const;
@@ -74,7 +67,7 @@ protected: // Config vars
   bool m_report_deltas;
   std::string m_grid_label;
   std::string m_grid_var_name;
-  bool m_visualize_sensor_area; 
+  bool m_visualize_sensor_area;
 
   ExFilterSet m_filter_set;
 
@@ -99,14 +92,7 @@ protected: // State vars
 
   std::vector<int> m_valid_cell_indices;
 
-  std::vector<PolyRegion> m_ignoredRegions;
+  // Ignored regions and with names as keys
+  std::map<std::string, std::vector<int>> m_map_ignored_cell_indices;
 
-  const std::vector<std::string> m_validRegionTypes = {
-      "ellipse",  // "ellipse":  Format:  "format=ellipse, msg=val, x=val, y=val, major=val, minor=val, pts=val, degs=val, snap_value=val"
-      "radial",   // "circle":   Format:  "format=circle, msg=val, x=val, y=val, radius=val, pts=val, snap=val"
-      "oval",     // "oval":     Format:  "format=oval, msg=val, x=val, y=val, rad=val, len=val, draw_degs=val" // len > 2*rad
-      "hexagon",  // "pylon":    Format:  "format=hexagon, msg=val, x=val, y=val rad=val, pts=val, snap_val=val
-      "rectangle" //  "rectangle"  //"rectangle": Format:  "format=rectangle, msg=val, cx=val, cy=val, width=val, height=val, degs=val"
-  };
-  const double REGION_MARKER_WIDTH = 10;
 };
