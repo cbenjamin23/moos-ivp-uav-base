@@ -98,5 +98,5 @@ GazeboSim/worlds/**
 
 src/app_voiview/._CMakeLists.txt
 
-missions/UAV_Fly/gen_fires/**
+missions/UAV_Fly/gen_files/**
 missions/UAV_Fly/**.txt

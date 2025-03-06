@@ -1,6 +1,6 @@
 #--------------------------------------------------------
-# The CMakeLists.txt for:                    lib_swimmers
-# Author(s):                                Mike Benjamin
+# The CMakeLists.txt for:                    lib_fires
+# Author(s):                                Steve Nomeny
 #--------------------------------------------------------
 
 SET(SRC

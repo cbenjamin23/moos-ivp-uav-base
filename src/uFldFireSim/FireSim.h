@@ -12,17 +12,25 @@
 #include <string>
 #include "MOOS/libMOOS/Thirdparty/AppCasting/AppCastingMOOSApp.h"
 #include "NodeRecord.h"
-#include "FireSet.h"
 #include "VarDataPair.h"
+
+#include "FireSet.h"
 #include "FireMissionScorer.h"
+#include "IgnoredRegionSet.h"
 
 constexpr double FIREMARKER_WIDTH = 20;
 constexpr double FIREMARKER_TRANSPARENCY_UNDISC = 0.3;
 constexpr double FIREMARKER_TRANSPARENCY_DISC = 0.5;
 constexpr double FIREMARKER_TRANSPARENCY_DISC_NOTABLE = 0.7;
 
-constexpr double FIRE_PULSE_RANGE = 60; //moosDistance
-constexpr double FIRE_PULSE_DURATION = 4; 
+constexpr double FIRE_PULSE_RANGE = 80; //moosDistance
+constexpr double PULSE_DURATION = 6;
+
+
+constexpr double IGNORED_REGION_PULSE_RANGE = 90; //moosDistance
+constexpr double IGNORED_REGION_MARKER_TRANSPARENCY_UNDISC = 0.1;
+constexpr double IGNORED_REGION_MARKER_TRANSPARENCY_DISC = 0.6;
+
 
 
 class FireSim : public AppCastingMOOSApp
@@ -32,7 +40,7 @@ public:
   virtual ~FireSim() {}
 
 public: // Standard MOOSApp functions to overload
-  bool OnNewMail(MOOSMSG_LIST &NewMail);
+  bool OnNewMail(MOOSMSG_LIST& NewMail);
   bool Iterate();
   bool OnConnectToServer();
   bool OnStartUp();
@@ -47,30 +55,33 @@ protected: // Configuration utility
   bool handleConfigDetectRangePd(std::string);
 
 protected: // Incoming mail utility
-  bool handleMailNodeReport(const std::string &);
+  bool handleMailNodeReport(const std::string&);
   // bool handleMailDiscoverRequest(std::string);
   bool handleMailScoutRequest(std::string);
 
 protected: // Outgoing mail utility
   void declareDiscoveredFire(std::string vname, std::string fname);
-  // void declareScoutedFire(std::string vname, std::string fname);
+  void declareDiscoveredIgnoredRegion(std::string vname, std::string rname);
 
 protected: // Utilities
   void tryScouts();
   void tryScoutsVName(std::string vname);
   void tryScoutsVNameFire(std::string vname, std::string fname);
+  void tryScoutsVNameIgnoredRegion(std::string vname, std::string ignoredRegion);
 
   void trySpawnFire();
+  void trySpawnIgnoredRegion();
 
   void updateLeaderStatus();
   void updateWinnerStatus(bool finished = false);
   void updateFinishStatus();
   void calculateMissionScore(bool imputeTime = false);
 
-  bool isMissionDeadlineReached() const {return (MOOSTime() >= (m_mission_start_utc + m_mission_duration_s)); }
+  bool isMissionDeadlineReached() const { return (MOOSTime() >= (m_mission_start_utc + m_mission_duration_s)); }
   bool isMissionRunning() const { return (m_mission_start_utc) && !m_finished; }
 
-  bool rollDice(std::string vname, std::string);
+  bool rollDiceFire(std::string vname, std::string fname);
+  bool rollDiceIgnoredRegion(std::string vname, std::string rname);
 
   double altScaledRange(double range_limit, std::string vname) const;
 
@@ -78,9 +89,14 @@ protected: // Utilities
   void postRangePolys(std::string vname, bool active);
   void postFireMarkers();
   void postFireMarker(std::string fname);
-  void postPulseMessage(Fire fire, double time,  std::string discoverer="");
+  void postFirePulseMessage(Fire fire, double time, std::string discoverer = "");
 
-  void postFlags(const std::vector<VarDataPair> &flags);
+  void postIgnoredRegions();
+  void postIgnoredRegion(std::string rname);
+  void postIgnoredRegionPulseMessage(IgnoredRegion ignoredRegion, double time, std::string discoverer = "");
+
+
+  void postFlags(const std::vector<VarDataPair>& flags);
   void broadcastFires();
 
   void addNotable(std::string vname, std::string fname);
@@ -88,6 +104,8 @@ protected: // Utilities
 
 protected: // State variables
   FireSet m_fireset;
+  IgnoredRegionSet m_ignoredRegionset;
+
 
   double m_last_broadcast;
 

@@ -33,7 +33,6 @@ FireSet::FireSet()
 // Format:  generate = true, file = fire.txt, count = 10, sep_min = 10, \
             region = {x0,y0:x1,y1:...:x2,y2}, save_path = "missions/UAV_FLY/gen_fires/", \
             spawn_count=10, spawn_interval = 200:400
-           
 
 bool FireSet::handleFireConfig(std::string str, double curr_time, std::string &warning)
 {
@@ -43,15 +42,16 @@ bool FireSet::handleFireConfig(std::string str, double curr_time, std::string &w
     setBooleanOnString(generate, generate_str);
 
     std::string file = tokStringParse(str, "file");
-    
-    if (!generate && file.empty()){
+
+    if (!generate && file.empty())
+    {
         warning = "Bad FireConfig Line (need a file if not generating): " + str;
         return false;
     }
-    
+
     if (!generate)
         return handleFireFile(file, curr_time, warning);
-    
+
     // Will generate fires
 
     std::string count_str = tokStringParse(str, "count");
@@ -63,9 +63,7 @@ bool FireSet::handleFireConfig(std::string str, double curr_time, std::string &w
     unsigned int spawn_count = 0;
     setUIntOnString(spawn_count, spawn_count_str);
     std::string spawn_interval_str = tokStringParse(str, "spawn_interval");
-    
 
-    
     if (count_str.empty())
         warning = "Bad FireConfig Line (need count w/ generating): " + str;
     else if (sep_min_str.empty())
@@ -74,37 +72,34 @@ bool FireSet::handleFireConfig(std::string str, double curr_time, std::string &w
         warning = "Bad FireConfig Line (need region w/ generating): " + str;
     else if (save_path.empty())
         warning = "Bad FireConfig Line (need save_path w/ generating): " + str;
-    else if ((spawn_count>0) && spawn_interval_str.empty())
+    else if ((spawn_count > 0) && spawn_interval_str.empty())
         warning = "Bad FireConfig Line (need spawn_interval w/ spawn_count): " + str;
-    
-    if (!warning.empty())
-        return false;
-        
-        
-    FireFldGenerator generator;
-    
-    if(!generator.setSpawnInterval(spawn_interval_str))
-        warning = "Bad FireConfig Line (bad spawn_interval): " + str;
-    else if(!generator.setFireAmt(count_str))
-        warning = "Bad FireConfig Line (bad count): " + str;
-    else if(!generator.setSpawnableFireAmt(spawn_count_str))
-        warning = "Bad FireConfig Line (bad spawn_count): " + str;
-    else if(!generator.setBufferDist(sep_min_str))
-        warning = "Bad FireConfig Line (bad sep_min): " + str;
-    else if(!generator.addPolygon(region_str))
-        warning = "Bad FireConfig Line (bad region): " + str;
-        
+
     if (!warning.empty())
         return false;
 
-        
+    FireFldGenerator generator;
+
+    if (!generator.setSpawnInterval(spawn_interval_str))
+        warning = "Bad FireConfig Line (bad spawn_interval): " + str;
+    else if (!generator.setFireAmt(count_str))
+        warning = "Bad FireConfig Line (bad count): " + str;
+    else if (!generator.setSpawnableFireAmt(spawn_count_str))
+        warning = "Bad FireConfig Line (bad spawn_count): " + str;
+    else if (!generator.setBufferDist(sep_min_str))
+        warning = "Bad FireConfig Line (bad sep_min): " + str;
+    else if (!generator.addPolygon(region_str))
+        warning = "Bad FireConfig Line (bad region): " + str;
+
+    if (!warning.empty())
+        return false;
+
     std::stringstream ss;
     if (!generator.generate(ss))
     {
         warning = "Failed to generate fires with fire_config line: " + str;
         return false;
     }
-
 
     std::string result = ss.str();
 
@@ -150,7 +145,7 @@ bool FireSet::handleFireFile(std::string str, double curr_time, std::string &war
 
         if (param == "fire")
         {
-            
+
             Fire fire = stringToFire(value);
             std::string fname = fire.getName();
             if (m_map_fires.count(fname) != 0)
@@ -158,19 +153,20 @@ bool FireSet::handleFireFile(std::string str, double curr_time, std::string &war
                 warning = "Bad FireFile Line (fname already exist): " + orig;
                 return (false);
             }
-            
+
             double spawntime = tokDoubleParse(value, "spawntime");
-            if(spawntime > 0){
+            if (spawntime > 0)
+            {
                 m_vec_spawnable_fires.push_back(std::make_pair(spawntime, value));
                 continue;
             }
-            
+
             fire.setTimeEnter(curr_time);
 
             tagFireID(fire);
             m_map_fires[fname] = fire;
         }
-        else if ((param == "region") || (param == "poly"))
+        else if ((param == "search_area") || (param == "poly"))
         {
             std::string _;
             bool ok = handleSearchRegionStr(value, _);
@@ -205,29 +201,30 @@ bool FireSet::handleSearchRegionStr(std::string str, std::string &warning)
     return true;
 }
 
-std::vector<Fire> FireSet::tryAddSpawnableFire(double mission_start_utc, double curr_time_utc){
+std::vector<Fire> FireSet::tryAddSpawnableFire(double mission_start_utc, double curr_time_utc)
+{
 
-    
     std::vector<Fire> spawned_fires;
-    if(m_vec_spawnable_fires.empty())
+    if (m_vec_spawnable_fires.empty())
         return spawned_fires;
-    
 
     std::vector<std::pair<double, std::string>>::iterator it;
-    for( it = m_vec_spawnable_fires.begin(); it != m_vec_spawnable_fires.end();){
+    for (it = m_vec_spawnable_fires.begin(); it != m_vec_spawnable_fires.end();)
+    {
         double spawntime = it->first;
         std::string fire_str = it->second;
-        
+
         double missionDuration = curr_time_utc - mission_start_utc;
-        if(missionDuration >= spawntime){
+        if (missionDuration >= spawntime)
+        {
             std::string dummy_str;
             fireAlert(fire_str, curr_time_utc, dummy_str);
-            
+
             std::string fname = tokStringParse(fire_str, "name");
             spawned_fires.push_back(m_map_fires.at(fname));
 
             it = m_vec_spawnable_fires.erase(it);
-        } 
+        }
         else
             it++;
     }
@@ -235,7 +232,7 @@ std::vector<Fire> FireSet::tryAddSpawnableFire(double mission_start_utc, double 
     return spawned_fires;
 }
 
-void FireSet::setMissionStartEndTimeOnFires(double v)
+void FireSet::setMissionStartTimeOnFires(double v)
 {
     for (auto &[_, fire] : m_map_fires)
         fire.setTimeEnter(v);

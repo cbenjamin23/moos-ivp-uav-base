@@ -23,6 +23,7 @@ ADD_EXECUTABLE(uFldFireSim ${SRC})
 
 TARGET_LINK_LIBRARIES(uFldFireSim
   fires
+  ignoredregions
   ${MOOS_LIBRARIES}
   contacts
   geometry 

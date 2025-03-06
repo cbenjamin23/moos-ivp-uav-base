@@ -34,7 +34,7 @@ public:
                  double curr_time,
                  std::string &warning);
 
-    void setMissionStartEndTimeOnFires(double v);
+    void setMissionStartTimeOnFires(double v);
 
     XYPolygon getSearchRegion() const { return (m_search_region); }
     void setSearchReagion(XYPolygon poly) { m_search_region = poly; }

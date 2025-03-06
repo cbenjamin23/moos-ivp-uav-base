@@ -153,6 +153,19 @@ FIRE_SPAWN_INTERVAL=$(get_global_val $CONFIG_FILE "missionParams.fire_spawn_inte
 if [ $? -ne 0 ]; then exit 1; fi
 
 
+IGNORED_REGION_FILE_DEFAULT=$(get_global_val $CONFIG_FILE "missionParams.ignoredRegion_file_default")
+if [ $? -ne 0 ]; then exit 1; fi
+IGNORED_REGION_GENERATE=$(get_global_val $CONFIG_FILE "missionParams.ignoredRegion_generate")
+if [ $? -ne 0 ]; then exit 1; fi
+IGNORED_REGION_COUNT=$(get_global_val $CONFIG_FILE "missionParams.ignoredRegion_count")
+if [ $? -ne 0 ]; then exit 1; fi
+IGNORED_REGION_SEP_MIN=$(get_global_val_in_moosDistance $CONFIG_FILE "missionParams.ignoredRegion_sep_min")
+if [ $? -ne 0 ]; then exit 1; fi
+IGNORED_REGION_SPAWN_COUNT=$(get_global_val $CONFIG_FILE "missionParams.ignoredRegion_spawn_count")
+if [ $? -ne 0 ]; then exit 1; fi
+IGNORED_REGION_SPAWN_INTERVAL=$(get_global_val $CONFIG_FILE "missionParams.ignoredRegion_spawn_interval")
+if [ $? -ne 0 ]; then exit 1; fi
+
 
 GRID_CELL_SIZE=$(get_global_val_in_moosDistance $CONFIG_FILE "missionParams.grid_cell_size")
 if [ $? -ne 0 ]; then exit 1; fi
@@ -210,6 +223,13 @@ if [ "${VERBOSE}" = "yes" ]; then
     echo "FIRE_SPAWN_COUNT = [${FIRE_SPAWN_COUNT}]"
     echo "FIRE_SPAWN_INTERVAL = [${FIRE_SPAWN_INTERVAL}]"
     echo "----------------------------------"
+    echo "IGNORED_REGION_FILE_DEFAULT = [${IGNORED_REGION_FILE_DEFAULT}]"
+    echo "IGNORED_REGION_GENERATE = [${IGNORED_REGION_GENERATE}]"
+    echo "IGNORED_REGION_COUNT = [${IGNORED_REGION_COUNT}]"
+    echo "IGNORED_REGION_SEP_MIN = [${IGNORED_REGION_SEP_MIN}]"
+    echo "IGNORED_REGION_SPAWN_COUNT = [${IGNORED_REGION_SPAWN_COUNT}]"
+    echo "IGNORED_REGION_SPAWN_INTERVAL = [${IGNORED_REGION_SPAWN_INTERVAL}]"
+    echo "----------------------------------"
     echo "MISSION_DURATION = [${MISSION_DURATION}]"
     echo "----------------------------------"
     echo "GRID_CELL_SIZE        = [${GRID_CELL_SIZE}]"
@@ -252,6 +272,12 @@ nsplug meta_shoreside.moos targ_shoreside.moos $NSFLAGS WARP=$TIME_WARP \
     FIRE_SEP_MIN=$FIRE_SEP_MIN                           \
     FIRE_SPAWN_COUNT=$FIRE_SPAWN_COUNT                   \
     FIRE_SPAWN_INTERVAL=$FIRE_SPAWN_INTERVAL             \
+    IGNORED_REGION_FILE_DEFAULT=$IGNORED_REGION_FILE_DEFAULT \
+    IGNORED_REGION_GENERATE=$IGNORED_REGION_GENERATE     \
+    IGNORED_REGION_COUNT=$IGNORED_REGION_COUNT           \
+    IGNORED_REGION_SEP_MIN=$IGNORED_REGION_SEP_MIN       \
+    IGNORED_REGION_SPAWN_COUNT=$IGNORED_REGION_SPAWN_COUNT \
+    IGNORED_REGION_SPAWN_INTERVAL=$IGNORED_REGION_SPAWN_INTERVAL \
     GRID_CELL_SIZE=$GRID_CELL_SIZE                       \
     GRID_CELL_MAX_COUNT=$GRID_CELL_MAX_COUNT              \
     GRID_CELL_DECAY_TIME=$GRID_CELL_DECAY_TIME            \

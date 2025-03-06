@@ -64,7 +64,7 @@ FireSim::FireSim()
 //---------------------------------------------------------
 // Procedure: OnNewMail
 
-bool FireSim::OnNewMail(MOOSMSG_LIST &NewMail)
+bool FireSim::OnNewMail(MOOSMSG_LIST& NewMail)
 {
   AppCastingMOOSApp::OnNewMail(NewMail);
 
@@ -110,7 +110,8 @@ bool FireSim::OnNewMail(MOOSMSG_LIST &NewMail)
     else if (key == "MISSION_START_TIME")
     {
       m_mission_start_utc = dval;
-      m_fireset.setMissionStartEndTimeOnFires(dval);
+      m_fireset.setMissionStartTimeOnFires(dval);
+      m_ignoredRegionset.setMissionStartTimeOnRegions(dval);
       trySpawnFire();
       handled = true;
     }
@@ -128,7 +129,7 @@ bool FireSim::OnNewMail(MOOSMSG_LIST &NewMail)
 
       if (!m_scout_rng_show)
       {
-        for (const auto &[vname, _] : m_map_node_scout_reqs)
+        for (const auto& [vname, _] : m_map_node_scout_reqs)
         {
           postRangePolys(vname, false);
         }
@@ -178,9 +179,11 @@ bool FireSim::Iterate()
 {
   AppCastingMOOSApp::Iterate();
 
-  if (isMissionRunning()) {// Mission is running
+  if (isMissionRunning())
+  { // Mission is running
     tryScouts();
     trySpawnFire();
+    trySpawnIgnoredRegion();
     updateFinishStatus();
   }
 
@@ -197,15 +200,26 @@ bool FireSim::Iterate()
   return (true);
 }
 
-void FireSim::trySpawnFire(){
+void FireSim::trySpawnFire()
+{
   auto spawned_fires = m_fireset.tryAddSpawnableFire(m_mission_start_utc, m_curr_time);
-  if(spawned_fires.empty())
+  if (spawned_fires.empty())
     return;
 
   postFireMarkers();
-  for(const auto& fire : spawned_fires)
-    postPulseMessage(fire, m_curr_time);
-  
+  for (const auto& fire : spawned_fires)
+    postFirePulseMessage(fire, m_curr_time);
+}
+
+void FireSim::trySpawnIgnoredRegion()
+{
+  auto spawned_regions = m_ignoredRegionset.tryAddSpawnableRegion(m_mission_start_utc, m_curr_time);
+  if (spawned_regions.empty())
+    return;
+
+  postIgnoredRegions();
+  for (const auto& region : spawned_regions)
+    postIgnoredRegionPulseMessage(region, m_curr_time);
 }
 //---------------------------------------------------------
 // Procedure: OnStartUp()
@@ -219,6 +233,7 @@ bool FireSim::OnStartUp()
     reportConfigWarning("No config block found for " + GetAppName());
 
   std::string fire_config;
+  std::string ignoredRegion_config;
 
   STRING_LIST::iterator p;
   for (p = sParams.begin(); p != sParams.end(); p++)
@@ -236,6 +251,14 @@ bool FireSim::OnStartUp()
       if ((len > 0) && (fire_config.at(len - 1) != ','))
         fire_config += ",";
       fire_config += value;
+      handled = true;
+    }
+    else if (param == "ignoredRegion_config")
+    {
+      unsigned int len = ignoredRegion_config.length();
+      if ((len > 0) && (ignoredRegion_config.at(len - 1) != ','))
+        ignoredRegion_config += ",";
+      ignoredRegion_config += value;
       handled = true;
     }
     else if (param == "show_detect_rng")
@@ -272,7 +295,7 @@ bool FireSim::OnStartUp()
       else
         handled = setColorOnString(m_fire_color, value);
     }
-    else if(param == "impute_time")
+    else if (param == "impute_time")
       handled = setBooleanOnString(m_imputeTime, value);
 
     if (!handled)
@@ -284,16 +307,26 @@ bool FireSim::OnStartUp()
   }
 
   Logger::info("FireSim::OnStartUp: Fire Config: " + fire_config);
+  Logger::info("FireSim::OnStartUp: IgnoredRegion Config: " + ignoredRegion_config);
 
   std::string warning;
   bool ok = m_fireset.handleFireConfig(fire_config, m_curr_time, warning);
   if (!ok)
     reportUnhandledConfigWarning(warning);
 
+  warning.clear();
+
+  ok = m_ignoredRegionset.handleRegionConfig(ignoredRegion_config, m_curr_time, warning);
+  if (!ok)
+    reportUnhandledConfigWarning(warning);
+
   Notify("PLOGGER_CMD", "COPY_FILE_REQUEST=" + m_fireset.getFireFile());
+  Notify("PLOGGER_CMD", "COPY_FILE_REQUEST=" + m_ignoredRegionset.getRegionFile());
+
   updateFinishStatus();
 
   postFireMarkers();
+  postIgnoredRegions();
 
   srand(time(NULL));
 
@@ -366,7 +399,7 @@ bool FireSim::handleConfigDetectRangePd(std::string str)
 //            SPD=2.00, HDG=119.06,YAW=119.05677,DEPTH=0.00,
 //            LENGTH=4.0,MODE=ENGAGED
 
-bool FireSim::handleMailNodeReport(const std::string &node_report_str)
+bool FireSim::handleMailNodeReport(const std::string& node_report_str)
 {
   NodeRecord new_record = string2NodeRecord(node_report_str);
 
@@ -401,9 +434,8 @@ void FireSim::tryScouts()
 
   // Logger::info("Trying to Scout for all vehicles");
   // For each vehicle, check if pending scout actions are to be applied
-  for (const auto &[vname, _] : m_map_node_records)
+  for (const auto& [vname, _] : m_map_node_records)
     tryScoutsVName(vname);
-    
 }
 
 //---------------------------------------------------------
@@ -431,9 +463,12 @@ void FireSim::tryScoutsVName(std::string vname)
   m_map_node_scout_tries[vname]++;
 
   std::set<std::string> fire_names = m_fireset.getFireNames();
-
-  for (const auto &fname : fire_names)
+  for (const auto& fname : fire_names)
     tryScoutsVNameFire(vname, fname);
+
+  std::set<std::string> ignoredRegion_names = m_ignoredRegionset.getIgnoredRegionNames();
+  for (const auto& rname : ignoredRegion_names)
+    tryScoutsVNameIgnoredRegion(vname, rname);
 }
 
 //---------------------------------------------------------
@@ -445,17 +480,30 @@ void FireSim::tryScoutsVNameFire(std::string vname, std::string fname)
 
   Fire fire = m_fireset.getFire(fname);
 
-  bool result = rollDice(vname, fname);
-  if (result)
+  bool result = rollDiceFire(vname, fname);
+  if (result )
   {
     fire.incDiscoverCnt();
     m_fireset.modFire(fire);
 
-    if (fire.getState() == Fire::FireState::DISCOVERED)
+    if(fire.isDiscovered())
       return;
 
     declareDiscoveredFire(vname, fname);
   }
+}
+
+//---------------------------------------------------------
+// Procedure: tryScoutsVNameIgnoredRegion()
+
+void FireSim::tryScoutsVNameIgnoredRegion(std::string vname, std::string rname)
+{
+  IgnoredRegion ignoredRegion = m_ignoredRegionset.getIgnoredRegion(rname);
+
+  bool result = rollDiceIgnoredRegion( vname, rname);
+  if (result && !ignoredRegion.isDiscovered())  
+    declareDiscoveredIgnoredRegion(vname, rname);
+
 }
 
 double FireSim::altScaledRange(double range_limit, std::string vname) const
@@ -525,7 +573,7 @@ void FireSim::updateWinnerStatus(bool finished)
   // Possibly >1 winner for now. Will handle tie-breaker afterwards.
   std::vector<std::string> winner_vnames;
 
-  for (const auto &[vname, discoveries] : m_map_node_discoveries)
+  for (const auto& [vname, discoveries] : m_map_node_discoveries)
   {
     if (discoveries >= win_thresh)
       winner_vnames.push_back(vname);
@@ -549,7 +597,7 @@ void FireSim::updateWinnerStatus(bool finished)
   {
     std::string first_winner;
     double first_winner_utc = 0;
-    for (const auto &[vname, utc] : m_map_node_last_discover_utc)
+    for (const auto& [vname, utc] : m_map_node_last_discover_utc)
     {
       if (utc >= win_thresh)
       {
@@ -624,7 +672,7 @@ void FireSim::updateFinishStatus()
 }
 
 //------------------------------------------------------------
-// Procedure: rollDice()
+// Procedure: rollDiceFire()
 //
 //
 // 1.0 ^       sensor_rng_min       sensor_rng_max
@@ -640,7 +688,7 @@ void FireSim::updateFinishStatus()
 //         range from fire to ownship
 //
 
-bool FireSim::rollDice(std::string vname, std::string fname)
+bool FireSim::rollDiceFire(std::string vname, std::string fname)
 {
   // Part 1: Sanity checking
   if (!m_fireset.hasFire(fname))
@@ -688,6 +736,71 @@ bool FireSim::rollDice(std::string vname, std::string fname)
   return (true);
 }
 
+//------------------------------------------------------------
+// Procedure: rollDiceIgnoredRegion()
+//
+//
+// 1.0 ^       sensor_rng_min       sensor_rng_max
+//     |
+//     |            |                 |
+// Pd  |------------o                 |
+//     |            |  \              |
+//     |            |     \           |
+//     |            |        \        |
+//     |            |           \     |
+//     |            |              \  |
+//     o------------------------------o----------------------------->
+//         range from fire to ownship
+//
+
+bool FireSim::rollDiceIgnoredRegion(std::string vname, std::string rname)
+{
+  // Part 1: Sanity checking
+  if (!m_ignoredRegionset.hasIgnoredRegion(rname))
+    return (false);
+  if (m_map_node_records.count(vname) == 0)
+    return (false);
+
+  IgnoredRegion ignoredRegion = m_ignoredRegionset.getIgnoredRegion(rname);
+
+  // Part 2: Calculated the range to fire
+  double vx = m_map_node_records[vname].getX();
+  double vy = m_map_node_records[vname].getY();
+  double rx = ignoredRegion.getMarker().get_vx();
+  double ry = ignoredRegion.getMarker().get_vy();
+  double range_to_ignoredRegion = hypot((vx - rx), (vy - ry));
+
+  // Part 3: Calculate Pd threshold modified by range to fire
+  int rand_int = rand() % 10000;
+  double dice_roll = (double)(rand_int) / 10000;
+
+  double range_max = altScaledRange(m_detect_rng_max, vname);
+  double range_min = altScaledRange(m_detect_rng_min, vname);
+
+  double pd = m_detect_rng_pd;
+  if (range_to_ignoredRegion >= range_max)
+    pd = 0;
+  else if (range_to_ignoredRegion >= range_min)
+  {
+    double pct = range_max - range_to_ignoredRegion;
+    pct = pct / (range_max - range_min);
+    pd = pct * pd;
+  }
+
+  if (range_to_ignoredRegion <= range_max)
+  {
+    ignoredRegion.incScoutTries();
+  }
+
+  m_ignoredRegionset.modIgnoredRegion(ignoredRegion);
+
+  // Apply the dice role to the Pd
+  if (dice_roll >= pd)
+    return (false);
+
+  return (true);
+}
+
 //---------------------------------------------------------
 // Procedure: handleMailScoutRequest()
 //   Example: vname=cal
@@ -705,6 +818,31 @@ bool FireSim::handleMailScoutRequest(std::string request)
   m_map_node_scout_reqs[vname]++;
   m_map_node_last_scout_req[vname] = MOOSTime();
   return (true);
+}
+
+//------------------------------------------------------------
+// Procedure: declareDiscoveredIgnoredRegion()
+//     Notes: Example postings:
+//            DISCOVERED_IGNORED_REGION = id=r1, ... , format=rectangle; ... ;..., discoverer=abe
+
+void FireSim::declareDiscoveredIgnoredRegion(std::string vname, std::string rname)
+{
+  // Part 1: Sanity check
+  if (!m_ignoredRegionset.hasIgnoredRegion(rname))
+    return;
+
+  IgnoredRegion ignoredRegion = m_ignoredRegionset.getIgnoredRegion(rname);
+  ignoredRegion.setState(IgnoredRegion::RegionState::DISCOVERED);
+  ignoredRegion.setDiscoverer(vname);
+  ignoredRegion.setTimeDiscovered(MOOSTime());
+  m_ignoredRegionset.modIgnoredRegion(ignoredRegion);
+
+  reportEvent("Ignored Region " + rname + " has been discovered by " + vname + "!");
+
+  postIgnoredRegions();
+  postIgnoredRegionPulseMessage(ignoredRegion, m_curr_time, vname);
+
+  Notify("DISCOVERED_IGNORED_REGION", ignoredRegion.getSpec());
 }
 
 //------------------------------------------------------------
@@ -743,7 +881,7 @@ void FireSim::declareDiscoveredFire(std::string vname, std::string fname)
   reportEvent("Fire " + fname + " has been discovered by " + vname + "!");
 
   postFireMarkers();
-  postPulseMessage(fire, m_curr_time, vname);
+  postFirePulseMessage(fire, m_curr_time, vname);
 
   std::string idstr = m_fireset.getFire(fname).getID();
   idstr = findReplace(idstr, "id", "");
@@ -803,12 +941,12 @@ void FireSim::postRangePolys(std::string vname, bool active)
 
 void FireSim::broadcastFires()
 {
-  for (const auto &[vname, _] : m_map_node_records)
+  for (const auto& [vname, _] : m_map_node_records)
   {
     std::string var = "FIRE_ALERT_" + toupper(vname);
     std::set<std::string> fires = m_fireset.getFireNames();
 
-    for (const auto &fname : fires)
+    for (const auto& fname : fires)
     {
       Fire fire = m_fireset.getFire(fname);
       std::string id_str = fire.getID();
@@ -828,7 +966,7 @@ void FireSim::postFireMarkers()
 {
   std::set<std::string> fire_names = m_fireset.getFireNames();
 
-  for (const auto &fname : fire_names)
+  for (const auto& fname : fire_names)
     postFireMarker(fname);
 
   XYPolygon poly = m_fireset.getSearchRegion();
@@ -894,10 +1032,55 @@ void FireSim::postFireMarker(std::string fname)
   Notify("VIEW_MARKER", marker.get_spec());
 }
 
+void FireSim::postIgnoredRegions() {
+  std::set<std::string> ignoredRegion_names = m_ignoredRegionset.getIgnoredRegionNames();
+
+  for (const auto& rname : ignoredRegion_names)
+    postIgnoredRegion(rname);
+
+}
+
+void FireSim::postIgnoredRegion(std::string rname) {
+  if (!m_ignoredRegionset.hasIgnoredRegion(rname))
+    return;
+
+  IgnoredRegion ignoredRegion = m_ignoredRegionset.getIgnoredRegion(rname);
+
+  XYPolygon poly = ignoredRegion.getRegion();
+  poly.set_transparency(IGNORED_REGION_MARKER_TRANSPARENCY_UNDISC);
+  XYMarker marker = ignoredRegion.getMarker();
+  marker.set_transparency(IGNORED_REGION_MARKER_TRANSPARENCY_UNDISC);
+
+  if (ignoredRegion.isDiscovered()) {
+    marker.set_active(true);
+    poly.set_active(true);
+    marker.set_transparency(IGNORED_REGION_MARKER_TRANSPARENCY_DISC);
+    poly.set_transparency(IGNORED_REGION_MARKER_TRANSPARENCY_DISC);
+    marker.set_color("primary_color", "yellow");
+    marker.set_color("secondary_color", "green");
+    
+  }
+  else {
+    poly.set_active(false);
+    marker.set_color("primary_color", "white");
+    marker.set_color("secondary_color", "gray50");
+  }
+
+  ignoredRegion.setMarker(marker);
+  ignoredRegion.setRegion(poly);
+  m_ignoredRegionset.modIgnoredRegion(ignoredRegion);
+
+
+  Notify("VIEW_POLYGON", poly.get_spec());
+  Notify("VIEW_MARKER", marker.get_spec());
+}
+
+
+
 //------------------------------------------------------------
 // Procedure: postPulseMessage()
 
-void FireSim::postPulseMessage(Fire fire, double time, std::string discoverer)
+void FireSim::postFirePulseMessage(Fire fire, double time, std::string discoverer)
 {
   XYRangePulse pulse;
   pulse.set_x(fire.getCurrX());
@@ -916,7 +1099,39 @@ void FireSim::postPulseMessage(Fire fire, double time, std::string discoverer)
   pulse.set_color("edge", color);
   pulse.set_color("fill", m_fire_color);
 
-  pulse.set_duration(FIRE_PULSE_DURATION);
+  pulse.set_duration(PULSE_DURATION);
+
+  std::string spec = pulse.get_spec();
+  Notify("VIEW_RANGE_PULSE", spec);
+}
+
+//------------------------------------------------------------
+// Procedure: postPulseMessage()
+
+void FireSim::postIgnoredRegionPulseMessage(IgnoredRegion ignoredRegion, double time, std::string discoverer)
+{
+
+  XYMarker marker = ignoredRegion.getMarker();
+
+  XYRangePulse pulse;
+
+  pulse.set_x(marker.get_vx());
+  pulse.set_y(marker.get_vy());
+
+  pulse.set_label("pulse_" + ignoredRegion.getID());
+  pulse.set_label_color("off");
+
+  pulse.set_rad(IGNORED_REGION_PULSE_RANGE);
+  pulse.set_time(time);
+
+  std::string color = "white";
+  if (!discoverer.empty() && discoverer != "nature")
+    color = m_map_node_records[discoverer].getColor();
+
+  pulse.set_color("edge", color);
+  pulse.set_color("fill", m_fire_color);
+
+  pulse.set_duration(PULSE_DURATION);
 
   std::string spec = pulse.get_spec();
   Notify("VIEW_RANGE_PULSE", spec);
@@ -925,7 +1140,7 @@ void FireSim::postPulseMessage(Fire fire, double time, std::string discoverer)
 //------------------------------------------------------------
 // Procedure: postFlags()
 
-void FireSim::postFlags(const std::vector<VarDataPair> &flags)
+void FireSim::postFlags(const std::vector<VarDataPair>& flags)
 {
   for (unsigned int i = 0; i < flags.size(); i++)
   {
@@ -969,16 +1184,16 @@ void FireSim::addNotable(std::string vname, std::string fname)
   m_map_notables[vname].push_front(fname);
 
   bool some_empty = false;
-  for (const auto &[_, fires] : m_map_notables)
+  for (const auto& [_, fires] : m_map_notables)
     if (fires.size() == 0)
       some_empty = true;
 
   if (some_empty ||
-      (m_map_notables.size() < m_total_discoverers) ||
-      (m_map_notables.size() == 1))
+    (m_map_notables.size() < m_total_discoverers) ||
+    (m_map_notables.size() == 1))
     return;
 
-  for (auto &[_, fires] : m_map_notables)
+  for (auto& [_, fires] : m_map_notables)
     fires.pop_back();
 }
 
@@ -987,7 +1202,7 @@ void FireSim::addNotable(std::string vname, std::string fname)
 
 bool FireSim::isNotable(std::string fname)
 {
-  for (const auto &[_, fires] : m_map_notables)
+  for (const auto& [_, fires] : m_map_notables)
     if (listContains(fires, fname))
       return (true);
 
@@ -1027,6 +1242,8 @@ bool FireSim::buildReport()
   finished_str += " (" + uintToString(undiscovered) + " remaining)";
   std::string running = boolToString(isMissionRunning());
 
+  m_msgs << "     Total Ignored Regions: " << m_ignoredRegionset.size() << std::endl;
+  m_msgs << " Spawnable Ignored Regions: " << m_ignoredRegionset.spawnsize() << std::endl;
   m_msgs << "       Total Fires: " << m_fireset.size() << std::endl;
   m_msgs << "   Spawnable Fires: " << m_fireset.spawnsize() << std::endl;
   m_msgs << "Scorer Impute Time: " << boolToString(m_imputeTime) << std::endl;
@@ -1043,12 +1260,11 @@ bool FireSim::buildReport()
     }
     else
     {
-      m_msgs << "   Finished time: " << doubleToString(m_mission_endtime_utc, 1)<< " / " <<  doubleToString(m_mission_endtime_utc-m_mission_start_utc, 1)  << "s" << std::endl;
+      m_msgs << "   Finished time: " << doubleToString(m_mission_endtime_utc, 1) << " / " << doubleToString(m_mission_endtime_utc - m_mission_start_utc, 1) << "s" << std::endl;
     }
     m_msgs << "Mission Finished: " << finished_str << std::endl;
   }
   m_msgs << std::endl;
-
 
   m_msgs << "======================================" << std::endl;
   m_msgs << "Vehicle Discover Summary " << std::endl;
@@ -1063,7 +1279,7 @@ bool FireSim::buildReport()
   actab << "Name | Discovered  | Reqs  | Tries  ";
   actab.addHeaderLines();
 
-  for (const auto &[vname, _] : m_map_node_records)
+  for (const auto& [vname, _] : m_map_node_records)
   {
     std::string discoveries = uintToString(m_map_node_discoveries[vname]);
     std::string sc_reqs = uintToString(m_map_node_scout_reqs[vname]);
@@ -1072,7 +1288,7 @@ bool FireSim::buildReport()
   }
   m_msgs << actab.getFormattedString();
   m_msgs << std::endl
-         << std::endl;
+    << std::endl;
 
   m_msgs << "======================================" << std::endl;
   m_msgs << "Fire Summary " << std::endl;
@@ -1117,7 +1333,7 @@ bool FireSim::buildReport()
   }
   m_msgs << actab.getFormattedString();
   m_msgs << std::endl
-         << std::endl;
+    << std::endl;
 
   // Logger::info("\n");
 
@@ -1138,9 +1354,9 @@ void FireSim::calculateMissionScore(bool imputeTime)
 
   // Publish score information to the MOOSDB
   std::function<void(std::string, std::string)> reportFnc = [&, this](std::string key, std::string value)
-  {
-    this->Notify(key, value);
-  };
+    {
+      this->Notify(key, value);
+    };
   m_mission_scorer.PublishScore(reportFnc);
 
   // Save score to file

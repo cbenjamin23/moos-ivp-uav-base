@@ -206,7 +206,16 @@ ProcessConfig = uFldFireSim
   fire_config = region = {$(REGION)}
   fire_config = spawn_count = $(FIRE_SPAWN_COUNT)
   fire_config = spawn_interval = $(FIRE_SPAWN_INTERVAL)
-  fire_config = save_path = "missions/UAV_Fly/gen_fires/" // is withing the moos-ivp-uav folder
+  fire_config = save_path = "missions/UAV_Fly/gen_files/" // is withing the moos-ivp-uav folder
+ 
+  ignoredRegion_config = generate = $(IGNORED_REGION_GENERATE)
+  ignoredRegion_config = file = $(IGNORED_REGION_FILE_DEFAULT)
+  ignoredRegion_config = count = $(IGNORED_REGION_COUNT)
+  ignoredRegion_config = sep_min = $(IGNORED_REGION_SEP_MIN)
+  ignoredRegion_config = region = {$(REGION)}
+  ignoredRegion_config = spawn_count = $(IGNORED_REGION_SPAWN_COUNT)
+  ignoredRegion_config = spawn_interval = $(IGNORED_REGION_SPAWN_INTERVAL)
+  ignoredRegion_config = save_path = "missions/UAV_Fly/gen_files/" // is withing the moos-ivp-uav folder
 
   
   fire_color = $(FIRE_COLOR)  // "color, or vehicle if the fire should take the color of the vehicle"
@@ -400,8 +409,8 @@ ProcessConfig = pMarineViewer
   left_context[reg_ignoredRegion_circle] = IGNORED_REGION   = "reg:: format=radial, msg=building, x=$[XPOS], y=$[YPOS], radius=50, pts=16, snap=0.5"
   left_context[reg_ignoredRegion_oval] = IGNORED_REGION     = "reg:: format=oval, msg=oval_office, x=$[XPOS], y=$[YPOS], rad=100, len=250, draw_degs=10"  // len > 2*rad
   left_context[reg_ignoredRegion_hexagon] = IGNORED_REGION  = "reg:: format=hexagon, msg=wood_chop, x=$[XPOS], y=$[YPOS], rad=60, pts=8, snap_val=1.0"
-  // left_context[reg_ignoredRegion_rectangle] = IGNORED_REGION = "format=polygon, msg=predefined, pts={10,15:20,25:30,35}"
   left_context[reg_ignoredRegion_rectangle] = IGNORED_REGION = "reg:: format=rectangle, msg=dessert, cx=$[XPOS], cy=$[YPOS], width=300, height=400, degs=10"
+  // left_context[reg_ignoredRegion_rectangle] = IGNORED_REGION = "format=polygon, msg=predefined, pts={10,15:20,25:30,35}"
 
   right_context[unreg_ignoredRegion] = IGNORED_REGION = "unreg:: x=$[XPOS], y=$[YPOS]"
   
