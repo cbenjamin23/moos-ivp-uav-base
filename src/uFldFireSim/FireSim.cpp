@@ -24,7 +24,7 @@
 #include "XYRangePulse.h"
 
 #include "Logger.h"
-
+#include "common.h"
 //---------------------------------------------------------
 // Constructor
 
@@ -602,10 +602,10 @@ void FireSim::updateFinishStatus()
 
   // log the moostime, deadline, and if all fires are discovered
 
-  Logger::info("uPdateFinishStatus: Time: " + doubleToString(MOOSTime() - m_mission_start_utc));
-  Logger::info("uPdateFinishStatus: Mission duration: " + doubleToString(m_mission_duration_s));
-  Logger::info("uPdateFinishStatus: Deadline reached: " + boolToString(isMissionDeadlineReached()));
-  Logger::info("uPdateFinishStatus: All fires discovered: " + boolToString(m_fireset.allFiresDiscovered()));
+  // Logger::info("uPdateFinishStatus: Time: " + doubleToString(MOOSTime() - m_mission_start_utc));
+  // Logger::info("uPdateFinishStatus: Mission duration: " + doubleToString(m_mission_duration_s));
+  // Logger::info("uPdateFinishStatus: Deadline reached: " + boolToString(isMissionDeadlineReached()));
+  // Logger::info("uPdateFinishStatus: All fires discovered: " + boolToString(m_fireset.allFiresDiscovered()));
 
   if (!finished)
     return;
@@ -1019,29 +1019,23 @@ bool FireSim::buildReport()
   m_msgs << std::endl;
 
   m_msgs << "======================================" << std::endl;
-  m_msgs << "Vehicle Discover Summary " << std::endl;
+  m_msgs << "Mission Summary " << std::endl;
   m_msgs << "======================================" << std::endl;
 
   auto undiscovered = m_fireset.size() - m_fireset.getTotalFiresDiscovered();
   std::string finished_str = boolToString(m_finished);
   finished_str += " (" + uintToString(undiscovered) + " remaining)";
-
-  m_msgs << "Total vehicles: " << m_map_node_records.size() << std::endl;
-  m_msgs << "Leader vehicle: " << m_vname_leader << std::endl;
-  m_msgs << "Winner vehicle: " << m_vname_winner << std::endl;
-
   std::string running = boolToString(isMissionRunning());
-  m_msgs << "Impute Time: " << boolToString(m_imputeTime) << std::endl;
-  m_msgs << "Mission Running (" << running << "): ";
-  if (m_mission_start_utc == 0)
-  {
-    m_msgs << "-" << std::endl;
-  }
-  else
+
+  m_msgs << "       Total Fires: " << m_fireset.size() << std::endl;
+  m_msgs << "   Spawnable Fires: " << m_fireset.spawnsize() << std::endl;
+  m_msgs << "Scorer Impute Time: " << boolToString(m_imputeTime) << std::endl;
+  m_msgs << "Mission Running (" << running << ")";
+  if (m_mission_start_utc != 0)
   {
     m_msgs << std::endl;
-    m_msgs << "     Start time: " << doubleToString(m_mission_start_utc, 3) << std::endl;
-    m_msgs << "       Duration: " << doubleToString(m_mission_duration_s, 3) << std::endl;
+    m_msgs << "     Start time: " << doubleToString(m_mission_start_utc, 1) << " / 0s" << std::endl;
+    m_msgs << "       Duration: " << doubleToString(m_mission_duration_s, 1) << "s" << std::endl;
     if (!m_finished)
     {
       m_msgs << "   Elapsed time: " << doubleToString(m_curr_time - m_mission_start_utc, 3) << std::endl;
@@ -1049,11 +1043,20 @@ bool FireSim::buildReport()
     }
     else
     {
-      m_msgs << "   Finished time: " << doubleToString(m_mission_endtime_utc, 3) << std::endl;
+      m_msgs << "   Finished time: " << doubleToString(m_mission_endtime_utc, 1)<< " / " <<  doubleToString(m_mission_endtime_utc-m_mission_start_utc, 1)  << "s" << std::endl;
     }
     m_msgs << "Mission Finished: " << finished_str << std::endl;
   }
   m_msgs << std::endl;
+
+
+  m_msgs << "======================================" << std::endl;
+  m_msgs << "Vehicle Discover Summary " << std::endl;
+  m_msgs << "======================================" << std::endl;
+
+  m_msgs << "Total vehicles: " << m_map_node_records.size() << std::endl;
+  m_msgs << "Leader vehicle: " << m_vname_leader << std::endl;
+  m_msgs << "Winner vehicle: " << ((m_vname_winner.empty()) ? "-" : m_vname_winner) << std::endl;
 
   ACTable actab = ACTable(4);
   actab << "Vehi | Fires       | Scout | Scout ";
@@ -1142,7 +1145,7 @@ void FireSim::calculateMissionScore(bool imputeTime)
 
   // Save score to file
   auto totalFires = m_fireset.size();
-  auto min_sep = m_fireset.getMinSeparation();
+  auto min_sep = m_fireset.getMinSeparation() * MOOSDIST2METERS;
 
   std::string sep_str = (min_sep) ? "_sep" + uintToString(min_sep, 0) : "";
   std::string score_filename = "mission_score_c" + uintToString(totalFires, 0) + sep_str + ".txt";
@@ -1155,4 +1158,7 @@ void FireSim::calculateMissionScore(bool imputeTime)
   // Send score summary to info_buffer for appcast
   reportEvent("Mission Score: " + doubleToStringX(score, 2) + "/100");
   reportEvent("Score details saved to: " + file_path);
+
+  Logger::info("Mission Score: " + doubleToStringX(score, 2) + "/100");
+  Logger::info("Score details saved to: " + file_path);
 }

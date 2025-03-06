@@ -52,6 +52,7 @@ public:
     unsigned int getTotalFiresDiscovered() const;
     unsigned int getTotalFiresDiscoveredBy(std::string vname) const;
     unsigned int size() const { return (m_map_fires.size()); }
+    unsigned int spawnsize() const { return (m_vec_spawnable_fires.size()); }
 
     double getMinSeparation() const { return (m_min_sep); }
     std::string getSavePath() const { return (m_fire_config_save_path); }

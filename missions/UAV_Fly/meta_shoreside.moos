@@ -204,6 +204,8 @@ ProcessConfig = uFldFireSim
   fire_config = count = $(FIRE_COUNT)
   fire_config = sep_min = $(FIRE_SEP_MIN)
   fire_config = region = {$(REGION)}
+  fire_config = spawn_count = $(FIRE_SPAWN_COUNT)
+  fire_config = spawn_interval = $(FIRE_SPAWN_INTERVAL)
   fire_config = save_path = "missions/UAV_Fly/gen_fires/" // is withing the moos-ivp-uav folder
 
   

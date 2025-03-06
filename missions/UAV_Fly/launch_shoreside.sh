@@ -147,7 +147,10 @@ FIRE_COUNT=$(get_global_val $CONFIG_FILE "missionParams.fire_count")
 if [ $? -ne 0 ]; then exit 1; fi
 FIRE_SEP_MIN=$(get_global_val_in_moosDistance $CONFIG_FILE "missionParams.fire_sep_min")
 if [ $? -ne 0 ]; then exit 1; fi
-
+FIRE_SPAWN_COUNT=$(get_global_val $CONFIG_FILE "missionParams.fire_spawn_count")
+if [ $? -ne 0 ]; then exit 1; fi
+FIRE_SPAWN_INTERVAL=$(get_global_val $CONFIG_FILE "missionParams.fire_spawn_interval")
+if [ $? -ne 0 ]; then exit 1; fi
 
 
 
@@ -204,6 +207,8 @@ if [ "${VERBOSE}" = "yes" ]; then
     echo "FIRE_GENERATE = [${FIRE_GENERATE}]"
     echo "FIRE_COUNT = [${FIRE_COUNT}]"
     echo "FIRE_SEP_MIN = [${FIRE_SEP_MIN}]"
+    echo "FIRE_SPAWN_COUNT = [${FIRE_SPAWN_COUNT}]"
+    echo "FIRE_SPAWN_INTERVAL = [${FIRE_SPAWN_INTERVAL}]"
     echo "----------------------------------"
     echo "MISSION_DURATION = [${MISSION_DURATION}]"
     echo "----------------------------------"
@@ -245,6 +250,8 @@ nsplug meta_shoreside.moos targ_shoreside.moos $NSFLAGS WARP=$TIME_WARP \
     FIRE_GENERATE=$FIRE_GENERATE                         \
     FIRE_COUNT=$FIRE_COUNT                               \
     FIRE_SEP_MIN=$FIRE_SEP_MIN                           \
+    FIRE_SPAWN_COUNT=$FIRE_SPAWN_COUNT                   \
+    FIRE_SPAWN_INTERVAL=$FIRE_SPAWN_INTERVAL             \
     GRID_CELL_SIZE=$GRID_CELL_SIZE                       \
     GRID_CELL_MAX_COUNT=$GRID_CELL_MAX_COUNT              \
     GRID_CELL_DECAY_TIME=$GRID_CELL_DECAY_TIME            \

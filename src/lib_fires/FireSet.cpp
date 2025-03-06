@@ -30,7 +30,10 @@ FireSet::FireSet()
     shuffleIDs();
 }
 
-// Format: generate = true, file = fire.txt, count = 10, sep_min = 10, region = {x0,y0:x1,y1:...:x2,y2}, save_path = "missions/UAV_FLY"
+// Format:  generate = true, file = fire.txt, count = 10, sep_min = 10, \
+            region = {x0,y0:x1,y1:...:x2,y2}, save_path = "missions/UAV_FLY/gen_fires/", \
+            spawn_count=10, spawn_interval = 200:400
+           
 
 bool FireSet::handleFireConfig(std::string str, double curr_time, std::string &warning)
 {
@@ -40,39 +43,69 @@ bool FireSet::handleFireConfig(std::string str, double curr_time, std::string &w
     setBooleanOnString(generate, generate_str);
 
     std::string file = tokStringParse(str, "file");
+    
+    if (!generate && file.empty()){
+        warning = "Bad FireConfig Line (need a file if not generating): " + str;
+        return false;
+    }
+    
+    if (!generate)
+        return handleFireFile(file, curr_time, warning);
+    
+    // Will generate fires
+
     std::string count_str = tokStringParse(str, "count");
     std::string sep_min_str = tokStringParse(str, "sep_min");
     std::string region_str = tokStringParse(str, "region");
     region_str = "pts=" + region_str;
     std::string save_path = tokStringParse(str, "save_path");
+    std::string spawn_count_str = tokStringParse(str, "spawn_count");
+    unsigned int spawn_count = 0;
+    setUIntOnString(spawn_count, spawn_count_str);
+    std::string spawn_interval_str = tokStringParse(str, "spawn_interval");
+    
 
-    if (!generate && file.empty())
-        warning = "Bad FireConfig Line (need a file if not generating): " + str;
-    if (generate && count_str.empty())
+    
+    if (count_str.empty())
         warning = "Bad FireConfig Line (need count w/ generating): " + str;
-    if (generate && sep_min_str.empty())
+    else if (sep_min_str.empty())
         warning = "Bad FireConfig Line (need sep_min w/ generating): " + str;
-    if (generate && region_str.empty())
+    else if (region_str.empty())
         warning = "Bad FireConfig Line (need region w/ generating): " + str;
-    if (generate && save_path.empty())
+    else if (save_path.empty())
         warning = "Bad FireConfig Line (need save_path w/ generating): " + str;
+    else if ((spawn_count>0) && spawn_interval_str.empty())
+        warning = "Bad FireConfig Line (need spawn_interval w/ spawn_count): " + str;
+    
+    if (!warning.empty())
+        return false;
+        
+        
+    FireFldGenerator generator;
+    
+    if(!generator.setSpawnInterval(spawn_interval_str))
+        warning = "Bad FireConfig Line (bad spawn_interval): " + str;
+    else if(!generator.setFireAmt(count_str))
+        warning = "Bad FireConfig Line (bad count): " + str;
+    else if(!generator.setSpawnableFireAmt(spawn_count_str))
+        warning = "Bad FireConfig Line (bad spawn_count): " + str;
+    else if(!generator.setBufferDist(sep_min_str))
+        warning = "Bad FireConfig Line (bad sep_min): " + str;
+    else if(!generator.addPolygon(region_str))
+        warning = "Bad FireConfig Line (bad region): " + str;
+        
     if (!warning.empty())
         return false;
 
-    if (!generate)
-        return handleFireFile(file, curr_time, warning);
-
-    FireFldGenerator generator;
-    generator.setFireAmt(count_str);
-    generator.setBufferDist(sep_min_str);
-    generator.addPolygon(region_str);
-
+        
     std::stringstream ss;
     if (!generator.generate(ss))
     {
         warning = "Failed to generate fires with fire_config line: " + str;
         return false;
     }
+
+
     std::string result = ss.str();
 
     double sep_min_meters;
@@ -198,7 +231,7 @@ std::vector<Fire> FireSet::tryAddSpawnableFire(double mission_start_utc, double 
         else
             it++;
     }
-    
+
     return spawned_fires;
 }
 

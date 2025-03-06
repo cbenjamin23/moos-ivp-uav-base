@@ -169,6 +169,7 @@ bool FireMissionScorer::SaveScoreToFile(const std::string &filename)
 
     file << GetScoreSummary();
     file.close();
+
     return true;
 }
 
