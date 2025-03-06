@@ -64,7 +64,7 @@ FireSim::FireSim()
 //---------------------------------------------------------
 // Procedure: OnNewMail
 
-bool FireSim::OnNewMail(MOOSMSG_LIST& NewMail)
+bool FireSim::OnNewMail(MOOSMSG_LIST &NewMail)
 {
   AppCastingMOOSApp::OnNewMail(NewMail);
 
@@ -122,27 +122,86 @@ bool FireSim::OnNewMail(MOOSMSG_LIST& NewMail)
       handled = true;
     }
     else if (key == "GSV_VISUALIZE_SENSOR_AREA")
-    {
-      bool bval;
-      handled = setBooleanOnString(bval, sval);
-      m_scout_rng_show = !bval;
+      handled = handleMailVisualizeSensorArea(sval);
+    else if (key == "IGNORED_REGION")
+      handled = handleIgnoredRegion(sval);
 
-      if (!m_scout_rng_show)
-      {
-        for (const auto& [vname, _] : m_map_node_scout_reqs)
-        {
-          postRangePolys(vname, false);
-        }
-      }
-    }
+    else
 
-    if (!handled)
+        if (!handled)
     {
       reportRunWarning("Unhandled mail: " + key);
       reportRunWarning(warning);
     }
   }
   return (true);
+}
+
+bool FireSim::handleMailVisualizeSensorArea(std::string str)
+{
+  bool bval;
+  bool ok = setBooleanOnString(bval, str);
+  m_scout_rng_show = !bval;
+
+  if (!m_scout_rng_show)
+  {
+    for (const auto &[vname, _] : m_map_node_scout_reqs)
+    {
+      postRangePolys(vname, false);
+    }
+  }
+
+  return ok;
+}
+
+bool FireSim::handleIgnoredRegion(std::string str)
+{
+  str = stripBlankEnds(str);
+
+  bool doRegister = !strContains(str, "unreg::");
+  
+  if (doRegister)
+    registerRemoveIgnoredRegion(str.substr(5), doRegister);
+  else
+    registerRemoveIgnoredRegion(str.substr(7), doRegister);
+  
+  Logger::info("Received Command to (un)reg region: " + str);
+
+  return true;
+}
+
+// format: x=1,y=4
+void FireSim::registerRemoveIgnoredRegion(std::string pos_str, bool doRegister){
+
+  double x = tokDoubleParse(pos_str, "x");
+  double y = tokDoubleParse(pos_str, "y");
+
+  if (doRegister){
+    auto name = m_ignoredRegionset.spawnIgnoreRegion(x, y);
+    trySpawnIgnoredRegion();
+    Logger::info("Registering ignored region: " + name);
+  }
+  else{ // unregister
+    std::string rname = m_ignoredRegionset.getNameOfIgnoredRegionContaining(x, y);
+    if (rname.empty())
+      return;
+    auto ignoredRegion = m_ignoredRegionset.getIgnoredRegion(rname);
+    ignoredRegion.setState(IgnoredRegion::RegionState::UNDISCOVERED);
+    
+    
+    auto marker = ignoredRegion.getMarker();
+    marker.set_active(false);
+    
+    Logger::info("Unregistering ignored region: " + rname);
+    Logger::info("Marker spec: " + marker.get_spec());
+    
+    ignoredRegion.setMarker(marker);
+    m_ignoredRegionset.modIgnoredRegion(ignoredRegion);
+
+    postIgnoredRegions();
+    m_ignoredRegionset.removeIgnoreRegion(rname);
+  }
+
 }
 
 //---------------------------------------------------------
@@ -170,6 +229,8 @@ void FireSim::registerVariables()
 
   Register("GSV_VISUALIZE_SENSOR_AREA", 0);
   Register("GSV_COVERAGE_PERCENTAGE", 0);
+
+  Register("IGNORED_REGION", 0);
 }
 
 //---------------------------------------------------------
@@ -207,7 +268,7 @@ void FireSim::trySpawnFire()
     return;
 
   postFireMarkers();
-  for (const auto& fire : spawned_fires)
+  for (const auto &fire : spawned_fires)
     postFirePulseMessage(fire, m_curr_time);
 }
 
@@ -218,7 +279,7 @@ void FireSim::trySpawnIgnoredRegion()
     return;
 
   postIgnoredRegions();
-  for (const auto& region : spawned_regions)
+  for (const auto &region : spawned_regions)
     postIgnoredRegionPulseMessage(region, m_curr_time);
 }
 //---------------------------------------------------------
@@ -399,7 +460,7 @@ bool FireSim::handleConfigDetectRangePd(std::string str)
 //            SPD=2.00, HDG=119.06,YAW=119.05677,DEPTH=0.00,
 //            LENGTH=4.0,MODE=ENGAGED
 
-bool FireSim::handleMailNodeReport(const std::string& node_report_str)
+bool FireSim::handleMailNodeReport(const std::string &node_report_str)
 {
   NodeRecord new_record = string2NodeRecord(node_report_str);
 
@@ -434,7 +495,7 @@ void FireSim::tryScouts()
 
   // Logger::info("Trying to Scout for all vehicles");
   // For each vehicle, check if pending scout actions are to be applied
-  for (const auto& [vname, _] : m_map_node_records)
+  for (const auto &[vname, _] : m_map_node_records)
     tryScoutsVName(vname);
 }
 
@@ -463,11 +524,11 @@ void FireSim::tryScoutsVName(std::string vname)
   m_map_node_scout_tries[vname]++;
 
   std::set<std::string> fire_names = m_fireset.getFireNames();
-  for (const auto& fname : fire_names)
+  for (const auto &fname : fire_names)
     tryScoutsVNameFire(vname, fname);
 
   std::set<std::string> ignoredRegion_names = m_ignoredRegionset.getIgnoredRegionNames();
-  for (const auto& rname : ignoredRegion_names)
+  for (const auto &rname : ignoredRegion_names)
     tryScoutsVNameIgnoredRegion(vname, rname);
 }
 
@@ -481,12 +542,12 @@ void FireSim::tryScoutsVNameFire(std::string vname, std::string fname)
   Fire fire = m_fireset.getFire(fname);
 
   bool result = rollDiceFire(vname, fname);
-  if (result )
+  if (result)
   {
     fire.incDiscoverCnt();
     m_fireset.modFire(fire);
 
-    if(fire.isDiscovered())
+    if (fire.isDiscovered())
       return;
 
     declareDiscoveredFire(vname, fname);
@@ -500,10 +561,9 @@ void FireSim::tryScoutsVNameIgnoredRegion(std::string vname, std::string rname)
 {
   IgnoredRegion ignoredRegion = m_ignoredRegionset.getIgnoredRegion(rname);
 
-  bool result = rollDiceIgnoredRegion( vname, rname);
-  if (result && !ignoredRegion.isDiscovered())  
+  bool result = rollDiceIgnoredRegion(vname, rname);
+  if (result && !ignoredRegion.isDiscovered())
     declareDiscoveredIgnoredRegion(vname, rname);
-
 }
 
 double FireSim::altScaledRange(double range_limit, std::string vname) const
@@ -573,7 +633,7 @@ void FireSim::updateWinnerStatus(bool finished)
   // Possibly >1 winner for now. Will handle tie-breaker afterwards.
   std::vector<std::string> winner_vnames;
 
-  for (const auto& [vname, discoveries] : m_map_node_discoveries)
+  for (const auto &[vname, discoveries] : m_map_node_discoveries)
   {
     if (discoveries >= win_thresh)
       winner_vnames.push_back(vname);
@@ -597,7 +657,7 @@ void FireSim::updateWinnerStatus(bool finished)
   {
     std::string first_winner;
     double first_winner_utc = 0;
-    for (const auto& [vname, utc] : m_map_node_last_discover_utc)
+    for (const auto &[vname, utc] : m_map_node_last_discover_utc)
     {
       if (utc >= win_thresh)
       {
@@ -941,12 +1001,12 @@ void FireSim::postRangePolys(std::string vname, bool active)
 
 void FireSim::broadcastFires()
 {
-  for (const auto& [vname, _] : m_map_node_records)
+  for (const auto &[vname, _] : m_map_node_records)
   {
     std::string var = "FIRE_ALERT_" + toupper(vname);
     std::set<std::string> fires = m_fireset.getFireNames();
 
-    for (const auto& fname : fires)
+    for (const auto &fname : fires)
     {
       Fire fire = m_fireset.getFire(fname);
       std::string id_str = fire.getID();
@@ -966,7 +1026,7 @@ void FireSim::postFireMarkers()
 {
   std::set<std::string> fire_names = m_fireset.getFireNames();
 
-  for (const auto& fname : fire_names)
+  for (const auto &fname : fire_names)
     postFireMarker(fname);
 
   XYPolygon poly = m_fireset.getSearchRegion();
@@ -1032,15 +1092,16 @@ void FireSim::postFireMarker(std::string fname)
   Notify("VIEW_MARKER", marker.get_spec());
 }
 
-void FireSim::postIgnoredRegions() {
+void FireSim::postIgnoredRegions()
+{
   std::set<std::string> ignoredRegion_names = m_ignoredRegionset.getIgnoredRegionNames();
 
-  for (const auto& rname : ignoredRegion_names)
+  for (const auto &rname : ignoredRegion_names)
     postIgnoredRegion(rname);
-
 }
 
-void FireSim::postIgnoredRegion(std::string rname) {
+void FireSim::postIgnoredRegion(std::string rname)
+{
   if (!m_ignoredRegionset.hasIgnoredRegion(rname))
     return;
 
@@ -1051,16 +1112,17 @@ void FireSim::postIgnoredRegion(std::string rname) {
   XYMarker marker = ignoredRegion.getMarker();
   marker.set_transparency(IGNORED_REGION_MARKER_TRANSPARENCY_UNDISC);
 
-  if (ignoredRegion.isDiscovered()) {
+  if (ignoredRegion.isDiscovered())
+  {
     marker.set_active(true);
     poly.set_active(true);
     marker.set_transparency(IGNORED_REGION_MARKER_TRANSPARENCY_DISC);
     poly.set_transparency(IGNORED_REGION_MARKER_TRANSPARENCY_DISC);
     marker.set_color("primary_color", "yellow");
     marker.set_color("secondary_color", "green");
-    
   }
-  else {
+  else
+  {
     poly.set_active(false);
     marker.set_color("primary_color", "white");
     marker.set_color("secondary_color", "gray50");
@@ -1070,12 +1132,9 @@ void FireSim::postIgnoredRegion(std::string rname) {
   ignoredRegion.setRegion(poly);
   m_ignoredRegionset.modIgnoredRegion(ignoredRegion);
 
-
   Notify("VIEW_POLYGON", poly.get_spec());
   Notify("VIEW_MARKER", marker.get_spec());
 }
-
-
 
 //------------------------------------------------------------
 // Procedure: postPulseMessage()
@@ -1140,7 +1199,7 @@ void FireSim::postIgnoredRegionPulseMessage(IgnoredRegion ignoredRegion, double 
 //------------------------------------------------------------
 // Procedure: postFlags()
 
-void FireSim::postFlags(const std::vector<VarDataPair>& flags)
+void FireSim::postFlags(const std::vector<VarDataPair> &flags)
 {
   for (unsigned int i = 0; i < flags.size(); i++)
   {
@@ -1184,16 +1243,16 @@ void FireSim::addNotable(std::string vname, std::string fname)
   m_map_notables[vname].push_front(fname);
 
   bool some_empty = false;
-  for (const auto& [_, fires] : m_map_notables)
+  for (const auto &[_, fires] : m_map_notables)
     if (fires.size() == 0)
       some_empty = true;
 
   if (some_empty ||
-    (m_map_notables.size() < m_total_discoverers) ||
-    (m_map_notables.size() == 1))
+      (m_map_notables.size() < m_total_discoverers) ||
+      (m_map_notables.size() == 1))
     return;
 
-  for (auto& [_, fires] : m_map_notables)
+  for (auto &[_, fires] : m_map_notables)
     fires.pop_back();
 }
 
@@ -1202,7 +1261,7 @@ void FireSim::addNotable(std::string vname, std::string fname)
 
 bool FireSim::isNotable(std::string fname)
 {
-  for (const auto& [_, fires] : m_map_notables)
+  for (const auto &[_, fires] : m_map_notables)
     if (listContains(fires, fname))
       return (true);
 
@@ -1279,7 +1338,7 @@ bool FireSim::buildReport()
   actab << "Name | Discovered  | Reqs  | Tries  ";
   actab.addHeaderLines();
 
-  for (const auto& [vname, _] : m_map_node_records)
+  for (const auto &[vname, _] : m_map_node_records)
   {
     std::string discoveries = uintToString(m_map_node_discoveries[vname]);
     std::string sc_reqs = uintToString(m_map_node_scout_reqs[vname]);
@@ -1288,7 +1347,7 @@ bool FireSim::buildReport()
   }
   m_msgs << actab.getFormattedString();
   m_msgs << std::endl
-    << std::endl;
+         << std::endl;
 
   m_msgs << "======================================" << std::endl;
   m_msgs << "Fire Summary " << std::endl;
@@ -1333,7 +1392,7 @@ bool FireSim::buildReport()
   }
   m_msgs << actab.getFormattedString();
   m_msgs << std::endl
-    << std::endl;
+         << std::endl;
 
   // Logger::info("\n");
 
@@ -1354,9 +1413,9 @@ void FireSim::calculateMissionScore(bool imputeTime)
 
   // Publish score information to the MOOSDB
   std::function<void(std::string, std::string)> reportFnc = [&, this](std::string key, std::string value)
-    {
-      this->Notify(key, value);
-    };
+  {
+    this->Notify(key, value);
+  };
   m_mission_scorer.PublishScore(reportFnc);
 
   // Save score to file

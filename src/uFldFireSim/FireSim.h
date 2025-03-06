@@ -23,15 +23,12 @@ constexpr double FIREMARKER_TRANSPARENCY_UNDISC = 0.3;
 constexpr double FIREMARKER_TRANSPARENCY_DISC = 0.5;
 constexpr double FIREMARKER_TRANSPARENCY_DISC_NOTABLE = 0.7;
 
-constexpr double FIRE_PULSE_RANGE = 80; //moosDistance
+constexpr double FIRE_PULSE_RANGE = 80; // moosDistance
 constexpr double PULSE_DURATION = 6;
 
-
-constexpr double IGNORED_REGION_PULSE_RANGE = 90; //moosDistance
+constexpr double IGNORED_REGION_PULSE_RANGE = 90; // moosDistance
 constexpr double IGNORED_REGION_MARKER_TRANSPARENCY_UNDISC = 0.1;
 constexpr double IGNORED_REGION_MARKER_TRANSPARENCY_DISC = 0.6;
-
-
 
 class FireSim : public AppCastingMOOSApp
 {
@@ -40,7 +37,7 @@ public:
   virtual ~FireSim() {}
 
 public: // Standard MOOSApp functions to overload
-  bool OnNewMail(MOOSMSG_LIST& NewMail);
+  bool OnNewMail(MOOSMSG_LIST &NewMail);
   bool Iterate();
   bool OnConnectToServer();
   bool OnStartUp();
@@ -52,18 +49,24 @@ protected: // Standard AppCastingMOOSApp function to overload
 protected: // Configuration utility
   bool handleConfigDetectRangeMin(std::string);
   bool handleConfigDetectRangeMax(std::string);
-  bool handleConfigDetectRangePd(std::string);
-
-protected: // Incoming mail utility
-  bool handleMailNodeReport(const std::string&);
-  // bool handleMailDiscoverRequest(std::string);
+  
+  protected: // Incoming mail utility
+  bool handleMailNodeReport(const std::string &);
   bool handleMailScoutRequest(std::string);
+  bool handleConfigDetectRangePd(std::string);
+  bool handleMailVisualizeSensorArea(std::string);
+  bool handleIgnoredRegion(std::string);
+
 
 protected: // Outgoing mail utility
   void declareDiscoveredFire(std::string vname, std::string fname);
   void declareDiscoveredIgnoredRegion(std::string vname, std::string rname);
 
 protected: // Utilities
+
+  void registerRemoveIgnoredRegion(std::string pos_str, bool doRegister=true);
+
+
   void tryScouts();
   void tryScoutsVName(std::string vname);
   void tryScoutsVNameFire(std::string vname, std::string fname);
@@ -95,8 +98,7 @@ protected: // Utilities
   void postIgnoredRegion(std::string rname);
   void postIgnoredRegionPulseMessage(IgnoredRegion ignoredRegion, double time, std::string discoverer = "");
 
-
-  void postFlags(const std::vector<VarDataPair>& flags);
+  void postFlags(const std::vector<VarDataPair> &flags);
   void broadcastFires();
 
   void addNotable(std::string vname, std::string fname);
@@ -105,7 +107,6 @@ protected: // Utilities
 protected: // State variables
   FireSet m_fireset;
   IgnoredRegionSet m_ignoredRegionset;
-
 
   double m_last_broadcast;
 

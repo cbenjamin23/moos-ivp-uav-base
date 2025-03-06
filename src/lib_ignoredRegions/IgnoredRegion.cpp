@@ -80,7 +80,7 @@ string IgnoredRegion::getSpec() const
     if (m_scout_tries != 0)
         spec += ", scout_tries=" + uintToString(m_scout_tries);
 
-    spec += ", " + m_format_spec;
+    spec += ", format=" + m_format_spec;
     
     return (spec);
 }
@@ -151,9 +151,9 @@ IgnoredRegion stringToIgnoredRegion(std::string str)
     std::string msg = tokStringParse(format_spec, "msg", ';', '|');
     
 
-    // Logger::info("regionType_str: " + regionType_str);
-    // Logger::info("msg : " + msg);
-    // Logger::info("name: " + ignoredRegion.getName());
+    Logger::info("regionType_str: " + regionType_str);
+    Logger::info("msg : " + msg);
+    Logger::info("name: " + ignoredRegion.getName());
 
 
     std::function<XYPolygon(std::string)> convertionFnc;

@@ -49,7 +49,7 @@ public: // Setters
     void setDiscoverer(std::string s) { m_discoverer = s; }
     void setName(std::string s) { m_name = s; }
     void setID(std::string s) { m_id = s; }
-    void setLabel(std::string s) { m_id = s; }
+    void setLabel(std::string s) { m_label = s; }
     void setScoutTries(unsigned int v) { m_scout_tries = v; }
     void addScouted(std::string s) { m_set_scouted.insert(s); }
     void incScoutTries() { m_scout_tries++; }

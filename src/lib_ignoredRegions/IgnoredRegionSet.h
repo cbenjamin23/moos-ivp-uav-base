@@ -6,6 +6,7 @@
 #include "XYMarker.h"
 #include "XYPolygon.h"
 #include "IgnoredRegion.h"
+#include "IgnoredRegionGenerator.h"
 
 class IgnoredRegionSet
 {
@@ -51,7 +52,9 @@ public:
     std::string getSavePath() const { return (m_region_config_save_path); }
 
     bool removeIgnoreRegion(std::string rname);
-    
+
+    std::string spawnIgnoreRegion(double x, double y, double scale_factor=1);
+
 protected:
     void shuffleIDs();
     bool configureIgnoreRegionVisuals(std::string rname);
@@ -68,6 +71,8 @@ protected: // Configuration variables
     std::string m_region_file;
     XYPolygon m_search_region;
     unsigned int m_max_size; // Maximum number of initial regions (const defined in .cpp)
+
+    IgnoredRegionGenerator m_generator;
 };
 
 #endif
