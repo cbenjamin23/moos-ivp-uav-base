@@ -744,12 +744,17 @@ bool ArduBridge::OnStartUp()
 
   m_uav_model.registerSendDesiredValuesFunction([this](UAV_Model &uav, bool forceSend)
                                                 {
-                                                  if (!m_helm_desiredValues->isValid())
+                                                  static unsigned int failed_attempts = 0;
+                                                  if (!m_helm_desiredValues->isValid() && !forceSend)
                                                   {
+                                                    if (failed_attempts++ < 3 && !forceSend)
+                                                      return
+                                                    
                                                     m_warning_system_ptr->queue_monitorWarningForXseconds("No valid setpoints to send", 2);
                                                     return;
                                                   }
-
+                                                  
+                                                  failed_attempts = 0;
                                                   this->sendDesiredValuesToUAV(uav, forceSend); });
   Logger::info("Registered function for sending desired variables");
 

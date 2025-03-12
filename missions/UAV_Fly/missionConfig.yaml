@@ -2,8 +2,8 @@
 
 # Global simulation parameters
 simulation:
-  useMoosSimPid: true # Use MOOS-IvP simulator
-  time_warp: 20
+  useMoosSimPid: true # Use MOOS-IvP Vechicle simulator
+  time_warp: 10
   number_of_drones: 3
 
   ardupilot_ip: "0.0.0.0"
@@ -33,24 +33,24 @@ moos:
   
 missionParams:
   
-  mission_duration : 600 # s - The duration of the mission
+  mission_duration : 300 # s - The duration of the mission
 
 
   # Fire parameters:
   fire_file_default   : "fires_02.txt" # The file containing the fire data if generate not set
 
   fire_generate       : true # If true, the fires will be generated randomly, otherwise they will be read from a file
-  fire_count          : 16 # The number of fires to be placed in the region at launch
+  fire_count          : 10 # The number of fires to be placed in the region at launch
   fire_sep_min        : 10 # m - The minimum separation between fires
   fire_color          : red # The color of the fire, or "vehicle" if the fire should take the color of the vehicle as well
   
-  fire_spawn_count    : 0 # The number of fires to spawn after the mission has started
+  fire_spawn_count    : 14 # The number of fires to spawn after the mission has started
   fire_spawn_interval : 300:500 # s - The time interval for which the delayed fires will be spawned (randomly) ( 0 <= [tmin,tmax] <= mission_duration)
   
   # Ignored region parameters
   ignoredRegion_file_default   : "ignoredRegions.txt" # The file containing the ignored region data if generate not set
   ignoredRegion_generate       : true # If true, the ignored regions will be generated randomly, otherwise they will be read from a file
-  ignoredRegion_count          : 1 # The number of ignored regions to be placed in the region at launch
+  ignoredRegion_count          : 6 # The number of ignored regions to be placed in the region at launch
   ignoredRegion_sep_min        : 150 # m - The minimum separation between ignored regions
   ignoredRegion_spawn_count    : 0 # The number of ignored regions to spawn after the mission has started
   ignoredRegion_spawn_interval : 300:500 # s - The time interval for which the delayed ignored regions will be spawned (randomly) ( 0 <= [tmin,tmax] <= mission_duration)

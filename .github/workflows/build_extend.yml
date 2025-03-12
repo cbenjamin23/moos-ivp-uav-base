@@ -10,24 +10,24 @@ jobs:
         with:
           path: 'moos-ivp-extend'
 
-      - name: Checkout MAVSDK submodule with GITHUB_TOKEN and init
-        working-directory: moos-ivp-extend
-        run: |
-          git submodule update --init --recursive
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - name: Build MAVSDK
-        working-directory: moos-ivp-extend/MAVSDK
-        run: |
-            cmake -DCMAKE_BUILD_TYPE=Debug -Bbuild/default -H. -DBUILD_SHARED_LIBS=ON -DSUPERBUILD=ON; 
-            sudo cmake --build build/default --target install;
+      # - name: Checkout MAVSDK submodule with GITHUB_TOKEN and init
+      #   working-directory: moos-ivp-extend
+      #   run: |
+      #     git submodule update --init --recursive
+      #   env:
+      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      # - name: Build MAVSDK
+      #   working-directory: moos-ivp-extend/MAVSDK
+      #   run: |
+      #       cmake -DCMAKE_BUILD_TYPE=Debug -Bbuild/default -H. -DBUILD_SHARED_LIBS=ON -DSUPERBUILD=ON; 
+      #       sudo cmake --build build/default --target install;
       - run: git clone https://github.com/moos-ivp/moos-ivp.git
       - name: Build MOOS-IvP
         working-directory: moos-ivp
         run: |
           ./build-moos.sh --minrobot --release
           ./build-ivp.sh --nogui
-      - name: Build moos-ivp-extend
-        working-directory: moos-ivp-extend
-        run: |
-          ./build.sh
+      # - name: Build moos-ivp-extend
+      #   working-directory: moos-ivp-extend
+      #   run: |
+      #     ./build.sh

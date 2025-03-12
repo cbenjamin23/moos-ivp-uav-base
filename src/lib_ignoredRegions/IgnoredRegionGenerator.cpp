@@ -353,7 +353,6 @@ bool IgnoredRegionGenerator::generate(std::stringstream &out)
 
     // Generate region specifications and corresponding polygons
     vector<string> region_specs;
-    // vector<XYPolygon> regions;
 
     for (unsigned int i = 0; i < points.size(); i++)
     {
@@ -368,20 +367,17 @@ bool IgnoredRegionGenerator::generate(std::stringstream &out)
         string spec = generateRegionSpec(x, y, scale_factor);
         region_specs.push_back(spec);
 
-        // // Create polygon for validation
-        // XYPolygon poly = string2Poly(spec);
-        // regions.push_back(poly);
     }
 
     // Output results
     double nearest = m_generator.getGlobalNearest();
     out << "// Lowest dist between center of regions: ";
     out << doubleToString(nearest * MOOSDIST2METERS, 2) << "m" << endl;
-    // for (unsigned int i = 0; i < m_generator.size(); i++)
-    // {
-    //     string poly_spec = regions[i].get_spec(4);
-    //     out << "poly = " << poly_spec << endl;
-    // }
+    for (unsigned int i = 0; i < m_generator.size(); i++)
+    {
+        string poly_spec = m_generator.getPolygon(i).get_spec(4);
+        out << "poly = " << poly_spec << endl;
+    }
 
     // Output regular regions
     for (unsigned int i = 0; i < m_region_amt; i++)
