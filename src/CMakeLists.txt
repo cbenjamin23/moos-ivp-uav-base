@@ -25,20 +25,17 @@ find_package(MOOSGeodesy REQUIRED)
 #============================================================================
 # List the subdirectories to build...
 #============================================================================
-ADD_SUBDIRECTORY(lib_behaviors-test)
-# ADD_SUBDIRECTORY(pExampleApp)
-# ADD_SUBDIRECTORY(pXRelayTest)
-# ADD_SUBDIRECTORY(pOdometry)
-# ADD_SUBDIRECTORY(pPointAssign)
-# ADD_SUBDIRECTORY(pGenPath)
-# ADD_SUBDIRECTORY(pGenRescue)
-ADD_SUBDIRECTORY(app_voiview)
-ADD_SUBDIRECTORY(pArduBridge)
+# ADD_SUBDIRECTORY(lib_behaviors-test)
+ADD_SUBDIRECTORY(lib_tmstc_star)
 ADD_SUBDIRECTORY(lib_behaviors)
-ADD_SUBDIRECTORY(pGridSearchViz)
 ADD_SUBDIRECTORY(lib_fires)
 ADD_SUBDIRECTORY(lib_ignoredRegions)
+
+ADD_SUBDIRECTORY(app_voiview)
+ADD_SUBDIRECTORY(pArduBridge)
+ADD_SUBDIRECTORY(pGridSearchViz)
 ADD_SUBDIRECTORY(uFldFireSim)
+
 
 
 ##############################################################################
