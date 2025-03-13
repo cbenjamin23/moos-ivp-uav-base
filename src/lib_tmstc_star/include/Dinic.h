@@ -380,6 +380,8 @@ public:
             return 4;
     }
 
-} dinic;
+};
+
+extern Dinic dinic;
 
 #endif

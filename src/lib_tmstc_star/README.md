@@ -11,6 +11,10 @@ The TMSTC\* library offers:
 - Turn-minimal path planning
 - Coverage path planning with or without return-to-start capabilities
 
+### Source
+
+J. Lu, B. Zeng, J. Tang, T. L. Lam and J. Wen, "TMSTC*: A Path Planning Algorithm for Minimizing Turns in Multi-Robot Coverage," in IEEE Robotics and Automation Letters, vol. 8, no. 8, pp. 5275-5282, Aug. 2023, doi: 10.1109/LRA.2023.3293319. Abstract: Coverage path planning is a major application for mobile robots, which requires robots to move along a planned path to cover the entire map. For large-scale tasks, multirobot systems offer significant advantages. In this letter, we propose Turn-minimizing Multirobot Spanning Tree Coverage Star (TMSTC*), an improved multirobot coverage path planning (mCPP) algorithm based on MSTC\*. Our algorithm partitions the map into minimum bricks as tree branches, transforming the problem into finding the maximum independent set of a bipartite graph. We then use a greedy strategy to connect bricks and form a tree, aiming to minimize the number of turns of the corresponding circumnavigating coverage path. Our experimental results show that our approach enables multiple robots to make fewer turns, resulting in faster completion of coverage tasks compared to other popular algorithms. keywords: {Robots;Path planning;Task analysis;Partitioning algorithms;Multi-robot systems;Costs;Robot sensing systems;Multi-robot systems;path planning for multiple mobile robots or agents;service robotics}, URL: https://ieeexplore.ieee.org/stamp/stamp.jsp?tp=&arnumber=10175546&isnumber=10153452
+
 ## Installation
 
 ### Prerequisites
@@ -82,13 +86,18 @@ std::vector<std::pair<int, int>> robot_positions = {
 
 ```cpp
 TMSTCStarConfig config;
-config.allocate_method = "MSTC";           // "MSTC" or "MTSP"
-config.mst_shape = "RECT_DIV";             // Spanning tree construction method
+config.allocate_method = "MSTC";           // "MSTC" or "MTSP" (however not included!!)
+config.mst_shape = "DINIC";             // Spanning tree construction method
+                                            // "RECT_DIV", "DFS_VERTICAL", "DFS_HORIZONTAL",
+                                           // "KRUSKAL", "ACO_OPT", "DINIC", "HEURISTIC"
 config.robot_num = 2;                      // Number of robots
 config.cover_and_return = true;            // Return to starting positions
 config.one_turn_value = 2.0;               // Cost penalty for turns
 config.max_iterations = 1000;              // For iterative algorithms
 ```
+
+_Note:_ To use TMSTC\* use `MSTC` and `DINIC`
+_Note:_ `MTSP` is NOT SUPPORTED
 
 ### Step 5: Calculate paths
 

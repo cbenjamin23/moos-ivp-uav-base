@@ -68,6 +68,12 @@ public:
     };
     PathStats getPathStatistics();
 
+
+    int regionCoordToIndex(int x, int y) const
+    {
+        return y * bigcols_ + x;
+    }
+
     // Utility for converting between 2D coordinates and linear indices
     static int coordToIndex(int x, int y, int width)
     {
@@ -87,6 +93,12 @@ public:
     {
         return paths_;
     }
+
+    Mat getRegion() const { return region_; }
+    // Path shortening and checkpoint generation
+    Mat shortenPaths(Mat &checkpoints, int interval = 4);
+
+    Mat removeDuplicateEdgesOnPath();
 };
 
 #endif

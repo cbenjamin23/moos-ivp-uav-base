@@ -57,7 +57,10 @@ typedef struct Edge
 #define DISCONNECTED 1
 
 #define RECT_SIZE(i) (rectVec[i].height * rectVec[i].width)
-#define reshape(i, j) (int)((i) * Map[0].size() + (j))
+
+#ifndef reshape
+	#define reshape(i, j) (int)((i) * Map[0].size() + (j))
+#endif
 
 class Division
 {

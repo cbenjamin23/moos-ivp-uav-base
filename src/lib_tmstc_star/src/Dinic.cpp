@@ -1,5 +1,8 @@
 #include <Dinic.h>
 
+
+Dinic dinic;
+
 Mat Dinic::dinic_solver(Mat& Map, bool merge) {
     clock_t start, finish;
     start = clock();
@@ -76,7 +79,9 @@ Mat Dinic::dinic_solver(Mat& Map, bool merge) {
     // if apply m-TSP, don't merge
     if(!merge){
         finish = clock();
-        cout << "dinic partition total used time: " << finish - start << "\n";
+        auto duration = (finish - start) / CLOCKS_PER_SEC; 
+        cout << "dinic partition total used time: " << finish - start << " cycles (" << duration << "s) \n";
+        cout << "cycles per second: " << CLOCKS_PER_SEC << endl;
         cout << "-------------------Dinic Solver End-------------------\n\n";
 
         return MST; 
@@ -85,6 +90,7 @@ Mat Dinic::dinic_solver(Mat& Map, bool merge) {
     mergeMST(MST, Map);
     //cout << pts.size() << endl;
     finish = clock();
+    auto duration = (finish - start) / CLOCKS_PER_SEC; 
 
     int totalTurns = 0;
     for (int i = 0; i < MST.size(); ++i) {
@@ -94,7 +100,8 @@ Mat Dinic::dinic_solver(Mat& Map, bool merge) {
 
     checkMST(MST, Map);
 
-    cout << "dinic total used time: " << finish - start << "\n";
+    cout << "dinic total used time: " << finish - start << " cycles (" << duration << "s) \n";
+    cout << "cycles per second: " << CLOCKS_PER_SEC << endl;
     cout << "-------------------Dinic Solver End-------------------\n\n";
 
     return MST;
