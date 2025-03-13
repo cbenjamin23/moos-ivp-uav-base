@@ -33,7 +33,7 @@ moos:
   
 missionParams:
   
-  mission_duration : 300 # s - The duration of the mission
+  mission_duration : 600 # s - The duration of the mission
 
 
   # Fire parameters:
@@ -44,7 +44,7 @@ missionParams:
   fire_sep_min        : 10 # m - The minimum separation between fires
   fire_color          : red # The color of the fire, or "vehicle" if the fire should take the color of the vehicle as well
   
-  fire_spawn_count    : 14 # The number of fires to spawn after the mission has started
+  fire_spawn_count    : 0 # The number of fires to spawn after the mission has started
   fire_spawn_interval : 300:500 # s - The time interval for which the delayed fires will be spawned (randomly) ( 0 <= [tmin,tmax] <= mission_duration)
   
   # Ignored region parameters

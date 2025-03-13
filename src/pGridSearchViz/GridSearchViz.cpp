@@ -116,6 +116,7 @@ bool GridSearchViz::OnStartUp()
   CMOOSApp::OnStartUp();
 
   std::string grid_config;
+  std::string poly_region;
 
   std::list<std::string> sParams;
   m_MissionReader.EnableVerbatimQuoting(false);
@@ -139,6 +140,10 @@ bool GridSearchViz::OnStartUp()
         if ((len > 0) && (grid_config.at(len - 1) != ','))
           grid_config += ",";
         grid_config += value;
+
+        if(strContains(value, "pts"))
+          poly_region = value;
+
         handled = true;
       }
       else if (param == "report_deltas")
@@ -186,6 +191,18 @@ bool GridSearchViz::OnStartUp()
 
   postGrid();
   registerVariables();
+
+
+  if(poly_region == "")
+    reportConfigWarning("No search polyregion defined.");
+  
+  XYPolygon polygon = string2Poly(poly_region);
+  m_tmstc_grid_converter.setSearchRegion(polygon);
+  m_tmstc_grid_converter.setSensorRadius(m_sensor_radius_max*0.7);
+
+  convertGridToTMSTC();
+  postTMSTCGrids();
+
   return (true);
 }
 
@@ -669,4 +686,74 @@ void GridSearchViz::calculateCoverageStatistics()
     m_map_coverage_statistics["coverage_20%"] = time_elapsed;
   else if (coverage_percentage >= 10 && m_map_coverage_statistics.find("coverage_10%") == m_map_coverage_statistics.end())
     m_map_coverage_statistics["coverage_10%"] = time_elapsed;
+}
+
+
+//------------------------------------------------------------
+// Procedure: convertGridToTMSTC()
+void GridSearchViz::convertGridToTMSTC()
+{
+  
+  m_tmstc_grid_converter.convertGrid();
+}
+
+
+void GridSearchViz::postTMSTCGrids(bool active)
+{
+
+  static bool prev_active = false;
+  
+  if (!active && !prev_active) // if not active and not previously active
+    return;
+
+  std::vector<XYPoint> regionGridPoints = m_tmstc_grid_converter.getRegionGridCenters();
+  std::vector<XYPoint> downsampledGridPoints = m_tmstc_grid_converter.getDownsampledGridCenters();
+  
+  int idx = 0;
+  for(auto point : regionGridPoints)
+  {
+    XYCircle circle(point.x(), point.y(), m_sensor_radius_max);
+    
+    circle.set_label("Sr_"+ std::to_string(idx++));
+    circle.set_label_color("off");
+    circle.set_edge_color("yellow");
+    circle.set_color("fill", "off");
+    circle.set_transparency(0.6);
+    circle.set_edge_size(2);
+    circle.set_vertex_size(2);
+    circle.set_active(active);
+
+    
+    if(point.z() == 0)
+      circle.set_color("fill", "yellow");
+    // Logger::info("Region point: " + doubleToStringX(point.x(), 2) + ", " + doubleToStringX(point.y(), 2) + ", " + doubleToStringX(point.z(), 2));
+    Notify("VIEW_CIRCLE", circle.get_spec());
+  }
+
+  idx=0;
+  for(auto point : downsampledGridPoints)
+  {
+    XYCircle circle(point.x(), point.y(), m_sensor_radius_max);
+
+    circle.set_label("Sdr_"+ std::to_string(idx++));
+    circle.set_label_color("off");
+    circle.set_edge_color("red");    
+    circle.set_color("fill", "off");
+    circle.set_transparency(0.8);
+    circle.set_edge_size(2);
+    circle.set_vertex_size(2);
+    circle.set_active(active);
+
+    if(point.z() == 0)
+      circle.set_color("fill", "red");
+
+    Notify("VIEW_CIRCLE", circle.get_spec());
+  }
+
+  prev_active = active; 
+
+  m_tmstc_grid_converter.saveDownsampledGridToFile("downsampled_grid.txt");
+
+
+  
 }

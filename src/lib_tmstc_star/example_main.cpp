@@ -548,7 +548,7 @@ int main(int argc, char **argv)
     }
     if (robot_count == 3)
     {
-        robot_positions.push_back({(int)map[0].size() - 1, 0}); // Top-right
+        robot_positions.push_back({2, 3}); // Top-right
         robot_positions.push_back({1,1}); 
         robot_positions.push_back({2,2}); 
         
@@ -590,7 +590,7 @@ int main(int argc, char **argv)
     config.one_turn_value = 2.0; // Default turning cost
 
     // Create the TMSTC* instance and calculate paths
-    TMSTCStar tmstc(map, robot_positions_indx, config);
+    TMSTCStar tmstc(map, robot_positions, config);
     tmstc.eliminateIslands(); // Remove unreachable areas
 
     std::cout << "Calculating paths..." << std::endl;
