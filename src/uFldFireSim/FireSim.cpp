@@ -159,42 +159,44 @@ bool FireSim::handleIgnoredRegion(std::string str)
   str = stripBlankEnds(str);
 
   bool doRegister = !strContains(str, "unreg::");
-  
+
   if (doRegister)
     registerRemoveIgnoredRegion(str.substr(5), doRegister);
   else
     registerRemoveIgnoredRegion(str.substr(7), doRegister);
-  
+
   Logger::info("Received Command to (un)reg region: " + str);
 
   return true;
 }
 
 // format: x=1,y=4
-void FireSim::registerRemoveIgnoredRegion(std::string pos_str, bool doRegister){
+void FireSim::registerRemoveIgnoredRegion(std::string pos_str, bool doRegister)
+{
 
   double x = tokDoubleParse(pos_str, "x");
   double y = tokDoubleParse(pos_str, "y");
 
-  if (doRegister){
+  if (doRegister)
+  {
     auto name = m_ignoredRegionset.spawnIgnoreRegion(x, y);
     trySpawnIgnoredRegion();
     Logger::info("Registering ignored region: " + name);
   }
-  else{ // unregister
+  else
+  { // unregister
     std::string rname = m_ignoredRegionset.getNameOfIgnoredRegionContaining(x, y);
     if (rname.empty())
       return;
     auto ignoredRegion = m_ignoredRegionset.getIgnoredRegion(rname);
     ignoredRegion.setState(IgnoredRegion::RegionState::UNDISCOVERED);
-    
-    
+
     auto marker = ignoredRegion.getMarker();
     marker.set_active(false);
-    
+
     Logger::info("Unregistering ignored region: " + rname);
     Logger::info("Marker spec: " + marker.get_spec());
-    
+
     ignoredRegion.setMarker(marker);
     m_ignoredRegionset.modIgnoredRegion(ignoredRegion);
 
@@ -204,7 +206,6 @@ void FireSim::registerRemoveIgnoredRegion(std::string pos_str, bool doRegister){
     std::string alert_spec = "unreg::" + rname;
     Notify("IGNORED_REGION_ALERT", alert_spec);
   }
-
 }
 
 //---------------------------------------------------------
@@ -1111,7 +1112,7 @@ void FireSim::postIgnoredRegion(std::string rname)
 
   IgnoredRegion ignoredRegion = m_ignoredRegionset.getIgnoredRegion(rname);
 
-  XYPolygon poly = ignoredRegion.getRegion();
+  XYPolygon poly = ignoredRegion.getPoly();
   poly.set_transparency(IGNORED_REGION_MARKER_TRANSPARENCY_UNDISC);
   XYMarker marker = ignoredRegion.getMarker();
   marker.set_transparency(IGNORED_REGION_MARKER_TRANSPARENCY_UNDISC);

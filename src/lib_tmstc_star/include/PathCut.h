@@ -39,7 +39,10 @@ typedef struct Node
 } node;
 
 #define reshape(i, j) (int)((i) * bigcols + (j))
-#define PI 3.1415926
+
+#ifndef PI
+	#define PI 3.1415926
+#endif
 
 static double ONE_TURN_VAL = 2.0;
 

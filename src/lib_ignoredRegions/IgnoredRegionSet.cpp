@@ -76,7 +76,6 @@ bool IgnoredRegionSet::handleRegionConfig(std::string str, double curr_time, std
     if (!warning.empty())
         return false;
 
-
     if (!m_generator.setSpawnInterval(spawn_interval_str))
         warning = "Bad RegionConfig Line (bad spawn_interval): " + str;
     else if (!m_generator.setRegionAmt(count_str))
@@ -214,7 +213,7 @@ bool IgnoredRegionSet::configureIgnoreRegionVisuals(std::string rname)
     IgnoredRegion ignoredRegion = m_map_ignoredRegions[rname];
     std::string display_name = ignoredRegion.getLabel();
 
-    XYPolygon region = ignoredRegion.getRegion();
+    XYPolygon region = ignoredRegion.getPoly();
     region.set_active(true);
     region.set_label(rname);
     region.set_label_color("off");
@@ -226,7 +225,7 @@ bool IgnoredRegionSet::configureIgnoreRegionVisuals(std::string rname)
     XYMarker marker = ignoredRegion.getMarker();
     marker.set_type("efield");
     marker.set_active(true);
-    marker.set_label("marker_"+rname);
+    marker.set_label("marker_" + rname);
     marker.set_msg(display_name);
     marker.set_label_color("white");
     marker.set_width(REGION_MARKER_WIDTH);
@@ -259,15 +258,16 @@ std::vector<IgnoredRegion> IgnoredRegionSet::tryAddSpawnableRegion(double missio
             std::string dummy_str;
             addRegion(spec_str, curr_time_utc, dummy_str);
 
-            if(!dummy_str.empty()){
+            if (!dummy_str.empty())
+            {
                 Logger::warning("IgnoredRegionSet::tryAddSpawnableRegion: " + dummy_str);
                 return spawned_regions;
             }
 
-            
             std::string name = tokStringParse(spec_str, "name");
-            
-            if(name.empty()){
+
+            if (name.empty())
+            {
                 Logger::warning("IgnoredRegionSet::tryAddSpawnableRegion: No name in spec_str: " + spec_str);
                 return spawned_regions;
             }
@@ -535,14 +535,14 @@ bool IgnoredRegionSet::removeIgnoreRegion(std::string rname)
     return true;
 }
 
+std::string IgnoredRegionSet::spawnIgnoreRegion(double x, double y, double scale_factor)
+{
 
-std::string IgnoredRegionSet::spawnIgnoreRegion(double x, double y, double scale_factor) { 
-    
     static unsigned int region_count = 1;
     std::string rname = "ignregion_" + uintToString(region_count++);
     std::string format = m_generator.generateRegionSpec(x, y, scale_factor);
     std::string spec = "name=" + rname + ", format=" + format;
-    
+
     m_vec_spawnable_regions.push_back(std::make_pair(0, spec));
     return rname;
 }

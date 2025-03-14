@@ -15,7 +15,6 @@
 #include "XYMarker.h"
 
 #include "IgnoredRegion.h"
-#include "TMSTCGridConverter.h"
 
 struct DroneRecord
 {
@@ -65,9 +64,6 @@ protected:
   void gridModifyCell(const int ix, const double val);
 
 
-  void convertGridToTMSTC();
-  void postTMSTCGrids(bool active=true);
-
 protected: // Config vars
   bool m_report_deltas;
   std::string m_grid_label;
@@ -102,6 +98,5 @@ protected: // State vars
 
   std::map<std::string, XYPolygon> m_map_ignored_regions_poly;
 
-  TMSTCGridConverter m_tmstc_grid_converter;
 
 };

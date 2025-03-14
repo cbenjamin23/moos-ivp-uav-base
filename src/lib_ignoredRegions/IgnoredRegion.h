@@ -13,9 +13,7 @@
 #include "XYPolygon.h"
 #include "XYMarker.h"
 
-
 const double REGION_MARKER_WIDTH = 20;
-
 
 class IgnoredRegion
 {
@@ -64,11 +62,11 @@ public: // Getters
 
     RegionState getState() const { return (m_state); }
     std::string getDiscoverer() const { return (m_discoverer); }
-    std::string getName() const { return (m_name); } 
-    std::string getID() const { return (m_id); } 
-    std::string getLabel() const { return (m_label); } 
+    std::string getName() const { return (m_name); }
+    std::string getID() const { return (m_id); }
+    std::string getLabel() const { return (m_label); }
     unsigned int getScoutTries() const { return (m_scout_tries); }
-    XYPolygon getRegion() const { return (m_region); }
+    XYPolygon getPoly() const { return (m_region); }
     RegionType getRegionType() const { return m_region_type; }
     XYMarker getMarker() const { return m_marker; }
     std::string getFormatSpec() const { return m_format_spec; }
@@ -81,7 +79,7 @@ public: // Getters
     std::string getSpecRegion() const;
     std::string getSpecMarker() const;
 
-    bool isValid(){return(m_region_type!=RegionType::UNKNOWN);}
+    bool isValid() { return (m_region_type != RegionType::UNKNOWN); }
 
 private:
     XYPolygon m_region; // The ignored region

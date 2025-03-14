@@ -33,7 +33,7 @@ moos:
   
 missionParams:
   
-  mission_duration : 600 # s - The duration of the mission
+  mission_duration : 6000 # s - The duration of the mission
 
 
   # Fire parameters:

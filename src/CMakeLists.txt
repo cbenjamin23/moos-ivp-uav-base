@@ -34,6 +34,7 @@ ADD_SUBDIRECTORY(lib_ignoredRegions)
 ADD_SUBDIRECTORY(app_voiview)
 ADD_SUBDIRECTORY(pArduBridge)
 ADD_SUBDIRECTORY(pGridSearchViz)
+ADD_SUBDIRECTORY(pGridSearchPlanner)
 ADD_SUBDIRECTORY(uFldFireSim)
 
 
