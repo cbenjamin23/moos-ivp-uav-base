@@ -65,7 +65,7 @@ int main(int argc, char **argv)
     std::string shape = "RECT_DIV";
     int robot_count = 1;
     bool return_to_start = false;
-    bool use_color = true;  // Default to using colors
+    bool use_color = true; // Default to using colors
 
     // Simple command-line parser
     for (int i = 1; i < argc; i++)
@@ -188,7 +188,7 @@ int main(int argc, char **argv)
     tmstc.eliminateIslands(); // Remove unreachable areas
 
     std::cout << "Calculating paths..." << std::endl;
-    Mat paths = tmstc.calculatePaths();
+    Mat paths = tmstc.calculateRegionIndxPaths();
 
     // Get and print path statistics
     auto stats = tmstc.getPathStatistics();

@@ -33,17 +33,27 @@ TMSTCStar::TMSTCStar(const Mat &map, const std::vector<std::pair<int, int>> &rob
     bigrows_ = smallrows_ * 2;
     bigcols_ = smallcols_ * 2;
 
+
     // Convert coordinate positions to indices
     robot_init_pos_.resize(robot_positions.size());
     for (size_t i = 0; i < robot_positions.size(); i++)
     {
-        robot_init_pos_[i] = coordToIndex(robot_positions[i].first*2, robot_positions[i].second*2, bigcols_);
+        
+        auto indx = coordToIndex(robot_positions[i].first * 2, robot_positions[i].second * 2, bigcols_);
+        
+        robot_init_pos_[i] = indx;
         std::cout << "Robot " << i + 1 << " position: (" << robot_positions[i].first << ","
                   << robot_positions[i].second << ") -> index: " << robot_init_pos_[i] << std::endl;
-    
+
         auto coord = indexToCoord(robot_init_pos_[i], bigcols_);
         std::cout << "Index " << robot_init_pos_[i] << " -> reg coordinates: (" << coord.first << ","
                   << coord.second << ")" << std::endl;
+
+
+        if(std::find(robot_init_pos_.begin(), robot_init_pos_.end(), indx) == robot_init_pos_.end()){
+            throw std::runtime_error("Robot positions must be unique and within the map boundaries.");
+        }
+          
     }
 
     // Preprocess the map to create the expanded region
@@ -95,7 +105,7 @@ void TMSTCStar::getPathInfo()
     {
         int turns = 0;
         for (int j = 1; j < paths_[i].size() - 1; ++j)
-        {   
+        {
             turns += isSameLine(paths_[i][j - 1], paths_[i][j], paths_[i][j + 1]) ? 0 : 1;
             std::cout << endl;
         }
@@ -106,7 +116,7 @@ void TMSTCStar::getPathInfo()
     }
 }
 
-Mat TMSTCStar::calculatePaths()
+Mat TMSTCStar::calculateRegionIndxPaths()
 {
     std::cout << "Calculating paths with " << config_.allocate_method << " using "
               << config_.mst_shape << " shape..." << std::endl;
@@ -256,7 +266,7 @@ TMSTCStar::PathStats TMSTCStar::getPathStatistics()
         stats.total_length += paths_[i].size();
 
         int path_turns = 0;
-        for (size_t j = 1; j < paths_[i].size() - 1 && paths_[i].size()>0; ++j)
+        for (size_t j = 1; j < paths_[i].size() - 1 && paths_[i].size() > 0; ++j)
         {
             if (!isSameLine(paths_[i][j - 1], paths_[i][j], paths_[i][j + 1]))
             {
@@ -327,48 +337,62 @@ void TMSTCStar::eliminateIslands()
     preprocessMap();
 }
 
-
-Mat TMSTCStar::removeDuplicateEdgesOnPath(){
+Mat TMSTCStar::removeDuplicateEdgesOnPath()
+{
     for (int i = 0; i < paths_.size(); ++i)
     {
-        if(paths_[i].size()==0){
+        if (paths_[i].size() == 0)
+        {
             continue;
         }
         std::vector<int> new_path;
         new_path.push_back(paths_[i][0]);
 
         P prev_coords = TMSTCStar::indexToCoord(paths_[i][0], map_[0].size() * 2);
-        prev_coords.first /= 2; //convert to map coordinates
+        prev_coords.first /= 2; // convert to map coordinates
         prev_coords.second /= 2;
 
         for (int j = 1; j < paths_[i].size() - 1; ++j)
         {
-            
+
             P coords = TMSTCStar::indexToCoord(paths_[i][j], map_[0].size() * 2);
-            coords.first /= 2; //convert to map coordinates
+            coords.first /= 2; // convert to map coordinates
             coords.second /= 2;
-            
+
             // std::cout << "First equal: " << (prev_coords.first==coords.first) << " Second equal: " << (prev_coords.second==coords.second) << std::endl;
-            bool equal  = (prev_coords.first==coords.first) && (prev_coords.second==coords.second);
-            
-            if(equal){
+            bool equal = (prev_coords.first == coords.first) && (prev_coords.second == coords.second);
+
+            if (equal)
+            {
                 // std::cout << "Skipping " << paths_[i][j] << std::endl;
                 continue;
             }
-            
-            
-            std::cout << (equal ? "true":"false") <<" Adding " << paths_[i][j] << " (" << coords.first << ", " << coords.second << ")" << " prev: (" << prev_coords.first << ", " << prev_coords.second << ")" << std::endl;
-            
+
+            std::cout << (equal ? "true" : "false") << " Adding " << paths_[i][j] << " (" << coords.first << ", " << coords.second << ")" << " prev: (" << prev_coords.first << ", " << prev_coords.second << ")" << std::endl;
+
             new_path.push_back(paths_[i][j]);
             prev_coords = coords;
-            
         }
         new_path.push_back(paths_[i].back());
         paths_[i] = new_path;
-        
-   
+
         std::cout << "New path size: " << paths_[i].size() << std::endl;
-    }   
+    }
 
     return paths_;
+}
+
+std::vector<std::vector<std::pair<int, int>>> TMSTCStar::pathsIndxToRegionCoords(Mat paths_indx) const
+{
+    std::vector<std::vector<std::pair<int, int>>> paths;
+    for (int i = 0; i < paths_indx.size(); ++i)
+    {
+        std::vector<std::pair<int, int>> path;
+        for (int j = 0; j < paths_indx[i].size(); ++j)
+        {
+            path.push_back(indexToRegionCoord(paths_indx[i][j]));
+        }
+        paths.push_back(path);
+    }
+    return paths;
 }

@@ -47,7 +47,7 @@ void TMSTCGridConverter::setVehiclePositions(const std::vector<XYPoint> &vehicle
 
 void TMSTCGridConverter::transformGrid()
 {
-    if(m_searchRegion.size() == 0)
+    if (m_searchRegion.size() == 0)
     {
         Logger::warning("Search region polygon is empty!");
         return;
@@ -97,22 +97,46 @@ XYSegList TMSTCGridConverter::pathToSegList(const std::vector<std::pair<int, int
     }
     return segList;
 }
-XYPoint TMSTCGridConverter::getVehicleRegionPosition(const XYPoint &pos) const{
-    
+XYPoint TMSTCGridConverter::getVehicleRegionPosition(const XYPoint &pos) const
+{
+
     XYPoint null;
     null.clear(); // to make invalid point
-    
+
     if (!pos.valid())
         return null; // Skip invalid points and return a default XYPoint
 
     int col = static_cast<int>((pos.get_vx() - m_boundingBox.get_min_x()) / (2 * m_sensorRadius));
     int row = static_cast<int>((pos.get_vy() - m_boundingBox.get_min_y()) / (2 * m_sensorRadius));
-    if (row >= 0 && row < m_regionHeight && col >= 0 && col < m_regionWidth)
+    if (row >= 0 && row < m_regionHeight && col >= 0 && col < m_regionWidth){
+
+        // if the cell is occupied, return the closest free cell
+        if (m_regionGrid[row][col] == 0) {
+            int multiplier = 1;
+            while (m_regionGrid[row][col] == 0) {
+                for (int i = -1; i <= 1; ++i) {
+                    for (int j = -1; j <= 1; ++j) {
+                        if (i == 0 && j == 0)
+                            continue;
+
+                        int newRow = row + i * multiplier;
+                        int newCol = col + j * multiplier;
+                        if (newRow >= 0 && newRow < m_regionHeight && newCol >= 0 && newCol < m_regionWidth) {
+                            if (m_regionGrid[newRow][newCol] == 1)
+                                return {static_cast<double>(newCol), static_cast<double>(newRow)};
+                        }
+                    }
+                }
+                multiplier++;
+            }
+        }
         return {static_cast<double>(col), static_cast<double>(row)};
+    }
 
     return null;
 }
-XYPoint TMSTCGridConverter::getVehicleSpanningPosition(const XYPoint &pos) const{
+XYPoint TMSTCGridConverter::getVehicleSpanningPosition(const XYPoint &pos) const
+{
     XYPoint null;
     null.clear(); // to make invalid point
 
@@ -121,39 +145,132 @@ XYPoint TMSTCGridConverter::getVehicleSpanningPosition(const XYPoint &pos) const
 
     int col = static_cast<int>((pos.get_vx() - m_boundingBox.get_min_x()) / (4 * m_sensorRadius));
     int row = static_cast<int>((pos.get_vy() - m_boundingBox.get_min_y()) / (4 * m_sensorRadius));
-    if (row >= 0 && row < m_spanningHeight && col >= 0 && col < m_spanningWidth)
+    if (row >= 0 && row < m_spanningHeight && col >= 0 && col < m_spanningWidth){
+
+        // if the cell is occupied, return the closest free cell
+        if (m_spanningGrid[row][col] == 0) {
+            int multiplier = 1;
+            while (m_spanningGrid[row][col] == 0) {
+                for (int i = -1; i <= 1; ++i) {
+                    for (int j = -1; j <= 1; ++j) {
+                        if (i == 0 && j == 0)
+                            continue;
+
+                        int newRow = row + i * multiplier;
+                        int newCol = col + j * multiplier;
+                        if (newRow >= 0 && newRow < m_spanningHeight && newCol >= 0 && newCol < m_spanningWidth) {
+                            if (m_spanningGrid[newRow][newCol] == 1)
+                                return {static_cast<double>(newCol), static_cast<double>(newRow)};
+                        }
+                    }
+                }
+                multiplier++;
+            }
+        }
+
         return {static_cast<double>(col), static_cast<double>(row)};
-    
+    }
+
     return null;
-}   
+}
 
 std::vector<std::pair<int, int>> TMSTCGridConverter::getVehicleRegionPositions() const
 {
-    std::vector<std::pair<int, int>> positions;
+
+    const std::vector<XYPoint> dp{{-1, -1}, {-1, 0}, {-1, 1}, {0, -1}, {0, 1}, {1, -1}, {1, 0}, {1, 1}};
+
+    std::set<XYPoint> uniqueRegionCoords;
     for (const auto &pos : m_vehiclePositions)
     {
         XYPoint coord = getVehicleRegionPosition(pos);
-        if(!coord.valid())
+        if (!coord.valid())
             continue;
 
-        positions.emplace_back(coord.get_vx(), coord.get_vy());
-        
+        // if it doesn't exist already, add it
+        if (uniqueRegionCoords.find(coord) == uniqueRegionCoords.end())
+        {
+            uniqueRegionCoords.insert(coord);
+            continue;
+        }
+
+        // if it does exist, find the closest unique coordinate
+        int multiplier = 1;
+        while (uniqueRegionCoords.find(coord) != uniqueRegionCoords.end())
+        {
+            for (const auto &d : dp)
+            {
+                XYPoint newPos = pos;
+                newPos.set_vx(newPos.get_vx() + d.get_vx() * 2 * m_sensorRadius * multiplier);
+                newPos.set_vy(newPos.get_vy() + d.get_vy() * 2 * m_sensorRadius * multiplier);
+
+                coord = getVehicleRegionPosition(newPos);
+                if (!coord.valid())
+                    continue;
+
+                if (uniqueRegionCoords.find(coord) == uniqueRegionCoords.end())
+                    break;
+                
+            }
+            multiplier++;
+        }
+
+        uniqueRegionCoords.insert(coord);
     }
-    return positions;
+
+    std::vector<std::pair<int, int>> coords;
+    for (const auto &pos : uniqueRegionCoords)
+        coords.emplace_back(pos.get_vx(), pos.get_vy());
+    return coords;
 }
 
-std::vector<std::pair<int, int>> TMSTCGridConverter::getVehicleSpanningPositions() const
+std::vector<std::pair<int, int>> TMSTCGridConverter::getUniqueVehicleSpanningCoordinates() const
 {
-    std::vector<std::pair<int, int>> positions;
+
+    const std::vector<XYPoint> dp{{-1, -1}, {-1, 0}, {-1, 1}, {0, -1}, {0, 1}, {1, -1}, {1, 0}, {1, 1}};
+
+    std::set<XYPoint> uniqueSpanningCoords;
     for (const auto &pos : m_vehiclePositions)
     {
         XYPoint coord = getVehicleSpanningPosition(pos);
-        if(!coord.valid())
+        if (!coord.valid())
             continue;
 
-        positions.emplace_back(coord.get_vx(), coord.get_vy());
+        // if it doesn't exist already, add it
+        if (uniqueSpanningCoords.find(coord) == uniqueSpanningCoords.end())
+        {
+            uniqueSpanningCoords.insert(coord);
+            continue;
+        }
+
+        // if it does exist, find the closest unique coordinate
+        int multiplier = 1;
+        while (uniqueSpanningCoords.find(coord) != uniqueSpanningCoords.end())
+        {
+            for (const auto &d : dp)
+            {
+                XYPoint newPos = pos;
+                newPos.set_vx(newPos.get_vx() + d.get_vx() * 2 * m_sensorRadius * multiplier);
+                newPos.set_vy(newPos.get_vy() + d.get_vy() * 2 * m_sensorRadius * multiplier);
+
+                coord = getVehicleSpanningPosition(newPos);
+                if (!coord.valid())
+                    continue;
+
+                if (uniqueSpanningCoords.find(coord) == uniqueSpanningCoords.end())
+                    break;
+                
+            }
+            multiplier++;
+        }
+
+        uniqueSpanningCoords.insert(coord);
     }
-    return positions;
+
+    std::vector<std::pair<int, int>> coords;
+    for (const auto &pos : uniqueSpanningCoords)
+        coords.emplace_back(pos.get_vx(), pos.get_vy());
+
+    return coords;
 }
 
 bool TMSTCGridConverter::saveRegionGridToFile(const std::string &filename) const
@@ -210,7 +327,7 @@ bool TMSTCGridConverter::saveSpanningGridToFile(const std::string &filename) con
 
 void TMSTCGridConverter::convert2MatGrids()
 {
-    if(m_gridsConverted)
+    if (m_gridsConverted)
         return;
 
     // Step 1: Get the bounding box of the search region
@@ -251,16 +368,74 @@ XYSquare TMSTCGridConverter::getBoundingBox() const
     return XYSquare(minX, maxX, minY, maxY);
 }
 
+XYPoint TMSTCGridConverter::regionCoord2XYPointMoos(int col, int row) const
+{
+    if (row >= 0 && row < m_regionHeight && col >= 0 && col < m_regionWidth)
+    {
+        // Calculate center of the cell in region grid (using 2 * sensorRadius)
+        double x = m_boundingBox.get_min_x() + (col + 0.5) * 2 * m_sensorRadius;
+        double y = m_boundingBox.get_min_y() + (row + 0.5) * 2 * m_sensorRadius;
+        return {x, y};
+    }
+    XYPoint null;
+    null.clear(); // to make invalid point
+    return null;
+}
+XYPoint TMSTCGridConverter::spanningCoord2XYPointMoos(int col, int row) const
+{
+    if (row >= 0 && row < m_spanningHeight && col >= 0 && col < m_spanningWidth)
+    {
+        // Calculate center of the cell in spanning grid (using 4 * sensorRadius)
+        double x = m_boundingBox.get_min_x() + (col + 0.5) * 4 * m_sensorRadius;
+        double y = m_boundingBox.get_min_y() + (row + 0.5) * 4 * m_sensorRadius;
+        return {x, y};
+    }
+    XYPoint null;
+    null.clear(); // to make invalid point
+    return null;
+}
+
+XYSegList TMSTCGridConverter::regionCoords2XYSeglisMoos(std::vector<std::pair<int, int>> regionCoords) const
+{
+
+    XYSegList segList;
+    for (const auto &coord : regionCoords)
+    {
+        XYPoint point = regionCoord2XYPointMoos(coord.first, coord.second);
+        if (point.valid())
+        {
+            segList.add_vertex(point.get_vx(), point.get_vy());
+        }
+    }
+    return segList;
+}
+XYSegList TMSTCGridConverter::spanningCoords2XYSeglisMoos(std::vector<std::pair<int, int>> spanningCoords) const
+{
+    XYSegList segList;
+    for (const auto &coord : spanningCoords)
+    {
+        XYPoint point = spanningCoord2XYPointMoos(coord.first, coord.second);
+        if (point.valid())
+        {
+            segList.add_vertex(point.get_vx(), point.get_vy());
+        }
+    }
+    return segList;
+}
+
 void TMSTCGridConverter::populateRegionGrid()
 {
     for (int row = 0; row < m_regionHeight; ++row)
     {
         for (int col = 0; col < m_regionWidth; ++col)
         {
-            // Calculate center of the cell using 2 * sensorRadius
-            double x = m_boundingBox.get_min_x() + (col + 0.5) * 2 * m_sensorRadius;
-            double y = m_boundingBox.get_min_y() + (row + 0.5) * 2 * m_sensorRadius;
+            auto point = regionCoord2XYPointMoos(col, row);
+            if (!point.valid())
+                continue;
 
+            // Calculate center of the cell using 2 * sensorRadius
+            double x = point.get_vx();
+            double y = point.get_vy();
             // 1 - free , 0 - occupied cell
             double z = 0;
 
@@ -295,10 +470,13 @@ void TMSTCGridConverter::createSpanningGrid()
     {
         for (int col = 0; col < m_spanningWidth; ++col)
         {
-            // Calculate center of the downsampled spanning cell (covers 2x2 region grid cells, so 4 * sensorRadius)
-            double x = m_boundingBox.get_min_x() + (col + 0.5) * 4 * m_sensorRadius;
-            double y = m_boundingBox.get_min_y() + (row + 0.5) * 4 * m_sensorRadius;
+            auto point = spanningCoord2XYPointMoos(col, row);
+            if (!point.valid())
+                continue;
 
+            // Calculate center of the downsampled spanning cell (covers 2x2 region grid cells, so 4 * sensorRadius)
+            double x = point.get_vx();
+            double y = point.get_vy();
             // 1 - free , 0 - occupied cell
             double z = 0;
 

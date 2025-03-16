@@ -55,7 +55,7 @@ public:
               const TMSTCStarConfig &config = TMSTCStarConfig());
 
     // Calculate paths using the specified method
-    Mat calculatePaths();
+    Mat calculateRegionIndxPaths();
 
     // Get path statistics
     struct PathStats
@@ -68,6 +68,16 @@ public:
     };
     PathStats getPathStatistics();
 
+    std::vector<std::vector<std::pair<int, int>>> pathsIndxToRegionCoords(Mat paths_indx) const;
+
+    std::pair<int, int> indexToRegionCoord(int index) const
+    {
+        return indexToCoord(index, bigcols_);
+    }
+    std::pair<int, int> indexToSpanningCoord(int index) const
+    {
+        return indexToCoord(index, smallcols_);
+    }
 
     int regionCoordToIndex(int x, int y) const
     {

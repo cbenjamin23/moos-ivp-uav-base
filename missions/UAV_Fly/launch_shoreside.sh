@@ -178,6 +178,9 @@ if [ $? -ne 0 ]; then exit 1; fi
 REGION=$(get_region_xy $CONFIG_FILE)
 if [ $? -ne 0 ]; then exit 1; fi
 
+# TMSTC* algorithm
+TMSTC_GRIDSIZESENSORRANGERATIO=$(get_global_val $CONFIG_FILE "missionParams.TMSTC_gridsizeSensorRangeRatio")
+if [ $? -ne 0 ]; then exit 1; fi
 
 
 #---------------------------------------------------------------
@@ -214,6 +217,8 @@ if [ "${VERBOSE}" = "yes" ]; then
     echo "SENSOR_COLOR          = [${SENSOR_COLOR}]"
     echo "SENSOR_ALTITUDE_MAX   = [${SENSOR_ALTITUDE_MAX}]"
     echo "SENSOR_RADIUS_FIXED   = [${SENSOR_RADIUS_FIXED}]"
+    echo "----------------------------------"
+    echo "TMSTC_GRIDSIZESENSORRANGERATIO = [${TMSTC_GRIDSIZESENSORRANGERATIO}]"
     echo "----------------------------------"
     echo "FIRE_FILE_DEFAULT = [${FIRE_FILE_DEFAULT}]"
     echo "FIRE_COLOR = [${FIRE_COLOR}]"
@@ -265,6 +270,7 @@ nsplug meta_shoreside.moos targ_shoreside.moos $NSFLAGS WARP=$TIME_WARP \
     SENSOR_COLOR=$SENSOR_COLOR                           \
     SENSOR_ALTITUDE_MAX=$SENSOR_ALTITUDE_MAX             \
     SENSOR_RADIUS_FIXED=$SENSOR_RADIUS_FIXED             \
+    TMSTC_GRIDSIZESENSORRANGERATIO=$TMSTC_GRIDSIZESENSORRANGERATIO \
     FIRE_FILE_DEFAULT=$FIRE_FILE_DEFAULT                 \
     FIRE_COLOR=$FIRE_COLOR                               \
     FIRE_GENERATE=$FIRE_GENERATE                         \

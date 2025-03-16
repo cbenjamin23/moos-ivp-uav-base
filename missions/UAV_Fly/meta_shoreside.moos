@@ -26,7 +26,7 @@ Processconfig = ANTLER
   Run = uFldCollisionDetect @ NewConsole = false
   Run = pRealm              @ NewConsole = false
   Run = pGridSearchViz      @ NewConsole = false //, XConfig=HOLDSettings
-  Run = pGridSearchPlanner  @ NewConsole = false 
+  Run = pGridSearchPlanner  @ NewConsole = true, XConfig=HOLDSettings
   Run = uFldFireSim         @ NewConsole = false
 
 
@@ -249,8 +249,13 @@ ProcessConfig = pGridSearchPlanner
   CommsTick     = 2
 
   search_region = pts={$(REGION)}
-  sensor_radius         = $(SENSOR_RADIUS_MAX)
-  visualize_planner_grids = true
+  sensor_radius = $(SENSOR_RADIUS_MAX)
+  region_grid_size_ratio = $(TMSTC_GRIDSIZESENSORRANGERATIO)
+  visualize_planner_grids = false //Default is false
+  visualize_planner_paths = true
+
+  map_print_version = 0 // 0=off, 1=init, 2=cover, 3=direction
+  
 
 } 
 
@@ -373,6 +378,12 @@ ProcessConfig = pMarineViewer
 	action+ = BLOCK_HEARTBEAT = false
 
   action+ = menu_key=Toggle_TMSTC_grid #  GSP_VISUALIZE_PLANNER_GRIDS=toggle
+  action+ = menu_key=Toggle_TMSTC_path #  GSP_VISUALIZE_PLANNER_PATHS=toggle
+
+  action = menu_key=GSP_map_print_off #  GSP_MAP_PRINT=0
+  action = menu_key=GSP_map_print_init #  GSP_MAP_PRINT=1
+  action = menu_key=GSP_map_print_cover #  GSP_MAP_PRINT=2
+  action+ = menu_key=GSP_map_print_direction #  GSP_MAP_PRINT=3
 
   action+ = menu_key=GSV_show_sensor  #  GSV_VISUALIZE_SENSOR_AREA=true
   action+ = menu_key=UFFS_show_sensor #  GSV_VISUALIZE_SENSOR_AREA=false
@@ -471,6 +482,9 @@ ProcessConfig = pMarineViewer
 
     // button_10 = PARK_HELM_ALL # MOOS_MANUAL_OVERRIDE_ALL=true
   #endif
+
+  button_11 = PLAN_PATHS # DO_PLAN_PATHS=true
+
 
   ////////////////////////////////////////////////
   // Commands

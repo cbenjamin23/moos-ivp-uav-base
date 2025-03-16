@@ -11,5 +11,6 @@ ProcessConfig = pGridSearchPlanner
 
   sensor_radius = 10        
   visualize_planner_grids = true
+  visualize_planner_paths = true
 
 }

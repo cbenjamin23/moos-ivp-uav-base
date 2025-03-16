@@ -35,14 +35,20 @@ public:
     std::vector<XYPoint> getRegionGridCenters() const;
     std::vector<XYPoint> getSpanningGridCenters() const;
     XYSegList pathToSegList(const std::vector<std::pair<int, int>> &path) const;
-    
+
     XYPoint getVehicleRegionPosition(const XYPoint &pos) const;
     std::vector<std::pair<int, int>> getVehicleRegionPositions() const;
-    XYPoint getVehicleSpanningPosition(const XYPoint &pos) const;   
-    std::vector<std::pair<int, int>> getVehicleSpanningPositions() const;
+    XYPoint getVehicleSpanningPosition(const XYPoint &pos) const;
+    std::vector<std::pair<int, int>> getUniqueVehicleSpanningCoordinates() const;
     bool saveRegionGridToFile(const std::string &filename) const;
     bool saveSpanningGridToFile(const std::string &filename) const;
     bool isGridsConverted() const;
+
+    XYSegList regionCoords2XYSeglisMoos(std::vector<std::pair<int, int>> regionCoords) const;
+    XYSegList spanningCoords2XYSeglisMoos(std::vector<std::pair<int, int>> spanningCoords) const;
+
+    XYPoint regionCoord2XYPointMoos(int col, int row) const;
+    XYPoint spanningCoord2XYPointMoos(int col, int row) const;
 
 private:
     XYPolygon m_searchRegion;                   // The search area polygon
@@ -63,7 +69,6 @@ private:
     XYSquare getBoundingBox() const;
     void populateRegionGrid();
     void createSpanningGrid();
-
 };
 
 #endif // TMSTC_GRID_CONVERTER_H

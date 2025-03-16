@@ -35,6 +35,8 @@ missionParams:
   
   mission_duration : 6000 # s - The duration of the mission
 
+  TMSTC_gridsizeSensorRangeRatio: 0.5 # The ratio between the region grid cell distance and the sensor range. The sensor range is the maximum distance from the drone that the sensor can detect fires
+
 
   # Fire parameters:
   fire_file_default   : "fires_02.txt" # The file containing the fire data if generate not set

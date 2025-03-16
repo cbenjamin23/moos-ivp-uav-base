@@ -98,8 +98,10 @@ void PathCut::MST2Path()
 		pathSequence.push_back(cur);
 
 		// cout << cur << " ";
-		if (pathEdge[cur].size() == 0)
+		if (pathEdge[cur].size() == 0){
 			cout << "Generating: Edge set crash\n";
+			throw std::runtime_error("Edge set crash");
+		}
 
 		cur = inPath[pathEdge[cur][0]] ? pathEdge[cur][1] : pathEdge[cur][0];
 		if (inPath[cur])
