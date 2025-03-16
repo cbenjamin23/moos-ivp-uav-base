@@ -43,7 +43,7 @@ public:
     void tagFireID(Fire &fire);
 
     // unsigned int getMinSep() const { return (0); }
-
+    std::vector<XYPoint> getFirePoints() const;
     std::vector<Fire> getFires() const;
     std::set<std::string> getFireNames() const;
     std::vector<std::string> getFireFileSpec() const;

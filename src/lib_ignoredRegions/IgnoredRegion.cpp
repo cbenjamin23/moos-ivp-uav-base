@@ -138,7 +138,7 @@ IgnoredRegion stringToIgnoredRegion(std::string str)
             format_spec = value;
     }
 
-    Logger::info("format_spec: " + format_spec);
+    // Logger::info("stringToIgnoredRegion: format_spec: " + format_spec);
 
     if (!ok)
         return (null_ignoredRegion);
@@ -151,9 +151,9 @@ IgnoredRegion stringToIgnoredRegion(std::string str)
     std::string msg = tokStringParse(format_spec, "msg", ';', '|');
     
 
-    Logger::info("regionType_str: " + regionType_str);
-    Logger::info("msg : " + msg);
-    Logger::info("name: " + ignoredRegion.getName());
+    // Logger::info("regionType_str: " + regionType_str);
+    // Logger::info("msg : " + msg);
+    // Logger::info("name: " + ignoredRegion.getName());
 
 
     std::function<XYPolygon(std::string)> convertionFnc;
@@ -174,7 +174,7 @@ IgnoredRegion stringToIgnoredRegion(std::string str)
     
     std::string modified_spec = findReplace(format_spec, ";",',');
     modified_spec = findReplace(modified_spec, "|",'=');
-    Logger::info("format_spec (modified): " + modified_spec);
+    // Logger::info("format_spec (modified): " + modified_spec);
 
     XYPolygon region = convertionFnc(modified_spec);
     ignoredRegion.setRegion(region);  

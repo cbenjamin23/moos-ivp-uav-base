@@ -28,11 +28,16 @@ public:
     bool setBufferDist(std::string);
     bool addPolygon(std::string);
 
-    bool generate(std::stringstream &);
+    bool generate(std::stringstream & out, const std::vector<XYPoint>& fires_points = {});
     double getMinSep() const { return (m_buffer_dist); }
 
     // Generate a region specification at given location
     std::string generateRegionSpec(double x, double y, double scale_factor);
+
+    static std::string moveRegionAwayFromFires(std::string format_spec,
+        double new_x, double new_y,
+        const std::vector<XYPoint> &fire_points,
+        double scale_factor);
 
 protected:
     // Helper methods to generate specific shape specifications
@@ -47,6 +52,7 @@ protected:
 
     // Get a random region type from the RegionType enum
     IgnoredRegion::RegionType getRandomRegionType() const;
+
 
 protected:
     // Generator from base class

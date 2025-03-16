@@ -33,7 +33,7 @@ IgnoredRegionSet::IgnoredRegionSet()
             region = {x0,y0:x1,y1:...:x2,y2}, save_path = "missions/UAV_FLY/gen_regions/", \
             spawn_count=10, spawn_interval = 200:400
 
-bool IgnoredRegionSet::handleRegionConfig(std::string str, double curr_time, std::string &warning)
+bool IgnoredRegionSet::handleIgnoredRegionConfig(std::string str, double curr_time, std::string &warning, const std::vector<XYPoint> &fire_points)
 {
     std::string generate_str = tokStringParse(str, "generate");
     bool generate = false;
@@ -91,7 +91,7 @@ bool IgnoredRegionSet::handleRegionConfig(std::string str, double curr_time, std
         return false;
 
     std::stringstream ss;
-    if (!m_generator.generate(ss))
+    if (!m_generator.generate(ss, fire_points))
     {
         warning = "Failed to generate regions with region_config line: " + str;
         return false;
@@ -535,13 +535,25 @@ bool IgnoredRegionSet::removeIgnoreRegion(std::string rname)
     return true;
 }
 
-std::string IgnoredRegionSet::spawnIgnoreRegion(double x, double y, double scale_factor)
+std::string IgnoredRegionSet::spawnIgnoreRegion(double x, double y, const std::vector<XYPoint> &fire_points, double scale_factor)
 {
-
     static unsigned int region_count = 1;
+
+    // Get a region spec from the generator
+    std::string format_spec = m_generator.generateRegionSpec(x, y, scale_factor);
+
+    // Use the new function to position it away from fires
+    std::string adjusted_spec = IgnoredRegionGenerator::moveRegionAwayFromFires(format_spec, x, y, fire_points, scale_factor);
+
+    // If we couldn't find a valid placement
+    if (adjusted_spec.empty())
+    {
+        Logger::warning("Failed to spawn region without fire conflicts");
+        return "FAILED";
+    }
+
     std::string rname = "ignregion_" + uintToString(region_count++);
-    std::string format = m_generator.generateRegionSpec(x, y, scale_factor);
-    std::string spec = "name=" + rname + ", format=" + format;
+    std::string spec = "name=" + rname + ", format=" + adjusted_spec;
 
     m_vec_spawnable_regions.push_back(std::make_pair(0, spec));
     return rname;

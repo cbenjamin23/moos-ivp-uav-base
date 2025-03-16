@@ -179,7 +179,9 @@ void FireSim::registerRemoveIgnoredRegion(std::string pos_str, bool doRegister)
 
   if (doRegister)
   {
-    auto name = m_ignoredRegionset.spawnIgnoreRegion(x, y);
+
+    std::vector<XYPoint> fire_pos = m_fireset.getFirePoints();
+    auto name = m_ignoredRegionset.spawnIgnoreRegion(x, y, fire_pos);
     trySpawnIgnoredRegion();
     Logger::info("Registering ignored region: " + name);
   }
@@ -381,7 +383,8 @@ bool FireSim::OnStartUp()
 
   warning.clear();
 
-  ok = m_ignoredRegionset.handleRegionConfig(ignoredRegion_config, m_curr_time, warning);
+  auto fire_points = m_fireset.getFirePoints();
+  ok = m_ignoredRegionset.handleIgnoredRegionConfig(ignoredRegion_config, m_curr_time, warning, fire_points);
   if (!ok)
     reportUnhandledConfigWarning(warning);
 

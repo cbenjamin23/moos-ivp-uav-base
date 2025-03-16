@@ -14,7 +14,7 @@ public:
     IgnoredRegionSet();
     virtual ~IgnoredRegionSet() {}
 
-    bool handleRegionConfig(std::string str, double curr_time, std::string &warning);
+    bool handleIgnoredRegionConfig(std::string str, double curr_time, std::string &warning, const std::vector<XYPoint> &fire_points={});
     bool handleRegionFile(std::string, double, std::string &warning);
     bool handleSearchRegionStr(std::string str, std::string &warning);
     bool modIgnoredRegion(IgnoredRegion);
@@ -53,7 +53,12 @@ public:
 
     bool removeIgnoreRegion(std::string rname);
 
-    std::string spawnIgnoreRegion(double x, double y, double scale_factor=1);
+    std::string spawnIgnoreRegion(double x, double y, const std::vector<XYPoint> &points = {}, double scale_factor = 1);
+
+    static std::string moveRegionAwayFromFires(std::string format_spec,
+                                        double new_x, double new_y,
+                                        const std::vector<XYPoint> &fire_points,
+                                        double scale_factor = 1.0);
 
 protected:
     void shuffleIDs();

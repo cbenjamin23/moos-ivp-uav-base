@@ -252,6 +252,22 @@ std::vector<Fire> FireSet::getFires() const
     return (fvector);
 }
 
+std::vector<XYPoint> FireSet::getFirePoints() const
+{
+    std::vector<XYPoint> fire_pos;
+
+    std::map<std::string, Fire>::const_iterator p;
+    for (p = m_map_fires.begin(); p != m_map_fires.end(); p++)
+    {
+        Fire fire = p->second;
+        double fire_x = fire.getCurrX();
+        double fire_y = fire.getCurrY();
+        fire_pos.emplace_back(fire_x, fire_y);
+    }
+
+    return (fire_pos);
+}
+
 std::vector<std::string> FireSet::getFireFileSpec() const
 {
     std::vector<std::string> svector;
