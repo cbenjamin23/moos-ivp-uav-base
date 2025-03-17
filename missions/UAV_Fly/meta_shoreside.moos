@@ -26,7 +26,7 @@ Processconfig = ANTLER
   Run = uFldCollisionDetect @ NewConsole = false
   Run = pRealm              @ NewConsole = false
   Run = pGridSearchViz      @ NewConsole = false //, XConfig=HOLDSettings
-  Run = pGridSearchPlanner  @ NewConsole = true, XConfig=HOLDSettings
+  Run = pGridSearchPlanner  @ NewConsole = false  //, XConfig=HOLDSettings
   Run = uFldFireSim         @ NewConsole = false
 
 
@@ -182,7 +182,7 @@ ProcessConfig = uFldShoreBroker
 
 
   #ifdef USE_MOOS_SIM_PID true
-    qbridge = DEPLOY, TOWAYPT_UPDATE , RETURN
+    qbridge = DEPLOY, TOWAYPT_UPDATE , RETURN, DO_SURVEY
   #endif
 
   // bridge  = src=RETURN_ALL, alias=RETURN
@@ -255,7 +255,10 @@ ProcessConfig = pGridSearchPlanner
   visualize_planner_paths = true
 
   map_print_version = 0 // 0=off, 1=init, 2=cover, 3=direction
+  start_point_closest = false // start point of path planned is closest to current drone location. Default is false
   
+  path_publish_variable = SURVEY_UPDATE // Default is SURVEY_UPDATE
+
 
 } 
 
@@ -379,6 +382,7 @@ ProcessConfig = pMarineViewer
 
   action+ = menu_key=Toggle_TMSTC_grid #  GSP_VISUALIZE_PLANNER_GRIDS=toggle
   action+ = menu_key=Toggle_TMSTC_path #  GSP_VISUALIZE_PLANNER_PATHS=toggle
+  action+ = menu_key=Toggle_TMSTC_closest_start #  GSP_START_POINT_CLOSEST=toggle
 
   action = menu_key=GSP_map_print_off #  GSP_MAP_PRINT=0
   action = menu_key=GSP_map_print_init #  GSP_MAP_PRINT=1
@@ -457,8 +461,9 @@ ProcessConfig = pMarineViewer
   ////////////////////////////////////////////////
 
   #ifdef USE_MOOS_SIM_PID true
-    button_1 = DEPLOY  # DEPLOY_ALL=true # RETURN_ALL=false # MOOS_MANUAL_OVERRIDE_ALL=false
-    button_2 = TOWAYPT # DEPLOY_ALL=false # RETURN_ALL=true # MOOS_MANUAL_OVERRIDE_ALL=false
+    button_1 = DEPLOY  # DO_SURVEY_ALL=false # DEPLOY_ALL=true # RETURN_ALL=false # MOOS_MANUAL_OVERRIDE_ALL=false
+    button_2 = TOWAYPT # DO_SURVEY_ALL=false # DEPLOY_ALL=false # RETURN_ALL=true # MOOS_MANUAL_OVERRIDE_ALL=false
+    button_3 = SURVEY # DO_SURVEY_ALL=true # DEPLOY_ALL=true # RETURN_ALL=false # MOOS_MANUAL_OVERRIDE_ALL=false
   #else
 
 
@@ -490,6 +495,11 @@ ProcessConfig = pMarineViewer
   // Commands
   ////////////////////////////////////////////////
 
+#ifdef USE_MOOS_SIM_PID true
+
+  cmd = label=SURVEY, var=DO_SURVEY, sval=true, receivers=all:$(VNAMES)
+
+#else
   cmd = label=TAKEOFF, var=GCS_COMMAND, sval=DO_TAKEOFF, receivers=all:$(VNAMES)
   cmd = label=TOWAYPOINT, var=GCS_COMMAND, sval=FLY_WAYPOINT, receivers=all:$(VNAMES)
   cmd = label=RTL, var=GCS_COMMAND, sval=RETURN_TO_LAUNCH, receivers=all:$(VNAMES)
@@ -520,6 +530,8 @@ ProcessConfig = pMarineViewer
   cmd = label=HELM_OFF, var=HELM_STATUS, sval=OFF, receivers=all:$(VNAMES)
 
   cmd = label=PARK_HELM, var=MOOS_MANUAL_OVERRIDE, sval=true, receivers=all:$(VNAMES)
+
+#endif
 
 }
 

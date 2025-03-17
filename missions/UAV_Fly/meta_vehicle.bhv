@@ -4,6 +4,7 @@
 #ifdef USE_MOOS_SIM_PID true
   initialize   DEPLOY = false
   initialize   RETURN = false
+  initialize   DO_SURVEY = false
 #endif
 
 // initialize   SURVEY = false
@@ -15,11 +16,17 @@ initialize BHV_MODE = INACTIVE
 
 
 #ifdef USE_MOOS_SIM_PID true
+  
   set BHV_MODE = INACTIVE {
     DEPLOY != true
     RETURN != true
   } ACTIVE
 
+  set BHV_MODE = SURVEY {
+    BHV_MODE = ACTIVE
+    DO_SURVEY = true
+  }
+  
   set BHV_MODE = VORONOI {
     BHV_MODE = ACTIVE
     DEPLOY = true
@@ -72,7 +79,7 @@ Behavior = BHV_Waypoint
   perpetual  = true
   endflag    = GCS_COMMAND=RETURN_TO_LAUNCH
 
-          repeat = 1
+          repeat = 0
            speed = $(SPEED)
  
  #ifdef XMODE SIM

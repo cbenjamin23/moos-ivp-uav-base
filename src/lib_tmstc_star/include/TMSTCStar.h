@@ -46,6 +46,9 @@ private:
     void getPathInfo();
 
 public:
+
+    TMSTCStar(const TMSTCStarConfig &config = TMSTCStarConfig()): config_(config) {};
+
     // Constructor accepting a grid map and robot positions
     TMSTCStar(const Mat &map, const std::vector<int> &robot_positions,
               const TMSTCStarConfig &config = TMSTCStarConfig());
@@ -53,6 +56,8 @@ public:
     // Alternative constructor with 2D coordinates instead of indices
     TMSTCStar(const Mat &map, const std::vector<std::pair<int, int>> &robot_positions,
               const TMSTCStarConfig &config = TMSTCStarConfig());
+
+    void reconfigureMapRobot(const Mat &map, const std::vector<int> &robot_positions);
 
     // Calculate paths using the specified method
     Mat calculateRegionIndxPaths();

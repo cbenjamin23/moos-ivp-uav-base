@@ -33,14 +33,13 @@ TMSTCStar::TMSTCStar(const Mat &map, const std::vector<std::pair<int, int>> &rob
     bigrows_ = smallrows_ * 2;
     bigcols_ = smallcols_ * 2;
 
-
     // Convert coordinate positions to indices
     robot_init_pos_.resize(robot_positions.size());
     for (size_t i = 0; i < robot_positions.size(); i++)
     {
-        
+
         auto indx = coordToIndex(robot_positions[i].first * 2, robot_positions[i].second * 2, bigcols_);
-        
+
         robot_init_pos_[i] = indx;
         std::cout << "Robot " << i + 1 << " position: (" << robot_positions[i].first << ","
                   << robot_positions[i].second << ") -> index: " << robot_init_pos_[i] << std::endl;
@@ -49,17 +48,36 @@ TMSTCStar::TMSTCStar(const Mat &map, const std::vector<std::pair<int, int>> &rob
         std::cout << "Index " << robot_init_pos_[i] << " -> reg coordinates: (" << coord.first << ","
                   << coord.second << ")" << std::endl;
 
-
-        if(std::find(robot_init_pos_.begin(), robot_init_pos_.end(), indx) == robot_init_pos_.end()){
+        if (std::find(robot_init_pos_.begin(), robot_init_pos_.end(), indx) == robot_init_pos_.end())
+        {
             throw std::runtime_error("Robot positions must be unique and within the map boundaries.");
         }
-          
     }
 
     // Preprocess the map to create the expanded region
     preprocessMap();
     showMapInfo();
 }
+
+void TMSTCStar::reconfigureMapRobot(const Mat &map, const std::vector<int> &robot_positions)
+{
+    map_ = map;
+    robot_init_pos_ = robot_positions;
+
+    // Set global turning cost value
+    ONE_TURN_VAL = config_.one_turn_value;
+
+    // Reconfigure dimensions
+    smallrows_ = map_.size();
+    smallcols_ = map_[0].size();
+    bigrows_ = smallrows_ * 2;
+    bigcols_ = smallcols_ * 2;
+
+    // Preprocess the map to create the expanded region
+    preprocessMap();
+    showMapInfo();
+}
+
 
 void TMSTCStar::preprocessMap()
 {
@@ -101,14 +119,18 @@ void TMSTCStar::getPathInfo()
 {
     std::cout << "--------------------------------------" << std::endl;
     std::cout << "Path information:" << std::endl;
+    // std::cout << "path size: " << paths_.size() << std::endl;
     for (int i = 0; i < paths_.size(); ++i)
     {
+        // std::cout << "Number of paths for robot " << i << ": " << std::flush;
+        // std::cout << paths_[i].size() << std::endl;
+
         int turns = 0;
         for (int j = 1; j < paths_[i].size() - 1; ++j)
         {
             turns += isSameLine(paths_[i][j - 1], paths_[i][j], paths_[i][j + 1]) ? 0 : 1;
-            std::cout << endl;
         }
+
         std::cout << "Path " << i << ": length=" << paths_[i].size()
                   << ", turns=" << turns
                   << ", total_cost=" << (1.0 * paths_[i].size() + ONE_TURN_VAL * turns)

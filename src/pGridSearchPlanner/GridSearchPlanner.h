@@ -58,6 +58,11 @@ protected: // Config vars
   bool m_visualize_planner_paths;
   int m_map_print_version;
 
+  bool m_start_point_closest;
+
+
+  std::string m_path_publish_variable;
+
 protected: // State vars
   bool m_do_plan_paths;
 

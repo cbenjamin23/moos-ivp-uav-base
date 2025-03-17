@@ -4,6 +4,7 @@
 #include <cmath>
 
 #include "Logger.h"
+#include "TMSTCStar.h"
 
 TMSTCGridConverter::TMSTCGridConverter()
     : m_sensorRadius(0.0), m_regionWidth(0), m_regionHeight(0),
@@ -97,7 +98,7 @@ XYSegList TMSTCGridConverter::pathToSegList(const std::vector<std::pair<int, int
     }
     return segList;
 }
-XYPoint TMSTCGridConverter::getVehicleRegionPosition(const XYPoint &pos) const
+XYPoint TMSTCGridConverter::getVehicleRegionCoordinate(const XYPoint &pos) const
 {
 
     XYPoint null;
@@ -108,20 +109,26 @@ XYPoint TMSTCGridConverter::getVehicleRegionPosition(const XYPoint &pos) const
 
     int col = static_cast<int>((pos.get_vx() - m_boundingBox.get_min_x()) / (2 * m_sensorRadius));
     int row = static_cast<int>((pos.get_vy() - m_boundingBox.get_min_y()) / (2 * m_sensorRadius));
-    if (row >= 0 && row < m_regionHeight && col >= 0 && col < m_regionWidth){
+    if (row >= 0 && row < m_regionHeight && col >= 0 && col < m_regionWidth)
+    {
 
         // if the cell is occupied, return the closest free cell
-        if (m_regionGrid[row][col] == 0) {
+        if (m_regionGrid[row][col] == 0)
+        {
             int multiplier = 1;
-            while (m_regionGrid[row][col] == 0) {
-                for (int i = -1; i <= 1; ++i) {
-                    for (int j = -1; j <= 1; ++j) {
+            while (m_regionGrid[row][col] == 0)
+            {
+                for (int i = -1; i <= 1; ++i)
+                {
+                    for (int j = -1; j <= 1; ++j)
+                    {
                         if (i == 0 && j == 0)
                             continue;
 
                         int newRow = row + i * multiplier;
                         int newCol = col + j * multiplier;
-                        if (newRow >= 0 && newRow < m_regionHeight && newCol >= 0 && newCol < m_regionWidth) {
+                        if (newRow >= 0 && newRow < m_regionHeight && newCol >= 0 && newCol < m_regionWidth)
+                        {
                             if (m_regionGrid[newRow][newCol] == 1)
                                 return {static_cast<double>(newCol), static_cast<double>(newRow)};
                         }
@@ -135,7 +142,7 @@ XYPoint TMSTCGridConverter::getVehicleRegionPosition(const XYPoint &pos) const
 
     return null;
 }
-XYPoint TMSTCGridConverter::getVehicleSpanningPosition(const XYPoint &pos) const
+XYPoint TMSTCGridConverter::getVehicleSpanningCoordinate(const XYPoint &pos) const
 {
     XYPoint null;
     null.clear(); // to make invalid point
@@ -145,20 +152,26 @@ XYPoint TMSTCGridConverter::getVehicleSpanningPosition(const XYPoint &pos) const
 
     int col = static_cast<int>((pos.get_vx() - m_boundingBox.get_min_x()) / (4 * m_sensorRadius));
     int row = static_cast<int>((pos.get_vy() - m_boundingBox.get_min_y()) / (4 * m_sensorRadius));
-    if (row >= 0 && row < m_spanningHeight && col >= 0 && col < m_spanningWidth){
+    if (row >= 0 && row < m_spanningHeight && col >= 0 && col < m_spanningWidth)
+    {
 
         // if the cell is occupied, return the closest free cell
-        if (m_spanningGrid[row][col] == 0) {
+        if (m_spanningGrid[row][col] == 0)
+        {
             int multiplier = 1;
-            while (m_spanningGrid[row][col] == 0) {
-                for (int i = -1; i <= 1; ++i) {
-                    for (int j = -1; j <= 1; ++j) {
+            while (m_spanningGrid[row][col] == 0)
+            {
+                for (int i = -1; i <= 1; ++i)
+                {
+                    for (int j = -1; j <= 1; ++j)
+                    {
                         if (i == 0 && j == 0)
                             continue;
 
                         int newRow = row + i * multiplier;
                         int newCol = col + j * multiplier;
-                        if (newRow >= 0 && newRow < m_spanningHeight && newCol >= 0 && newCol < m_spanningWidth) {
+                        if (newRow >= 0 && newRow < m_spanningHeight && newCol >= 0 && newCol < m_spanningWidth)
+                        {
                             if (m_spanningGrid[newRow][newCol] == 1)
                                 return {static_cast<double>(newCol), static_cast<double>(newRow)};
                         }
@@ -174,7 +187,20 @@ XYPoint TMSTCGridConverter::getVehicleSpanningPosition(const XYPoint &pos) const
     return null;
 }
 
-std::vector<std::pair<int, int>> TMSTCGridConverter::getVehicleRegionPositions() const
+std::vector<int> TMSTCGridConverter::getUniqueVehicleRegionIndices() const
+{
+
+    auto uniqueRegionCoords = getUniqueVehicleRegionCoordinates();
+    std::vector<int> indices;
+
+    for (const auto &coord : uniqueRegionCoords)
+    {
+        int indx = TMSTCStar::coordToIndex(coord.first, coord.second, m_regionWidth);
+        indices.push_back(indx);
+    }
+    return indices;
+}
+std::vector<std::pair<int, int>> TMSTCGridConverter::getUniqueVehicleRegionCoordinates() const
 {
 
     const std::vector<XYPoint> dp{{-1, -1}, {-1, 0}, {-1, 1}, {0, -1}, {0, 1}, {1, -1}, {1, 0}, {1, 1}};
@@ -182,7 +208,7 @@ std::vector<std::pair<int, int>> TMSTCGridConverter::getVehicleRegionPositions()
     std::set<XYPoint> uniqueRegionCoords;
     for (const auto &pos : m_vehiclePositions)
     {
-        XYPoint coord = getVehicleRegionPosition(pos);
+        XYPoint coord = getVehicleRegionCoordinate(pos);
         if (!coord.valid())
             continue;
 
@@ -203,13 +229,12 @@ std::vector<std::pair<int, int>> TMSTCGridConverter::getVehicleRegionPositions()
                 newPos.set_vx(newPos.get_vx() + d.get_vx() * 2 * m_sensorRadius * multiplier);
                 newPos.set_vy(newPos.get_vy() + d.get_vy() * 2 * m_sensorRadius * multiplier);
 
-                coord = getVehicleRegionPosition(newPos);
+                coord = getVehicleRegionCoordinate(newPos);
                 if (!coord.valid())
                     continue;
 
                 if (uniqueRegionCoords.find(coord) == uniqueRegionCoords.end())
                     break;
-                
             }
             multiplier++;
         }
@@ -223,6 +248,20 @@ std::vector<std::pair<int, int>> TMSTCGridConverter::getVehicleRegionPositions()
     return coords;
 }
 
+std::vector<int> TMSTCGridConverter::getUniqueVehicleSpanningIndices() const
+{
+
+    auto uniqueSpanningCoords = getUniqueVehicleSpanningCoordinates();
+    std::vector<int> indices;
+
+    for (const auto &coord : uniqueSpanningCoords)
+    {
+        int indx = TMSTCStar::coordToIndex(coord.first, coord.second, m_spanningWidth);
+        indices.push_back(indx);
+    }
+    return indices;
+}
+
 std::vector<std::pair<int, int>> TMSTCGridConverter::getUniqueVehicleSpanningCoordinates() const
 {
 
@@ -231,7 +270,7 @@ std::vector<std::pair<int, int>> TMSTCGridConverter::getUniqueVehicleSpanningCoo
     std::set<XYPoint> uniqueSpanningCoords;
     for (const auto &pos : m_vehiclePositions)
     {
-        XYPoint coord = getVehicleSpanningPosition(pos);
+        XYPoint coord = getVehicleSpanningCoordinate(pos);
         if (!coord.valid())
             continue;
 
@@ -252,13 +291,12 @@ std::vector<std::pair<int, int>> TMSTCGridConverter::getUniqueVehicleSpanningCoo
                 newPos.set_vx(newPos.get_vx() + d.get_vx() * 2 * m_sensorRadius * multiplier);
                 newPos.set_vy(newPos.get_vy() + d.get_vy() * 2 * m_sensorRadius * multiplier);
 
-                coord = getVehicleSpanningPosition(newPos);
+                coord = getVehicleSpanningCoordinate(newPos);
                 if (!coord.valid())
                     continue;
 
                 if (uniqueSpanningCoords.find(coord) == uniqueSpanningCoords.end())
                     break;
-                
             }
             multiplier++;
         }

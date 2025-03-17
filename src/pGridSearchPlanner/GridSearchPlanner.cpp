@@ -32,6 +32,23 @@ GridSearchPlanner::GridSearchPlanner()
   m_visualize_planner_grids = false;
   m_visualize_planner_paths = false;
   m_map_print_version = 0; // 0=off, 1=init, 2=cover, 3=direction
+
+  m_start_point_closest = false;
+
+  m_path_publish_variable = "SURVEY_UPDATE";
+
+
+  // Configure the TMSTC* algorithm
+  TMSTCStarConfig config;
+  config.allocate_method = "MSTC";
+  config.mst_shape = "DINIC"; // MSTC and DINIC are what constitutes TMSTC*
+  config.robot_num = m_map_drone_records.size();
+  config.cover_and_return = false; // return to start position after cover
+  config.one_turn_value = 2.0;     // Default turning cost
+
+  m_tmstc_star_ptr = std::move(std::make_unique<TMSTCStar>(config));
+
+
 }
 
 //---------------------------------------------------------
@@ -72,6 +89,8 @@ bool GridSearchPlanner::OnNewMail(MOOSMSG_LIST &NewMail)
       handled = true;
       // Logger::info("OnNewMail: Received map print version: " + std::to_string(m_map_print_version));
     }
+    else if (key == "GSP_START_POINT_CLOSEST")
+      handled = setBooleanOnString(m_start_point_closest, sval);
 
     if (!handled)
     {
@@ -153,6 +172,13 @@ bool GridSearchPlanner::OnStartUp()
         handled = setBooleanOnString(m_visualize_planner_paths, value);
       else if (param == "map_print_version")
         handled = setIntOnString(m_map_print_version, value);
+      else if (param == "start_point_closest")
+        handled = setBooleanOnString(m_start_point_closest, value);
+      else if (param == "path_publish_variable")
+      {
+        m_path_publish_variable = value;
+        handled = true;
+      }
 
       if (!handled)
         reportUnhandledConfigWarning(orig);
@@ -191,30 +217,47 @@ void GridSearchPlanner::registerVariables()
 
   Register("GSP_VISUALIZE_PLANNER_GRIDS", 0);
   Register("GSP_VISUALIZE_PLANNER_PATHS", 0);
-
+  
   Register("IGNORED_REGION_ALERT", 0);
   Register("GSP_MAP_PRINT", 0);
-
+  
   Register("DO_PLAN_PATHS", 0);
+  Register("GSP_START_POINT_CLOSEST", 0);
 }
 
 void GridSearchPlanner::doPlanPaths()
 {
+  
+  if(m_tmstc_star_ptr == nullptr)
+  {
+    Logger::error("doPlanPaths: TMSTC* instance is null.");
+    reportRunWarning("Failed to calculate paths. TMSTC* instance is not initialized.");
+    m_is_paths_calculated = false;
+    return;
+  }
+  
+
   m_tmstc_grid_converter.transformGrid();
 
   Mat spanningMap = m_tmstc_grid_converter.getSpanningGrid();
-  std::vector<P> robot_spanning_positions = m_tmstc_grid_converter.getUniqueVehicleSpanningCoordinates();
+  std::vector<int> robot_region_indeces = m_tmstc_grid_converter.getUniqueVehicleRegionIndices();
 
-  // Configure the TMSTC* algorithm
-  TMSTCStarConfig config;
-  config.allocate_method = "MSTC";
-  config.mst_shape = "DINIC"; // MSTC and DINIC are what constitutes TMSTC*
-  config.robot_num = m_map_drone_records.size();
-  config.cover_and_return = false; // return to start position after cover
-  config.one_turn_value = 2.0;     // Default turning cost
+
+  if(robot_region_indeces.size() != m_map_drone_records.size())
+  {
+    std::string msg = "Number of robot region indeces (" + std::to_string(robot_region_indeces.size()) + ") does not match number of drones (" + std::to_string(m_map_drone_records.size()) + ").";
+    m_generate_warnings.push_back(msg);
+    Logger::error("doPlanPaths:" + msg);
+    reportRunWarning(msg);
+    postCalculatedPaths(false);
+    m_is_paths_calculated = false;
+    return;
+  }
+
+
 
   // Create the TMSTC* instance and calculate paths
-  m_tmstc_star_ptr = std::move(std::make_unique<TMSTCStar>(spanningMap, robot_spanning_positions, config));
+  m_tmstc_star_ptr->reconfigureMapRobot(spanningMap, robot_region_indeces);
 
   Mat paths_robot_indx;
   try
@@ -225,7 +268,6 @@ void GridSearchPlanner::doPlanPaths()
     paths_robot_indx = m_tmstc_star_ptr->calculateRegionIndxPaths();
     Logger::info("doPlanPaths: Calculating paths... Region Index paths calculated.");
     m_is_paths_calculated = true;
-  
   }
   catch (const std::exception &e)
   {
@@ -244,22 +286,32 @@ void GridSearchPlanner::doPlanPaths()
 
   // Convert the paths to XYSegList format
   int i = 0;
-  for (const auto &[drone, _] : m_map_drone_records)
+  for (const auto &[drone, record] : m_map_drone_records)
   {
-    m_map_drone_paths[drone] = m_tmstc_grid_converter.regionCoords2XYSeglisMoos(paths_robot_coords[i++]);
+    XYSegList path = m_tmstc_grid_converter.regionCoords2XYSeglisMoos(paths_robot_coords[i++]);
+
+   if(m_start_point_closest){   
+      XYPoint firstPoint = path.get_first_point();
+      XYPoint lastPoint = path.get_last_point();
+
+      double dist_firstPoint = hypot(firstPoint.x() - record.getX(), firstPoint.y() - record.getY());
+      double dist_lastPoint = hypot(lastPoint.x() - record.getX(), lastPoint.y() - record.getY());
+
+      if (dist_lastPoint < dist_firstPoint)
+        path.reverse();
+    }  
+    m_map_drone_paths[drone] = path;
   }
 
   Logger::info("doPlanPaths: Paths calculated.");
   reportEvent("Paths calculated.");
 
-  clearAllGenerateWarnings(); 
-
+  clearAllGenerateWarnings();
 }
-
 
 void GridSearchPlanner::clearAllGenerateWarnings()
 {
-  for(const auto &warning : m_generate_warnings)
+  for (const auto &warning : m_generate_warnings)
     retractRunWarning(warning);
 
   m_generate_warnings.clear();
@@ -275,19 +327,48 @@ void GridSearchPlanner::postCalculatedPaths(bool visible)
     if (m_map_drone_paths.count(drone) == 0)
       continue;
 
-    std::string color = records.getColor();
-    XYSegList path = m_map_drone_paths[drone];
-    path.set_edge_color(color);
-    path.set_vertex_size(3);
-    path.set_label(drone + "_path");
-    path.set_label_color("white");
-    path.set_transparency(1);
-    path.set_active(visible);
-    path.set_edge_size(10);
+    XYSegList path_seg = m_map_drone_paths[drone];
 
-    std::string path_str = path.get_spec();
+    std::string pts_str = path_seg.get_spec_pts();
+    std::string spec = "points = " + pts_str;
+    std::string notify_var_str = m_path_publish_variable + "_" + MOOSToUpper(drone);
+    Notify(notify_var_str, spec);
+
+    // Path
+    constexpr double width = 10;
+    std::string color = records.getColor();
+    path_seg.set_edge_color(color);
+    path_seg.set_vertex_size(3);
+    path_seg.set_label(drone + "_path");
+    path_seg.set_label_color("white");
+    path_seg.set_transparency(1);
+    path_seg.set_active(visible);
+    path_seg.set_edge_size(width);
+
+    std::string path_str = path_seg.get_spec();
     Notify("VIEW_SEGLIST", path_str);
-    // Notify(drone + "_PATH", path_str);
+
+    // Start marker
+    XYMarker start_marker(path_seg.get_point(0).x(), path_seg.get_point(0).y());
+    start_marker.set_type("circle");
+    start_marker.set_width(width);
+    start_marker.set_label(drone + "_start");
+    start_marker.set_label_color("off");
+    start_marker.set_color("primary_color", "green");
+    start_marker.set_edge_color(color);
+    start_marker.set_active(visible);
+    Notify("VIEW_MARKER", start_marker.get_spec());
+
+    // End marker
+    XYMarker end_marker(path_seg.get_point(path_seg.size() - 1).x(), path_seg.get_point(path_seg.size() - 1).y());
+    end_marker.set_type("circle");
+    end_marker.set_width(width);
+    end_marker.set_label(drone + "_end");
+    end_marker.set_label_color("off");
+    end_marker.set_color("primary_color", "red");
+    end_marker.set_edge_color(color);
+    end_marker.set_active(visible);
+    Notify("VIEW_MARKER", end_marker.get_spec());
   }
 }
 
@@ -430,6 +511,7 @@ bool GridSearchPlanner::buildReport()
   m_msgs << "Visualize planner grids: " << boolToString(m_visualize_planner_grids) << std::endl;
   m_msgs << "Visualize planner paths: " << boolToString(m_visualize_planner_paths) << std::endl;
   m_msgs << "Map print version: " << mapPrintVersion2string(m_map_print_version) << std::endl;
+  m_msgs << "Start point closest: " << boolToString(m_start_point_closest) << std::endl;
   m_msgs << std::endl;
 
   bool grids_converted = m_tmstc_grid_converter.isGridsConverted();
@@ -456,9 +538,9 @@ bool GridSearchPlanner::buildReport()
 
     if (grids_converted)
     {
-      auto region_coord = m_tmstc_grid_converter.getVehicleRegionPosition(pos);
+      auto region_coord = m_tmstc_grid_converter.getVehicleRegionCoordinate(pos);
       region_coord_str = "(" + doubleToStringX(region_coord.get_vx(), 0) + ", " + doubleToStringX(region_coord.get_vy(), 0) + ")";
-      auto spanning_coord = m_tmstc_grid_converter.getVehicleSpanningPosition(pos);
+      auto spanning_coord = m_tmstc_grid_converter.getVehicleSpanningCoordinate(pos);
       spanning_coord_str = "(" + doubleToStringX(spanning_coord.get_vx(), 0) + ", " + doubleToStringX(spanning_coord.get_vy(), 0) + ")";
     }
 
@@ -491,7 +573,7 @@ bool GridSearchPlanner::buildReport()
     actab2.addHeaderLines();
 
     Mat regionMap = m_tmstc_grid_converter.getRegionGrid();
-    std::vector<std::pair<int, int>> robot_start_positions = m_tmstc_grid_converter.getVehicleRegionPositions();
+    std::vector<std::pair<int, int>> robot_start_positions = m_tmstc_grid_converter.getUniqueVehicleRegionCoordinates();
 
     Mat spanningMap = m_tmstc_grid_converter.getSpanningGrid();
     // std::vector<std::pair<int, int>> robot_start_positions_spanning = m_tmstc_grid_converter.getVehicleSpanningPositions();

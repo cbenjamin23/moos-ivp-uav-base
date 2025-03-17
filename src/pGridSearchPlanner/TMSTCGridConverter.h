@@ -36,10 +36,14 @@ public:
     std::vector<XYPoint> getSpanningGridCenters() const;
     XYSegList pathToSegList(const std::vector<std::pair<int, int>> &path) const;
 
-    XYPoint getVehicleRegionPosition(const XYPoint &pos) const;
-    std::vector<std::pair<int, int>> getVehicleRegionPositions() const;
-    XYPoint getVehicleSpanningPosition(const XYPoint &pos) const;
+    XYPoint getVehicleRegionCoordinate(const XYPoint &pos) const;
+    std::vector<std::pair<int, int>> getUniqueVehicleRegionCoordinates() const;
+    std::vector<int> getUniqueVehicleRegionIndices() const;
+
+    XYPoint getVehicleSpanningCoordinate(const XYPoint &pos) const;
     std::vector<std::pair<int, int>> getUniqueVehicleSpanningCoordinates() const;
+    std::vector<int> getUniqueVehicleSpanningIndices() const;
+
     bool saveRegionGridToFile(const std::string &filename) const;
     bool saveSpanningGridToFile(const std::string &filename) const;
     bool isGridsConverted() const;
