@@ -7,6 +7,8 @@
 #include <set>
 #include "MOOS/libMOOS/MOOSLib.h"
 #include "FireSet.h"
+#include <functional>
+
 
 class FireMissionScorer
 {

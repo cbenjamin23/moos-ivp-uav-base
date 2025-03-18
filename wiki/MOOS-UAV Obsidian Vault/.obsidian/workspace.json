@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "Info/Install, Build & Run MAVSDK.md",
+                "file": "Troubleshooting.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "Install, Build & Run MAVSDK"
+              "title": "Troubleshooting"
             },
             "group": "edaf1042f95ceebf"
           },
@@ -63,12 +63,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "Info/Install, Build & Run MAVSDK.md",
+                "file": "Troubleshooting.md",
                 "mode": "preview",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "Install, Build & Run MAVSDK"
+              "title": "Troubleshooting"
             },
             "group": "edaf1042f95ceebf"
           },
@@ -133,7 +133,7 @@
             "state": {
               "type": "search",
               "state": {
-                "query": "mavs",
+                "query": "missionpla",
                 "matchingCase": false,
                 "explainSearch": false,
                 "collapseAll": false,
@@ -154,7 +154,8 @@
               "title": "Bookmarks"
             }
           }
-        ]
+        ],
+        "currentTab": 1
       }
     ],
     "direction": "horizontal",
@@ -243,21 +244,21 @@
       "command-palette:Open command palette": false
     }
   },
-  "active": "da26bb1516200fb8",
+  "active": "e7103b409a37f336",
   "lastOpenFiles": [
-    "Info/pMarineViewer - MOOS  IVP.md",
-    "Troubleshooting.md",
-    "attachments/Pasted image 20250215110203.png",
+    "Info/Launching System.md",
     "Info/MAIN System architecture.md",
-    "Info/Swarm.md",
+    "Info/Swarm in ArduPilot.md",
+    "Troubleshooting.md",
+    "Info/Gazebo.md",
+    "Info/Install, Build & Run MAVSDK.md",
+    "Info/pMarineViewer - MOOS  IVP.md",
+    "attachments/Pasted image 20250215110203.png",
     "Info/ArduPilot & MavProx.md",
     "Advantages of MOOS-IVP.md",
-    "Info/Gazebo.md",
     "Helpful definitions.md",
-    "Info/Install, Build & Run MAVSDK.md",
     "Info/ardupilot_gazebo plugin.md",
     "Info/Data Management.md",
-    "Info/Launching System.md",
     "Info/Mission Planner info.md",
     "Info/Skywalker X8.md",
     "attachments/Pasted image 20240829151142.png",

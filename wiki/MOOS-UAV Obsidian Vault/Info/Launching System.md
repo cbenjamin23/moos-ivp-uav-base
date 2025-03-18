@@ -38,7 +38,6 @@ Add an ssh key for simplicity of loging in (more instructions [here](https://oce
 ```
 
 
-
 ## Internet sharing
 
 `set_cusom_ip.sh` is located in `/usr/local/bin` and sets the ip of the ethernet gateway to the odroid to the gateway IP.
