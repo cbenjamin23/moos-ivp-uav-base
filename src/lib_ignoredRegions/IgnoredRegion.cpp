@@ -14,6 +14,7 @@
 #include <numeric>
 #include <cmath>
 #include <algorithm> 
+#include <functional>
 
 
 #include "Logger.h"
