@@ -130,3 +130,26 @@ cd build/MOOS/MOOSCore
 sudo make install
 ```
 This will install the header folder/structure to your `/usr/local/include` folder and make it accessible for Vscode intellisense to read from
+
+# Changing IP on Odroid XU4
+
+Navigate to the folder `/etc/netplan/` and change the `.yaml` file  configuration with the updated IP
+
+```bash
+sudo nano /etc/netplan/<file_name>.yaml
+```
+change the IP to the desired one. <file_name> is for instance`ntnu-x8-005`
+
+then run 
+```bash
+sudo netplan apply
+```
+To verify what connection configuration you have, run:
+
+```bash
+nmcli connection show
+```
+
+# Selecting right port on Cube Orange Autopilot
+
+For UART serial communication with the Cube Orange ArduPilot and the Odroid XU4, the GPS2 is the serial 4 port in MissionPlanner's parameter list.  It is defined as UART4  [here](https://docs.cubepilot.org/user-guides/autopilot/the-cube-module-overview) and more spesific [here](https://ardupilot.org/plane/docs/common-serial-options.html)

@@ -406,6 +406,8 @@ bool UAV_Model::haveAutorythyToChangeMode() const
     return true;
   }
 
+  // NOT allowed in Stabilized, Manual or RTL
+
   return false;
 }
 

@@ -64,7 +64,7 @@
               "type": "markdown",
               "state": {
                 "file": "Troubleshooting.md",
-                "mode": "preview",
+                "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
@@ -93,15 +93,16 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "Info/ArduPilot & MavProx.md",
+                "file": "Troubleshooting.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "ArduPilot & MavProx"
+              "title": "Troubleshooting"
             }
           }
-        ]
+        ],
+        "currentTab": 2
       }
     ],
     "direction": "vertical"
@@ -133,7 +134,7 @@
             "state": {
               "type": "search",
               "state": {
-                "query": "missionpla",
+                "query": "laun",
                 "matchingCase": false,
                 "explainSearch": false,
                 "collapseAll": false,
@@ -244,17 +245,18 @@
       "command-palette:Open command palette": false
     }
   },
-  "active": "e7103b409a37f336",
+  "active": "da26bb1516200fb8",
   "lastOpenFiles": [
     "Info/Launching System.md",
+    "Troubleshooting.md",
+    "Info/LSTS Toolchain/Dune.md",
+    "Info/ArduPilot & MavProx.md",
     "Info/MAIN System architecture.md",
     "Info/Swarm in ArduPilot.md",
-    "Troubleshooting.md",
     "Info/Gazebo.md",
     "Info/Install, Build & Run MAVSDK.md",
     "Info/pMarineViewer - MOOS  IVP.md",
     "attachments/Pasted image 20250215110203.png",
-    "Info/ArduPilot & MavProx.md",
     "Advantages of MOOS-IVP.md",
     "Helpful definitions.md",
     "Info/ardupilot_gazebo plugin.md",
@@ -265,7 +267,6 @@
     "attachments/Pasted image 20240903114151.png",
     "Info/Gazebo",
     "Info/LSTS Toolchain/LSTS.md",
-    "Info/LSTS Toolchain/Dune.md",
     "Info/LSTS Toolchain/Neptus.md",
     "Papers/zolich2015unmanned - UAS description.pdf",
     "Papers/lsts_paper.pdf",

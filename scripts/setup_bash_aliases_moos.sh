@@ -113,10 +113,20 @@ alias build_all_m='cdm; git pull; ./build.sh -m; cd -
                    cduav; ./build.sh; cd -'; 
 
 
-# The Odroid computer
-alias pingo='ping 10.0.60.110'
-alias ssho='ssh odroid@10.0.60.110'
-alias ip_fw_o='sudo ~/usr/local/bin/setup_nat_ip_forwarding.sh'
+
+#-------------------------------------------------------
+# Aliases needed at GCS
+#-------------------------------------------------------
+# The Odroid 1 computer
+alias pingo1='ping 10.0.60.110'
+alias ssho1='ssh odroid@10.0.60.110'
+
+# The Odroid 2 computer
+alias pingo2='ping 10.0.60.111'
+alias ssho2='ssh odroid@10.0.60.111'
+
+# Wifi forwarding
+alias ip_fw_o='sudo /usr/local/bin/setup_nat_ip_forwarding.sh'
 
 ###################### MOOS - END #########################################
 
