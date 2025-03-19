@@ -398,8 +398,9 @@ bool UAV_Model::haveAutorythyToChangeMode() const
   auto m_flight_mode = mts_flight_mode.get();
 
   if (m_flight_mode == mavsdk::Telemetry::FlightMode::Mission                                                                   //   Mission mode is ardupilots AUTO mode
-      || m_flight_mode == mavsdk::Telemetry::FlightMode::ReturnToLaunch || m_flight_mode == mavsdk::Telemetry::FlightMode::Hold // Also loiter mode
-      || m_flight_mode == mavsdk::Telemetry::FlightMode::Land || m_flight_mode == mavsdk::Telemetry::FlightMode::Offboard       // Previous guided mode
+      || m_flight_mode == mavsdk::Telemetry::FlightMode::Hold // Also loiter mode
+      || m_flight_mode == mavsdk::Telemetry::FlightMode::Land 
+      || m_flight_mode == mavsdk::Telemetry::FlightMode::Offboard       // Previous guided mode
       || m_flight_mode == mavsdk::Telemetry::FlightMode::Guided)
   {
     return true;
