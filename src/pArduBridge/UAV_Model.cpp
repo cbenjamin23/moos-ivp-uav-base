@@ -406,6 +406,7 @@ bool UAV_Model::haveAutorythyToChangeMode() const
     return true;
   }
 
+
   // NOT allowed in Stabilized, Manual or RTL
 
   return false;
@@ -649,6 +650,13 @@ bool UAV_Model::commandSpeed(double speed_m_s, SPEED_TYPE speed_type) const
     return false;
   }
 
+
+  if(mts_flight_mode.get() == mavsdk::Telemetry::FlightMode::ReturnToLaunch)
+  {
+    m_warning_system_ptr->queue_monitorWarningForXseconds("UAV is in RTL mode! Cannot command speed", WARNING_DURATION);
+    return false;
+  }
+
   if (speed_type == SPEED_TYPE::SPEED_TYPE_AIRSPEED)
   {
     // check if speed is within bounds
@@ -660,6 +668,7 @@ bool UAV_Model::commandSpeed(double speed_m_s, SPEED_TYPE speed_type) const
       return false;
     }
 
+  
     if (isGuidedMode())
     {
       return commandChangeSpeed_Guided(speed_m_s, speed_type);
@@ -718,6 +727,12 @@ bool UAV_Model::commandChangeAltitude_Guided(double altitude_m, bool relativeAlt
   if (!m_in_air)
   {
     m_warning_system_ptr->queue_monitorWarningForXseconds("UAV is not in air! Cannot send altitude", WARNING_DURATION);
+    return false;
+  }
+
+  if(mts_flight_mode.get() == mavsdk::Telemetry::FlightMode::ReturnToLaunch)
+  {
+    m_warning_system_ptr->queue_monitorWarningForXseconds("UAV is in RTL mode! Cannot command altitude", WARNING_DURATION);
     return false;
   }
 
@@ -790,6 +805,12 @@ bool UAV_Model::commandChangeHeading_Guided(double hdg_deg, HEADING_TYPE hdg_typ
   if (!m_in_air)
   {
     m_warning_system_ptr->queue_monitorWarningForXseconds("UAV is not in air! Cannot send heading", WARNING_DURATION);
+    return false;
+  }
+
+  if(mts_flight_mode.get() == mavsdk::Telemetry::FlightMode::ReturnToLaunch)
+  {
+    m_warning_system_ptr->queue_monitorWarningForXseconds("UAV is in RTL mode! Cannot command heading", WARNING_DURATION);
     return false;
   }
 

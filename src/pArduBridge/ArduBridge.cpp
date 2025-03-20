@@ -489,6 +489,28 @@ bool ArduBridge::Iterate()
   //////////////////////////////////////////////////////////////
   //////  Loiter            - Async w/polling
   //////////////////////////////////////////////////////////////
+  
+  static int loiter_tries=0;
+  // pos is >100 awai from lotiter, send again
+  if (m_autopilot_mode==AutopilotHelmMode::HELM_INACTIVE_LOITERING && !m_do_loiter_pair.first) 
+  {
+    auto pos = transformLatLonToXY({m_uav_model.getLatitude(), m_uav_model.getLongitude()} );
+    auto loiterCoord = transformLatLonToXY(m_uav_model.getCurrentLoiterLatLon());
+    auto dist = hypot(pos.get_vx() - loiterCoord.get_vx(), pos.get_vy() - loiterCoord.get_vy());
+    Logger::info("Iterate: UAV is loitering. Checking if UAV is far from loiter location / dist: " + doubleToString(dist));
+    if (dist > 100 && loiter_tries < 3)
+    {
+      Logger::info("Iterate: UAV is far from loiter location. Sending loiter command again");
+      loiter_tries++;
+      m_uav_model.pushCommand([this](UAV_Model &uav)
+      {
+        uav.commandLoiterAtPos(uav.getCurrentLoiterLatLon());
+      });
+      
+    }
+  }
+
+
   if (m_do_loiter_pair.first)
   {
     static bool running_loiter = false;
@@ -508,6 +530,7 @@ bool ArduBridge::Iterate()
       {
         goToHelmMode(AutopilotHelmMode::HELM_INACTIVE_LOITERING);
         visualizeLoiterLocation(m_uav_model.getCurrentLoiterLatLon());
+        loiter_tries=0;
       }
       else
       {
@@ -527,10 +550,12 @@ bool ArduBridge::Iterate()
   if (m_do_helm_survey)
   {
 
-    Notify("SURVEY_UPDATE", generateMissionPathSpec(m_waypointsXY_mission));
+    // Handled by pGridSearchPlanner
+    // Notify("SURVEY_UPDATE", generateMissionPathSpec(m_waypointsXY_mission));
 
     if (isHelmOn())
     {
+      m_uav_model.commandGuidedMode();
       goToHelmMode(AutopilotHelmMode::HELM_SURVEYING);
     }
     else

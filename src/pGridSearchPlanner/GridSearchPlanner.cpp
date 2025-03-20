@@ -37,6 +37,8 @@ GridSearchPlanner::GridSearchPlanner()
 
   m_path_publish_variable = "SURVEY_UPDATE";
 
+  m_missionEnabled = false;
+  m_isRunningMoosPid = false;
 
   // Configure the TMSTC* algorithm
   TMSTCStarConfig config;
@@ -47,8 +49,6 @@ GridSearchPlanner::GridSearchPlanner()
   config.one_turn_value = 2.0;     // Default turning cost
 
   m_tmstc_star_ptr = std::move(std::make_unique<TMSTCStar>(config));
-
-
 }
 
 //---------------------------------------------------------
@@ -91,6 +91,8 @@ bool GridSearchPlanner::OnNewMail(MOOSMSG_LIST &NewMail)
     }
     else if (key == "GSP_START_POINT_CLOSEST")
       handled = setBooleanOnString(m_start_point_closest, sval);
+    else if (key == "XENABLE_MISSION")
+      handled = setBooleanOnString(m_missionEnabled, sval);
 
     if (!handled)
     {
@@ -120,6 +122,7 @@ bool GridSearchPlanner::Iterate()
   if (m_do_plan_paths)
   {
     doPlanPaths();
+    notifyCalculatedPathsAndExecute(m_missionEnabled);
     m_do_plan_paths = false;
   }
 
@@ -174,11 +177,14 @@ bool GridSearchPlanner::OnStartUp()
         handled = setIntOnString(m_map_print_version, value);
       else if (param == "start_point_closest")
         handled = setBooleanOnString(m_start_point_closest, value);
+      else if (param == "is_running_moos_pid")
+          handled = setBooleanOnString(m_isRunningMoosPid, value);
       else if (param == "path_publish_variable")
       {
         m_path_publish_variable = value;
         handled = true;
       }
+
 
       if (!handled)
         reportUnhandledConfigWarning(orig);
@@ -217,33 +223,32 @@ void GridSearchPlanner::registerVariables()
 
   Register("GSP_VISUALIZE_PLANNER_GRIDS", 0);
   Register("GSP_VISUALIZE_PLANNER_PATHS", 0);
-  
+
   Register("IGNORED_REGION_ALERT", 0);
   Register("GSP_MAP_PRINT", 0);
-  
+
   Register("DO_PLAN_PATHS", 0);
   Register("GSP_START_POINT_CLOSEST", 0);
+  Register("XENABLE_MISSION", 0);
 }
 
 void GridSearchPlanner::doPlanPaths()
 {
-  
-  if(m_tmstc_star_ptr == nullptr)
+
+  if (m_tmstc_star_ptr == nullptr)
   {
     Logger::error("doPlanPaths: TMSTC* instance is null.");
     reportRunWarning("Failed to calculate paths. TMSTC* instance is not initialized.");
     m_is_paths_calculated = false;
     return;
   }
-  
 
   m_tmstc_grid_converter.transformGrid();
 
   Mat spanningMap = m_tmstc_grid_converter.getSpanningGrid();
   std::vector<int> robot_region_indeces = m_tmstc_grid_converter.getUniqueVehicleRegionIndices();
 
-
-  if(robot_region_indeces.size() != m_map_drone_records.size())
+  if (robot_region_indeces.size() != m_map_drone_records.size())
   {
     std::string msg = "Number of robot region indeces (" + std::to_string(robot_region_indeces.size()) + ") does not match number of drones (" + std::to_string(m_map_drone_records.size()) + ").";
     m_generate_warnings.push_back(msg);
@@ -253,8 +258,6 @@ void GridSearchPlanner::doPlanPaths()
     m_is_paths_calculated = false;
     return;
   }
-
-
 
   // Create the TMSTC* instance and calculate paths
   m_tmstc_star_ptr->reconfigureMapRobot(spanningMap, robot_region_indeces);
@@ -290,7 +293,8 @@ void GridSearchPlanner::doPlanPaths()
   {
     XYSegList path = m_tmstc_grid_converter.regionCoords2XYSeglisMoos(paths_robot_coords[i++]);
 
-   if(m_start_point_closest){   
+    if (m_start_point_closest)
+    {
       XYPoint firstPoint = path.get_first_point();
       XYPoint lastPoint = path.get_last_point();
 
@@ -299,7 +303,7 @@ void GridSearchPlanner::doPlanPaths()
 
       if (dist_lastPoint < dist_firstPoint)
         path.reverse();
-    }  
+    }
     m_map_drone_paths[drone] = path;
   }
 
@@ -309,6 +313,43 @@ void GridSearchPlanner::doPlanPaths()
   clearAllGenerateWarnings();
 }
 
+void GridSearchPlanner::notifyCalculatedPathsAndExecute(bool executePath)
+{
+  if(!m_is_paths_calculated)
+    return;
+  
+  for (const auto &[drone, records] : m_map_drone_records)
+  {
+    if (m_map_drone_paths.count(drone) == 0)
+      continue;
+
+    XYSegList path_seg = m_map_drone_paths[drone];
+
+    std::string pts_str = path_seg.get_spec_pts();
+    std::string spec = "points = " + pts_str;
+    std::string notify_var_str = m_path_publish_variable + '_' + MOOSToUpper(drone);
+    Notify(notify_var_str, spec);
+
+    if (executePath)
+    {
+
+      if(m_isRunningMoosPid){
+        Notify("DO_SURVEY_" + MOOSToUpper(drone), "true"); // If running MOOS PID simulation  
+        Notify("DEPLOY_"+ MOOSToUpper(drone), "true");
+        Notify("RETURN_"+ MOOSToUpper(drone), "false");
+        Notify("MOOS_MANUAL_OVERRIDE_"+ MOOSToUpper(drone), "false");
+      }
+      else{
+        
+        Notify("HELM_STATUS_" + MOOSToUpper(drone), "ON");
+        notify_var_str = "GCS_COMMAND_" + MOOSToUpper(drone);
+        Notify(notify_var_str, "SURVEY"); 
+        
+      }
+
+    }
+  }
+}
 void GridSearchPlanner::clearAllGenerateWarnings()
 {
   for (const auto &warning : m_generate_warnings)
@@ -328,11 +369,6 @@ void GridSearchPlanner::postCalculatedPaths(bool visible)
       continue;
 
     XYSegList path_seg = m_map_drone_paths[drone];
-
-    std::string pts_str = path_seg.get_spec_pts();
-    std::string spec = "points = " + pts_str;
-    std::string notify_var_str = m_path_publish_variable + "_" + MOOSToUpper(drone);
-    Notify(notify_var_str, spec);
 
     // Path
     constexpr double width = 10;
@@ -505,13 +541,15 @@ bool GridSearchPlanner::buildReport()
 
   m_msgs << "Grid Search Planner Configuration" << std::endl;
   m_msgs << "---------------------------------" << std::endl;
-  m_msgs << "Sensor radius: " << doubleToStringX(m_sensor_radius, 1) << std::endl;
-  m_msgs << "Region grid size ratio: " << doubleToStringX(m_region_grid_size_ratio, 1) << std::endl;
-  m_msgs << "Region grid size: " << doubleToStringX(m_region_grid_size_ratio * m_sensor_radius, 1) << std::endl;
+  m_msgs << "          Sensor radius: " << doubleToStringX(m_sensor_radius, 1) << std::endl;
+  m_msgs << " Region grid size ratio: " << doubleToStringX(m_region_grid_size_ratio, 1) << std::endl;
+  m_msgs << "       Region grid size: " << doubleToStringX(m_region_grid_size_ratio * m_sensor_radius, 1) << std::endl;
   m_msgs << "Visualize planner grids: " << boolToString(m_visualize_planner_grids) << std::endl;
   m_msgs << "Visualize planner paths: " << boolToString(m_visualize_planner_paths) << std::endl;
-  m_msgs << "Map print version: " << mapPrintVersion2string(m_map_print_version) << std::endl;
-  m_msgs << "Start point closest: " << boolToString(m_start_point_closest) << std::endl;
+  m_msgs << "      Map print version: " << mapPrintVersion2string(m_map_print_version) << std::endl;
+  m_msgs << " Is start point closest: " << boolToString(m_start_point_closest) << std::endl;
+  m_msgs << "        Mission enabled: " << boolToString(m_missionEnabled) << std::endl;
+  m_msgs << "       isRunningMoosPid: " << boolToString(m_isRunningMoosPid) << std::endl;
   m_msgs << std::endl;
 
   bool grids_converted = m_tmstc_grid_converter.isGridsConverted();

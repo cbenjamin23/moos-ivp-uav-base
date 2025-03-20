@@ -28,7 +28,6 @@ struct DroneRecord
       : name(name), altitude(altitude), sensor_radius(sensor_radius) {}
 };
 
-
 class GridSearchViz : public AppCastingMOOSApp
 {
 public:
@@ -43,11 +42,12 @@ public:
 protected:
   bool buildReport();
   void registerVariables();
-  void handleMailNodeReport(std::string);
-  void handleMailIgnoredRegionAlert(std::string);
+  bool handleMailNodeReport(std::string);
+  bool handleMailIgnoredRegionAlert(std::string);
+  bool handleMailDisableResetMission(std::string& warning);
 
-  void registerIgnoredRegion(std::string str);
-  void unregisterIgnoredRegion(std::string name);
+  bool registerIgnoredRegion(std::string str);
+  bool unregisterIgnoredRegion(std::string name);
   XYPolygon parseStringIgnoredRegion(std::string str, std::string type) const;
   XYPolygon stringHexagon2Poly(std::string str) const;
   XYPolygon stringRectangle2Poly(std::string str) const;
@@ -62,13 +62,15 @@ protected:
   void gridSetCell(const int ix, const double val);
   // Increment the value of the first cell variable ("x") 0 by val
   void gridModifyCell(const int ix, const double val);
-
+  void gridResetCells();
 
 protected: // Config vars
   bool m_report_deltas;
   std::string m_grid_label;
   std::string m_grid_var_name;
   bool m_visualize_sensor_area;
+
+  bool m_isRunningMoosPid;
 
   ExFilterSet m_filter_set;
 
@@ -90,13 +92,11 @@ protected: // State vars
 
   std::map<std::string, double> m_map_coverage_statistics;
   double m_missionStartTime;
-
+  bool m_missionEnabled;
 
   std::vector<int> m_valid_cell_indices;
   // Ignored regions cells with names as keys
   std::map<std::string, std::vector<int>> m_map_ignored_cell_indices;
 
   std::map<std::string, XYPolygon> m_map_ignored_regions_poly;
-
-
 };

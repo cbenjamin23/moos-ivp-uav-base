@@ -124,17 +124,40 @@ bool FireSim::OnNewMail(MOOSMSG_LIST &NewMail)
     else if (key == "GSV_VISUALIZE_SENSOR_AREA")
       handled = handleMailVisualizeSensorArea(sval);
     else if (key == "IGNORED_REGION")
-      handled = handleIgnoredRegion(sval);
+      handled = handleMailIgnoredRegion(sval);
+    else if (key == "XDISABLE_RESET_MISSION")
+      handled = handleMailDisableResetMission(warning);
 
-    else
-
-        if (!handled)
+    if (!handled)
     {
       reportRunWarning("Unhandled mail: " + key);
       reportRunWarning(warning);
     }
   }
   return (true);
+}
+
+bool FireSim::handleMailDisableResetMission(std::string& warning)
+{
+
+  const std::string warningMessage = "Failed Mail: Mission is already disabled or not started.";
+  if (m_mission_start_utc == 0 && !m_finished)
+  {
+    warning = warningMessage;
+    return false;
+  }
+
+  auto duration_s = m_curr_time - m_mission_start_utc;
+  m_mission_scorer.setDeadline(duration_s);
+  calculateMissionScore(m_imputeTime);
+
+  Notify("MISSION_FINISHED_TIME", doubleToString(m_mission_endtime_utc));
+
+  m_finished = false;
+  m_mission_scorer.setDeadline(m_mission_duration_s);
+  m_mission_endtime_utc = 0;
+  retractRunWarning(warningMessage);
+  return true;
 }
 
 bool FireSim::handleMailVisualizeSensorArea(std::string str)
@@ -154,7 +177,7 @@ bool FireSim::handleMailVisualizeSensorArea(std::string str)
   return ok;
 }
 
-bool FireSim::handleIgnoredRegion(std::string str)
+bool FireSim::handleMailIgnoredRegion(std::string str)
 {
   str = stripBlankEnds(str);
 
@@ -237,6 +260,8 @@ void FireSim::registerVariables()
   Register("GSV_COVERAGE_PERCENTAGE", 0);
 
   Register("IGNORED_REGION", 0);
+
+  Register("XDISABLE_RESET_MISSION", 0);
 }
 
 //---------------------------------------------------------

@@ -33,12 +33,15 @@ GridSearchViz::GridSearchViz()
   m_sensor_transparency = 0.2;
 
   m_missionStartTime = 0;
+  m_missionEnabled = false; // Mission is not enabled by default
   m_map_coverage_statistics["coverage_%"] = 0;
 
   m_grid_cell_decay_time = 0; // 0 means no decay
   m_sensor_radius_fixed = true;
   m_sensor_altitude_max = 25;
   m_visualize_sensor_area = true;
+
+  m_isRunningMoosPid = false;
 }
 
 //---------------------------------------------------------
@@ -66,14 +69,28 @@ bool GridSearchViz::OnNewMail(MOOSMSG_LIST &NewMail)
     if (!ok_community)
       continue;
 
+    bool handled = false;
+    std::string warning;
+
     if ((key == "NODE_REPORT") || (key == "NODE_REPORT_LOCAL"))
-      handleMailNodeReport(sval);
+      handled = handleMailNodeReport(sval);
     else if (key == "GSV_RESET_GRID")
       m_grid.reset();
     else if (key == "IGNORED_REGION_ALERT")
-      handleMailIgnoredRegionAlert(sval);
+      handled = handleMailIgnoredRegionAlert(sval);
     else if (key == "GSV_VISUALIZE_SENSOR_AREA")
-      setBooleanOnString(m_visualize_sensor_area, sval);
+      handled = setBooleanOnString(m_visualize_sensor_area, sval);
+    else if (key == "XENABLE_MISSION")
+      handled = setBooleanOnString(m_missionEnabled, sval);
+    else if (key == "XDISABLE_RESET_MISSION")
+      handled = handleMailDisableResetMission(warning);
+
+    if (!handled){
+      if(warning.empty())
+        reportRunWarning("Unhandled Mail: " + key);
+      else
+        reportRunWarning(warning);
+    }
   }
 
   return (true);
@@ -165,7 +182,11 @@ bool GridSearchViz::OnStartUp()
         handled = setDoubleOnString(m_grid_cell_decay_time, value);
       else if (param == "visualize_sensor_area")
         handled = setBooleanOnString(m_visualize_sensor_area, value);
-
+      else if (param == "mission_enabled")
+        handled = setBooleanOnString(m_missionEnabled, value);
+      else if (param == "is_running_moos_pid")
+        handled = setBooleanOnString(m_isRunningMoosPid, value);
+        
       if (!handled)
         reportUnhandledConfigWarning(orig);
     }
@@ -187,8 +208,6 @@ bool GridSearchViz::OnStartUp()
   postGrid();
   registerVariables();
 
-
-
   return (true);
 }
 
@@ -205,16 +224,19 @@ void GridSearchViz::registerVariables()
   // Register("IGNORED_REGION", 0);
   Register("GSV_VISUALIZE_SENSOR_AREA", 0);
   Register("IGNORED_REGION_ALERT", 0);
+
+  Register("XENABLE_MISSION", 0);
+  Register("XDISABLE_RESET_MISSION", 0);
 }
 
 //------------------------------------------------------------
 // Procedure: handleMailNodeReport()
 
-void GridSearchViz::handleMailNodeReport(std::string str)
+bool GridSearchViz::handleMailNodeReport(std::string str)
 {
   NodeRecord record = string2NodeRecord(str);
   if (!record.valid())
-    return;
+    return false;
 
   std::string name = record.getName();
   double posx = record.getX();
@@ -225,7 +247,7 @@ void GridSearchViz::handleMailNodeReport(std::string str)
 
   double sensor_radius = (altitude > m_sensor_altitude_max || m_sensor_radius_fixed) ? m_sensor_radius_max : ((m_sensor_radius_max / m_sensor_altitude_max) * altitude);
   if (sensor_radius <= 0)
-    return;
+    return true;
 
   // Logger::info("--->Sensor radius: " + doubleToStringX(sensor_radius, 2));
 
@@ -261,40 +283,76 @@ void GridSearchViz::handleMailNodeReport(std::string str)
     }
   }
 
-  if (registerMissionStartTime && m_missionStartTime == 0)
+  if (registerMissionStartTime && m_missionStartTime == 0 && m_missionEnabled)
   {
     m_missionStartTime = MOOSTime();
-    Notify("MISSION_START_TIME", m_missionStartTime);
+    Notify("MISSION_START_TIME", m_missionStartTime); // Essentially starts the mission
+    Notify("DO_PLAN_PATHS", "true");
   }
 
   // Only post the circle visualization if configured to do so
-  sensorArea.set_active(m_visualize_sensor_area);
+  sensorArea.set_active(m_visualize_sensor_area); 
   Notify("VIEW_CIRCLE", sensorArea.get_spec());
+
+  return true;
+}
+
+//------------------------------------------------------------
+// Procedure: handleFinishMission();
+bool GridSearchViz::handleMailDisableResetMission(std::string& warning)
+{
+  const std::string warningMessage = "Failed Mail: Mission is already disabled or not started.";
+  if (m_missionStartTime == 0 && !m_missionEnabled){
+
+    warning = warningMessage;
+    return false;
+  }
+
+  m_missionEnabled = false;
+  m_missionStartTime = 0;
+
+  Notify("MISSION_START_TIME", m_missionStartTime); // notify UFFS
+  Notify("XENABLE_MISSION", "false");
+  gridResetCells();                                   // reset the grid
+  postGrid();
+
+  // Notify("GCS_COMMAND_ALL", "LOITER");
+
+  // if running MOOS PID simulation
+  if(m_isRunningMoosPid){
+    Notify("DO_SURVEY_ALL", "false");
+    Notify("DEPLOY_ALL", "true");
+    Notify("RETURN_ALL", "false");
+    Notify("MOOS_MANUAL_OVERRIDE_ALL", "false");
+  } else {
+    Notify("GCS_COMMAND_ALL", "LOITER");
+  }
+
+  retractRunWarning(warningMessage);
+  return true;
 }
 
 //------------------------------------------------------------
 // Procedure: handleMailIgnoredRegion()
-void GridSearchViz::handleMailIgnoredRegionAlert(std::string str)
+bool GridSearchViz::handleMailIgnoredRegionAlert(std::string str)
 {
   str = stripBlankEnds(str);
 
   if (strContains(str, "unreg::"))
   {
-    unregisterIgnoredRegion(str.substr(7));
-    return;
+    return unregisterIgnoredRegion(str.substr(7));
   }
   else if (strContains(str, "reg::"))
   {
-    registerIgnoredRegion(str.substr(5));
-    return;
+    return registerIgnoredRegion(str.substr(5));
   }
 
   reportRunWarning("Received Invalid region string: " + str);
   Logger::warning("Received Invalid region string: " + str);
-  return;
+  return false;
 }
 
-void GridSearchViz::registerIgnoredRegion(std::string str)
+bool GridSearchViz::registerIgnoredRegion(std::string str)
 {
   str = stripBlankEnds(str);
 
@@ -303,7 +361,7 @@ void GridSearchViz::registerIgnoredRegion(std::string str)
   {
     reportRunWarning("Bad IgnoredRegion string: " + str);
     Logger::warning("Bad IgnoredRegion string: " + str);
-    return;
+    return false;
   }
 
   std::string name = ignoredRegion.getName();
@@ -312,7 +370,7 @@ void GridSearchViz::registerIgnoredRegion(std::string str)
   {
     reportRunWarning("Region name already exist: " + name);
     Logger::warning("Region name already exist: " + name);
-    return;
+    return false;
   }
 
   XYPolygon region = ignoredRegion.getPoly();
@@ -328,20 +386,23 @@ void GridSearchViz::registerIgnoredRegion(std::string str)
     else
       it++;
   }
+  return true;
 }
 
-void GridSearchViz::unregisterIgnoredRegion(std::string name)
+bool GridSearchViz::unregisterIgnoredRegion(std::string name)
 {
   name = stripBlankEnds(name);
 
   if (m_map_ignored_cell_indices.count(name) == 0)
-    return;
+    return false;
 
   std::vector<int> &cell_indices = m_map_ignored_cell_indices[name];
 
   registerCellIndeces(cell_indices);
 
   m_map_ignored_cell_indices.erase(name);
+  
+  return true;
 }
 
 XYPolygon GridSearchViz::parseStringIgnoredRegion(std::string str, std::string type) const
@@ -535,6 +596,7 @@ bool GridSearchViz::buildReport()
 
   m_msgs << "\n\nCoverage statistics " << std::endl;
   m_msgs << "---------------------------------" << std::endl;
+  m_msgs << "   Mission enabled: " << boolToString(m_missionEnabled) << std::endl;
   m_msgs << "   Mission started: " << boolToString(m_missionStartTime != 0) << std::endl;
   if (m_missionStartTime != 0)
     m_msgs << "Mission Start Time: " << doubleToStringX(m_missionStartTime, 2) << std::endl;
@@ -564,6 +626,16 @@ bool GridSearchViz::buildReport()
   return (true);
 }
 
+
+//------------------------------------------------------------
+// Procedure: gridSetCell()
+void GridSearchViz::gridResetCells()
+{
+  for (auto ix : m_valid_cell_indices)
+  {
+    gridSetCell(ix, m_grid.getMinLimit(0)); // Increment the value of the first cell variable ("x") 0 by 1
+  }
+}
 //------------------------------------------------------------
 // Procedure: gridSetCell()
 void GridSearchViz::gridSetCell(const int ix, const double val)
@@ -616,9 +688,7 @@ void GridSearchViz::registerCellIndeces(std::vector<int> &cell_indices)
 // Procedure: calculateCoverageStatistics()
 void GridSearchViz::calculateCoverageStatistics()
 {
-  if (m_missionStartTime == 0)
-    return;
-
+  
   static double decay_time = m_grid_cell_decay_time;
 
   const double MoosNow = MOOSTime();
@@ -635,7 +705,7 @@ void GridSearchViz::calculateCoverageStatistics()
   {
     auto value = m_grid.getVal(ix, 0);
 
-    if (should_decay)
+    if (m_missionStartTime != 0 && should_decay)
     {
       value--;
     }
@@ -647,13 +717,16 @@ void GridSearchViz::calculateCoverageStatistics()
     gridSetCell(ix, value);
   }
 
-  if (should_decay)
+  if (m_missionStartTime != 0 && should_decay)
     decay_time += m_grid_cell_decay_time;
 
   double coverage_percentage = (covered_cells / total_cells) * 100;
   m_map_coverage_statistics["coverage_%"] = coverage_percentage;
 
   Notify("GSV_COVERAGE_PERCENTAGE", coverage_percentage);
+
+  if (m_missionStartTime == 0)
+    return;
 
   // Calculate the time for 40, 60, 90+ coverage
 

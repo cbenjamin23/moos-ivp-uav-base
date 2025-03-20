@@ -39,6 +39,7 @@ protected:
   void unregisterIgnoredRegion(std::string name);
 
   void doPlanPaths();
+  void notifyCalculatedPathsAndExecute(bool executePath = false);
   void postCalculatedPaths(bool visible = true);
 
   void convertGridToTMSTC();
@@ -53,6 +54,7 @@ protected: // Config vars
   // Sensor data
   double m_sensor_radius;
   double m_region_grid_size_ratio;
+  bool m_isRunningMoosPid;
 
   bool m_visualize_planner_grids;
   bool m_visualize_planner_paths;
@@ -60,8 +62,9 @@ protected: // Config vars
 
   bool m_start_point_closest;
 
-
   std::string m_path_publish_variable;
+
+  bool m_missionEnabled;
 
 protected: // State vars
   bool m_do_plan_paths;

@@ -49,23 +49,21 @@ protected: // Standard AppCastingMOOSApp function to overload
 protected: // Configuration utility
   bool handleConfigDetectRangeMin(std::string);
   bool handleConfigDetectRangeMax(std::string);
-  
-  protected: // Incoming mail utility
+
+protected: // Incoming mail utility
   bool handleMailNodeReport(const std::string &);
   bool handleMailScoutRequest(std::string);
   bool handleConfigDetectRangePd(std::string);
   bool handleMailVisualizeSensorArea(std::string);
-  bool handleIgnoredRegion(std::string);
-
+  bool handleMailIgnoredRegion(std::string);
+  bool handleMailDisableResetMission(std::string &warning);
 
 protected: // Outgoing mail utility
   void declareDiscoveredFire(std::string vname, std::string fname);
   void declareDiscoveredIgnoredRegion(std::string vname, std::string rname);
 
 protected: // Utilities
-
-  void registerRemoveIgnoredRegion(std::string pos_str, bool doRegister=true);
-
+  void registerRemoveIgnoredRegion(std::string pos_str, bool doRegister = true);
 
   void tryScouts();
   void tryScoutsVName(std::string vname);

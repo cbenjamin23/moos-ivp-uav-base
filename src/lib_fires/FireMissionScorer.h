@@ -17,6 +17,7 @@ public:
 
     // init with mission parameters
     void init(int totalFires, double deadlineSeconds, double totalCoverageArea);
+    void setDeadline(double deadlineSeconds) { m_deadline = deadlineSeconds;  m_scoreCalculated = false; }  
 
     double calculateScoreFromFireSet(const FireSet &fireSet, bool imputeTime = false);
 

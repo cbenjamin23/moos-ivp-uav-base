@@ -162,8 +162,8 @@ ProcessConfig = uFldShoreBroker
 
 
 
-  bridge  = src=UFFS_LEADER
-  bridge  = src=UFFS_WINNER
+  // bridge  = src=UFFS_LEADER
+  // bridge  = src=UFFS_WINNER
   bridge  = src=UFFS_FINISH
   bridge  = src=DISCOVERED_FIRE
   bridge  = src=MISSION_COMPLETE
@@ -236,6 +236,17 @@ ProcessConfig = uFldFireSim
 	show_detect_rng = true
 
   finish_flag = MISSION_COMPLETE=true
+
+#ifdef USE_MOOS_SIM_PID true
+  // TOWAYPT button
+  finish_flag = DO_SURVEY_ALL=false 
+  finish_flag = DEPLOY_ALL=false
+  finish_flag = RETURN_ALL=true 
+  finish_flag = MOOS_MANUAL_OVERRIDE_ALL=false
+#else
+
+  finish_flag = GCS_COMMAND_ALL=RETURN_TO_LAUNCH
+#endif
 }
 
 
@@ -252,13 +263,16 @@ ProcessConfig = pGridSearchPlanner
   sensor_radius = $(SENSOR_RADIUS_MAX)
   region_grid_size_ratio = $(TMSTC_GRIDSIZESENSORRANGERATIO)
   visualize_planner_grids = false //Default is false
-  visualize_planner_paths = true
+  visualize_planner_paths = false //Default is false
 
   map_print_version = 0 // 0=off, 1=init, 2=cover, 3=direction
-  start_point_closest = false // start point of path planned is closest to current drone location. Default is false
+  start_point_closest = true // start point of path planned is closest to current drone location. Default is false
   
   path_publish_variable = SURVEY_UPDATE // Default is SURVEY_UPDATE
 
+#ifdef USE_MOOS_SIM_PID true
+  is_running_moos_pid = true
+#endif
 
 } 
 
@@ -286,6 +300,10 @@ ProcessConfig = pGridSearchViz
 
   grid_cell_decay_time  = $(GRID_CELL_DECAY_TIME)
   visualize_sensor_area = false
+
+#ifdef USE_MOOS_SIM_PID true
+  is_running_moos_pid = true
+#endif
 
 } 
 
@@ -466,29 +484,31 @@ ProcessConfig = pMarineViewer
     button_3 = SURVEY # DO_SURVEY_ALL=true # DEPLOY_ALL=true # RETURN_ALL=false # MOOS_MANUAL_OVERRIDE_ALL=false
   #else
 
+    // button_1 = DEPLOY  # DEPLOY_ALL=true # MOOS_MANUAL_OVERRIDE_ALL=false
 
-    button_1 = DEPLOY  # DEPLOY_ALL=true # MOOS_MANUAL_OVERRIDE_ALL=false
+    button_1 = TKOFF_ALL  # ARM_UAV_ALL=true # GCS_COMMAND_ALL=DO_TAKEOFF
+    button_2 = RTL_ALL  # GCS_COMMAND_ALL=RETURN_TO_LAUNCH 
 
-    button_one   = ARM_ALL  # ARM_UAV_ALL=true
-    button_two   = DISARM_ALL   # ARM_UAV_ALL=false 
+    // button_one   = ARM_ALL  # ARM_UAV_ALL=true
+    // button_two   = DISARM_ALL   # ARM_UAV_ALL=false 
 
-    button_3    = HELM_ON_ALL  # HELM_STATUS_ALL=ON 
-    button_4    = HELM_OFF_ALL # HELM_STATUS_ALL=OFF
+    button_2    = HELM_ON_ALL  # HELM_STATUS_ALL=ON 
+    button_3    = HELM_OFF_ALL # HELM_STATUS_ALL=OFF
     
-    button_5    = SURVEY_ALL  # GCS_COMMAND_ALL=SURVEY  
+    button_4    = SURVEY_ALL  # GCS_COMMAND_ALL=SURVEY  
     
-    button_6 = RTL_ALL  # GCS_COMMAND_ALL=RETURN_TO_LAUNCH 
-    button_7 = LOITER_ALL  # GCS_COMMAND_ALL=LOITER
+    button_5 = LOITER_ALL  # GCS_COMMAND_ALL=LOITER
 
-    button_8  = TKOFF_ALL  # GCS_COMMAND_ALL=DO_TAKEOFF
-    button_9  = TOWYP_ALL # GCS_COMMAND_ALL=FLY_WAYPOINT
+    button_6  = TOWYP_ALL # GCS_COMMAND_ALL=FLY_WAYPOINT
 
-    button_10 = DO_VORONOI_ALL # GCS_COMMAND_ALL=DO_VORONOI
+    button_7 = DO_VORONOI_ALL # GCS_COMMAND_ALL=DO_VORONOI
 
-    // button_10 = PARK_HELM_ALL # MOOS_MANUAL_OVERRIDE_ALL=true
+    // button_7 = PARK_HELM_ALL # MOOS_MANUAL_OVERRIDE_ALL=true
   #endif
 
-  button_11 = PLAN_PATHS # DO_PLAN_PATHS=true
+  button_8 = PLAN_PATHS # DO_PLAN_PATHS=true
+  button_9 = ENABLE_MISSION  # XENABLE_MISSION=true
+  button_10 = RESET_MISSION  # XDISABLE_RESET_MISSION=true
 
 
   ////////////////////////////////////////////////
@@ -506,9 +526,10 @@ ProcessConfig = pMarineViewer
   cmd = label=LOITER/HOLD, var=GCS_COMMAND, sval=LOITER, receivers=all:$(VNAMES)
   cmd = label=SPEED_TO_MIN, var=GCS_COMMAND, sval=RESET_SPEED_MIN, receivers=all:$(VNAMES)
   cmd = label=DO_VORONOI, var=GCS_COMMAND, sval=DO_VORONOI, receivers=all:$(VNAMES)
+  cmd = label=SURVEY, var=GCS_COMMAND, sval=SURVEY, receivers=all:$(VNAMES)
 
-  cmd = label=ARM, var=ARM_UAV, sval=true, receivers=all:$(VNAMES)
-  cmd = label=DISARM, var=ARM_UAV, sval=false, receivers=all:$(VNAMES)
+  // cmd = label=ARM, var=ARM_UAV, sval=true, receivers=all:$(VNAMES)
+  // cmd = label=DISARM, var=ARM_UAV, sval=false, receivers=all:$(VNAMES)
 
   cmd = label=AIRSPD+1, var=CHANGE_SPEED, dval=1, receivers=all:$(VNAMES)
   cmd = label=AIRSPD-1, var=CHANGE_SPEED, dval=-1, receivers=all:$(VNAMES)
