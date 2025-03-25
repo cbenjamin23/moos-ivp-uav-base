@@ -19,7 +19,8 @@ IP_ADDR="localhost"
 MOOS_PORT="9000"
 PSHARE_PORT="9200"
 
-VNAMES=""
+VNAMES="all"
+USE_MOOS_SIM_PID="no"
 
 
 LAT_ORIGIN=63.3975168 #-35.3632621
@@ -27,6 +28,7 @@ LON_ORIGIN=10.1435321 #149.1652374
 
 CONFIG_FILE="./missionConfig.yaml"
 
+XMODE=REAL
 
 # check that ~/moos-ivp-uav/scripts/get_region_xy.sh exists and source it
 if [ ! -f ~/moos-ivp-uav/scripts/configfileHelperFunctions.sh ]; then
@@ -67,6 +69,8 @@ for ARGI; do
 	echo "    Port number of this vehicle's pShare port    "
     echo "  --vnames=<vnames>                            "
     echo "    Colon-separate list of all vehicle names   "
+    echo "  --sim=<config_file>, -s                      "
+    echo "    Launch in simulation mode.                 "
 	exit 0;
     elif [[ "${ARGI//[^0-9]/}" == "$ARGI" && "$TIME_WARP" == "1" ]]; then
         TIME_WARP=$ARGI
@@ -86,7 +90,11 @@ for ARGI; do
         PSHARE_PORT="${ARGI#--pshare=}"
     elif [[ "${ARGI}" == --vnames=* ]]; then
         VNAMES="${ARGI#--vnames=}"
-    else 
+    elif [[ "${ARGI}" == --sim || "${ARGI}" == -s ]]; then
+        XMODE="SIM"
+        echo "Simulation mode ON."
+
+    else
         echo "$ME: Bad Arg: $ARGI. Exit Code 1."
         exit 1
     fi
@@ -105,9 +113,29 @@ if [ "${AUTO_LAUNCHED}" = "no" -a "${IP_ADDR}" = "localhost" ]; then
 fi
 
 
+# if not autolaunched 
+if [ "${AUTO_LAUNCHED}" == "no" ]; then  
 
-USE_MOOS_SIM_PID=$(get_global_val $CONFIG_FILE simulation.useMoosSimPid)
-if [ $? -ne 0 ]; then exit 1; fi
+ 
+    if [ "$XMODE" == "SIM" ]; then
+        TIME_WARP=$(yq eval ".simulation.time_warp" "$CONFIG_FILE")
+        if [ $? -ne 0 ]; then exit 1; fi
+
+        USE_MOOS_SIM_PID=$(get_global_val $CONFIG_FILE simulation.useMoosSimPid)
+        if [ $? -ne 0 ]; then exit 1; fi
+    
+    else # if real / field mode
+
+
+        IP_ADDR=$(get_global_val $CONFIG_FILE moos.shore_ip)
+        if [ $? -ne 0 ]; then exit 1; fi
+        PSHARE_PORT=$(get_global_val $CONFIG_FILE moos.defaultPorts.PSHARE)
+        if [ $? -ne 0 ]; then exit 1; fi
+    
+    fi
+
+fi
+
 
 
 ENCOUNTER_RADIUS=$(get_global_val_in_moosDistance $CONFIG_FILE "missionParams.encounter_radius")

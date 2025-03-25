@@ -22,6 +22,7 @@ PSHARE_PORT="9201"
 SHORE_IP="localhost"
 SHORE_PSHARE="9200"
 VNAME="skywalker"
+VIDX=-1 # Default vehicle index
 COLOR="yellow"
 XMODE="REAL"
 
@@ -41,6 +42,7 @@ ARDUPILOT_PROTOCOL=udp
 
 
 CONFIG_FILE="./missionConfig.yaml"
+USE_MOOS_SIM_PID="no"
 
 
 #--------------------------------------------------------------
@@ -53,6 +55,39 @@ if [ ! -f ~/moos-ivp-uav/scripts/configfileHelperFunctions.sh ]; then
     exit 1
 fi
 source ~/moos-ivp-uav/scripts/configfileHelperFunctions.sh
+
+
+
+#--------------------------------------------------------------
+# Get all config variables
+#--------------------------------------------------------------
+
+
+
+
+MAXSPD=$(get_global_val $CONFIG_FILE field.speed.max)
+if [ $? -ne 0 ]; then exit 1; fi
+MINSPD=$(get_global_val $CONFIG_FILE field.speed.min)
+if [ $? -ne 0 ]; then exit 1; fi
+
+# Define the interval in steps between the differen speeds
+SPD_STEPS=$(($MAXSPD - $MINSPD + 1))
+
+
+
+CAPTURE_RADIUS=$(get_global_val_in_moosDistance $CONFIG_FILE "missionParams.capture_radius")
+if [ $? -ne 0 ]; then exit 1; fi
+
+
+SLIP_RADIUS=$(get_global_val_in_moosDistance $CONFIG_FILE "missionParams.slip_radius")
+if [ $? -ne 0 ]; then exit 1; fi
+
+ENCOUNTER_RADIUS=$(get_global_val_in_moosDistance $CONFIG_FILE "missionParams.encounter_radius")
+if [ $? -ne 0 ]; then exit 1; fi
+
+REGION=$(get_region_xy $CONFIG_FILE)
+if [ $? -ne 0 ]; then exit 1; fi
+
 
 
 #-------------------------------------------------------
@@ -111,6 +146,7 @@ for ARGI; do
     echo "    Return position chosen by script launching   "
 	echo "                                                 "
 	echo "  --sim,   -s  : This is simultion not robot     "
+    echo "  --id=<0>     : Index of the vehicle      "
 	exit 0;
     elif [[ "${ARGI//[^0-9]/}" == "$ARGI" && "$TIME_WARP" == "1" ]]; then
         TIME_WARP=$ARGI
@@ -151,6 +187,9 @@ for ARGI; do
         ARDUPILOT_PORT="${ARGI#--ap_port=}"
     elif [[ "${ARGI}" == --ap_protocol=* ]]; then
         ARDUPILOT_PROTOCOL="${ARGI#--ap_protocol=}"
+    elif [[ "${ARGI}" == --id=* ]]; then
+        VIDX="${ARGI#--id=}"
+        echo "Vehicle ID set to: ${VIDX}"
     else
         echo "$ME: Bad Arg:[$ARGI]. Exit Code 1."
         exit 1
@@ -161,47 +200,71 @@ done
 # #  Part 3: Configure Variables 
 # #--------------------------------------------------------------
 
+
+# if not autolaunched 
+if [ "${AUTO_LAUNCHED}" == "no" ]; then  
+
+    if [ $VIDX -eq -1 ]; then
+        echo "Error: Vehicle index not set. Exit Code 1."
+        exit 1
+    fi
+
+    VNAME=$(yq eval ".drones[$VIDX].name" "$CONFIG_FILE")
+
+    COLOR=$(get_val_by_drone_name $CONFIG_FILE "$VNAME" "color")
+    if [ $? -ne 0 ]; then exit 1; fi
+
+    x=$(get_val_by_drone_name $CONFIG_FILE "$VNAME" "start_orientaton_moos.x")
+    if [ $? -ne 0 ]; then exit 1; fi
+    y=$(get_val_by_drone_name $CONFIG_FILE "$VNAME" "start_orientaton_moos.y")
+    if [ $? -ne 0 ]; then exit 1; fi
+
+    ## Convert [m] to moos distance (1m = 2 moos distance)
+    x=$(($x * 2))
+    y=$(($y * 2))    
+    START_POS="$x,$y"
+
+    if [ "$XMODE" == "SIM" ]; then
+        MOOS_PORT=$((MOOS_PORT + VIDX ))
+        PSHARE_PORT=$((PSHARE_PORT + VIDX))
+        TIME_WARP=$(yq eval ".simulation.time_warp" "$CONFIG_FILE")
+        if [ $? -ne 0 ]; then exit 1; fi
+
+
+        USE_MOOS_SIM_PID=$(get_global_val $CONFIG_FILE simulation.useMoosSimPid)
+        if [ $? -ne 0 ]; then exit 1; fi
+    
+    else # if real / field mode
+        IP_ADDR=$(get_val_by_drone_name $CONFIG_FILE "$VNAME" "drone_ip")
+        if [ $? -ne 0 ]; then exit 1; fi
+
+
+        SHORE_IP=$(get_global_val $CONFIG_FILE moos.shore_ip)
+        if [ $? -ne 0 ]; then exit 1; fi
+        SHORE_PSHARE=$(get_global_val $CONFIG_FILE moos.defaultPorts.PSHARE)
+        if [ $? -ne 0 ]; then exit 1; fi
+    
+    fi
+
+fi
+
 #If Skywalker hardware, set ArduPilot access info to known values
 if [ "${XMODE}" = "REAL" ]; then
     ARDUPILOT_IP=ttySAC0
     ARDUPILOT_PORT=115200
     ARDUPILOT_PROTOCOL=serial
+
+
+else # if simulation
+
+    SPEED=15 # It is 15 in simulation
+
+
 fi
 
 
-if [ "${XMODE}" = "SIM" ]; then
-    SPEED=15 # It is 12 in simulation
-fi
 
 
-
-COLOR=$(get_val_by_drone_name $CONFIG_FILE "$VNAME" "color")
-if [ $? -ne 0 ]; then exit 1; fi
-
-
-MAXSPD=$(get_global_val $CONFIG_FILE field.speed.max)
-if [ $? -ne 0 ]; then exit 1; fi
-MINSPD=$(get_global_val $CONFIG_FILE field.speed.min)
-if [ $? -ne 0 ]; then exit 1; fi
-
-# Define the interval in steps between the differen speeds
-SPD_STEPS=$(($MAXSPD - $MINSPD + 1))
-
-
-USE_MOOS_SIM_PID=$(get_global_val $CONFIG_FILE simulation.useMoosSimPid)
-if [ $? -ne 0 ]; then exit 1; fi
-
-
-CAPTURE_RADIUS=$(get_global_val_in_moosDistance $CONFIG_FILE "missionParams.capture_radius")
-if [ $? -ne 0 ]; then exit 1; fi
-
-
-SLIP_RADIUS=$(get_global_val_in_moosDistance $CONFIG_FILE "missionParams.slip_radius")
-if [ $? -ne 0 ]; then exit 1; fi
-
-ENCOUNTER_RADIUS=$(get_global_val_in_moosDistance $CONFIG_FILE "missionParams.encounter_radius")
-
-REGION=$(get_region_xy $CONFIG_FILE)
 #---------------------------------------------------------------
 #  Part 4: If verbose, show vars and confirm before launching
 #---------------------------------------------------------------
@@ -239,6 +302,9 @@ if [ "${VERBOSE}" = "yes" ]; then
     echo "ARDUPILOT_IP =  [${ARDUPILOT_IP}]  "
     echo "ARDUPILOT_PORT =[${ARDUPILOT_PORT}]"
     echo "ARDUPILOT_PROTOCOL =[${ARDUPILOT_PROTOCOL}]"
+    echo "----------------------------------"
+    echo "V_INDEX          =    [${VIDX}]   "
+    echo "----------------------------------"
     echo -n "Hit any key to continue with launching"
     read ANSWER
 fi

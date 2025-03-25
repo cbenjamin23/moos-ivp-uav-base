@@ -2,7 +2,7 @@
 
 # Global simulation parameters
 simulation:
-  useMoosSimPid: false # Use MOOS-IvP Vechicle simulator
+  useMoosSimPid: true # Use MOOS-IvP Vechicle simulator
   time_warp: 2
   number_of_drones: 3
 
@@ -23,17 +23,21 @@ field:
     max: 19 # m/s
     min: 11 # m/s
 
+
 moos:
-  defaultPorts:
-    DB: 9000
-    PSHARE: 9200
   datum:
     lat: 63.3975168
     lon: 10.1435321
-  
+
+  # shoreside / Ground Station parameters
+  shore_ip: 10.0.60.1
+  defaultPorts: 
+    DB: 9000
+    PSHARE: 9200
+
 missionParams:
   
-  mission_duration : 6000 # s - The duration of the mission
+  mission_duration : 600 # s - The duration of the mission
 
   # The ratio between the region grid cell distance in the TMSTC* algorithm and the sensor range. The sensor range is the maximum distance from the drone that the sensor can detect fires
   # TMSTC_gridsizeSensorRangeRatio: 0.5 
@@ -124,6 +128,7 @@ drones:
     # simulation: # Can be automated away (for now it is hardcoded)
     #   ardupilot_port: 14550
     #   fdm_port_in: 9002
+    drone_ip: 10.0.60.110
 
   - name: "skyfollower"
     color: "hotpink"
@@ -134,6 +139,7 @@ drones:
     # simulation:
     #   ardupilot_port: 14560
     #   fdm_port_in: 9012
+    drone_ip: 10.0.60.111
 
   - name: "skytrailer"
     color: "purple"
@@ -144,3 +150,4 @@ drones:
     # simulation:
     #   ardupilot_port: 14570
     #   fdm_port_in: 9022
+    drone_ip: 10.0.60.112

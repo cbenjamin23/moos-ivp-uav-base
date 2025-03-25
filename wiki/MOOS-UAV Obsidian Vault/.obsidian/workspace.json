@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "Troubleshooting.md",
+                "file": "Info/Launching System.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "Troubleshooting"
+              "title": "Launching System"
             },
             "group": "edaf1042f95ceebf"
           },
@@ -63,12 +63,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "Troubleshooting.md",
+                "file": "Info/Launching System.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "Troubleshooting"
+              "title": "Launching System"
             },
             "group": "edaf1042f95ceebf"
           },
@@ -134,7 +134,7 @@
             "state": {
               "type": "search",
               "state": {
-                "query": "laun",
+                "query": "launc",
                 "matchingCase": false,
                 "explainSearch": false,
                 "collapseAll": false,
@@ -247,8 +247,8 @@
   },
   "active": "da26bb1516200fb8",
   "lastOpenFiles": [
-    "Info/Launching System.md",
     "Troubleshooting.md",
+    "Info/Launching System.md",
     "Info/LSTS Toolchain/Dune.md",
     "Info/ArduPilot & MavProx.md",
     "Info/MAIN System architecture.md",

@@ -9,6 +9,16 @@
 #-------------------------------------------------------------- 
 vecho() { if [ "$VERBOSE" != "" ]; then echo "$ME: $1"; fi }
 
+
+
+# check that ~/moos-ivp-uav/scripts/get_region_xy.sh exists and source it
+if [ ! -f ~/moos-ivp-uav/scripts/configfileHelperFunctions.sh ]; then
+    echo "Error: File ~/moos-ivp-uav/scripts/configfileHelperFunctions.sh not found." >&2
+    exit 1
+fi
+source ~/moos-ivp-uav/scripts/configfileHelperFunctions.sh
+
+
 #-------------------------------------------------------------- 
 #  Part 2: Set Global variables
 #-------------------------------------------------------------- 
@@ -146,9 +156,13 @@ for ((i = 0; i < $NUM_VEHICLES; i++)); do
         VNAME=$(yq eval ".drones[$i].name" "$CONFIG_FILE")
         ARDUPILOT_IP=$(yq eval ".simulation.ardupilot_ip" "$CONFIG_FILE")
         ARDUPILOT_PORT=$(yq eval ".simulation.ardupilot_port_default" "$CONFIG_FILE")
-        x=$(yq eval ".drones[$i].start_orientaton_moos.x" "$CONFIG_FILE")
-        y=$(yq eval ".drones[$i].start_orientaton_moos.y" "$CONFIG_FILE")
         
+        
+        x=$(get_val_by_drone_name $CONFIG_FILE "$VNAME" "start_orientaton_moos.x")
+        if [ $? -ne 0 ]; then exit 1; fi
+        y=$(get_val_by_drone_name $CONFIG_FILE "$VNAME" "start_orientaton_moos.y")
+        if [ $? -ne 0 ]; then exit 1; fi
+
         ## Convert [m] to moos distance (1m = 2 moos distance)
         x=$(($x * 2))
         y=$(($y * 2))

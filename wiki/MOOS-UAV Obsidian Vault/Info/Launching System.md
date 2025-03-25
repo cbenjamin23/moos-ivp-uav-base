@@ -80,7 +80,24 @@ Adapt the wifi interfaces to your specific interface.
 # Launching System
 
 
-## Launching vehicle
+Given the configuration file in the `missionConfig.yaml` we can start a mission by calling the commands
+
+```bash
+./launch_vehicle.sh --id=<index> [-s]
+```
+where `<index>` is the id/ index of the drone in the config drones list. One can add `-s` to indicate simulation in which case the IP (amongst other changes will be localhost).
+
+
+One can launch ground station similarly by calling the command 
+```bash
+./launch_shoreside.sh [-s]
+```
+where the flag `-s` indicates simulation.
+
+Note: Help can be reviewed by calling with the flag `--help`
+
+## Launching with arguments
+### Launching vehicle 
 
 Use command:
 
@@ -94,7 +111,7 @@ and (for more debugging add `MAVSDK_MESSAGE_HANDLER_DEBUGGING=1 `)
 MAVSDK_CALLBACK_DEBUGGING=1 MAVSDK_COMMAND_DEBUGGING=1 MAVSDK_PARAMETER_DEBUGGING=1 pArduBridge targ_skywalker.moos
 ```
 
-## Launching Groundstation
+### Launching Groundstation
 
 ```bash
 ./launch_shoreside.sh --ip=10.0.60.1 --pshare=9200 --vnames=all:skywalker -v
