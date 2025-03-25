@@ -206,6 +206,7 @@ if [ "${AUTO_LAUNCHED}" == "no" ]; then
 
     if [ $VIDX -eq -1 ]; then
         echo "Error: Vehicle index not set. Exit Code 1."
+        echo " Set using --id=<0>"
         exit 1
     fi
 
@@ -253,7 +254,6 @@ if [ "${XMODE}" = "REAL" ]; then
     ARDUPILOT_IP=ttySAC0
     ARDUPILOT_PORT=115200
     ARDUPILOT_PROTOCOL=serial
-
 
 else # if simulation
 
