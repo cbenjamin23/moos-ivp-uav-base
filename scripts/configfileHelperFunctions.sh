@@ -129,3 +129,39 @@ function get_val_by_drone_name() {
     echo "Error: Drone with name '$drone_name' not found." >&2
     return 1
 }
+
+
+
+# Function to get IP address of the current device
+get_ipaddr() {
+
+    
+    # Try common methods to get the current device's IP
+    local ip_addr
+    
+    # Method 1: using ip command (modern Linux)
+    ip_addr=$(ip -4 addr show scope global | grep -oP '(?<=inet\s)\d+(\.\d+){3}' | tail -n 1)
+    
+    # Method 2: fallback using ifconfig (older systems)
+    if [[ -z "$ip_addr" ]]; then
+        ip_addr=$(ifconfig | grep -oP '(?<=inet\s)\d+(\.\d+){3}' | grep -v '127.0.0.1' | head -n 1)
+    fi
+    
+    # Method 3: fallback using hostname (some systems)
+    if [[ -z "$ip_addr" ]]; then
+        ip_addr=$(hostname -I | awk '{print $1}')
+    fi
+    
+    if [[ -n "$ip_addr" ]]; then
+        echo "$ip_addr"
+        return 0
+    else
+        echo "Error: Could not determine IP address" >&2
+        return 1
+    fi
+    
+    
+    # If key doesn't match or no value found
+    echo "Error: Key '$key' not handled or value not found" >&2 
+    return 1
+}

@@ -128,7 +128,6 @@ drones:
     # simulation: # Can be automated away (for now it is hardcoded)
     #   ardupilot_port: 14550
     #   fdm_port_in: 9002
-    drone_ip: 10.0.60.110
 
   - name: "skyfollower"
     color: "hotpink"
@@ -139,7 +138,6 @@ drones:
     # simulation:
     #   ardupilot_port: 14560
     #   fdm_port_in: 9012
-    drone_ip: 10.0.60.111
 
   - name: "skytrailer"
     color: "purple"
@@ -150,4 +148,3 @@ drones:
     # simulation:
     #   ardupilot_port: 14570
     #   fdm_port_in: 9022
-    drone_ip: 10.0.60.112

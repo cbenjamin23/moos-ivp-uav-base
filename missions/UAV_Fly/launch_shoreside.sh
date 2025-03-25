@@ -106,8 +106,8 @@ done
 #          it using the ipaddrs.sh script. 
 #---------------------------------------------------------------
 if [ "${AUTO_LAUNCHED}" = "no" -a "${IP_ADDR}" = "localhost" ]; then
-    MAYBE_IP_ADDR=`ipaddrs.sh --blunt`
-    if [ $? = 0 ]; then
+    MAYBE_IP_ADDR=$(get_ipaddr)
+    if [ $? -eq 0 ]; then
 	IP_ADDR=$MAYBE_IP_ADDR
     fi
 fi

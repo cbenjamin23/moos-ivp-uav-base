@@ -236,7 +236,8 @@ if [ "${AUTO_LAUNCHED}" == "no" ]; then
         if [ $? -ne 0 ]; then exit 1; fi
     
     else # if real / field mode
-        IP_ADDR=$(get_val_by_drone_name $CONFIG_FILE "$VNAME" "drone_ip")
+
+        IP_ADDR=$(get_ipaddr)
         if [ $? -ne 0 ]; then exit 1; fi
 
 
