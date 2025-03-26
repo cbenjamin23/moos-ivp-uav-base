@@ -94,7 +94,7 @@ One can launch ground station similarly by calling the command
 ```
 where the flag `-s` indicates simulation.
 
-Note: Help can be reviewed by calling with the flag `--help`
+Note: elp can be reviewed by calling with the flag `--help`
 
 ## Launching with arguments
 ### Launching vehicle 

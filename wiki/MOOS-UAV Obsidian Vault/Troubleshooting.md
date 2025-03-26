@@ -139,6 +139,7 @@ Navigate to the folder `/etc/netplan/` and change the `.yaml` file  configuratio
 sudo nano /etc/netplan/<file_name>.yaml
 ```
 change the IP to the desired one. <file_name> is for instance`ntnu-x8-005`
+to some IP eg: `10.0.60.115`
 
 then run 
 ```bash

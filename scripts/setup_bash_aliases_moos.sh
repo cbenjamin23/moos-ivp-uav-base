@@ -75,6 +75,8 @@ alias lll='ktm; cll; ./launch.sh'
 alias launchSkywalker='cd ~/moos-ivp-uav/missions/UAV_Fly;
                        MAVSDK_CALLBACK_DEBUGGING=1 MAVSDK_COMMAND_DEBUGGING=1 MAVSDK_PARAMETER_DEBUGGING=1 pArduBridge targ_skywalker.moos;'
 
+alias launchSkyfollower='cdmis;
+                       MAVSDK_CALLBACK_DEBUGGING=1 MAVSDK_COMMAND_DEBUGGING=1 MAVSDK_PARAMETER_DEBUGGING=1 pArduBridge targ_Skyfollower.moos;'
 
 
 #-------------------------------------------------------
@@ -122,8 +124,8 @@ alias pingo1='ping 10.0.60.110'
 alias ssho1='ssh odroid@10.0.60.110'
 
 # The Odroid 2 computer
-alias pingo2='ping 10.0.60.111'
-alias ssho2='ssh odroid@10.0.60.111'
+alias pingo2='ping 10.0.60.115'
+alias ssho2='ssh odroid@10.0.60.115'
 
 # Wifi forwarding
 alias ip_fw_o='sudo /usr/local/bin/setup_nat_ip_forwarding.sh'

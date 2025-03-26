@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "Info/Launching System.md",
+                "file": "Troubleshooting.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "Launching System"
+              "title": "Troubleshooting"
             },
             "group": "edaf1042f95ceebf"
           },
@@ -63,12 +63,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "Info/Launching System.md",
+                "file": "Troubleshooting.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "Launching System"
+              "title": "Troubleshooting"
             },
             "group": "edaf1042f95ceebf"
           },
@@ -134,7 +134,7 @@
             "state": {
               "type": "search",
               "state": {
-                "query": "launc",
+                "query": "112",
                 "matchingCase": false,
                 "explainSearch": false,
                 "collapseAll": false,
@@ -247,10 +247,10 @@
   },
   "active": "da26bb1516200fb8",
   "lastOpenFiles": [
-    "Troubleshooting.md",
     "Info/Launching System.md",
-    "Info/LSTS Toolchain/Dune.md",
+    "Troubleshooting.md",
     "Info/ArduPilot & MavProx.md",
+    "Info/LSTS Toolchain/Dune.md",
     "Info/MAIN System architecture.md",
     "Info/Swarm in ArduPilot.md",
     "Info/Gazebo.md",
