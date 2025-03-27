@@ -68,6 +68,8 @@ bool FireSim::OnNewMail(MOOSMSG_LIST &NewMail)
 {
   AppCastingMOOSApp::OnNewMail(NewMail);
 
+  std::vector<std::string> warnings;
+
   MOOSMSG_LIST::iterator p;
   for (p = NewMail.begin(); p != NewMail.end(); p++)
   {
@@ -114,6 +116,7 @@ bool FireSim::OnNewMail(MOOSMSG_LIST &NewMail)
       m_ignoredRegionset.setMissionStartTimeOnRegions(dval);
       trySpawnFire();
       handled = true;
+      retractRunWarnings(warnings);
     }
     else if (key == "GSV_COVERAGE_PERCENTAGE")
     {
@@ -130,12 +133,22 @@ bool FireSim::OnNewMail(MOOSMSG_LIST &NewMail)
 
     if (!handled)
     {
-      reportRunWarning("Unhandled mail: " + key);
-      reportRunWarning(warning);
+      if(warning.empty())
+        reportRunWarning("Unhandled Mail: " + key);
+      else{
+        reportRunWarning(warning);
+        warnings.push_back(warning);
+      }
     }
   }
   return (true);
 }
+
+void FireSim::retractRunWarnings(std::vector<std::string> warnings){
+  for (const auto &warning : warnings)
+    retractRunWarning(warning);
+}
+
 
 bool FireSim::handleMailDisableResetMission(std::string& warning)
 {

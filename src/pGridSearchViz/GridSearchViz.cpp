@@ -51,6 +51,8 @@ bool GridSearchViz::OnNewMail(MOOSMSG_LIST &NewMail)
 {
   AppCastingMOOSApp::OnNewMail(NewMail);
 
+  std::vector<std::string> warnings;
+
   MOOSMSG_LIST::iterator p;
   for (p = NewMail.begin(); p != NewMail.end(); p++)
   {
@@ -80,20 +82,29 @@ bool GridSearchViz::OnNewMail(MOOSMSG_LIST &NewMail)
       handled = handleMailIgnoredRegionAlert(sval);
     else if (key == "GSV_VISUALIZE_SENSOR_AREA")
       handled = setBooleanOnString(m_visualize_sensor_area, sval);
-    else if (key == "XENABLE_MISSION")
+    else if (key == "XENABLE_MISSION"){
       handled = setBooleanOnString(m_missionEnabled, sval);
+      retractRunWarnings(warnings);
+    }
     else if (key == "XDISABLE_RESET_MISSION")
       handled = handleMailDisableResetMission(warning);
 
     if (!handled){
       if(warning.empty())
         reportRunWarning("Unhandled Mail: " + key);
-      else
+      else{
         reportRunWarning(warning);
+        warnings.push_back(warning);
+      }
     }
   }
 
   return (true);
+}
+
+void GridSearchViz::retractRunWarnings(std::vector<std::string> warnings){
+  for (const auto &warning : warnings)
+    retractRunWarning(warning);
 }
 
 //---------------------------------------------------------
@@ -307,6 +318,7 @@ bool GridSearchViz::handleMailDisableResetMission(std::string& warning)
     warning = warningMessage;
     return false;
   }
+  
 
   m_missionEnabled = false;
   m_missionStartTime = 0;

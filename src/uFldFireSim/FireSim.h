@@ -57,6 +57,8 @@ protected: // Incoming mail utility
   bool handleMailVisualizeSensorArea(std::string);
   bool handleMailIgnoredRegion(std::string);
   bool handleMailDisableResetMission(std::string &warning);
+  void retractRunWarnings(std::vector<std::string> warnings);
+
 
 protected: // Outgoing mail utility
   void declareDiscoveredFire(std::string vname, std::string fname);
