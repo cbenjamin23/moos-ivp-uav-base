@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "Troubleshooting.md",
+                "file": "Info/Install, Build & Run MAVSDK.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "Troubleshooting"
+              "title": "Install, Build & Run MAVSDK"
             },
             "group": "edaf1042f95ceebf"
           },
@@ -63,12 +63,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "Troubleshooting.md",
+                "file": "Info/Install, Build & Run MAVSDK.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "Troubleshooting"
+              "title": "Install, Build & Run MAVSDK"
             },
             "group": "edaf1042f95ceebf"
           },
@@ -134,7 +134,7 @@
             "state": {
               "type": "search",
               "state": {
-                "query": "112",
+                "query": "MAVSDK_MESSAGE_HANDLER_DEBUGGING",
                 "matchingCase": false,
                 "explainSearch": false,
                 "collapseAll": false,
@@ -248,13 +248,13 @@
   "active": "da26bb1516200fb8",
   "lastOpenFiles": [
     "Info/Launching System.md",
+    "Info/Install, Build & Run MAVSDK.md",
     "Troubleshooting.md",
     "Info/ArduPilot & MavProx.md",
     "Info/LSTS Toolchain/Dune.md",
     "Info/MAIN System architecture.md",
     "Info/Swarm in ArduPilot.md",
     "Info/Gazebo.md",
-    "Info/Install, Build & Run MAVSDK.md",
     "Info/pMarineViewer - MOOS  IVP.md",
     "attachments/Pasted image 20250215110203.png",
     "Advantages of MOOS-IVP.md",

@@ -95,19 +95,18 @@ MAVSDK_CALLBACK_DEBUGGING=1 MAVSDK_COMMAND_DEBUGGING=1 MAVSDK_PARAMETER_DEBUGGIN
 
 where `<app>` is you MAVSDK app, eg. `fly_mission_ex`, `<arg>` is the argument of the application, eg. `udp://:14550`. To redirect the output to a file append the following `> output.log 2>&1`.
 
-*Additional debug var:* `MAVSDK_MESSAGE_HANDLER_DEBUGGING=1 `
+**Additional debug var:** *`MAVSDK_MESSAGE_HANDLER_DEBUGGING=1 `*
 
 *EX:*
 
 ```bash
 cmake --build build -j8; 
-MAVSDK_CALLBACK_DEBUGGING=1 MAVSDK_COMMAND_DEBUGGING=1 MAVSDK_PARAMETER_DEBUGGING=1 ./build/fly_mission_ex udp://:14550 > output.log 2>&1
+ MAVSDK_CALLBACK_DEBUGGING=1 MAVSDK_COMMAND_DEBUGGING=1 MAVSDK_PARAMETER_DEBUGGING=1 ./build/fly_mission_ex udp://:14550 > output.log 2>&1
 ```
 
 or 
 ```bash
-cmake --build build -j8; 
-MAVSDK_CALLBACK_DEBUGGING=1 MAVSDK_COMMAND_DEBUGGING=1 MAVSDK_PARAMETER_DEBUGGING=1 ./build/fly_mission_ex serial:///dev/ttySAC0:115200
+cmake --build build -j8;  MAVSDK_CALLBACK_DEBUGGING=1 MAVSDK_COMMAND_DEBUGGING=1 MAVSDK_PARAMETER_DEBUGGING=1 ./build/fly_mission_ex serial:///dev/ttySAC0:115200
 ```
 
 

@@ -71,7 +71,7 @@ alias lll='ktm; cll; ./launch.sh'
 
 ## Launching MOOS-IvP
 
-
+# use MAVSDK_MESSAGE_HANDLER_DEBUGGING=1 for debugging on incoming messages from ardupilot
 alias launchSkywalker='cd ~/moos-ivp-uav/missions/UAV_Fly;
                        MAVSDK_CALLBACK_DEBUGGING=1 MAVSDK_COMMAND_DEBUGGING=1 MAVSDK_PARAMETER_DEBUGGING=1 pArduBridge targ_skywalker.moos;'
 
