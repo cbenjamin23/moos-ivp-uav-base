@@ -257,6 +257,8 @@ ProcessConfig = pArduBridge
   AppTick   = 4                                                 
   CommsTick = 4                                                 
 
+  Logger = true
+  
   ArduPilotURL = $(AP_IP):$(AP_PORT)
   url_protocol = $(AP_PROTOCOL)
 
@@ -264,9 +266,8 @@ ProcessConfig = pArduBridge
   vcolor = $(COLOR)
   prefix = NAV
 
-  cmd_GS = false
+  command_groundspeed = true
   
-  Logger = true
 
   #ifdef XMODE SIM
     is_Sim = true

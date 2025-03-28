@@ -125,14 +125,14 @@ private: // Autopilot Helm states
 
 private:
   const double MARKER_WIDTH = 10.0;
-  const double HEADING_POINT_SIZE = 5;
+  const double COURSE_POINT_SIZE = 5;
 
   void visualizeHomeLocation();
   void visualizeLoiterLocation(const XYPoint &loiter_coord, bool visualize = true);
-  void visualizeHeadingWaypoint(const XYPoint &heading_coord, bool visualize = true);
-  void visualizeHdgVector(double x, double y, double magnitude, double angle, bool visualize = true);
+  void visualizeCourseWaypoint(const XYPoint &course_coord, bool visualize = true);
+  void visualizeCourseVector(double x, double y, double magnitude, double angle, bool visualize = true);
 
-  void visualizeHdgHoldTarget(bool visualize = true);
+  void visualizeCourseHoldTarget(bool visualize = true);
 
   // bool evaluateBoolFromString(const std::string& str) const { bool b; setBooleanOnString(b,str); return b;}
   bool parseCoordinateString(const std::string &input, double &lat, double &lon, double &x, double &y, std::string &vname) const;
@@ -211,7 +211,7 @@ private: // State variables
   ThreadSafeVariable<SetpointManager> m_helm_desiredValues;
 
   std::pair<bool, double> m_do_change_speed_pair;
-  std::pair<bool, double> m_do_change_heading_pair;
+  std::pair<bool, double> m_do_change_course_pair;
   std::pair<bool, double> m_do_change_altitude_pair;
   bool m_do_reset_speed;
   bool m_do_return_to_launch;

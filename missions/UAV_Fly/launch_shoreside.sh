@@ -69,7 +69,7 @@ for ARGI; do
 	echo "    Port number of this vehicle's pShare port    "
     echo "  --vnames=<vnames>                            "
     echo "    Colon-separate list of all vehicle names   "
-    echo "  --sim=<config_file>, -s                      "
+    echo "  --sim=,   -s                                  "
     echo "    Launch in simulation mode.                 "
 	exit 0;
     elif [[ "${ARGI//[^0-9]/}" == "$ARGI" && "$TIME_WARP" == "1" ]]; then
@@ -224,6 +224,8 @@ if [ "${VERBOSE}" = "yes" ]; then
     echo "AUTO_LAUNCHED = [${AUTO_LAUNCHED}]"
     echo "JUST_MAKE =     [${JUST_MAKE}]    "
     echo "----------------------------------"
+    echo "XMODE =        [${XMODE}]        "
+    echo "----------------------------------"
     echo "IP_ADDR =       [${IP_ADDR}]      "
     echo "MOOS_PORT =     [${MOOS_PORT}]    "
     echo "PSHARE_PORT =   [${PSHARE_PORT}]  "
@@ -316,7 +318,8 @@ nsplug meta_shoreside.moos targ_shoreside.moos $NSFLAGS WARP=$TIME_WARP \
     GRID_CELL_MAX_COUNT=$GRID_CELL_MAX_COUNT              \
     GRID_CELL_DECAY_TIME=$GRID_CELL_DECAY_TIME            \
     REGION=$REGION                                        \
-    MISSION_DURATION=$MISSION_DURATION
+    MISSION_DURATION=$MISSION_DURATION                    \
+    XMODE=$XMODE
 
 
 if [ ${JUST_MAKE} = "yes" ]; then

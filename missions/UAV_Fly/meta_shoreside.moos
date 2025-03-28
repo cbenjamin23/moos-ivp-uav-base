@@ -423,10 +423,10 @@ ProcessConfig = pMarineViewer
   action = CHANGE_ALTITUDE_ALL=10
   action+ = CHANGE_ALTITUDE_ALL=-10
 
-  action = menu_key=all_vehicles_HDG # CHANGE_HEADING_ALL=1
-  action = CHANGE_HEADING_ALL=-1
-  action = CHANGE_HEADING_ALL=10
-  action+ = CHANGE_HEADING_ALL=-10
+  action = menu_key=all_vehicles_HDG # CHANGE__ALL=1
+  action = CHANGE__ALL=-1
+  action = CHANGE__ALL=10
+  action+ = CHANGE__ALL=-10
 
 
 
@@ -486,8 +486,7 @@ ProcessConfig = pMarineViewer
 
     // button_1 = DEPLOY  # DEPLOY_ALL=true # MOOS_MANUAL_OVERRIDE_ALL=false
 
-    button_1 = TKOFF_ALL  # ARM_UAV_ALL=true # GCS_COMMAND_ALL=DO_TAKEOFF
-    button_2 = RTL_ALL  # GCS_COMMAND_ALL=RETURN_TO_LAUNCH 
+    button_1 = RTL_ALL  # GCS_COMMAND_ALL=RETURN_TO_LAUNCH 
 
     // button_one   = ARM_ALL  # ARM_UAV_ALL=true
     // button_two   = DISARM_ALL   # ARM_UAV_ALL=false 
@@ -504,6 +503,10 @@ ProcessConfig = pMarineViewer
     button_7 = DO_VORONOI_ALL # GCS_COMMAND_ALL=DO_VORONOI
 
     // button_7 = PARK_HELM_ALL # MOOS_MANUAL_OVERRIDE_ALL=true
+    #ifdef XMODE SIM
+      button_11 = TKOFF_ALL  # ARM_UAV_ALL=true # GCS_COMMAND_ALL=DO_TAKEOFF
+    #endif
+    
   #endif
 
   button_8 = PLAN_PATHS # DO_PLAN_PATHS=true
@@ -541,10 +544,10 @@ ProcessConfig = pMarineViewer
   cmd = label=ALT+10, var=CHANGE_ALTITUDE, dval=10, receivers=all:$(VNAMES)
   cmd = label=ALT-10, var=CHANGE_ALTITUDE, dval=-10, receivers=all:$(VNAMES)
   
-  cmd = label=HDG+1, var=CHANGE_HEADING, dval=1, receivers=all:$(VNAMES)
-  cmd = label=HDG-1, var=CHANGE_HEADING, dval=-1, receivers=all:$(VNAMES)
-  cmd = label=HDG+10, var=CHANGE_HEADING, dval=10, receivers=all:$(VNAMES)
-  cmd = label=HDG-10, var=CHANGE_HEADING, dval=-10, receivers=all:$(VNAMES)
+  cmd = label=HDG+1, var=CHANGE_, dval=1, receivers=all:$(VNAMES)
+  cmd = label=HDG-1, var=CHANGE_, dval=-1, receivers=all:$(VNAMES)
+  cmd = label=HDG+10, var=CHANGE_, dval=10, receivers=all:$(VNAMES)
+  cmd = label=HDG-10, var=CHANGE_, dval=-10, receivers=all:$(VNAMES)
 
 
   cmd = label=HELM_ON, var=HELM_STATUS, sval=ON, receivers=all:$(VNAMES)

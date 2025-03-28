@@ -29,23 +29,25 @@ UAV_Model::UAV_Model(std::shared_ptr<WarningSystem> ws) : m_mavsdk_ptr{std::make
                                                           callbackRetractRunW{nullptr},
                                                           callbackReportEvent{nullptr},
 
-                                                          m_is_hold_heading_guided_set{false},
+                                                          m_is_hold_course_guided_set{false},
                                                           m_health_all_ok{false},
                                                           m_is_armed{false},
                                                           m_in_air{false},
                                                           m_target_altitudeAGL{120.0},
                                                           m_target_airspeed{0.0},
-                                                          m_target_heading{0.0},
+                                                          m_target_course{0.0},
                                                           m_last_sent_altitudeAGL{double(NAN)},
+                                                          m_GPS_SOG_m_s{0.0},
+                                                          m_GPS_COG_deg{0.0},
                                                           mts_position{mavsdk::Telemetry::Position()},
                                                           mts_attitude_ned{mavsdk::Telemetry::EulerAngle()},
-                                                          m_velocity_ned{mavsdk::Telemetry::VelocityNed()},
+                                                          mts_velocity_ned{mavsdk::Telemetry::VelocityNed()},
                                                           mts_battery{mavsdk::Telemetry::Battery()},
                                                           mts_flight_mode{mavsdk::Telemetry::FlightMode::Unknown},
                                                           mts_home_coord{XYPoint(0, 0)},
                                                           mts_current_loiter_coord{XYPoint(0, 0)},
                                                           mts_next_waypoint_coord{XYPoint(0, 0)},
-                                                          mts_heading_waypoint_coord{XYPoint(0, 0)},
+                                                          mts_course_waypoint_coord{XYPoint(0, 0)},
                                                           mts_polled_params{PolledParameters()}
 
 {
@@ -268,11 +270,16 @@ bool UAV_Model::subscribeToTelemetry()
 
                                         m_in_air = (position.relative_altitude_m >= IN_AIR_HIGHT_THRESHOLD); });
 
+  m_telemetry_ptr->subscribe_raw_gps([&](mavsdk::Telemetry::RawGps raw_gps)
+                                     {
+                                      m_GPS_SOG_m_s = raw_gps.velocity_m_s;
+                                      m_GPS_COG_deg = raw_gps.cog_deg; });
+
   m_telemetry_ptr->subscribe_attitude_euler([&](mavsdk::Telemetry::EulerAngle attitude_ned)
                                             { mts_attitude_ned = attitude_ned; });
 
   m_telemetry_ptr->subscribe_velocity_ned([&](mavsdk::Telemetry::VelocityNed vel)
-                                          { m_velocity_ned = vel; });
+                                          { mts_velocity_ned = vel; });
 
   m_telemetry_ptr->subscribe_battery([&](mavsdk::Telemetry::Battery battery)
                                      { mts_battery = battery; });
@@ -397,15 +404,13 @@ bool UAV_Model::haveAutorythyToChangeMode() const
   // Read the values from the thread safe variables
   auto m_flight_mode = mts_flight_mode.get();
 
-  if (m_flight_mode == mavsdk::Telemetry::FlightMode::Mission                                                                   //   Mission mode is ardupilots AUTO mode
-      || m_flight_mode == mavsdk::Telemetry::FlightMode::Hold // Also loiter mode
-      || m_flight_mode == mavsdk::Telemetry::FlightMode::Land 
-      || m_flight_mode == mavsdk::Telemetry::FlightMode::Offboard       // Previous guided mode
+  if (m_flight_mode == mavsdk::Telemetry::FlightMode::Mission                                                             //   Mission mode is ardupilots AUTO mode
+      || m_flight_mode == mavsdk::Telemetry::FlightMode::Hold                                                             // Also loiter mode
+      || m_flight_mode == mavsdk::Telemetry::FlightMode::Land || m_flight_mode == mavsdk::Telemetry::FlightMode::Offboard // Previous guided mode
       || m_flight_mode == mavsdk::Telemetry::FlightMode::Guided)
   {
     return true;
   }
-
 
   // NOT allowed in Stabilized, Manual or RTL
 
@@ -427,7 +432,7 @@ bool UAV_Model::commandGuidedMode(bool alt_hold)
     return false;
   }
 
-  if (m_is_hold_heading_guided_set && !alt_hold)
+  if (m_is_hold_course_guided_set && !alt_hold)
   {
     mavsdk::Action::Result result = m_action_ptr->set_flight_mode_auto();
 
@@ -439,7 +444,7 @@ bool UAV_Model::commandGuidedMode(bool alt_hold)
       return false;
     }
 
-    m_is_hold_heading_guided_set = false;
+    m_is_hold_course_guided_set = false;
   }
 
   if (isGuidedMode())
@@ -641,7 +646,7 @@ bool UAV_Model::commandAndSetAltitudeAGL(double altitudeAGL_m)
   return commandChangeAltitude_Guided(altitudeAGL_m, true);
 }
 
-bool UAV_Model::commandSpeed(double speed_m_s, SPEED_TYPE speed_type) const
+bool UAV_Model::commandSpeed(double speed_m_s, SPEED_TYPE speed_type)
 {
 
   if (!m_in_air)
@@ -650,8 +655,7 @@ bool UAV_Model::commandSpeed(double speed_m_s, SPEED_TYPE speed_type) const
     return false;
   }
 
-
-  if(mts_flight_mode.get() == mavsdk::Telemetry::FlightMode::ReturnToLaunch)
+  if (mts_flight_mode.get() == mavsdk::Telemetry::FlightMode::ReturnToLaunch)
   {
     m_warning_system_ptr->queue_monitorWarningForXseconds("UAV is in RTL mode! Cannot command speed", WARNING_DURATION);
     return false;
@@ -668,7 +672,6 @@ bool UAV_Model::commandSpeed(double speed_m_s, SPEED_TYPE speed_type) const
       return false;
     }
 
-  
     if (isGuidedMode())
     {
       return commandChangeSpeed_Guided(speed_m_s, speed_type);
@@ -721,7 +724,7 @@ bool UAV_Model::commandSpeed(double speed_m_s, SPEED_TYPE speed_type) const
   return true;
 }
 
-bool UAV_Model::commandChangeAltitude_Guided(double altitude_m, bool relativeAlt, double vrate_ms) const
+bool UAV_Model::commandChangeAltitude_Guided(double altitude_m, bool relativeAlt, double vrate_ms)
 {
 
   if (!m_in_air)
@@ -730,13 +733,13 @@ bool UAV_Model::commandChangeAltitude_Guided(double altitude_m, bool relativeAlt
     return false;
   }
 
-  if(mts_flight_mode.get() == mavsdk::Telemetry::FlightMode::ReturnToLaunch)
+  if (mts_flight_mode.get() == mavsdk::Telemetry::FlightMode::ReturnToLaunch)
   {
     m_warning_system_ptr->queue_monitorWarningForXseconds("UAV is in RTL mode! Cannot command altitude", WARNING_DURATION);
     return false;
   }
 
-  if (!isGuidedMode())
+  if (!isGuidedMode() && !commandGuidedMode())
   {
     m_warning_system_ptr->queue_monitorWarningForXseconds("UAV is not in guided mode! Cannot send altitude", WARNING_DURATION);
     return false;
@@ -808,13 +811,13 @@ bool UAV_Model::commandChangeHeading_Guided(double hdg_deg, HEADING_TYPE hdg_typ
     return false;
   }
 
-  if(mts_flight_mode.get() == mavsdk::Telemetry::FlightMode::ReturnToLaunch)
+  if (mts_flight_mode.get() == mavsdk::Telemetry::FlightMode::ReturnToLaunch)
   {
     m_warning_system_ptr->queue_monitorWarningForXseconds("UAV is in RTL mode! Cannot command heading", WARNING_DURATION);
     return false;
   }
 
-  if (!isGuidedMode())
+  if (!isGuidedMode() && !commandGuidedMode())
   {
     m_warning_system_ptr->queue_monitorWarningForXseconds("UAV is not in guided mode! Cannot send heading", WARNING_DURATION);
     return false;
@@ -864,13 +867,13 @@ bool UAV_Model::commandChangeHeading_Guided(double hdg_deg, HEADING_TYPE hdg_typ
     return false;
   }
 
-  m_is_hold_heading_guided_set = true;
+  m_is_hold_course_guided_set = true;
   MOOSTraceFromCallback("command Change Heading succeeded\n");
 
   return true;
 }
 
-bool UAV_Model::commandChangeSpeed_Guided(double speed_m_s, SPEED_TYPE speed_type) const
+bool UAV_Model::commandChangeSpeed_Guided(double speed_m_s, SPEED_TYPE speed_type)
 {
 
   if (!m_in_air)
@@ -879,7 +882,7 @@ bool UAV_Model::commandChangeSpeed_Guided(double speed_m_s, SPEED_TYPE speed_typ
     return false;
   }
 
-  if (!isGuidedMode())
+  if (!isGuidedMode() && !commandGuidedMode())
   {
     m_warning_system_ptr->queue_monitorWarningForXseconds("UAV is not in guided mode! Cannot send speed", WARNING_DURATION);
     return false;
@@ -958,10 +961,10 @@ void UAV_Model::setHeadingWyptFromHeading(double heading_deg)
   double new_lat_deg = rad_to_deg(new_lat_rad);
   double new_lon_deg = rad_to_deg(new_lon_rad);
 
-  mts_heading_waypoint_coord->set_vertex(new_lat_deg, new_lon_deg);
+  mts_course_waypoint_coord->set_vertex(new_lat_deg, new_lon_deg);
 }
 
-bool UAV_Model::commandAndSetHeading(double heading, bool isAllowed)
+bool UAV_Model::commandAndSetCourse(double heading, bool isAllowed)
 {
 
   if (!m_in_air)
@@ -970,7 +973,7 @@ bool UAV_Model::commandAndSetHeading(double heading, bool isAllowed)
     return false;
   }
 
-  m_target_heading = heading;
+  m_target_course = heading;
 
   if (/*isGuidedMode() &&*/ isAllowed)
   {
@@ -989,7 +992,7 @@ bool UAV_Model::commandAndSetHeading(double heading, bool isAllowed)
   setHeadingWyptFromHeading(heading);
 
   // Command the plane to the new location
-  return commandGoToLocationXY(mts_heading_waypoint_coord);
+  return commandGoToLocationXY(mts_course_waypoint_coord);
 }
 
 ///////////////////////////////////////////////////////
@@ -1035,11 +1038,11 @@ void UAV_Model::runCommandsender()
     {
       cmd->execute(*this);
       pollAllParametersAsync();
-    
-      Logger::info("UAV_Model THREAD: isGuidedMode: " + boolToString(isGuidedMode()) + " is_hold_heading_guided_set: " + boolToString(m_is_hold_heading_guided_set));
+
+      Logger::info("UAV_Model THREAD: isGuidedMode: " + boolToString(isGuidedMode()) + " is_hold_heading_guided_set: " + boolToString(m_is_hold_course_guided_set));
       if (!isGuidedMode())
       {
-        m_is_hold_heading_guided_set = false;
+        m_is_hold_course_guided_set = false;
       }
     }
 

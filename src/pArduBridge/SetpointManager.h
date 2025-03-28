@@ -7,11 +7,11 @@ class SetpointManager
 {
 private:
     double desiredSpeed;
-    double desiredHeading;
+    double desiredCourse;
     double desiredAltitude;
 
     double prevSpeed;
-    double prevHeading;
+    double prevCourse;
     double prevAltitude;
 
     bool hasChanged(double prevValue, double newValue)
@@ -21,17 +21,17 @@ private:
 
 public:
     SetpointManager()
-        : desiredSpeed(0.0), desiredHeading(0.0), desiredAltitude(0.0),
-          prevSpeed(0.0), prevHeading(0.0), prevAltitude(0.0) {}
+        : desiredSpeed(0.0), desiredCourse(0.0), desiredAltitude(0.0),
+          prevSpeed(0.0), prevCourse(0.0), prevAltitude(0.0) {}
 
     // Method to update desired values
     void updateDesiredSpeed(double newSpeed)
     {
         desiredSpeed = newSpeed;
     }
-    void updateDesiredHeading(double newHeading)
+    void updateDesiredCourse(double newHeading)
     {
-        desiredHeading = newHeading;
+        desiredCourse = newHeading;
     }
     void updateDesiredAltitude(double newAltitude)
     {
@@ -48,12 +48,12 @@ public:
         }
         return std::nullopt; // No update
     }
-    std::optional<double> getDesiredHeading()
+    std::optional<double> getDesiredCourse()
     {
-        if (hasChanged(prevHeading, desiredHeading))
+        if (hasChanged(prevCourse, desiredCourse))
         {
-            prevHeading = desiredHeading;
-            return desiredHeading;
+            prevCourse = desiredCourse;
+            return desiredCourse;
         }
         return std::nullopt; // No update
     }
@@ -69,11 +69,11 @@ public:
 
     // Return all desired values unconditionally
     double readDesiredSpeed() const { return desiredSpeed; }
-    double readDesiredHeading() const { return desiredHeading; }
+    double readDesiredCourse() const { return desiredCourse; }
     double readDesiredAltitudeAGL() const { return desiredAltitude; }
 
     bool isValid() const
     {
-        return !(desiredAltitude == 0.0 && desiredHeading == 0.0 && desiredSpeed == 0.0);
+        return !(desiredAltitude == 0.0 && desiredCourse == 0.0 && desiredSpeed == 0.0);
     }
 };

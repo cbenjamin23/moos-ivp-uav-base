@@ -26,7 +26,7 @@ ArduBridge::ArduBridge()
       m_do_takeoff{false},
       m_cli_arg{},
       m_do_change_speed_pair{std::make_pair(false, 0)},
-      m_do_change_heading_pair{std::make_pair(false, 0)},
+      m_do_change_course_pair{std::make_pair(false, 0)},
       m_do_change_altitude_pair{std::make_pair(false, 0)},
       m_do_reset_speed{false},
       m_do_return_to_launch{false},
@@ -56,6 +56,17 @@ ArduBridge::ArduBridge()
   m_waypointsXY_mission = {{-390, 10}, {55, 381}, {333, 35}, {-100, -290}};
 
   initializeStateTransitionFunctions();
+
+  // Get the home directory from the environment variable
+  auto home_dir = getenv("HOME");
+  if (home_dir == nullptr)
+  {
+    Logger::error("Error: Could not get the home directory.");
+    std::cerr << "Error: Could not get the home directory." << std::endl;
+    return;
+  }
+  std::string save_path = std::string(home_dir) + "/moos-ivp-uav/missions/pArduBrigeLog_" + m_vname + ".log";
+  Logger::configure(save_path);
 }
 
 //---------------------------------------------------------
@@ -91,10 +102,10 @@ bool ArduBridge::OnNewMail(MOOSMSG_LIST &NewMail)
       continue;
     }
 
-    if (key == "DESIRED_HEADING")
+    if (key == "DESIRED_HEADING") // DESIRED_COURSE comes in as DESIRED_HEADING from pHelm for legacy reasons
     {
-      double heading = msg.GetDouble();
-      m_helm_desiredValues->updateDesiredHeading(heading);
+      double course = msg.GetDouble();
+      m_helm_desiredValues->updateDesiredCourse(course);
     }
     else if (key == "DESIRED_SPEED")
     {
@@ -169,11 +180,11 @@ bool ArduBridge::OnNewMail(MOOSMSG_LIST &NewMail)
       double speed_change = msg.GetDouble();
       m_do_change_speed_pair = std::make_pair(true, speed_change);
     }
-    else if (key == "CHANGE_HEADING")
+    else if (key == "CHANGE_COURSE")
     {
-      Logger::info("OnNewMail CHANGE_HEADING: " + msg.GetString() + " from " + msg.GetSource());
-      double heading_change = msg.GetDouble();
-      m_do_change_heading_pair = std::make_pair(true, heading_change);
+      Logger::info("OnNewMail CHANGE_COURSE: " + msg.GetString() + " from " + msg.GetSource());
+      double course_change = msg.GetDouble();
+      m_do_change_course_pair = std::make_pair(true, course_change);
     }
     else if (key == "CHANGE_ALTITUDE")
     {
@@ -195,7 +206,8 @@ bool ArduBridge::OnNewMail(MOOSMSG_LIST &NewMail)
       reportEvent("No heartbeats from GCS. Returning to launch");
       m_do_return_to_launch = true;
     }
-    else if(key == "GCS_COMMAND"){ 
+    else if (key == "GCS_COMMAND")
+    {
       std::string command = msg.GetString();
       Logger::info("OnNewMail GCS_COMMAND: " + command + " from " + msg.GetSource());
 
@@ -236,18 +248,18 @@ bool ArduBridge::OnNewMail(MOOSMSG_LIST &NewMail)
         m_do_helm_survey = true;
         handled = true;
       }
-      else if (command == "DO_VORONOI"){
+      else if (command == "DO_VORONOI")
+      {
         m_do_helm_voronoi = true;
         handled = true;
       }
 
-
-      if(!handled){
+      if (!handled)
+      {
         Logger::warning("Unhandled GCS Command: " + command);
         m_warning_system_ptr->queue_monitorWarningForXseconds("Unhandled GCS Command: " + command, WARNING_DURATION);
       }
     }
-
 
     else if (key != "APPCAST_REQ")
     { // handled by AppCastingMOOSApp
@@ -287,7 +299,7 @@ bool ArduBridge::Iterate()
   //////  Blocking Functions - These functions will block until they are done
   /////   - Takeoff
   /////   - change speed        (needs to be done immidiately)
-  /////   - change heading      (needs to be done immidiately)
+  /////   - change course      (needs to be done immidiately)
   /////   - change altitude     (needs to be done immidiately)
   /////   - reset speed to min  (needs to be done immidiately)
   //////////////////////////////////////////////////////////////
@@ -320,22 +332,22 @@ bool ArduBridge::Iterate()
     m_do_change_speed_pair.first = false;
   }
 
-  /// - change heading
-  if (m_do_change_heading_pair.first)
+  /// - change course
+  if (m_do_change_course_pair.first)
   {
-    double new_heading = angle360(m_uav_model.getTargetHeading() + m_do_change_heading_pair.second);
+    double new_course = angle360(m_uav_model.getTargetCourse() + m_do_change_course_pair.second);
 
     if (isHelmCommanding())
     {
       m_warning_system_ptr->queue_monitorWarningForXseconds("Helm is commanding values. Restart Helm or wait for NothingToDo", WARNING_DURATION);
     }
-    else if (m_uav_model.commandAndSetHeading(new_heading, isHelmOn_NothingTodo()))
+    else if (m_uav_model.commandAndSetCourse(new_course, isHelmOn_NothingTodo()))
     {
-      reportEvent("Changed heading to " + doubleToString(new_heading));
+      reportEvent("Changed course to " + doubleToString(new_course));
     };
 
-    m_do_change_heading_pair.first = false;
-    m_do_change_heading_pair.second = 0;
+    m_do_change_course_pair.first = false;
+    m_do_change_course_pair.second = 0;
   }
 
   /// - change altitude
@@ -374,7 +386,7 @@ bool ArduBridge::Iterate()
     if (m_uav_model.commandAndSetAirSpeed(min_speed))
     {
       postSpeedUpdateToBehaviors(min_speed);
-      reportEvent("Changed heading to " + doubleToString(min_speed));
+      reportEvent("Changed speed to " + doubleToString(min_speed));
     }
 
     if (m_command_groundSpeed)
@@ -489,12 +501,12 @@ bool ArduBridge::Iterate()
   //////////////////////////////////////////////////////////////
   //////  Loiter            - Async w/polling
   //////////////////////////////////////////////////////////////
-  
-  static int loiter_tries=0;
+
+  static int loiter_tries = 0;
   // pos is >100 awai from lotiter, send again
-  if (m_autopilot_mode==AutopilotHelmMode::HELM_INACTIVE_LOITERING && !m_do_loiter_pair.first) 
+  if (m_autopilot_mode == AutopilotHelmMode::HELM_INACTIVE_LOITERING && !m_do_loiter_pair.first)
   {
-    auto pos = transformLatLonToXY({m_uav_model.getLatitude(), m_uav_model.getLongitude()} );
+    auto pos = transformLatLonToXY({m_uav_model.getLatitude(), m_uav_model.getLongitude()});
     auto loiterCoord = transformLatLonToXY(m_uav_model.getCurrentLoiterLatLon());
     auto dist = hypot(pos.get_vx() - loiterCoord.get_vx(), pos.get_vy() - loiterCoord.get_vy());
     Logger::info("Iterate: UAV is loitering. Checking if UAV is far from loiter location / dist: " + doubleToString(dist));
@@ -503,13 +515,9 @@ bool ArduBridge::Iterate()
       Logger::info("Iterate: UAV is far from loiter location. Sending loiter command again");
       loiter_tries++;
       m_uav_model.pushCommand([this](UAV_Model &uav)
-      {
-        uav.commandLoiterAtPos(uav.getCurrentLoiterLatLon());
-      });
-      
+                              { uav.commandLoiterAtPos(uav.getCurrentLoiterLatLon()); });
     }
   }
-
 
   if (m_do_loiter_pair.first)
   {
@@ -530,7 +538,7 @@ bool ArduBridge::Iterate()
       {
         goToHelmMode(AutopilotHelmMode::HELM_INACTIVE_LOITERING);
         visualizeLoiterLocation(m_uav_model.getCurrentLoiterLatLon());
-        loiter_tries=0;
+        loiter_tries = 0;
       }
       else
       {
@@ -553,15 +561,26 @@ bool ArduBridge::Iterate()
     // Handled by pGridSearchPlanner
     // Notify("SURVEY_UPDATE", generateMissionPathSpec(m_waypointsXY_mission));
 
-    if (isHelmOn())
+    bool sendCommand=true;
+
+    if (!isHelmOn()){
+      m_warning_system_ptr->queue_monitorWarningForXseconds("Helm is not active, Cannot do survey", WARNING_DURATION);
+      sendCommand=false;
+    }
+    else if(!m_uav_model.commandGuidedMode())
+    {
+      m_warning_system_ptr->queue_monitorWarningForXseconds("Failed to enter guided mode", WARNING_DURATION);
+      sendCommand=false;
+    }
+   
+    if (sendCommand)
     {
       m_uav_model.commandGuidedMode();
       goToHelmMode(AutopilotHelmMode::HELM_SURVEYING);
     }
-    else
-    {
-      m_warning_system_ptr->queue_monitorWarningForXseconds("Helm is not active, Cannot do survey", WARNING_DURATION);
-    }
+
+
+
     m_do_helm_survey = false;
   }
 
@@ -571,15 +590,24 @@ bool ArduBridge::Iterate()
 
   if (m_do_helm_voronoi)
   {
-    if(isHelmOn()){
-      goToHelmMode(AutopilotHelmMode::HELM_VORONOI);
-    }
-    else{
+   
+    bool sendCommand=true;
+    if (!isHelmOn())
+    {
       m_warning_system_ptr->queue_monitorWarningForXseconds("Helm is not active, Cannot do Voronoi", WARNING_DURATION);
+      sendCommand=false;
+    }
+    else if (!m_uav_model.commandGuidedMode())
+    {
+      m_warning_system_ptr->queue_monitorWarningForXseconds("Failed to enter guided mode", WARNING_DURATION);
+      sendCommand=false;
+    }   
+    if (sendCommand)
+    {
+      goToHelmMode(AutopilotHelmMode::HELM_VORONOI);
     }
     m_do_helm_voronoi = false;
   }
-
 
   postTelemetryUpdate(m_uav_prefix);
 
@@ -689,17 +717,6 @@ bool ArduBridge::OnStartUp()
       reportUnhandledConfigWarning(orig);
   }
 
-  // Get the home directory from the environment variable
-  auto home_dir = getenv("HOME");
-  if (home_dir == nullptr)
-  {
-    Logger::error("Error: Could not get the home directory.");
-    std::cerr << "Error: Could not get the home directory." << std::endl;
-    return 1;
-  }
-  std::string save_path = std::string(home_dir) + "/moos-ivp-uav/missions/pArduBrigeLog_" + m_vname + ".log";
-  Logger::configure(save_path);
-
   // look for latitude, longitude global variables
   double latOrigin, longOrigin;
   if (!m_MissionReader.GetValue("LatOrigin", latOrigin))
@@ -808,27 +825,23 @@ void ArduBridge::registerVariables()
   // For pMarineViewer
   Register("VIZ_HOME", 0);
 
-
-  Register("GCS_COMMAND", 0);  
-
+  Register("GCS_COMMAND", 0);
 
   Register("ARM_UAV", 0);     // on,off
   Register("HELM_STATUS", 0); // on,off
-  
+
   Register("CHANGE_SPEED", 0);
-  Register("CHANGE_HEADING", 0);
+  Register("CHANGE_COURSE", 0);
   Register("CHANGE_ALTITUDE", 0);
 
   // To be sent to Ardupilot
-  Register("DESIRED_HEADING", 0);
+  Register("DESIRED_HEADING", 0); // DESIRED_COURSE comes in as DESIRED_HEADING from pHelm for legacy reasons
   Register("DESIRED_SPEED", 0);
   Register("DESIRED_ALTITUDE", 0);
-
 
   // Other variables
   Register("NEXT_WAYPOINT", 0);
   Register("AUTOPILOT_MODE", 0);
-
 
   // Register("MOOS_MANUAL_OVERIDE", 0);
   Register("MOOS_MANUAL_OVERRIDE", 0);
@@ -869,7 +882,7 @@ bool ArduBridge::buildReport()
   m_msgs << "             In Air: " << boolToString(uav_isInAir) << std::endl;
   m_msgs << "        Flight Mode: " << uav_flightMode << std::endl;
 
-  auto guidedHold = m_uav_model.isHoldHeadingGuidedSet();
+  auto guidedHold = m_uav_model.isHoldCourseGuidedSet();
   m_msgs << "    Helm On BUSY: " << boolToString(isHelmCommanding()) << std::endl;
   m_msgs << "   Helm GUIDED HOLD: " << boolToString(guidedHold) << std::endl;
   // m_msgs << "do_loiter_pair.second: " << m_do_loiter_pair.second << std::endl;
@@ -884,17 +897,18 @@ bool ArduBridge::buildReport()
   double lon = m_uav_model.getLongitude();
 
   auto uav_altitude_msl = m_uav_model.getAltitudeMSL();
-  auto uav_targetHeading = m_uav_model.getTargetHeading();
+  auto uav_targetCOG = m_uav_model.getTargetCourse();
   auto uav_targetAirspeed = m_uav_model.getTargetAirSpeed();
   auto uav_targetAltitudeAGL = m_uav_model.getTargetAltitudeAGL();
 
   auto uav_SOG = m_uav_model.getSOG();
   auto uav_heading = m_uav_model.getHeading();
+  auto uav_COG = m_uav_model.getCOG();
   auto uav_altitude_agl = m_uav_model.getAltitudeAGL();
 
   auto uav_home_latlon = m_uav_model.getHomeLatLon();
   auto uav_next_waypoint_latlon = m_uav_model.getNextWaypointLatLon();
-  auto uav_heading_waypoint_latlon = m_uav_model.getHeadingWaypointLatLon();
+  auto uav_course_waypoint_latlon = m_uav_model.getCourseWaypointLatLon();
 
   auto XY = transformLatLonToXY({lat, lon});
 
@@ -908,17 +922,18 @@ bool ArduBridge::buildReport()
   m_msgs << "           Altitude (MSL): " << doubleToStringX(uav_altitude_msl, sdigits) << " m" << std::endl;
   // m_msgs << "          Target Airspeed: " << m_uav_model.getTargetAirSpeed() << " m/s" << std::endl;
   // m_msgs << "          AirSpeed (SOG) : " << m_uav_model.getSOG() << " m/s)" << std::endl;
-  m_msgs << "     Target Heading (COG): " << doubleToStringX(uav_targetHeading, sdigits) << " deg" << std::endl;
-  // m_msgs << "                  Heading: " << m_uav_model.getHeading() << " deg" << std::endl;
+  // m_msgs << "     Target Course (COG): " << doubleToStringX(uav_targetCOG, sdigits) << " deg" << std::endl;
+  m_msgs << "                  Heading: " << m_uav_model.getHeading() << " deg" << std::endl;
 
   m_msgs << "-------------------------------------------" << std::endl;
 
   ACTable actb(4);
   actb << "States | Measurments | Helm | Targets";
   actb.addHeaderLines();
-  actb << "Speed:" << doubleToStringX(uav_SOG, sdigits) << doubleToStringX(m_helm_desiredValues->readDesiredSpeed(),sdigits) << doubleToStringX(uav_targetAirspeed, sdigits);
-  actb << "Heading:" << doubleToStringX(uav_heading, sdigits) << doubleToStringX(m_helm_desiredValues->readDesiredHeading(), sdigits) << doubleToStringX(uav_targetHeading, sdigits);
-  actb << "Altitude:" << doubleToStringX(uav_altitude_agl, sdigits) << doubleToStringX(m_helm_desiredValues->readDesiredAltitudeAGL(), sdigits) << doubleToStringX(uav_targetAltitudeAGL, sdigits);;
+  actb << "Speed:" << doubleToStringX(uav_SOG, sdigits) << doubleToStringX(m_helm_desiredValues->readDesiredSpeed(), sdigits) << doubleToStringX(uav_targetAirspeed, sdigits);
+  actb << "COG:" << doubleToStringX(uav_COG, sdigits) << doubleToStringX(m_helm_desiredValues->readDesiredCourse(), sdigits) << doubleToStringX(uav_targetCOG, sdigits);
+  actb << "Altitude:" << doubleToStringX(uav_altitude_agl, sdigits) << doubleToStringX(m_helm_desiredValues->readDesiredAltitudeAGL(), sdigits) << doubleToStringX(uav_targetAltitudeAGL, sdigits);
+  ;
 
   m_msgs << actb.getFormattedString() << std::endl;
   m_msgs << "-------------------------------------------" << std::endl;
@@ -928,7 +943,7 @@ bool ArduBridge::buildReport()
   actabd.addHeaderLines();
   actabd << "Home Coord:" << uav_home_latlon.x() << uav_home_latlon.y();
   actabd << "Next Wypt Coord:" << uav_next_waypoint_latlon.x() << uav_next_waypoint_latlon.y();
-  actabd << "Heading Wypt Coord:" << uav_heading_waypoint_latlon.x() << uav_heading_waypoint_latlon.y();
+  actabd << "Course Wypt Coord:" << uav_course_waypoint_latlon.x() << uav_course_waypoint_latlon.y();
   m_msgs << actabd.getFormattedString() << std::endl;
   m_msgs << "-------------------------------------------" << std::endl;
 
@@ -949,21 +964,21 @@ bool ArduBridge::buildReport()
 void ArduBridge::sendDesiredValuesToUAV(UAV_Model &uav, bool forceSend)
 {
 
-  auto desired_heading = m_helm_desiredValues->getDesiredHeading();
+  auto desired_course = m_helm_desiredValues->getDesiredCourse();
   auto desired_speed = m_helm_desiredValues->getDesiredSpeed();
   auto desired_altitude_agl = m_helm_desiredValues->getDesiredAltitude();
 
   if (forceSend)
   {
-    desired_heading = m_helm_desiredValues->readDesiredHeading();
+    desired_course = m_helm_desiredValues->readDesiredCourse();
     desired_speed = m_helm_desiredValues->readDesiredSpeed();
     desired_altitude_agl = m_helm_desiredValues->readDesiredAltitudeAGL();
   }
 
-  if (desired_heading.has_value())
+  if (desired_course.has_value())
   {
-    Logger::info("Sending desired heading: " + doubleToString(desired_heading.value()));
-    uav.commandAndSetHeading(desired_heading.value());
+    Logger::info("Sending desired course: " + doubleToString(desired_course.value()));
+    uav.commandAndSetCourse(desired_course.value());
   }
 
   if (desired_speed.has_value())
@@ -1020,10 +1035,11 @@ void ArduBridge::postTelemetryUpdate(const std::string &prefix)
   NotifyIfNonNan(prefix + "_LAT", lat, m_curr_time);
   NotifyIfNonNan(prefix + "_LON", lon, m_curr_time);
 
-  auto uav_isHoldHeadingGuided = m_uav_model.isHoldHeadingGuidedSet();
+  auto uav_isHoldCourseGuided = m_uav_model.isHoldCourseGuidedSet();
 
   auto uav_SOG = m_uav_model.getSOG();
-  auto uav_heading = m_uav_model.getHeading();
+  // auto uav_heading = m_uav_model.getHeading();
+  auto uav_COG = m_uav_model.getCOG();
   auto uav_altitude_agl = m_uav_model.getAltitudeAGL();
 
   auto XY = transformLatLonToXY({lat, lon});
@@ -1031,14 +1047,14 @@ void ArduBridge::postTelemetryUpdate(const std::string &prefix)
   NotifyIfNonNan(prefix + "_X", XY.x(), m_curr_time);
   NotifyIfNonNan(prefix + "_Y", XY.y(), m_curr_time);
 
-  visualizeHdgHoldTarget(isHelmCommanding() || uav_isHoldHeadingGuided);
+  visualizeCourseHoldTarget(isHelmCommanding() || uav_isHoldCourseGuided);
 
   NotifyIfNonNan(prefix + "_SPEED", uav_SOG, m_curr_time);
 
   NotifyIfNonNan(prefix + "_ALTITUDE", uav_altitude_agl, m_curr_time);
   NotifyIfNonNan(prefix + "_DEPTH", -uav_altitude_agl, m_curr_time);
 
-  NotifyIfNonNan(prefix + "_HEADING", uav_heading, m_curr_time);
+  NotifyIfNonNan(prefix + "_HEADING", uav_COG, m_curr_time); // NAV_COURSE comes in as NAV_HEADING for pNodeReporter
 }
 
 void ArduBridge::postSpeedUpdateToBehaviors(double speed)
@@ -1095,24 +1111,24 @@ void ArduBridge::visualizeLoiterLocation(const XYPoint &loiter_coord, bool visua
   reportEvent("Set marker at loiter location: " + spec);
 }
 
-void ArduBridge::visualizeHeadingWaypoint(const XYPoint &heading_coord, bool visualize)
+void ArduBridge::visualizeCourseWaypoint(const XYPoint &course_coord, bool visualize)
 {
 
-  XYPoint point = transformLatLonToXY(heading_coord);
+  XYPoint point = transformLatLonToXY(course_coord);
   if (point == XYPoint(0, 0) && visualize)
   {
-    m_warning_system_ptr->queue_monitorWarningForXseconds("No Heading waypoiny set: NAN Values at lat or long", 5);
+    m_warning_system_ptr->queue_monitorWarningForXseconds("No Course waypoiny set: NAN Values at lat or long", 5);
     return;
   }
 
-  point.set_label("Hold Heading point");
-  point.set_vertex_size(HEADING_POINT_SIZE);
+  point.set_label("Hold Course point");
+  point.set_vertex_size(COURSE_POINT_SIZE);
   point.set_active(visualize);
   std::string spec = point.get_spec() + ",color=" + m_vcolor;
   Notify("VIEW_POINT", spec);
 }
 
-void ArduBridge::visualizeHdgVector(double x, double y, double magnitude, double angle, bool visualize)
+void ArduBridge::visualizeCourseVector(double x, double y, double magnitude, double angle, bool visualize)
 {
 
   XYVector vector(x, y, magnitude * 2, angle);
@@ -1127,7 +1143,7 @@ void ArduBridge::visualizeHdgVector(double x, double y, double magnitude, double
   // reportEvent("Set vector at wbldith: " + spec);
 }
 
-void ArduBridge::visualizeHdgHoldTarget(bool visualize)
+void ArduBridge::visualizeCourseHoldTarget(bool visualize)
 {
   static bool is_visible = false;
 
@@ -1140,14 +1156,14 @@ void ArduBridge::visualizeHdgHoldTarget(bool visualize)
   double lon = m_uav_model.getLongitude();
 
   auto uav_targetAirspeed = m_uav_model.getTargetAirSpeed();
-  auto uav_targetHeading = m_uav_model.getTargetHeading();
+  auto uav_targetCourse = m_uav_model.getTargetCourse();
 
   if ((!lat || !lon) && !visualize)
     return; // If invald coord, return unless the goal is to remove from visualization
 
   auto XY = transformLatLonToXY({lat, lon});
 
-  visualizeHdgVector(XY.x(), XY.y(), uav_targetAirspeed, uav_targetHeading, visualize);
+  visualizeCourseVector(XY.x(), XY.y(), uav_targetAirspeed, uav_targetCourse, visualize);
 }
 
 bool ArduBridge::parseCoordinateString(const std::string &input, double &lat, double &lon, double &x, double &y, std::string &vname) const
@@ -1450,12 +1466,12 @@ void ArduBridge::goToHelmMode(AutopilotHelmMode to_state, bool fromGCS)
   {
   case AutopilotHelmMode::HELM_PARKED:
     Notify("MOOS_MANUAL_OVERRIDE", "true");
-    visualizeHdgHoldTarget(false);
+    visualizeCourseHoldTarget(false);
     break;
 
   case AutopilotHelmMode::HELM_INACTIVE_LOITERING:
   case AutopilotHelmMode::HELM_INACTIVE:
-    visualizeHdgHoldTarget(false);
+    visualizeCourseHoldTarget(false);
     break;
 
   case AutopilotHelmMode::HELM_TOWAYPT:
@@ -1481,7 +1497,7 @@ void ArduBridge::initializeStateTransitionFunctions()
 
   m_statetransition_functions[std::make_pair(AutopilotHelmMode::HELM_TOWAYPT, AutopilotHelmMode::HELM_INACTIVE_LOITERING)] = [this]()
   {
-    visualizeHeadingWaypoint(XYPoint(0, 0), false);
+    visualizeCourseWaypoint(XYPoint(0, 0), false);
   };
 }
 

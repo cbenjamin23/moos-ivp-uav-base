@@ -27,7 +27,7 @@ TIME_WARP=1
 JUST_MAKE=""
 VERBOSE=""
 VLAUNCH_ARGS="--auto --sim "
-SLAUNCH_ARGS="--auto "
+SLAUNCH_ARGS="--auto --sim"
 
 
 ARDUPILOT_IP=0.0.0.0
@@ -47,6 +47,7 @@ VNAMES=(skywalker skyfollower)
 ARDUPILOT_IPS=( "0.0.0.0" "0.0.0.0")
 ARDUPILOT_PORTS=(14550 14560)
 ARDUPILOT_PROTOCOLS=(udp udp)
+COLOR="blue"
 
 #-------------------------------------------------------
 #  Part 3: Check for and handle command-line arguments
@@ -170,6 +171,9 @@ for ((i = 0; i < $NUM_VEHICLES; i++)); do
         ARDUPILOT_PORT=$(($ARDUPILOT_PORT + $i*10))
     
         START_POS="$x,$y"
+        
+        COLOR=$(yq eval ".drones[$i].color" "$CONFIG_FILE")
+        if [ $? -ne 0 ]; then exit 1; fi
 
         MOOS_PORT=$(($i+1 + $DEFAULT_PORT_DB))
         PSHARE_PORT=$(($i+1 + $DEFAULT_PORT_PSHARE))
@@ -190,6 +194,7 @@ for ((i = 0; i < $NUM_VEHICLES; i++)); do
     IX_VLAUNCH_ARGS+=" --vname=$VNAME"
     IX_VLAUNCH_ARGS+=" --mport=$MOOS_PORT --pshare=$PSHARE_PORT "
     IX_VLAUNCH_ARGS+=" $TIME_WARP $VERBOSE $JUST_MAKE"
+    IX_VLAUNCH_ARGS+=" --color=$COLOR"
     IX_VLAUNCH_ARGS+=" --start=$START_POS --return=$START_POS "
     IX_VLAUNCH_ARGS+=" --ap_ip=$ARDUPILOT_IP --ap_port=$ARDUPILOT_PORT --ap_protocol=$ARDUPILOT_PROTOCOL"
 
