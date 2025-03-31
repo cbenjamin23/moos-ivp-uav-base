@@ -354,7 +354,6 @@ bool ArduBridge::Iterate()
   if (m_do_change_altitude_pair.first)
   {
     double new_altitude = m_uav_model.getTargetAltitudeAGL() + m_do_change_altitude_pair.second;
-    double time_now = MOOSTime();
     bool success = m_uav_model.commandAndSetAltitudeAGL(new_altitude);
 
     if (!isHelmOn() && !success)
@@ -923,7 +922,7 @@ bool ArduBridge::buildReport()
   // m_msgs << "          Target Airspeed: " << m_uav_model.getTargetAirSpeed() << " m/s" << std::endl;
   // m_msgs << "          AirSpeed (SOG) : " << m_uav_model.getSOG() << " m/s)" << std::endl;
   // m_msgs << "     Target Course (COG): " << doubleToStringX(uav_targetCOG, sdigits) << " deg" << std::endl;
-  m_msgs << "                  Heading: " << m_uav_model.getHeading() << " deg" << std::endl;
+  m_msgs << "                  Heading: " << uav_heading << " deg" << std::endl;
 
   m_msgs << "-------------------------------------------" << std::endl;
 

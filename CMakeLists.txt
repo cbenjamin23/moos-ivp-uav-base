@@ -6,7 +6,7 @@
 #        Chris Gagner, and tips borrowed from Dave Billin
 #=======================================================================
 
-CMAKE_MINIMUM_REQUIRED(VERSION 2.8)
+CMAKE_MINIMUM_REQUIRED(VERSION 3.0)
 PROJECT( IVP_EXTEND )
 
 set (CMAKE_CXX_STANDARD 17)
@@ -58,18 +58,24 @@ endif()
 #========================================================================
 
 # Search for the moos-ivp-swarm folder
-find_path( MOOSIVP_SWARM_TREE_BASE
-           NAMES src_private
-           PATHS "../moos-ivp-swarm" "../../moos-ivp-swarm" "../../moos-ivp-swarm/trunk/" "../moos-ivp-swarm/trunk/"
-           DOC "Base directory of the moos-ivp-swarm source tree"
-           NO_DEFAULT_PATH
-)
+# find_path( MOOSIVP_SWARM_TREE_BASE
+#            NAMES rollcall_raw.txt  # is found in moos-ivp-swarm/scripts/
+#            PATHS "../moos-ivp-swarm" "../../moos-ivp-swarm" "../../moos-ivp-swarm/trunk/" "../moos-ivp-swarm/trunk/"
+#            PATH_SUFFIXES "scripts"  # Look in 'scripts/' subdirectory
+#            DOC "Base directory of the moos-ivp-swarm source tree"
+#            NO_DEFAULT_PATH
+# )
+
+# set(MOOSIVP_SWARM_TREE_BASE "../moos-ivp-swarm" CACHE PATH "Base directory of the moos-ivp-swarm source tree")
+set(MOOSIVP_SWARM_TREE_BASE "$ENV{HOME}/moos-ivp-swarm" CACHE PATH "Base directory of the moos-ivp-swarm source tree")
 
 if (NOT MOOSIVP_SWARM_TREE_BASE)
 message("Please set MOOSIVP_SWARM_TREE_BASE to  ")
 message("the location of the \"moos-ivp-swarm\" folder ")
 message( FATAL_ERROR "CMake will exit." )
 endif()
+
+message(STATUS "MOOSIVP_SWARM_TREE_BASE: ${MOOSIVP_SWARM_TREE_BASE}")
 
 FILE(GLOB SWARM_LIBRARY_DIRS ${MOOSIVP_SWARM_TREE_BASE}/src/lib_*)
 INCLUDE_DIRECTORIES(${SWARM_LIBRARY_DIRS})
@@ -90,7 +96,7 @@ LINK_DIRECTORIES(${IVP_LIBRARY_DIRS})
 
 
 # Display the include directories
-MESSAGE("IVP_SRC_DIR: ${MOOSIVP_SOURCE_TREE_BASE}")
+MESSAGE(STATUS "IVP_SRC_DIR: ${MOOSIVP_SOURCE_TREE_BASE}")
 
 # Add the MOOSGeodesy include directory explicitly
 find_path(MOOSGEODESY_INCLUDE_DIR MOOSGeodesy.h
