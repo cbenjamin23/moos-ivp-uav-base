@@ -132,9 +132,7 @@ if [ "${AUTO_LAUNCHED}" == "no" ]; then
         TIME_WARP=$(yq eval ".simulation.time_warp" "$CONFIG_FILE")
         if [ $? -ne 0 ]; then exit 1; fi
 
-        USE_MOOS_SIM_PID=$(get_global_val $CONFIG_FILE simulation.useMoosSimPid)
-        if [ $? -ne 0 ]; then exit 1; fi
-    
+
     else # if real / field mode
 
         if [ ! "${FORCE_LOCALHOST}" = "yes" ]; then
@@ -147,6 +145,14 @@ if [ "${AUTO_LAUNCHED}" == "no" ]; then
     
     fi
 
+fi
+
+
+# if sim
+
+if [ "${XMODE}" = "SIM" ]; then
+    USE_MOOS_SIM_PID=$(get_global_val $CONFIG_FILE simulation.useMoosSimPid)
+    if [ $? -ne 0 ]; then exit 1; fi
 fi
 
 
