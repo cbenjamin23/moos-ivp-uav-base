@@ -204,6 +204,12 @@ done
 # if not autolaunched 
 if [ "${AUTO_LAUNCHED}" == "no" ]; then  
 
+
+    if [ -n "$WHICH_ODROID" ]; then
+        echo "Odroid detected. Setting Vehicle Nr to $WHICH_ODROID"
+        VIDX=$WHICH_ODROID
+    fi
+
     if [ $VIDX -eq -1 ]; then
         echo "Error: Vehicle index not set. Exit Code 1."
         echo " Set using --id=<0>"

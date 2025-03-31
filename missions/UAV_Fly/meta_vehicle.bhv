@@ -248,7 +248,7 @@ Behavior = BHV_AvoidCollision
 
 
 
-Behavior = BHV_Voronoi
+Behavior = BHV_Voronoi2
 { 
   name      = vcover
   pwt       = 150

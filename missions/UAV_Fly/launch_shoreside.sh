@@ -15,6 +15,7 @@ AUTO_LAUNCHED="no"
 CMD_ARGS=""
 LAUNCH_GUI="yes"
 
+FORCE_LOCALHOST="no"
 IP_ADDR="localhost"
 MOOS_PORT="9000"
 PSHARE_PORT="9200"
@@ -71,6 +72,10 @@ for ARGI; do
     echo "    Colon-separate list of all vehicle names   "
     echo "  --sim=,   -s                                  "
     echo "    Launch in simulation mode.                 "
+    echo "  --simf , -sf ,       "
+    echo "    Launch in simulation mode with localhost."
+    echo "  --forcelocalhost, -fl                        " 
+    echo "    Force use of localhost               " 
 	exit 0;
     elif [[ "${ARGI//[^0-9]/}" == "$ARGI" && "$TIME_WARP" == "1" ]]; then
         TIME_WARP=$ARGI
@@ -93,7 +98,13 @@ for ARGI; do
     elif [[ "${ARGI}" == --sim || "${ARGI}" == -s ]]; then
         XMODE="SIM"
         echo "Simulation mode ON."
-
+    elif [[ "${ARGI}" == --simf || "${ARGI}" == -sf ]]; then
+        XMODE="SIM"
+        FORCE_LOCALHOST="yes"
+        echo "Simulation mode ON with localhost."
+    elif [[ "${ARGI}" == --forcelocalhost || "${ARGI}" == -fl ]]; then
+        FORCE_LOCALHOST="yes"
+        echo "Forcing localhost."
     else
         echo "$ME: Bad Arg: $ARGI. Exit Code 1."
         exit 1
@@ -105,7 +116,7 @@ done
 #          and the IP_ADDR has not be explicitly set, try to get
 #          it using the ipaddrs.sh script. 
 #---------------------------------------------------------------
-if [ "${AUTO_LAUNCHED}" = "no" -a "${IP_ADDR}" = "localhost" ]; then
+if [ "${AUTO_LAUNCHED}" = "no" -a "${IP_ADDR}" = "localhost" -a "${FORCE_LOCALHOST}" = "no" ]; then
     MAYBE_IP_ADDR=$(get_ipaddr)
     if [ $? -eq 0 ]; then
 	IP_ADDR=$MAYBE_IP_ADDR
@@ -126,9 +137,11 @@ if [ "${AUTO_LAUNCHED}" == "no" ]; then
     
     else # if real / field mode
 
-
-        IP_ADDR=$(get_global_val $CONFIG_FILE moos.shore_ip)
-        if [ $? -ne 0 ]; then exit 1; fi
+        if [ ! "${FORCE_LOCALHOST}" = "yes" ]; then
+            IP_ADDR=$(get_global_val $CONFIG_FILE moos.shore_ip)
+            if [ $? -ne 0 ]; then exit 1; fi
+        fi
+        
         PSHARE_PORT=$(get_global_val $CONFIG_FILE moos.defaultPorts.PSHARE)
         if [ $? -ne 0 ]; then exit 1; fi
     
