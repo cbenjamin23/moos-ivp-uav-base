@@ -31,7 +31,12 @@ Processconfig = ANTLER
     Run = uSimMarineV22     @ NewConsole = false
     Run = pMarinePIDV22     @ NewConsole = false
   #else
+
+    #ifdef XMODE SIM
     Run = pArduBridge        @ NewConsole = true,XConfig=DBXConsoleSettings,  \[=\=]
+    #endif
+    // pArdubridge is run in a separate window on the odroid in the real world
+
   #endif
   
   Run = uProcessWatch      @ NewConsole = false

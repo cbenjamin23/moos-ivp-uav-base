@@ -62,8 +62,8 @@ int main(int argc, char **argv)
     // Parse command line arguments
     std::string mapfile = "example_map.txt";
     std::string method = "MSTC";
-    std::string shape = "RECT_DIV";
-    int robot_count = 1;
+    std::string shape = "DINIC";
+    int robot_count = 2;
     bool return_to_start = false;
     bool use_color = true; // Default to using colors
 

@@ -274,8 +274,13 @@ public:
 
         for (int i = 0; i < edges.size(); ++i)
         {
-            // ��ÿ���ߴ���������
-            // ��Ϊ�㣬����Ϊ0����Ϊ1������-2��0����Ϊ2������0��2����Ϊ3������2����Ϊ4�������ӡ� ��ߵ����˵�����
+            // Calculate the increment brought by each edge
+            // Degree 0: increment is 0
+            // Degree 1: increment is -2 or 0
+            // Degree 2: increment is 0 or 2
+            // Degree 3: increment is 2
+            // Degree 4: cannot be connected
+            // Compute the increment for both ends of the edge
             edges[i].cost = getEdgeVal(graph, edges[i].from, edges[i].to);
             que.push(edges[i]);
         }
