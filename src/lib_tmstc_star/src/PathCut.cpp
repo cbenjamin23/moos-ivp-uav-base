@@ -53,7 +53,7 @@ void PathCut::MST2Path()
 	{
 		for (int j = 0; j < Map[0].size(); ++j)
 		{
-			if (!Map[i][j])
+			if (!Map[i][j]) // Skip obstacles
 				continue;
 			int x = 2 * i, y = 2 * j;
 			int cur = i * smallcols + j;
@@ -114,7 +114,7 @@ void PathCut::MST2Path()
 	invSequence.resize(Region.size() * Region[0].size(), -1);
 	for (int i = 0; i < pathSequence.size(); ++i)
 	{
-		invSequence[pathSequence[i]] = i;
+		invSequence[pathSequence[i]] = i; //Maps each fine-grid cell index to its position in pathSequence, useful for lookups.
 	}
 
 	// construct path value vec
