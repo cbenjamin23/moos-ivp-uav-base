@@ -39,6 +39,8 @@ protected:
   void unregisterIgnoredRegion(std::string name);
 
   void doPlanPaths();
+
+  void distributePathsToVehicles(Mat paths);
   void notifyCalculatedPathsAndExecute(bool executePath = false);
   void postCalculatedPaths(bool visible = true);
 

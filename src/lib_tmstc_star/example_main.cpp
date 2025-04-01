@@ -181,7 +181,7 @@ int main(int argc, char **argv)
     config.mst_shape = shape;
     config.robot_num = robot_count;
     config.cover_and_return = return_to_start;
-    config.one_turn_value = 2.0; // Default turning cost
+    config.vehicle_params = {0.8, 0.6, 0.5, 100}; // Example vehicle parameters
 
     // Create the TMSTC* instance and calculate paths
     TMSTCStar tmstc(map, robot_positions, config);

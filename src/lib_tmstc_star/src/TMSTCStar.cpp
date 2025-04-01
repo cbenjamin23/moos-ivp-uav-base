@@ -5,9 +5,6 @@ TMSTCStar::TMSTCStar(const Mat &map, const std::vector<int> &robot_positions,
     : map_(map), robot_init_pos_(robot_positions), config_(config)
 {
 
-    // Set global turning cost value
-    ONE_TURN_VAL = config.one_turn_value;
-
     // Initialize dimensions
     smallrows_ = map_.size();
     smallcols_ = map_[0].size();
@@ -24,8 +21,6 @@ TMSTCStar::TMSTCStar(const Mat &map, const std::vector<std::pair<int, int>> &rob
     : map_(map), config_(config)
 {
 
-    // Set global turning cost value
-    ONE_TURN_VAL = config.one_turn_value;
 
     // Initialize dimensions
     smallrows_ = map_.size();
@@ -63,9 +58,6 @@ void TMSTCStar::reconfigureMapRobot(const Mat &map, const std::vector<int> &robo
 {
     map_ = map;
     robot_init_pos_ = robot_positions;
-
-    // Set global turning cost value
-    ONE_TURN_VAL = config_.one_turn_value;
 
     // Reconfigure dimensions
     smallrows_ = map_.size();
@@ -186,8 +178,7 @@ Mat TMSTCStar::calculateRegionIndxPaths()
         }
 
         // Create PathCut solver
-        PathCut cut(map_, region_, mst_, robot_init_pos_, config_.vehicle_params ,config_.cover_and_return);
-        cut.setOneTurnVal(config_.one_turn_value);
+        PathCut cut(map_, region_, mst_, robot_init_pos_, config_.vehicle_params, config_.max_iterations ,config_.cover_and_return);
         paths_ = cut.cutSolver();
     }
     else if (config_.allocate_method == "MTSP")
@@ -203,8 +194,7 @@ Mat TMSTCStar::calculateRegionIndxPaths()
         Division div(map_);
         mst_ = div.rectDivisionSolver();
 
-        PathCut cut(map_, region_, mst_, robot_init_pos_, config_.vehicle_params, config_.cover_and_return);
-        cut.setOneTurnVal(config_.one_turn_value);
+        PathCut cut(map_, region_, mst_, robot_init_pos_, config_.vehicle_params, config_.max_iterations ,config_.cover_and_return);
         paths_ = cut.cutSolver();
     }
 

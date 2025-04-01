@@ -46,7 +46,11 @@ GridSearchPlanner::GridSearchPlanner()
   config.mst_shape = "DINIC"; // MSTC and DINIC are what constitutes TMSTC*
   config.robot_num = m_map_drone_records.size();
   config.cover_and_return = false; // return to start position after cover
-  config.one_turn_value = 2.0;     // Default turning cost
+  config.vehicle_params.omega = 0.8; // rad/s (angular velocity)
+  config.vehicle_params.a = 1.2;    // m/s^2 (acceleration)
+  config.vehicle_params.vmax = 12;  // m/s (max velocity)
+  config.vehicle_params.cellSize = 10; // meters (grid cell size)
+
 
   m_tmstc_star_ptr = std::move(std::make_unique<TMSTCStar>(config));
 }
@@ -285,32 +289,62 @@ void GridSearchPlanner::doPlanPaths()
     return;
   }
 
-  auto paths_robot_coords = m_tmstc_star_ptr->pathsIndxToRegionCoords(paths_robot_indx);
-
-  // Convert the paths to XYSegList format
-  int i = 0;
-  for (const auto &[drone, record] : m_map_drone_records)
-  {
-    XYSegList path = m_tmstc_grid_converter.regionCoords2XYSeglisMoos(paths_robot_coords[i++]);
-
-    if (m_start_point_closest)
-    {
-      XYPoint firstPoint = path.get_first_point();
-      XYPoint lastPoint = path.get_last_point();
-
-      double dist_firstPoint = hypot(firstPoint.x() - record.getX(), firstPoint.y() - record.getY());
-      double dist_lastPoint = hypot(lastPoint.x() - record.getX(), lastPoint.y() - record.getY());
-
-      if (dist_lastPoint < dist_firstPoint)
-        path.reverse();
-    }
-    m_map_drone_paths[drone] = path;
-  }
+  distributePathsToVehicles(paths_robot_indx);
 
   Logger::info("doPlanPaths: Paths calculated.");
   reportEvent("Paths calculated.");
 
   clearAllGenerateWarnings();
+}
+
+
+void GridSearchPlanner::distributePathsToVehicles(Mat paths_robot_indx){
+  
+  auto paths_robot_coords = m_tmstc_star_ptr->pathsIndxToRegionCoords(paths_robot_indx);
+  
+
+  std::set<std::string> drone_names;
+  for (const auto &[drone_name, record] : m_map_drone_records)
+  {
+    drone_names.insert(drone_name);
+  }
+  for (const auto &path : paths_robot_coords)
+  {
+    // Convert the paths to XYSegList format
+    XYSegList seglist = m_tmstc_grid_converter.regionCoords2XYSeglisMoos(path);
+    
+    
+    // find the closest drone
+    XYPoint firstPoint = seglist.get_first_point();
+    std::string drone = "";
+    double min_dist = std::numeric_limits<double>::max();
+    for (const auto drone_name : drone_names)
+    {
+      double dist = hypot(firstPoint.x() - m_map_drone_records[drone_name].getX(), firstPoint.y() - m_map_drone_records[drone_name].getY());
+      if (dist < min_dist)
+      {
+        min_dist = dist;
+        drone = drone_name;
+      }
+    }
+
+    drone_names.erase(drone); // remove the drone from the set
+    
+
+    if (m_start_point_closest)
+    {
+      XYPoint firstPoint = seglist.get_first_point();
+      XYPoint lastPoint = seglist.get_last_point();
+
+      double dist_firstPoint = hypot(firstPoint.x() - m_map_drone_records[drone].getX(), firstPoint.y() - m_map_drone_records[drone].getY());
+      double dist_lastPoint = hypot(lastPoint.x() - m_map_drone_records[drone].getX(), lastPoint.y() - m_map_drone_records[drone].getY());
+
+      if (dist_lastPoint < dist_firstPoint)
+        seglist.reverse();
+    }
+    m_map_drone_paths[drone] = seglist;
+  }
+  // Logger::info("doPlanPaths: Paths distributed to vehicles.");
 }
 
 void GridSearchPlanner::notifyCalculatedPathsAndExecute(bool executePath)

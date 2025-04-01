@@ -74,9 +74,10 @@ private:
 	bool coverAndReturn;
 
 	VehicleParameters vehicleParams;
+	int maxIterations = 10000;
 
 public:
-	PathCut(Mat &map, Mat &region, Mat &tree, vector<int> &robotInitPos, VehicleParameters vp, bool _coverAndReturn = false) : Map(map), Region(region), MST(tree), depot(robotInitPos), vehicleParams(vp), coverAndReturn(_coverAndReturn)
+	PathCut(Mat &map, Mat &region, Mat &tree, vector<int> &robotInitPos, VehicleParameters vp, int maxIter, bool _coverAndReturn = false) : Map(map), Region(region), MST(tree), depot(robotInitPos), vehicleParams(vp), maxIterations(maxIter), coverAndReturn(_coverAndReturn)
 	{
 		bigrows = Region.size();
 		bigcols = Region[0].size();

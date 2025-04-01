@@ -483,11 +483,17 @@ void PathCut::MSTC_Star()
 	}
 
 	// Note: MSTC* does not consider that in some cases the path weight of cutting a single path is greater than cutting multiple paths, so in practice it may not converge for some maps. We need to modify it
-	int cur_iter = 0, max_iter = 10;
+	int cur_iter = 0; // , max_iter = 10;
 	// while (cur_iter < max_iter)
 	// infinite loop
-	while (opt - wst > 10.0)
+
+	double curr_diff = opt - wst;
+	double prev_diff = opt - wst;
+
+	while (opt - wst > 10.0 && cur_iter < maxIterations)
 	{
+		cur_iter++;
+		cout << "MSTC_Star Iteration: " << cur_iter << "\n";
 		cout << "cutting for balancing...\n"; // just a sign
 		double minn = 2e9, maxx = -1;
 		int min_cut = -1, max_cut = -1;
@@ -505,7 +511,9 @@ void PathCut::MSTC_Star()
 			}
 		}
 
-		cout << "before adjustment opt and wst: " << maxx << "  " << minn << "\n";
+		curr_diff = maxx - minn;
+
+		cout << "before adjustment opt and wst: " << maxx << "  " << minn << " diff: ("<< (maxx-minn) <<")\n";
 		// Judge whether to go clockwise or counter-clockwise
 		vector<int> clw = getHalfCuts(min_cut, max_cut, 1);
 		vector<int> ccw = getHalfCuts(min_cut, max_cut, -1);
@@ -529,8 +537,17 @@ void PathCut::MSTC_Star()
 			opt = std::max(opt, cuts[i].val);
 			wst = std::min(wst, cuts[i].val);
 		}
+		
+		cout << "after adjustment opt and wst: " << opt << "  " << wst << " diff: ("<< (opt-wst) <<")\n";
+		
+		prev_diff = curr_diff;
+		curr_diff = opt - wst;
+		if (std::abs(prev_diff - curr_diff) < 10)
+		{
+			cout << "MSTC_Star Cutoff finished!\n\n\n";
+			break;
+		}
 
-		cout << "after adjustment opt and wst: " << opt << "  " << wst << "\n";
 	}
 }
 

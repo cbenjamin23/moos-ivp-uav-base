@@ -21,7 +21,6 @@ struct TMSTCStarConfig
     std::string mst_shape = "RECT_DIV";   // "RECT_DIV", "DFS_VERTICAL", "DFS_HORIZONTAL", "KRUSKAL", "ACO_OPT", "DINIC", "HEURISTIC"
     int robot_num = 1;
     bool cover_and_return = false;
-    double one_turn_value = 2.0;
     int max_iterations = 1000; // For iterative algorithms
     VehicleParameters vehicle_params = {0.8, 0.6, 0.5, 0.5}; // rad/s, m/s^2, m/s, meters
 };
@@ -57,6 +56,8 @@ public:
     // Alternative constructor with 2D coordinates instead of indices
     TMSTCStar(const Mat &map, const std::vector<std::pair<int, int>> &robot_positions,
               const TMSTCStarConfig &config = TMSTCStarConfig());
+
+    void setConfig(const TMSTCStarConfig &config) {config_ = config; }
 
     void reconfigureMapRobot(const Mat &map, const std::vector<int> &robot_positions);
 
