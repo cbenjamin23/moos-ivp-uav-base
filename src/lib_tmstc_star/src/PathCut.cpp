@@ -1,8 +1,7 @@
 #include "PathCut.h"
 
-
 #include <functional>
-// #define OLD_COST
+
 // MST is undirected graph, so it contains (i, j) and (j, i)
 void PathCut::MST2Path()
 {
@@ -138,10 +137,15 @@ void PathCut::MST2Path()
 #else
 	cout << "Generating: Path value with new Cost definition to match speed parameters def\n";
 
-	double omega = vehicleParams.omega;		  // rad/s (angular velocity)
-	double a = vehicleParams.a;				  // m/s^2 (acceleration)
-	double vmax = vehicleParams.vmax;		  // m/s (max velocity)
-	double cellSize = vehicleParams.cellSize; // meters (grid cell size)
+	double omega = vehicleParams.omega_rad;		// rad/s (angular velocity)
+	double a = vehicleParams.acc;				// m/s^2 (acceleration)
+	double vmax = vehicleParams.vmax;			// m/s (max velocity)
+	double cellSize = vehicleParams.cellSize_m; // meters (grid cell size)
+	double phi = vehicleParams.phi_max_rad;		// rad (max banking angle)
+
+	// Computed turn radius
+	const double turn_radius = (vmax * vmax) / (gravity * std::tan(phi)); // Turn radius in meters
+	const double turn_time = (turn_radius * M_PI / 2) / vmax;			  // Time for a 90-degree turn in seconds
 
 	// Resize pathValue to 2 * circleLen to accommodate the double cycle for multiple robots
 	pathValue.resize(2 * circleLen, 0.0);
@@ -156,14 +160,12 @@ void PathCut::MST2Path()
 
 		// Compute segment time tj
 		double tj;
-		if (distance < (vmax * vmax) / a)
-		{
-			tj = sqrt(4 * distance / a); // Time under acceleration limit
-		}
-		else
-		{
-			tj = distance / vmax + vmax / a; // Time with max velocity reached
-		}
+#ifdef USE_UAV_COST
+		tj = distance / vmax;
+#else
+		// Segment time tj: sqrt(4d/a) if d < vmax^2/a, else d/vmax + vmax/a (Time under acceleration limit, else time with max velocity reached)
+		tj = (distance < (vmax * vmax) / a) ? std::sqrt(4 * distance / a) : (distance / vmax + vmax / a);
+#endif
 
 		// Add segment time to pathValue
 		pathValue[i + 1] = pathValue[i] + tj;
@@ -174,8 +176,15 @@ void PathCut::MST2Path()
 			int next = (i + 2) % circleLen;
 			if (!isSameLine(pathSequence[prev], pathSequence[curr], pathSequence[next]))
 			{
-				double turnCost = M_PI / (2 * omega); // 90-degree turn time
-				pathValue[i + 1] += turnCost;		  // Add turn cost after segment
+				double turnCost = 0.0;
+// Add turn costs (assuming 90-degree turns, cost = turn_time)
+#ifdef USE_UAV_COST
+				turnCost = turn_time; // 90-degree turn time	// cost = turn_time)
+#else
+				turnCost = (M_PI / (2 * omega)); // 90-degree turn time // cost = pi/(2*omega))
+#endif
+
+				pathValue[i + 1] += turnCost; // Add turn cost after segment
 			}
 		}
 	}
@@ -261,10 +270,10 @@ double PathCut::A_star(int u, int v)
 {
 	std::priority_queue<node> que; // node: {fx, gx, id}
 
-	double a = vehicleParams.a;
-	double omega = vehicleParams.omega;
+	double a = vehicleParams.acc;
+	double omega = vehicleParams.omega_rad;
 	double vmax = vehicleParams.vmax;
-	double cellSize = vehicleParams.cellSize;
+	double cellSize = vehicleParams.cellSize_m;
 
 	vector<double> dis(bigcols * bigrows, 2e9);
 	vector<int> pre(bigcols * bigrows, -1);
@@ -421,8 +430,8 @@ double PathCut::calculateDistance(int idx1, int idx2)
 	get2DCoordinateMap(idx1, x1, y1);
 	get2DCoordinateMap(idx2, x2, y2);
 
-	return euclidean_dis(x1, y1, x2, y2) * vehicleParams.cellSize; // Adjust with actual cell size
-																   // Alternatively, if you want to use the original euclidean_dis function:
+	return euclidean_dis(x1, y1, x2, y2) * vehicleParams.cellSize_m; // Adjust with actual cell size
+																	 // Alternatively, if you want to use the original euclidean_dis function:
 
 	// double dx = (x1 - x2) * cellSize; // Adjust with actual cell size
 	// double dy = (y1 - y2) * cellSize;
@@ -513,7 +522,7 @@ void PathCut::MSTC_Star()
 
 		curr_diff = maxx - minn;
 
-		cout << "before adjustment opt and wst: " << maxx << "  " << minn << " diff: ("<< (maxx-minn) <<")\n";
+		cout << "before adjustment opt and wst: " << maxx << "  " << minn << " diff: (" << (maxx - minn) << ")\n";
 		// Judge whether to go clockwise or counter-clockwise
 		vector<int> clw = getHalfCuts(min_cut, max_cut, 1);
 		vector<int> ccw = getHalfCuts(min_cut, max_cut, -1);
@@ -537,9 +546,9 @@ void PathCut::MSTC_Star()
 			opt = std::max(opt, cuts[i].val);
 			wst = std::min(wst, cuts[i].val);
 		}
-		
-		cout << "after adjustment opt and wst: " << opt << "  " << wst << " diff: ("<< (opt-wst) <<")\n";
-		
+
+		cout << "after adjustment opt and wst: " << opt << "  " << wst << " diff: (" << (opt - wst) << ")\n";
+
 		prev_diff = curr_diff;
 		curr_diff = opt - wst;
 		if (std::abs(prev_diff - curr_diff) < 10)
@@ -547,7 +556,6 @@ void PathCut::MSTC_Star()
 			cout << "MSTC_Star Cutoff finished!\n\n\n";
 			break;
 		}
-
 	}
 }
 
@@ -705,23 +713,24 @@ int PathCut::getTurnsNum()
 	return turns;
 }
 
-
-
-
-double computePathCost(const std::vector<int> &path, const VehicleParameters &vehicleParams, int mapCols){
+double computePathCost(const std::vector<int> &path, const VehicleParameters &vehicleParams, int mapCols)
+{
 	// Assuming path is a vector of (cover) grid indices, compute the cost based on the vehicle parameters
-	double omega = vehicleParams.omega; // rad/s (angular velocity)
-	double a = vehicleParams.a;			// m/s^2 (acceleration)
-	double vmax = vehicleParams.vmax;	// m/s (max velocity)
+	double omega = vehicleParams.omega_rad; // rad/s (angular velocity)
+	double a = vehicleParams.acc;			// m/s^2 (acceleration)
+	double vmax = vehicleParams.vmax;		// m/s (max velocity)
+	double phi = vehicleParams.phi_max_rad; // rad (max banking angle)
 
+	// Computed turn radius
+	const double turn_radius = (vmax * vmax) / (gravity * std::tan(phi)); // Turn radius in meters
+	const double turn_time = (turn_radius * M_PI / 2) / vmax;			  // Time for a 90-degree turn in seconds
 
 	// Check if path is valid
-	
 	if (path.size() < 2)
 		return 0.0;
-	
-	std::function <double(int, int)> calculateDistanceMap = [smallcols=mapCols, cellSize=vehicleParams.cellSize](int idx1, int idx2) {
 
+	std::function<double(int, int)> calculateDistanceMap = [smallcols = mapCols, cellSize = vehicleParams.cellSize_m](int idx1, int idx2)
+	{
 		int x1, y1, x2, y2;
 		x1 = idx1 / smallcols;
 		y1 = idx1 % smallcols;
@@ -739,8 +748,14 @@ double computePathCost(const std::vector<int> &path, const VehicleParameters &ve
 	for (size_t j = 0; j < path.size() - 1; ++j)
 	{
 		double distance = calculateDistanceMap(path[j], path[j + 1]);
+		double tj = 0;
+#ifdef USE_UAV_COST
+		tj = distance / vmax;
+#else
 		// Segment time tj: sqrt(4d/a) if d < vmax^2/a, else d/vmax + vmax/a
-		double tj = (distance < (vmax * vmax) / a) ? std::sqrt(4 * distance / a) : (distance / vmax + vmax / a);
+		tj = (distance < (vmax * vmax) / a) ? std::sqrt(4 * distance / a) : (distance / vmax + vmax / a);
+#endif
+
 		totalCost += tj;
 
 		// Count turns (check if next segment changes direction)
@@ -750,8 +765,15 @@ double computePathCost(const std::vector<int> &path, const VehicleParameters &ve
 		}
 	}
 
+	double turnCost = 0.0;
+#ifdef USE_UAV_COST
+	// Add turn costs (assuming 90-degree turns, cost = turn_time)
+	turnCost = turn_time * turnCount;
+#else
 	// Add turn costs (assuming 90-degree turns, cost = pi/(2*omega))
-	double turnCost = (M_PI / (2 * omega)) * turnCount;
+	turnCost = (M_PI / (2 * omega)) * turnCount;
+#endif
+
 	totalCost += turnCost;
 
 	return totalCost;

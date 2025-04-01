@@ -17,6 +17,7 @@
 #include <numeric>
 #include <algorithm>
 
+#include "common.h"
 #include "Logger.h"
 #include "TMSTCVisualization.h"
 //---------------------------------------------------------
@@ -45,12 +46,12 @@ GridSearchPlanner::GridSearchPlanner()
   config.allocate_method = "MSTC";
   config.mst_shape = "DINIC"; // MSTC and DINIC are what constitutes TMSTC*
   config.robot_num = m_map_drone_records.size();
-  config.cover_and_return = false; // return to start position after cover
-  config.vehicle_params.omega = 0.8; // rad/s (angular velocity)
-  config.vehicle_params.a = 1.2;    // m/s^2 (acceleration)
-  config.vehicle_params.vmax = 12;  // m/s (max velocity)
-  config.vehicle_params.cellSize = 10; // meters (grid cell size)
-
+  config.cover_and_return = false;                         // return to start position after cover
+  config.vehicle_params.omega_rad = 0.8;                   // rad/s (angular velocity)
+  config.vehicle_params.acc = 1.2;                         // m/s^2 (acceleration)
+  config.vehicle_params.vmax = 18;                         // m/s (max velocity)
+  config.vehicle_params.phi_max_rad = 45 * (M_PI / 180.0); // rad (maximum banking angle)
+  config.vehicle_params.cellSize_m = 30;                   // meters (grid cell size)
 
   m_tmstc_star_ptr = std::move(std::make_unique<TMSTCStar>(config));
 }
@@ -182,13 +183,30 @@ bool GridSearchPlanner::OnStartUp()
       else if (param == "start_point_closest")
         handled = setBooleanOnString(m_start_point_closest, value);
       else if (param == "is_running_moos_pid")
-          handled = setBooleanOnString(m_isRunningMoosPid, value);
+        handled = setBooleanOnString(m_isRunningMoosPid, value);
       else if (param == "path_publish_variable")
       {
         m_path_publish_variable = value;
         handled = true;
       }
-
+      else if (param == "tmstc_star_config_vmax")
+      {
+        double value_double;
+        if (setDoubleOnString(value_double, value))
+        {
+          m_tmstc_star_ptr->getConfig().vehicle_params.vmax = value_double;
+          handled = true;
+        }
+      }
+      else if (param == "tmstc_star_config_phi_max_rad")
+      {
+        double deg;
+        if (setDoubleOnString(deg, value))
+        {
+          m_tmstc_star_ptr->getConfig().vehicle_params.phi_max_rad = deg * (M_PI / 180.0);
+          handled = true;
+        }
+      }
 
       if (!handled)
         reportUnhandledConfigWarning(orig);
@@ -208,6 +226,8 @@ bool GridSearchPlanner::OnStartUp()
 
   m_tmstc_grid_converter.setSearchRegion(polygon);
   m_tmstc_grid_converter.setSensorRadius(m_sensor_radius * m_region_grid_size_ratio);
+
+  m_tmstc_star_ptr->getConfig().vehicle_params.cellSize_m = m_sensor_radius * m_region_grid_size_ratio * MOOSDIST2METERS;
 
   convertGridToTMSTC();
   postTMSTCGrids();
@@ -297,11 +317,10 @@ void GridSearchPlanner::doPlanPaths()
   clearAllGenerateWarnings();
 }
 
+void GridSearchPlanner::distributePathsToVehicles(Mat paths_robot_indx)
+{
 
-void GridSearchPlanner::distributePathsToVehicles(Mat paths_robot_indx){
-  
   auto paths_robot_coords = m_tmstc_star_ptr->pathsIndxToRegionCoords(paths_robot_indx);
-  
 
   std::set<std::string> drone_names;
   for (const auto &[drone_name, record] : m_map_drone_records)
@@ -312,8 +331,7 @@ void GridSearchPlanner::distributePathsToVehicles(Mat paths_robot_indx){
   {
     // Convert the paths to XYSegList format
     XYSegList seglist = m_tmstc_grid_converter.regionCoords2XYSeglisMoos(path);
-    
-    
+
     // find the closest drone
     XYPoint firstPoint = seglist.get_first_point();
     std::string drone = "";
@@ -329,7 +347,6 @@ void GridSearchPlanner::distributePathsToVehicles(Mat paths_robot_indx){
     }
 
     drone_names.erase(drone); // remove the drone from the set
-    
 
     if (m_start_point_closest)
     {
@@ -349,9 +366,9 @@ void GridSearchPlanner::distributePathsToVehicles(Mat paths_robot_indx){
 
 void GridSearchPlanner::notifyCalculatedPathsAndExecute(bool executePath)
 {
-  if(!m_is_paths_calculated)
+  if (!m_is_paths_calculated)
     return;
-  
+
   for (const auto &[drone, records] : m_map_drone_records)
   {
     if (m_map_drone_paths.count(drone) == 0)
@@ -367,20 +384,20 @@ void GridSearchPlanner::notifyCalculatedPathsAndExecute(bool executePath)
     if (executePath)
     {
 
-      if(m_isRunningMoosPid){
-        Notify("DO_SURVEY_" + MOOSToUpper(drone), "true"); // If running MOOS PID simulation  
-        Notify("DEPLOY_"+ MOOSToUpper(drone), "true");
-        Notify("RETURN_"+ MOOSToUpper(drone), "false");
-        Notify("MOOS_MANUAL_OVERRIDE_"+ MOOSToUpper(drone), "false");
+      if (m_isRunningMoosPid)
+      {
+        Notify("DO_SURVEY_" + MOOSToUpper(drone), "true"); // If running MOOS PID simulation
+        Notify("DEPLOY_" + MOOSToUpper(drone), "true");
+        Notify("RETURN_" + MOOSToUpper(drone), "false");
+        Notify("MOOS_MANUAL_OVERRIDE_" + MOOSToUpper(drone), "false");
       }
-      else{
-        
+      else
+      {
+
         Notify("HELM_STATUS_" + MOOSToUpper(drone), "ON");
         notify_var_str = "GCS_COMMAND_" + MOOSToUpper(drone);
-        Notify(notify_var_str, "SURVEY"); 
-        
+        Notify(notify_var_str, "SURVEY");
       }
-
     }
   }
 }
@@ -586,8 +603,21 @@ bool GridSearchPlanner::buildReport()
   m_msgs << "       isRunningMoosPid: " << boolToString(m_isRunningMoosPid) << std::endl;
   m_msgs << std::endl;
 
-  bool grids_converted = m_tmstc_grid_converter.isGridsConverted();
+  m_msgs << "TMSTC* algorithm" << std::endl;
+  m_msgs << "---------------------------------" << std::endl;
+  // m_msgs << "   Allocate method: " << m_tmstc_star_ptr->getConfig().allocate_method << std::endl;
+  // m_msgs << "   MST shape: " << m_tmstc_star_ptr->getConfig().mst_shape << std::endl;
+  // m_msgs << "   Robot num: " << m_tmstc_star_ptr->getConfig().robot_num << std::endl;
+  // m_msgs << "   Cover and return: " << boolToString(m_tmstc_star_ptr->getConfig().cover_and_return) << std::endl;
+  m_msgs << "   Vehicle params:" << std::endl;
+  // m_msgs << "     omega_rad: " << doubleToStringX(m_tmstc_star_ptr->getConfig().vehicle_params.omega_rad, 2) << std::endl;
+  // m_msgs << "     acc: " << doubleToStringX(m_tmstc_star_ptr->getConfig().vehicle_params.acc, 2) << std::endl;
+  m_msgs << "     vmax: " << doubleToStringX(m_tmstc_star_ptr->getConfig().vehicle_params.vmax, 2) << std::endl;
+  m_msgs << "     phi_max_rad: " << doubleToStringX(m_tmstc_star_ptr->getConfig().vehicle_params.phi_max_rad * (180.0 / M_PI), 2) << std::endl;
+  m_msgs << "     cellSize_m: " << doubleToStringX(m_tmstc_star_ptr->getConfig().vehicle_params.cellSize_m, 2) << std::endl;
+  m_msgs << std::endl;
 
+  bool grids_converted = m_tmstc_grid_converter.isGridsConverted();
   m_msgs << "Drone Positions" << std::endl;
   m_msgs << "---------------------------------" << std::endl;
   ACTable actab(5, 2);

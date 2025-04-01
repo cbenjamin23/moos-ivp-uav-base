@@ -57,7 +57,8 @@ public:
     TMSTCStar(const Mat &map, const std::vector<std::pair<int, int>> &robot_positions,
               const TMSTCStarConfig &config = TMSTCStarConfig());
 
-    void setConfig(const TMSTCStarConfig &config) {config_ = config; }
+    TMSTCStarConfig getConfig() const { return config_; }
+    TMSTCStarConfig& getConfig() { return config_; }
 
     void reconfigureMapRobot(const Mat &map, const std::vector<int> &robot_positions);
 

@@ -270,6 +270,10 @@ ProcessConfig = pGridSearchPlanner
   
   path_publish_variable = SURVEY_UPDATE // Default is SURVEY_UPDATE
 
+
+  tmstc_star_config_vmax = $(TMSTC_CONFIG_VMAX)
+  tmstc_star_config_phi_max_rad = $(TMSTC_CONFIG_PHI_MAX_RAD)
+
 #ifdef USE_MOOS_SIM_PID true
   is_running_moos_pid = true
 #endif

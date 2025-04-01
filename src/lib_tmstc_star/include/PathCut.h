@@ -16,6 +16,10 @@ using std::unordered_set;
 using std::vector;
 
 const double eps = 1e-7;
+const double gravity = 9.81; // m/s^2 (gravitational acceleration)
+
+#define USE_UAV_COST
+// #define OLD_COST
 
 typedef vector<vector<int>> Mat;
 typedef pair<int, int> P;
@@ -40,18 +44,15 @@ typedef struct Node
 
 #define reshape(i, j) (int)((i) * bigcols + (j))
 
-#ifndef PI
-#define PI 3.1415926
-#endif
-
 static double ONE_TURN_VAL = 2.0;
 
 struct VehicleParameters
 {
-	double omega;	 // rad/s (angular velocity)
-	double a;		 // m/s^2 (acceleration)
-	double vmax;	 // m/s (max velocity)
-	double cellSize; // meters (grid cell size)
+	double omega_rad = 1;					  // rad/s (angular velocity)
+	double acc = 1.5;						  // m/s^2 (acceleration)
+	double vmax = 15;						  // m/s (max velocity)
+	double phi_max_rad = 45 * (M_PI / 180.0); // rad (maximum banking angle)
+	double cellSize_m = 30;					  // meters (grid cell size)
 };
 
 class PathCut
@@ -91,7 +92,7 @@ public:
 
 	void MST2Path();
 	void get2DCoordinateMap(int index, int &x, int &y);
-	
+
 	void MSTC_Star();
 	void Balanced_Cut(vector<int> &adjustCuts);
 	double updateCutVal(int i);
@@ -118,8 +119,6 @@ public:
 	{
 		return a + c == 2 * b;
 	}
-	
-	
 };
 
 double computePathCost(const std::vector<int> &path, const VehicleParameters &vehicleParams, int mapCols);

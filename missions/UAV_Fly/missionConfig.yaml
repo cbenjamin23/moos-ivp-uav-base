@@ -3,7 +3,7 @@
 # Global simulation parameters
 simulation:
   useMoosSimPid: true # Use MOOS-IvP Vechicle simulator
-  time_warp: 2
+  time_warp: 5
   number_of_drones: 3
 
   ardupilot_ip: "0.0.0.0"
@@ -42,6 +42,8 @@ missionParams:
   # The ratio between the region grid cell distance in the TMSTC* algorithm and the sensor range. The sensor range is the maximum distance from the drone that the sensor can detect fires
   # TMSTC_gridsizeSensorRangeRatio: 0.5 
   TMSTC_gridsizeSensorRangeRatio: 0.4 # might work better in simulation
+  TMSTC_config_vmax: 18 # [m/s] The maximum speed of the drone (to be used in the TMSTC* algorithm when calculating the grid travel time)
+  TMSTC_config_phi_max_rad: 45 # [degrees] The maximum bank angle of the drone (to be used in the TMSTC* algorithm when calculating the grid travel time)
 
 
   # Fire parameters:
