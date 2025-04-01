@@ -154,8 +154,8 @@ int main(int argc, char **argv)
     }
     if (robot_count == 4)
     {
-        robot_positions.push_back({0, (int)map.size() - 1}); // Bottom-left
-        robot_positions_indx.push_back(TMSTCStar::coordToIndex(3, 3, region_width));
+        // robot_positions.push_back({0, (int)map.size() - 1}); // Bottom-left
+        // robot_positions_indx.push_back(TMSTCStar::coordToIndex(3, 3, region_width));
     }
     // Add more robots at random positions if needed
 

@@ -133,7 +133,8 @@ void TMSTCStar::getPathInfo()
 
         std::cout << "Path " << i << ": length=" << paths_[i].size()
                   << ", turns=" << turns
-                  << ", total_cost=" << (1.0 * paths_[i].size() + ONE_TURN_VAL * turns)
+                //   << ", total_cost=" << (1.0 * paths_[i].size() + ONE_TURN_VAL * turns)
+                  << ", total_cost=" << computePathCost(paths_[i], config_.vehicle_params, smallcols_)
                   << std::endl;
     }
 }
@@ -185,7 +186,7 @@ Mat TMSTCStar::calculateRegionIndxPaths()
         }
 
         // Create PathCut solver
-        PathCut cut(map_, region_, mst_, robot_init_pos_, config_.cover_and_return);
+        PathCut cut(map_, region_, mst_, robot_init_pos_, config_.vehicle_params ,config_.cover_and_return);
         cut.setOneTurnVal(config_.one_turn_value);
         paths_ = cut.cutSolver();
     }
@@ -202,7 +203,7 @@ Mat TMSTCStar::calculateRegionIndxPaths()
         Division div(map_);
         mst_ = div.rectDivisionSolver();
 
-        PathCut cut(map_, region_, mst_, robot_init_pos_, config_.cover_and_return);
+        PathCut cut(map_, region_, mst_, robot_init_pos_, config_.vehicle_params, config_.cover_and_return);
         cut.setOneTurnVal(config_.one_turn_value);
         paths_ = cut.cutSolver();
     }
@@ -283,23 +284,19 @@ TMSTCStar::PathStats TMSTCStar::getPathStatistics()
 
     stats.min_path_length = 1e9;
 
-    for (size_t i = 0; i < paths_.size(); ++i)
-    {
-        stats.total_length += paths_[i].size();
-
+    for (const auto& path : paths_) {
+        if (path.empty()) continue;
         int path_turns = 0;
-        for (size_t j = 1; j < paths_[i].size() - 1 && paths_[i].size() > 0; ++j)
-        {
-            if (!isSameLine(paths_[i][j - 1], paths_[i][j], paths_[i][j + 1]))
-            {
+        for (size_t j = 1; j < path.size() - 1; ++j) {
+            if (!isSameLine(path[j - 1], path[j], path[j + 1])) {
                 path_turns++;
             }
         }
-
+        
+        stats.total_length += path.size() > 0 ? path.size() - 1 : 0;
         stats.total_turns += path_turns;
-        double path_cost = paths_[i].size() + ONE_TURN_VAL * path_turns;
+        double path_cost = computePathCost(path, config_.vehicle_params, smallcols_);
         stats.total_cost += path_cost;
-
         stats.max_path_length = std::max(stats.max_path_length, path_cost);
         stats.min_path_length = std::min(stats.min_path_length, path_cost);
     }

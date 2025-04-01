@@ -23,6 +23,7 @@ struct TMSTCStarConfig
     bool cover_and_return = false;
     double one_turn_value = 2.0;
     int max_iterations = 1000; // For iterative algorithms
+    VehicleParameters vehicle_params = {0.8, 0.6, 0.5, 0.5}; // rad/s, m/s^2, m/s, meters
 };
 
 class TMSTCStar

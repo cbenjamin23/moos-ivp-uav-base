@@ -1,5 +1,8 @@
 #include "PathCut.h"
 
+
+#include <functional>
+// #define OLD_COST
 // MST is undirected graph, so it contains (i, j) and (j, i)
 void PathCut::MST2Path()
 {
@@ -19,8 +22,8 @@ void PathCut::MST2Path()
 			vis[to].insert(from);
 
 			int x1, x2, y1, y2;
-			get2DCoordinate(from, x1, y1);
-			get2DCoordinate(to, x2, y2);
+			get2DCoordinateMap(from, x1, y1);
+			get2DCoordinateMap(to, x2, y2);
 			int p3 = 2 * x1 * bigcols + 2 * y1 + 1;
 			int p4 = 2 * x2 * bigcols + 2 * y2;
 			int p1 = (2 * x1 + 1) * bigcols + (2 * y1 + 1);
@@ -98,7 +101,8 @@ void PathCut::MST2Path()
 		pathSequence.push_back(cur);
 
 		// cout << cur << " ";
-		if (pathEdge[cur].size() == 0){
+		if (pathEdge[cur].size() == 0)
+		{
 			cout << "Generating: Edge set crash\n";
 			throw std::runtime_error("Edge set crash");
 		}
@@ -114,12 +118,14 @@ void PathCut::MST2Path()
 	invSequence.resize(Region.size() * Region[0].size(), -1);
 	for (int i = 0; i < pathSequence.size(); ++i)
 	{
-		invSequence[pathSequence[i]] = i; //Maps each fine-grid cell index to its position in pathSequence, useful for lookups.
+		invSequence[pathSequence[i]] = i; // Maps each fine-grid cell index to its position in pathSequence, useful for lookups.
 	}
 
 	// construct path value vec
 	// Turning once is equivalent to going through 2 more cells
 	// Note: turning from the first to the last connected point also counts
+
+#ifdef OLD_COST
 	pathValue.resize(2 * circleLen, 1.0);
 	for (int i = 1; i < 2 * circleLen - 1; ++i)
 	{
@@ -129,9 +135,53 @@ void PathCut::MST2Path()
 		pathValue[i] += pathValue[i - 1];
 	}
 	pathValue[2 * circleLen - 1] += pathValue[2 * circleLen - 2];
+#else
+	cout << "Generating: Path value with new Cost definition to match speed parameters def\n";
+
+	double omega = vehicleParams.omega;		  // rad/s (angular velocity)
+	double a = vehicleParams.a;				  // m/s^2 (acceleration)
+	double vmax = vehicleParams.vmax;		  // m/s (max velocity)
+	double cellSize = vehicleParams.cellSize; // meters (grid cell size)
+
+	// Resize pathValue to 2 * circleLen to accommodate the double cycle for multiple robots
+	pathValue.resize(2 * circleLen, 0.0);
+	// Build pathValue with cumulative costs over two cycles
+	for (int i = 0; i < 2 * circleLen - 1; ++i)
+	{
+		int prev = i % circleLen;
+		int curr = (i + 1) % circleLen;
+
+		// Calculate distance between consecutive points
+		double distance = calculateDistance(pathSequence[prev], pathSequence[curr]);
+
+		// Compute segment time tj
+		double tj;
+		if (distance < (vmax * vmax) / a)
+		{
+			tj = sqrt(4 * distance / a); // Time under acceleration limit
+		}
+		else
+		{
+			tj = distance / vmax + vmax / a; // Time with max velocity reached
+		}
+
+		// Add segment time to pathValue
+		pathValue[i + 1] = pathValue[i] + tj;
+
+		// Check for a turn at curr (skip if at start or end of the double cycle)
+		if (i < 2 * circleLen - 2)
+		{
+			int next = (i + 2) % circleLen;
+			if (!isSameLine(pathSequence[prev], pathSequence[curr], pathSequence[next]))
+			{
+				double turnCost = M_PI / (2 * omega); // 90-degree turn time
+				pathValue[i + 1] += turnCost;		  // Add turn cost after segment
+			}
+		}
+	}
+#endif
 
 	cout << "Finish Constructing Path from ideal spanning tree.\n";
-
 	// checking path and its value
 	/*cout << "display path sequence...\n";
 	for (auto i : pathSequence)	cout << i << " ";
@@ -146,6 +196,7 @@ double PathCut::euclidean_dis(double x1, double y1, double x2, double y2)
 	return std::sqrt((x1 - x2) * (x1 - x2) + (y1 - y2) * (y1 - y2));
 }
 
+#ifdef OLD_COST
 // u and v are one-dimensional coordinates under region, when generating edges, we need to convert to 2D coordinates to check boundaries
 // To avoid this problem, we need to use flags to judge whether the diagonal edge surrounds an obstacle, otherwise we would later need to set the dis array to infinity; it's better to use A*
 // A* can handle coordinate transformations properly
@@ -203,6 +254,68 @@ double PathCut::A_star(int u, int v)
 
 	return dis[v] + turnVal;
 }
+
+#else
+
+double PathCut::A_star(int u, int v)
+{
+	std::priority_queue<node> que; // node: {fx, gx, id}
+
+	double a = vehicleParams.a;
+	double omega = vehicleParams.omega;
+	double vmax = vehicleParams.vmax;
+	double cellSize = vehicleParams.cellSize;
+
+	vector<double> dis(bigcols * bigrows, 2e9);
+	vector<int> pre(bigcols * bigrows, -1);
+	dis[u] = 0;
+
+	int sx = u / bigcols, sy = u % bigcols;
+	int ex = v / bigcols, ey = v % bigcols;
+	que.push({euclidean_dis(sx, sy, ex, ey), 0, u});
+
+	while (!que.empty())
+	{
+		node cur = que.top();
+		que.pop();
+		if (cur.id == v)
+			break;
+		if (cur.gx > dis[cur.id] + eps)
+			continue;
+
+		int cx = cur.id / bigcols, cy = cur.id % bigcols;
+		for (int i = 0; i < 4; ++i)
+		{
+			int dx = cx + dir[i][0], dy = cy + dir[i][1];
+			if (dx < 0 || dx >= bigrows || dy < 0 || dy >= bigcols || !Region[dx][dy])
+				continue;
+
+			int nxt_id = dx * bigcols + dy;
+			double distance = euclidean_dis(cx, cy, dx, dy) * cellSize;
+			double tj = (distance < (vmax * vmax) / a) ? sqrt(4 * distance / a) : (distance / vmax + vmax / a);
+
+			// Add turn cost if there's a previous point
+			double turnCost = 0;
+			if (pre[cur.id] != -1 && !isSameLine(pre[cur.id], cur.id, nxt_id))
+			{
+				turnCost = M_PI / (2 * omega);
+			}
+
+			double newCost = dis[cur.id] + tj + turnCost;
+			if (newCost < dis[nxt_id])
+			{
+				dis[nxt_id] = newCost;
+				pre[nxt_id] = cur.id;
+				double heuristic = euclidean_dis(dx, dy, ex, ey) * cellSize / vmax; // Time-based heuristic
+				que.push({newCost + heuristic, newCost, nxt_id});
+			}
+		}
+	}
+
+	return dis[v];
+}
+
+#endif
 
 // Try to use a compressed A* path
 vector<int> PathCut::A_star_path(int u, int v)
@@ -266,6 +379,7 @@ vector<int> PathCut::A_star_path(int u, int v)
 	return path;
 }
 
+#ifdef OLD_COST
 double PathCut::getTurnAndLength(int i)
 {
 	// Note: if the end index is smaller than the start index, it means we've added a tail
@@ -279,21 +393,59 @@ double PathCut::getTurnAndLength(int i)
 		return pathValue[circleLen - 1] - pathValue[start] + pathValue[ending] + endingTurn;
 }
 
+#else
+
+double PathCut::getTurnAndLength(int i)
+{
+	int start = cuts[i].start;
+	int ending = (cuts[i].start + cuts[i].len - 1) % circleLen;
+
+	// Handle wrap-around by adjusting ending to the second cycle if needed
+	if (ending < start)
+	{
+		ending += circleLen;
+	}
+
+	// Cost is the difference in pathValue
+	double cost = pathValue[ending] - pathValue[start];
+
+	return cost;
+}
+
+#endif
+
+// Helper function to compute distance between two grid points
+double PathCut::calculateDistance(int idx1, int idx2)
+{
+	int x1, y1, x2, y2;
+	get2DCoordinateMap(idx1, x1, y1);
+	get2DCoordinateMap(idx2, x2, y2);
+
+	return euclidean_dis(x1, y1, x2, y2) * vehicleParams.cellSize; // Adjust with actual cell size
+																   // Alternatively, if you want to use the original euclidean_dis function:
+
+	// double dx = (x1 - x2) * cellSize; // Adjust with actual cell size
+	// double dy = (y1 - y2) * cellSize;
+	// return sqrt(dx * dx + dy * dy);
+}
+
 double PathCut::updateCutVal(int i)
 {
 	// Calculate depot to cut start + cut + cut end to depot weight
 	int cut_start_region_label = pathSequence[cuts[i].start];
 	int cut_end_region_label = pathSequence[(cuts[i].start + cuts[i].len - 1 + circleLen) % circleLen];
 
+	double mainPathCost = getTurnAndLength(i);
+
 	// cover without back to starting point
 	if (!coverAndReturn)
 	{
-		return 0.5 * A_star(depot[cut_depot[i]], cut_start_region_label) + getTurnAndLength(i);
+		return 0.5 * A_star(depot[cut_depot[i]], cut_start_region_label) + mainPathCost;
 	}
 	else
 	{
 		return 0.5 * A_star(depot[cut_depot[i]], cut_start_region_label) +
-			   getTurnAndLength(i) +
+			   mainPathCost +
 			   0.5 * A_star(cut_end_region_label, depot[cut_depot[i]]);
 	}
 }
@@ -465,7 +617,7 @@ void PathCut::Balanced_Cut(vector<int> &adjustCuts)
 	}
 }
 
-void PathCut::get2DCoordinate(int index, int &x, int &y)
+void PathCut::get2DCoordinateMap(int index, int &x, int &y)
 {
 	x = index / smallcols;
 	y = index % smallcols;
@@ -534,4 +686,56 @@ int PathCut::getTurnsNum()
 	}
 
 	return turns;
+}
+
+
+
+
+double computePathCost(const std::vector<int> &path, const VehicleParameters &vehicleParams, int mapCols){
+	// Assuming path is a vector of (cover) grid indices, compute the cost based on the vehicle parameters
+	double omega = vehicleParams.omega; // rad/s (angular velocity)
+	double a = vehicleParams.a;			// m/s^2 (acceleration)
+	double vmax = vehicleParams.vmax;	// m/s (max velocity)
+
+
+	// Check if path is valid
+	
+	if (path.size() < 2)
+		return 0.0;
+	
+	std::function <double(int, int)> calculateDistanceMap = [smallcols=mapCols, cellSize=vehicleParams.cellSize](int idx1, int idx2) {
+
+		int x1, y1, x2, y2;
+		x1 = idx1 / smallcols;
+		y1 = idx1 % smallcols;
+		x2 = idx2 / smallcols;
+		y2 = idx2 % smallcols;
+		double dx = (x1 - x2) * cellSize; // Adjust with actual cell size
+		double dy = (y1 - y2) * cellSize;
+		return sqrt(dx * dx + dy * dy);
+	};
+
+	double totalCost = 0.0;
+	int turnCount = 0;
+
+	// Compute segment traversal times
+	for (size_t j = 0; j < path.size() - 1; ++j)
+	{
+		double distance = calculateDistanceMap(path[j], path[j + 1]);
+		// Segment time tj: sqrt(4d/a) if d < vmax^2/a, else d/vmax + vmax/a
+		double tj = (distance < (vmax * vmax) / a) ? std::sqrt(4 * distance / a) : (distance / vmax + vmax / a);
+		totalCost += tj;
+
+		// Count turns (check if next segment changes direction)
+		if (j < path.size() - 2 && !PathCut::isSameLine(path[j], path[j + 1], path[j + 2]))
+		{
+			turnCount++;
+		}
+	}
+
+	// Add turn costs (assuming 90-degree turns, cost = pi/(2*omega))
+	double turnCost = (M_PI / (2 * omega)) * turnCount;
+	totalCost += turnCost;
+
+	return totalCost;
 }

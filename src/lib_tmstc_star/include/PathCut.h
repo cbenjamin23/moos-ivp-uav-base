@@ -41,13 +41,22 @@ typedef struct Node
 #define reshape(i, j) (int)((i) * bigcols + (j))
 
 #ifndef PI
-	#define PI 3.1415926
+#define PI 3.1415926
 #endif
 
 static double ONE_TURN_VAL = 2.0;
 
+struct VehicleParameters
+{
+	double omega;	 // rad/s (angular velocity)
+	double a;		 // m/s^2 (acceleration)
+	double vmax;	 // m/s (max velocity)
+	double cellSize; // meters (grid cell size)
+};
+
 class PathCut
 {
+private:
 	int bigrows, bigcols;
 	int smallrows, smallcols;
 	int circleLen;
@@ -64,8 +73,10 @@ class PathCut
 
 	bool coverAndReturn;
 
+	VehicleParameters vehicleParams;
+
 public:
-	PathCut(Mat &map, Mat &region, Mat &tree, vector<int> &robotInitPos, bool _coverAndReturn = false) : Map(map), Region(region), MST(tree), depot(robotInitPos), coverAndReturn(_coverAndReturn)
+	PathCut(Mat &map, Mat &region, Mat &tree, vector<int> &robotInitPos, VehicleParameters vp, bool _coverAndReturn = false) : Map(map), Region(region), MST(tree), depot(robotInitPos), vehicleParams(vp), coverAndReturn(_coverAndReturn)
 	{
 		bigrows = Region.size();
 		bigcols = Region[0].size();
@@ -78,7 +89,8 @@ public:
 	}
 
 	void MST2Path();
-	void get2DCoordinate(int index, int &x, int &y);
+	void get2DCoordinateMap(int index, int &x, int &y);
+	
 	void MSTC_Star();
 	void Balanced_Cut(vector<int> &adjustCuts);
 	double updateCutVal(int i);
@@ -86,20 +98,29 @@ public:
 	vector<int> A_star_path(int u, int v);
 	vector<int> getHalfCuts(int cut_min, int cut_max, int dir);
 	Mat generatePath();
+
 	double euclidean_dis(double x1, double y1, double x2, double y2);
+	double calculateDistance(int idx1, int idx2);
+
 	Mat cutSolver();
 	int getTurnsNum();
 	double getTurnAndLength(int i);
+
+	friend double computePathCost(std::vector<int> &path);
 
 	void setOneTurnVal(double val)
 	{
 		ONE_TURN_VAL = val;
 	}
 
-	bool isSameLine(int a, int b, int c)
+	static bool isSameLine(int a, int b, int c)
 	{
 		return a + c == 2 * b;
 	}
+	
+	
 };
+
+double computePathCost(const std::vector<int> &path, const VehicleParameters &vehicleParams, int mapCols);
 
 #endif
