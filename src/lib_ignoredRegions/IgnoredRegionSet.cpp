@@ -40,6 +40,7 @@ bool IgnoredRegionSet::handleIgnoredRegionConfig(std::string str, double curr_ti
     setBooleanOnString(generate, generate_str);
 
     std::string file = tokStringParse(str, "file");
+    std::string save_path = tokStringParse(str, "save_path");
 
     if (!generate && file.empty())
     {
@@ -48,7 +49,7 @@ bool IgnoredRegionSet::handleIgnoredRegionConfig(std::string str, double curr_ti
     }
 
     if (!generate)
-        return handleRegionFile(file, curr_time, warning);
+        return handleRegionFile(file, save_path, curr_time, warning);
 
     // Will generate regions
 
@@ -56,7 +57,6 @@ bool IgnoredRegionSet::handleIgnoredRegionConfig(std::string str, double curr_ti
     std::string sep_min_str = tokStringParse(str, "sep_min");
     std::string region_str = tokStringParse(str, "region");
     region_str = "pts=" + region_str;
-    std::string save_path = tokStringParse(str, "save_path");
     std::string spawn_count_str = tokStringParse(str, "spawn_count");
     unsigned int spawn_count = 0;
     setUIntOnString(spawn_count, spawn_count_str);
@@ -117,16 +117,24 @@ bool IgnoredRegionSet::handleIgnoredRegionConfig(std::string str, double curr_ti
     // m_min_sep = generator.getMinSep();
 
     Logger::info("Generated regions saved to: " + file_path);
-    return handleRegionFile(file_path, curr_time, warning);
+    return handleRegionFile(file_name, save_path, curr_time, warning);
 }
 
-bool IgnoredRegionSet::handleRegionFile(std::string str, double curr_time, std::string &warning)
+bool IgnoredRegionSet::handleRegionFile(std::string file_name, std::string save_path, double curr_time, std::string &warning)
 {
-    std::vector<std::string> lines = fileBuffer(str);
-    if (lines.size() == 0)
-    {
-        warning = "File not found, or empty: " + str;
-        return (false);
+    std::vector<std::string> lines = fileBuffer(file_name);
+    bool success = (lines.size() == 0);
+    
+    if(lines.size() == 0){
+        std::string file_location = getenv("HOME");
+        file_location += "/moos-ivp-uav/" + save_path + file_name;
+        lines = fileBuffer(file_location);
+        if (lines.size() == 0)
+        {
+            Logger::warning("IgnoredRegionSet::handleRegionFile: File not found or empty: " + file_location);       
+            warning = "File not found, or empty: " + file_location;
+            return (false);
+        }
     }
 
     for (unsigned int i = 0; i < lines.size(); i++)
@@ -185,7 +193,7 @@ bool IgnoredRegionSet::handleRegionFile(std::string str, double curr_time, std::
         }
     }
 
-    m_region_file = str;
+    m_region_file = file_name;
     return (true);
 }
 

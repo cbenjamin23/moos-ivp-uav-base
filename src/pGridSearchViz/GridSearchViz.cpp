@@ -659,7 +659,7 @@ void GridSearchViz::gridSetCell(const int ix, const double val)
   // m_grid.setVal(ix, val, 0);
 
   double delta = val - curr;
-  // m_map_deltas[ix] = m_map_deltas[ix] + delta; // std::max(std::min(delta, m_grid.getMaxLimit(0)), m_grid.getMinLimit(0));
+  m_map_deltas[ix] = delta; // std::max(std::min(delta, m_grid.getMaxLimit(0)), m_grid.getMinLimit(0));
 
   gridModifyCell(ix, delta);
 }
@@ -667,7 +667,7 @@ void GridSearchViz::gridSetCell(const int ix, const double val)
 // Procedure: gridIncrementCell()
 void GridSearchViz::gridModifyCell(const int ix, const double val)
 {
-  m_map_deltas[ix] = m_map_deltas[ix] + val;
+  m_map_deltas[ix] += val;
   m_grid.incVal(ix, val, 0);
 }
 

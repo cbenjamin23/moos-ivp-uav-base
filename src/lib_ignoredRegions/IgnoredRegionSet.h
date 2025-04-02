@@ -15,7 +15,7 @@ public:
     virtual ~IgnoredRegionSet() {}
 
     bool handleIgnoredRegionConfig(std::string str, double curr_time, std::string &warning, const std::vector<XYPoint> &fire_points={});
-    bool handleRegionFile(std::string, double, std::string &warning);
+    bool handleRegionFile(std::string file, std::string save_path, double curr_time, std::string &warning);
     bool handleSearchRegionStr(std::string str, std::string &warning);
     bool modIgnoredRegion(IgnoredRegion);
 
