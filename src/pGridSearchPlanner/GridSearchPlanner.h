@@ -33,6 +33,7 @@ protected:
   void registerVariables();
   bool handleMailNodeReport(std::string);
   bool handleMailIgnoredRegionAlert(std::string);
+  bool handleMailViewGrid(std::string);
 
 protected:
   void registerIgnoredRegion(std::string str);
@@ -40,7 +41,7 @@ protected:
 
   void doPlanPaths();
 
-  void distributePathsToVehicles(Mat paths);
+  void assignPathsToVehicles(Mat paths);
   void notifyCalculatedPathsAndExecute(bool executePath = false);
   void postCalculatedPaths(bool visible = true);
 
@@ -69,8 +70,9 @@ protected: // Config vars
   bool m_missionEnabled;
 
 protected: // State vars
-  bool m_do_plan_paths;
+  XYConvexGrid m_grid_viz;
 
+  bool m_do_plan_paths;
   bool m_is_paths_calculated;
 
   // key is name of drone

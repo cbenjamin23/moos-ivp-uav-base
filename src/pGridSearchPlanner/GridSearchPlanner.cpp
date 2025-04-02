@@ -9,10 +9,10 @@
 #include "GridSearchPlanner.h"
 #include "MBUtils.h"
 #include "NodeRecordUtils.h"
-#include "XYFormatUtilsConvexGrid.h"
 #include "XYGridUpdate.h"
 #include "ACTable.h"
 #include "XYFormatUtilsPoly.h"
+#include "XYFormatUtilsConvexGrid.h"
 
 #include <numeric>
 #include <algorithm>
@@ -98,6 +98,8 @@ bool GridSearchPlanner::OnNewMail(MOOSMSG_LIST &NewMail)
       handled = setBooleanOnString(m_start_point_closest, sval);
     else if (key == "XENABLE_MISSION")
       handled = setBooleanOnString(m_missionEnabled, sval);
+    else if (key == "VIEW_GRID")
+      handled = handleMailViewGrid(sval);
 
     if (!handled)
     {
@@ -254,6 +256,8 @@ void GridSearchPlanner::registerVariables()
   Register("DO_PLAN_PATHS", 0);
   Register("GSP_START_POINT_CLOSEST", 0);
   Register("XENABLE_MISSION", 0);
+
+  Register("VIEW_GRID", 0);
 }
 
 void GridSearchPlanner::doPlanPaths()
@@ -309,7 +313,7 @@ void GridSearchPlanner::doPlanPaths()
     return;
   }
 
-  distributePathsToVehicles(paths_robot_indx);
+  assignPathsToVehicles(paths_robot_indx);
 
   Logger::info("doPlanPaths: Paths calculated.");
   reportEvent("Paths calculated.");
@@ -317,7 +321,7 @@ void GridSearchPlanner::doPlanPaths()
   clearAllGenerateWarnings();
 }
 
-void GridSearchPlanner::distributePathsToVehicles(Mat paths_robot_indx)
+void GridSearchPlanner::assignPathsToVehicles(Mat paths_robot_indx)
 {
 
   auto paths_robot_coords = m_tmstc_star_ptr->pathsIndxToRegionCoords(paths_robot_indx);
@@ -331,6 +335,10 @@ void GridSearchPlanner::distributePathsToVehicles(Mat paths_robot_indx)
   {
     // Convert the paths to XYSegList format
     XYSegList seglist = m_tmstc_grid_converter.regionCoords2XYSeglisMoos(path);
+
+
+    // prune wpts in path that are already discovered by looking at m_grid_viz
+
 
     // find the closest drone
     XYPoint firstPoint = seglist.get_first_point();
@@ -493,6 +501,22 @@ bool GridSearchPlanner::handleMailNodeReport(std::string str)
 
   updateTMSTCVehiclePositions();
   // Logger::info("NodeReport position: (" + doubleToStringX(posx, 2) + ", " + doubleToStringX(posy, 2) + "), name: " + name);
+  return true;
+}
+
+bool GridSearchPlanner::handleMailViewGrid(std::string str)
+{
+  auto grid = string2ConvexGrid(str);
+
+  if (!grid.valid())
+  {
+
+    reportRunWarning("Received Invalid VIEW_GRID");
+    Logger::warning("Received Invalid VIEW_GRID: " + str);
+    return false;
+  }
+
+  m_grid_viz = grid;
   return true;
 }
 
