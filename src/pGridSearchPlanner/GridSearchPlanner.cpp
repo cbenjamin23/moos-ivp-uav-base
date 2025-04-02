@@ -27,6 +27,7 @@ GridSearchPlanner::GridSearchPlanner()
 {
   m_sensor_radius = 10;
   m_region_grid_size_ratio = 0.5;
+  m_cellradius = m_sensor_radius * m_region_grid_size_ratio;
   m_do_plan_paths = false;
   m_is_paths_calculated = false;
 
@@ -100,6 +101,8 @@ bool GridSearchPlanner::OnNewMail(MOOSMSG_LIST &NewMail)
       handled = setBooleanOnString(m_missionEnabled, sval);
     else if (key == "VIEW_GRID")
       handled = handleMailViewGrid(sval);
+    else if (key == "VIEW_GRID_DELTA")
+      handled = handleMailViewGridUpdate(sval);
 
     if (!handled)
     {
@@ -226,10 +229,12 @@ bool GridSearchPlanner::OnStartUp()
     return false;
   }
 
-  m_tmstc_grid_converter.setSearchRegion(polygon);
-  m_tmstc_grid_converter.setSensorRadius(m_sensor_radius * m_region_grid_size_ratio);
+  m_cellradius = m_sensor_radius * m_region_grid_size_ratio;
 
-  m_tmstc_star_ptr->getConfig().vehicle_params.cellSize_m = m_sensor_radius * m_region_grid_size_ratio * MOOSDIST2METERS;
+  m_tmstc_grid_converter.setSearchRegion(polygon);
+  m_tmstc_grid_converter.setSensorRadius(m_cellradius);
+
+  m_tmstc_star_ptr->getConfig().vehicle_params.cellSize_m = 2 * m_cellradius * MOOSDIST2METERS;
 
   convertGridToTMSTC();
   postTMSTCGrids();
@@ -258,6 +263,7 @@ void GridSearchPlanner::registerVariables()
   Register("XENABLE_MISSION", 0);
 
   Register("VIEW_GRID", 0);
+  Register("VIEW_GRID_DELTA", 0);
 }
 
 void GridSearchPlanner::doPlanPaths()
@@ -336,11 +342,10 @@ void GridSearchPlanner::assignPathsToVehicles(Mat paths_robot_indx)
     // Convert the paths to XYSegList format
     XYSegList seglist = m_tmstc_grid_converter.regionCoords2XYSeglisMoos(path);
 
+    // Prune waypoints in path that are already discovered by looking at m_grid_viz
+    seglist = pruneDiscoveredWaypoints(seglist);
 
-    // prune wpts in path that are already discovered by looking at m_grid_viz
-
-
-    // find the closest drone
+    // Find the closest drone
     XYPoint firstPoint = seglist.get_first_point();
     std::string drone = "";
     double min_dist = std::numeric_limits<double>::max();
@@ -506,17 +511,59 @@ bool GridSearchPlanner::handleMailNodeReport(std::string str)
 
 bool GridSearchPlanner::handleMailViewGrid(std::string str)
 {
+  str = stripBlankEnds(str);
   auto grid = string2ConvexGrid(str);
-
   if (!grid.valid())
   {
-
-    reportRunWarning("Received Invalid VIEW_GRID");
-    Logger::warning("Received Invalid VIEW_GRID: " + str);
+    reportRunWarning("Received invalid grid: " + str);
+    Logger::warning("Received invalid grid: " + str);
     return false;
   }
-
   m_grid_viz = grid;
+  return true;
+}
+
+bool GridSearchPlanner::handleMailViewGridUpdate(std::string str)
+{
+
+  XYGridUpdate grid_update = stringToGridUpdate(str);
+  if(!grid_update.valid())
+  {
+    reportRunWarning("Received invalid grid update: " + str);
+    Logger::warning("Received invalid grid update: " + str);
+    return(false);
+  }
+
+  if(grid_update.getGridName() != m_grid_viz.get_label())
+  {
+    reportRunWarning("Received grid update for a different grid: " + grid_update.getGridName());
+    Logger::warning("Received grid update for a different grid: " + grid_update.getGridName());
+    return(false);
+  }
+
+  // Make a first pass over all updates. Reject them all (return false
+  // before applying) if even one of them is invalid.
+  for(unsigned int i=0; i<grid_update.size(); i++) {
+    unsigned int grid_ix = grid_update.getCellIX(i);
+    string cell_var      = grid_update.getCellVar(i);
+    if(grid_ix >= m_grid_viz.size())
+      return(false);
+    if(!m_grid_viz.hasCellVar(cell_var))
+      return(false);
+  }
+
+  // If we get here, all updates are valid. Apply them to the grid.
+
+  for(unsigned int i=0; i<grid_update.size(); i++) {
+    unsigned int grid_ix = grid_update.getCellIX(i);
+    double cell_val      = grid_update.getCellVal(i);
+
+    if(grid_update.isUpdateTypeDelta())
+      m_map_grid_updates[grid_ix] += cell_val; 
+  }
+
+
+  
   return true;
 }
 
@@ -818,7 +865,7 @@ void GridSearchPlanner::postTMSTCGrids(bool visible)
   int idx = 0;
   for (auto point : regionGridPoints)
   {
-    XYCircle circle(point.x(), point.y(), m_sensor_radius * m_region_grid_size_ratio);
+    XYCircle circle(point.x(), point.y(), m_cellradius);
 
     circle.set_label("Sr_" + std::to_string(idx++));
     circle.set_label_color("off");
@@ -841,7 +888,7 @@ void GridSearchPlanner::postTMSTCGrids(bool visible)
   idx = 0;
   for (auto point : downsampledGridPoints)
   {
-    XYCircle circle(point.x(), point.y(), m_sensor_radius * m_region_grid_size_ratio);
+    XYCircle circle(point.x(), point.y(), m_cellradius);
 
     circle.set_label("Sdr_" + std::to_string(idx++));
     circle.set_label_color("off");
@@ -864,4 +911,92 @@ void GridSearchPlanner::postTMSTCGrids(bool visible)
   prev_active = visible;
 
   m_tmstc_grid_converter.saveSpanningGridToFile("downsampled_grid.txt");
+}
+
+//------------------------------------------------------------
+// Procedure: pruneDiscoveredWaypoints()
+// Prunes waypoints from a path if they are already largely discovered
+XYSegList GridSearchPlanner::pruneDiscoveredWaypoints(const XYSegList &original_path)
+{
+  if (m_map_grid_updates.empty() || original_path.size() == 0)
+  {
+    return original_path; // Return original path if grid is invalid or path is empty
+  }
+
+  XYSegList pruned_path = original_path;
+  double cell_size = m_cellradius;
+
+  Logger::info("Grid_update size: " + uintToString(m_map_grid_updates.size()));
+
+
+  // Process from the end of the path towards the beginning
+  // This allows us to safely remove points without affecting our iteration
+  for (int i = pruned_path.size() - 1; i >= 0; i--)
+  {
+    double x = pruned_path.get_vx(i);
+    double y = pruned_path.get_vy(i);
+
+    // Define the square area around the waypoint (sensor coverage)
+    double x_min = x - cell_size;
+    double x_max = x + cell_size;
+    double y_min = y - cell_size;
+    double y_max = y + cell_size;
+
+    XYSquare area(x_min, y_min, x_max, y_max);
+
+    // Count discovered cells in this area
+    int total_cells = 0;
+    int discovered_cells = 0;
+    bool is_wpt_ignored = false;
+
+    for (auto const &[_, region] : m_map_ignored_regions_poly)
+    {
+      if (region.contains(x, y))
+      {
+        is_wpt_ignored = true;
+        break;
+      }
+    }
+
+  
+    if( !is_wpt_ignored){ 
+
+      for (auto & [ix , cell_val] : m_map_grid_updates)
+      {
+        const XYSquare &cell = m_grid_viz.getElement(ix);
+        double cell_x = cell.getCenterX();
+        double cell_y = cell.getCenterY();
+
+        // Check if cell center is within the waypoint's coverage area
+        // if (cell_x >= x_min && cell_x <= x_max &&
+        //     cell_y >= y_min && cell_y <= y_max)
+        if (area.containsPoint(cell_x, cell_y))
+        {
+          total_cells++;
+          if (cell_val > 0) // (how many times it's been discovered)
+            discovered_cells++;
+        }
+      }
+
+      m_map_grid_updates.clear(); // Clear the grid updates after processing
+    }
+
+    // If more than 50% of cells in this area are already discovered, remove the waypoint
+    if ((total_cells > 0 && ((double)discovered_cells / total_cells) > 0.5) || is_wpt_ignored)
+    {
+      pruned_path.delete_vertex(i);
+      std::string log_message = "Pruning waypoint at: (" + doubleToStringX(x, 2) +
+                                ", " + doubleToStringX(y, 2) + ") - ";
+      log_message += (is_wpt_ignored) ? "In ignored region."
+                                  : uintToString(discovered_cells) + "/" +
+                                        uintToString(total_cells) +
+                                        " (" + doubleToStringX(discovered_cells / double(total_cells), 2) + ") cells already discovered";
+      Logger::info(log_message);
+    }
+  }
+
+  Logger::info("Pruned path from " + uintToString(original_path.size()) +
+               " to " + uintToString(pruned_path.size()) + " waypoints");
+
+  return pruned_path;
 }

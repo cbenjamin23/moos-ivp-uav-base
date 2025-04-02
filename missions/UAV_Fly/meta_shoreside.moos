@@ -278,6 +278,8 @@ ProcessConfig = pGridSearchPlanner
   is_running_moos_pid = true
 #endif
 
+  
+
 } 
 
 //--------------------------------------------------
@@ -294,7 +296,7 @@ ProcessConfig = pGridSearchViz
   grid_config = cell_min=x:0
   grid_config = cell_max=x:$(GRID_CELL_MAX_COUNT)
 
-	report_deltas = false
+	report_deltas = true
 
   sensor_radius         = $(SENSOR_RADIUS_MAX)
   sensor_color          = $(SENSOR_COLOR)

@@ -12,10 +12,13 @@
 #include "XYCircle.h"
 #include "XYMarker.h"
 #include "NodeRecord.h"
+#include "XYConvexGrid.h"
 
 #include "IgnoredRegion.h"
 #include "TMSTCGridConverter.h"
 #include "TMSTCStar.h"
+
+#include <map>
 
 class GridSearchPlanner : public AppCastingMOOSApp
 {
@@ -34,14 +37,16 @@ protected:
   bool handleMailNodeReport(std::string);
   bool handleMailIgnoredRegionAlert(std::string);
   bool handleMailViewGrid(std::string);
+  bool handleMailViewGridUpdate(std::string);
 
 protected:
   void registerIgnoredRegion(std::string str);
   void unregisterIgnoredRegion(std::string name);
 
   void doPlanPaths();
-
   void assignPathsToVehicles(Mat paths);
+  XYSegList pruneDiscoveredWaypoints(const XYSegList &original_path);
+
   void notifyCalculatedPathsAndExecute(bool executePath = false);
   void postCalculatedPaths(bool visible = true);
 
@@ -57,6 +62,8 @@ protected: // Config vars
   // Sensor data
   double m_sensor_radius;
   double m_region_grid_size_ratio;
+  double m_cellradius;
+
   bool m_isRunningMoosPid;
 
   bool m_visualize_planner_grids;
@@ -71,6 +78,7 @@ protected: // Config vars
 
 protected: // State vars
   XYConvexGrid m_grid_viz;
+  std::map<unsigned int, double> m_map_grid_updates;
 
   bool m_do_plan_paths;
   bool m_is_paths_calculated;
