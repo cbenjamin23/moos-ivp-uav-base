@@ -360,8 +360,8 @@ bool GridSearchPlanner::is_pathIdx_filtered(int idx)
   // Check if waypoint is in an ignored region or outside the search region
   if (!searchRegion.contains(x, y))
   {
-    Logger::info("Pruning waypoint at: (" + doubleToStringX(x, 2) +
-                ", " + doubleToStringX(y, 2) + ") - Outside search region");
+    // Logger::info("Pruning waypoint at: (" + doubleToStringX(x, 2) +
+    //             ", " + doubleToStringX(y, 2) + ") - Outside search region");
     return true; // Filter out invalid points
   }
 
@@ -370,8 +370,8 @@ bool GridSearchPlanner::is_pathIdx_filtered(int idx)
   {
     if (region.contains(x, y))
     {
-      Logger::info("Pruning waypoint at: (" + doubleToStringX(x, 2) +
-                  ", " + doubleToStringX(y, 2) + ") - In ignored region");
+      // Logger::info("Pruning waypoint at: (" + doubleToStringX(x, 2) +
+      //             ", " + doubleToStringX(y, 2) + ") - In ignored region");
       return true; // Filter out invalid points
     }
   }

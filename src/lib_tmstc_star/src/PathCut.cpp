@@ -288,7 +288,7 @@ void PathCut::MST2Path()
 
 	// Computed turn radius
 	const double turn_radius = (vmax * vmax) / (gravity * std::tan(phi)); // Turn radius in meters
-	const double turn_time = (turn_radius * M_PI / 2) / vmax;			  // Time for a 90-degree turn in seconds
+	std::function<double(double)> turn_time = [&](double theta){return (turn_radius * theta) / vmax ; };			  // Time for a turn based on angle
 
 	// Resize pathValue to 2 * circleLen to accommodate the double cycle for multiple robots
 	pathValue.resize(2 * circleLen, 0.0);
@@ -322,7 +322,19 @@ void PathCut::MST2Path()
 				double turnCost = 0.0;
 // Add turn costs (assuming 90-degree turns, cost = turn_time)
 #ifdef USE_UAV_COST
-				turnCost = turn_time; // 90-degree turn time	// cost = turn_time)
+				// Vectors: v1 = P_{i-1} to P_i, v2 = P_i to P_{i+1}
+				int p0 = pathSequence[prev], p1 = pathSequence[curr], p2 = pathSequence[next];
+				double v1x = (p1 % smallcols - p0 % smallcols) * cellSize; // x-component
+				double v1y = (p1 / smallcols - p0 / smallcols) * cellSize; // y-component
+				double v2x = (p2 % smallcols - p1 % smallcols) * cellSize;
+				double v2y = (p2 / smallcols - p1 / smallcols) * cellSize;
+				
+				// Compute turn angle theta
+				double dot = v1x * v2x + v1y * v2y;
+				double det = v1x * v2y - v1y * v2x;
+				double theta = std::abs(std::atan2(det, dot)); // Absolute angle in [0, pi]
+
+				turnCost = turn_time(theta); // 90-degree turn time	// cost = turn_time)
 #else
 				turnCost = (M_PI / (2 * omega)); // 90-degree turn time // cost = pi/(2*omega))
 #endif
@@ -870,9 +882,11 @@ double computePathCost(const std::vector<int> &path, const VehicleParameters &ve
 	double vmax = vehicleParams.vmax;		// m/s (max velocity)
 	double phi = vehicleParams.phi_max_rad; // rad (max banking angle)
 
+
+
 	// Computed turn radius
 	const double turn_radius = (vmax * vmax) / (gravity * std::tan(phi)); // Turn radius in meters
-	const double turn_time = (turn_radius * M_PI / 2) / vmax;			  // Time for a 90-degree turn in seconds
+	std::function<double(double)> turn_time = [&](double theta){return (turn_radius * theta) / vmax ; };			  // Time for a turn based on angle
 
 	// Check if path is valid
 	if (path.size() < 2)
@@ -892,7 +906,7 @@ double computePathCost(const std::vector<int> &path, const VehicleParameters &ve
 
 	double totalCost = 0.0;
 	int turnCount = 0;
-
+	double turnCost = 0.0;
 	// Compute segment traversal times
 	for (size_t j = 0; j < path.size() - 1; ++j)
 	{
@@ -910,14 +924,27 @@ double computePathCost(const std::vector<int> &path, const VehicleParameters &ve
 		// Count turns (check if next segment changes direction)
 		if (j < path.size() - 2 && !PathCut::isSameLine(path[j], path[j + 1], path[j + 2]))
 		{
+			// Vectors: v1 = P_{i-1} to P_i, v2 = P_i to P_{i+1}
+			int p0 = path[j], p1 = path[j+1], p2 = path[j + 2];
+			double v1x = (p1 % mapCols - p0 % mapCols) * vehicleParams.cellSize_m; // x-component
+			double v1y = (p1 / mapCols - p0 / mapCols) * vehicleParams.cellSize_m; // y-component
+			double v2x = (p2 % mapCols - p1 % mapCols) * vehicleParams.cellSize_m;
+			double v2y = (p2 / mapCols - p1 / mapCols) * vehicleParams.cellSize_m;
+			
+			// Compute turn angle theta
+			double dot = v1x * v2x + v1y * v2y;
+			double det = v1x * v2y - v1y * v2x;
+			double theta = std::abs(std::atan2(det, dot)); // Absolute angle in [0, pi]
+
+			turnCost += turn_time(theta); // Time for the turn based on angle
 			turnCount++;
 		}
 	}
 
-	double turnCost = 0.0;
+	
 #ifdef USE_UAV_COST
 	// Add turn costs (assuming 90-degree turns, cost = turn_time)
-	turnCost = turn_time * turnCount;
+	// turnCost = turn_time * turnCount;
 #else
 	// Add turn costs (assuming 90-degree turns, cost = pi/(2*omega))
 	turnCost = (M_PI / (2 * omega)) * turnCount;
@@ -994,7 +1021,7 @@ void PathCut::optimizePathWithOutliersAndUpdateSequence(const std::vector<int> &
 		// std::cout << "Current cost: " << current_cost << ", Neighbor costs: " << neighbor_cost_prev << ", " << neighbor_cost_next << std::endl;
 		// std::cout << "Ratio: " << current_cost / neighbor_cost_prev << ", " << current_cost / neighbor_cost_next << std::endl;
 		// Logger::info("Current cost: " + std::to_string(current_cost) + ", Neighbor costs: " + std::to_string(neighbor_cost_prev) + ", " + std::to_string(neighbor_cost_next));
-		// Logger::info("Ratio: " + std::to_string(current_cost / neighbor_cost_prev) + ", " + std::to_string(current_cost / neighbor_cost_next));
+		Logger::info("Ratio: " + std::to_string(current_cost / neighbor_cost_prev) + ", " + std::to_string(current_cost / neighbor_cost_next));
 		
 		// Check if the current cost is substantially higher than neighbor costs
 		size_t iteration_count = 0;
