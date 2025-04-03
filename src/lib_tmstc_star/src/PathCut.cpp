@@ -1,8 +1,101 @@
 #include "PathCut.h"
 
-#include <functional>
+#include "../../lib_common/Logger.h"
 
-// MST is undirected graph, so it contains (i, j) and (j, i)
+#include <functional>
+#include <limits>
+
+#include<set>
+
+// Define a hash function for std::tuple
+struct tuple_hash
+{
+	template <class T>
+	std::size_t operator()(const T &tuple) const
+	{
+		return std::hash<std::string>{}(std::to_string(std::get<0>(tuple)) + "," +
+										std::to_string(std::get<1>(tuple)) + "," +
+										std::to_string(std::get<2>(tuple)));
+	}
+};
+
+// Filter valid points from a path
+std::vector<int> PathCut::filterValidPoints(const std::vector<int> &path)
+{
+	std::vector<int> valid_points;
+
+	// If no filtering function is provided, consider all points valid
+	if (!is_point_filtered_func)
+	{
+		return path;
+	}
+
+	// //print all depos
+	// for (auto d : depot)
+	// {
+	// 	std::cout << "Depot: " << d << std::endl;
+	// 	Logger::info("Depot: " + std::to_string(d));
+	// }
+
+	std::set<int> ignored_points;
+
+	for (int i = 0; i < path.size(); ++i)
+	{
+		int point = path[i];
+
+		if (!is_point_filtered_func(point))
+		{
+			valid_points.push_back(point);
+		}
+		else
+		{
+			ignored_points.insert(point); // Store ignored points for later reference
+			// std::cout << "Filtered point: " << point << std::endl;
+			
+			// If point is any depot, change depot to next point
+			auto it = std::find(depot.begin(), depot.end(), point);
+			if (it != depot.end())
+			{
+				// If point is depot, change depot to next point
+				// keep changing until next point is not already a depot
+				auto inc = 1;
+
+				auto next_depot = std::find(depot.begin(), depot.end(), path[(i + inc) % path.size()]); 
+				while (next_depot != depot.end() || ignored_points.find( path[(i + inc) % path.size()]) != ignored_points.end())
+				{
+					// std::cout << "Changing depot to next point: " << path[(i + inc) % path.size()] << std::endl;
+					// Logger::info("Changing depot to next point: " + std::to_string(path[(i + inc) % path.size()]));
+					
+					inc++;
+					next_depot = std::find(depot.begin(), depot.end(), path[(i + inc) % path.size()]);
+				}
+		
+
+				*it = path[(i + inc) % path.size()]; // Change depot to next point
+				 
+				
+				std::cout << "Changed depot to next point: " << *it << std::endl;
+				Logger::info("Changed depot to next point: " + std::to_string(*it));
+			}
+		}
+	}
+
+	//print all depos
+	// for (auto d : depot)
+	// {
+	// 	std::cout << "Depot: " << d << std::endl;
+	// 	Logger::info("Depot: " + std::to_string(d));
+	// 	if(std::find(valid_points.begin(), valid_points.end(), d) == valid_points.end())
+	// 	{
+	// 		std::cout << "Depot not in valid points: " << d << std::endl;
+	// 		Logger::error("Depot not in valid points: " + std::to_string(d));
+	// 	}
+	// }
+
+	return valid_points;
+}
+
+// MST2Path is undirected graph, so it contains (i, j) and (j, i)
 void PathCut::MST2Path()
 {
 	vector<unordered_set<int>> vis(Map.size() * Map[0].size(), std::unordered_set<int>{});
@@ -87,7 +180,7 @@ void PathCut::MST2Path()
 		}
 	}
 
-	cout << "Generating: Get path edges\n";
+	std::cout << "Generating: Get path edges\n";
 
 	// After getting pathEdge, next step is to obtain the path sequence pathSequence and its reverse sequence
 	// pathSequence starts from the position of the first robot
@@ -99,10 +192,9 @@ void PathCut::MST2Path()
 		inPath[cur] = true;
 		pathSequence.push_back(cur);
 
-		// cout << cur << " ";
 		if (pathEdge[cur].size() == 0)
 		{
-			cout << "Generating: Edge set crash\n";
+			std::cout << "Generating: Edge set crash\n";
 			throw std::runtime_error("Edge set crash");
 		}
 
@@ -110,9 +202,59 @@ void PathCut::MST2Path()
 		if (inPath[cur])
 			break;
 	}
+
+	// Get cyclic path (original implementation)
 	circleLen = pathSequence.size();
 
-	cout << "Generating: Trim labels\n";
+	// STEP 1: Filter points if a filtering function is provided
+	std::vector<int> original_path = pathSequence;
+	std::vector<int> valid_points;
+
+	std::cout << "Original points: " << original_path.size() << std::endl;
+	Logger::info("TMSTC - Original points: " + std::to_string(original_path.size()));
+
+	if (is_point_filtered_func)
+	{
+		std::cout << "Filtering points based on custom criteria..." << std::endl;
+		valid_points = filterValidPoints(original_path);
+
+		if (valid_points.size() < original_path.size())
+		{
+			std::cout << "Filtered out " << (original_path.size() - valid_points.size())
+					  << " points (" << (100.0 * (original_path.size() - valid_points.size()) / original_path.size())
+					  << "% reduction)" << std::endl;
+			Logger::info("TMSTC - Filtered out " + std::to_string(original_path.size() - valid_points.size()) +
+						 " points (" + std::to_string(100.0 * (original_path.size() - valid_points.size()) / original_path.size()) + "% reduction)");
+			// If we have a very small number of valid points, maintain the original path
+			if (valid_points.size() < 3)
+			{
+				std::cout << "Too few valid points. Using original path." << std::endl;
+				valid_points = original_path;
+			}
+		}
+		else
+		{
+			std::cout << "No points were filtered out." << std::endl;
+		}
+	}
+	else
+	{
+		valid_points = original_path;
+	}
+
+	// STEP 2: If points were filtered, compute an optimized tour through valid points
+	if (valid_points.size() < original_path.size() && valid_points.size() >= 3)
+	{
+		std::cout << "Optimizing path with outliers..." << std::endl;
+		Logger::info("TMSTC - Optimizing path with outliers...");
+		optimizePathWithOutliersAndUpdateSequence(valid_points);
+		circleLen = pathSequence.size();
+
+		Logger::info("TMSTC - Path optimized with outliers: " + std::to_string(pathSequence.size()) + " points");
+		std::cout << "Path optimized with outliers: " << pathSequence.size() << " points" << std::endl;
+	}
+
+	std::cout << "Generating: Trim labels\n";
 	// Convert label->sequential label
 	invSequence.resize(Region.size() * Region[0].size(), -1);
 	for (int i = 0; i < pathSequence.size(); ++i)
@@ -135,7 +277,8 @@ void PathCut::MST2Path()
 	}
 	pathValue[2 * circleLen - 1] += pathValue[2 * circleLen - 2];
 #else
-	cout << "Generating: Path value with new Cost definition to match speed parameters def\n";
+	std::cout << "Generating: Path value with new Cost definition to match speed parameters def\n";
+	Logger::info("TMSTC - Generating path value with new Cost definition to match speed parameters def");
 
 	double omega = vehicleParams.omega_rad;		// rad/s (angular velocity)
 	double a = vehicleParams.acc;				// m/s^2 (acceleration)
@@ -185,12 +328,14 @@ void PathCut::MST2Path()
 #endif
 
 				pathValue[i + 1] += turnCost; // Add turn cost after segment
+				// Logger::info("TMSTC - Adding cost: " + std::to_string(pathValue[i + 1]) + " at index " + std::to_string(i + 1));
 			}
 		}
 	}
 #endif
 
 	cout << "Finish Constructing Path from ideal spanning tree.\n";
+	Logger::info("TMSTC - Finish constructing path from ideal spanning tree.");
 	// checking path and its value
 	/*cout << "display path sequence...\n";
 	for (auto i : pathSequence)	cout << i << " ";
@@ -445,17 +590,22 @@ double PathCut::updateCutVal(int i)
 	int cut_end_region_label = pathSequence[(cuts[i].start + cuts[i].len - 1 + circleLen) % circleLen];
 
 	double mainPathCost = getTurnAndLength(i);
+	// Logger::info("TMSTC - Main path cost: " + std::to_string(mainPathCost));
 
 	// cover without back to starting point
 	if (!coverAndReturn)
 	{
-		return 0.5 * A_star(depot[cut_depot[i]], cut_start_region_label) + mainPathCost;
+		auto cost_to = A_star(depot[cut_depot[i]], cut_start_region_label);
+
+		return 0.5 * cost_to + mainPathCost;
 	}
 	else
 	{
-		return 0.5 * A_star(depot[cut_depot[i]], cut_start_region_label) +
-			   mainPathCost +
-			   0.5 * A_star(cut_end_region_label, depot[cut_depot[i]]);
+		auto cost_to = A_star(depot[cut_depot[i]], cut_start_region_label);
+		auto cost_back = A_star(cut_end_region_label, depot[cut_depot[i]]);
+
+
+		return 0.5*cost_to + mainPathCost + 0.5*cost_back;
 	}
 }
 
@@ -489,7 +639,12 @@ void PathCut::MSTC_Star()
 		cuts[i].val = updateCutVal(i);
 		opt = std::max(opt, cuts[i].val);
 		wst = std::min(wst, cuts[i].val);
+
+		// Logger::info("TMSTC - opt: " + std::to_string(opt) + " wst: " + std::to_string(wst) + " cut[" + std::to_string(i) + "] val: " + std::to_string(cuts[i].val));
 	}
+
+	cout << "opt and wst: " << opt << "  " << wst << endl;
+	Logger::info("TMSTC - Initial opt and wst: " + std::to_string(opt) + "  " + std::to_string(wst));
 
 	// Note: MSTC* does not consider that in some cases the path weight of cutting a single path is greater than cutting multiple paths, so in practice it may not converge for some maps. We need to modify it
 	int cur_iter = 0; // , max_iter = 10;
@@ -504,6 +659,8 @@ void PathCut::MSTC_Star()
 		cur_iter++;
 		cout << "MSTC_Star Iteration: " << cur_iter << "\n";
 		cout << "cutting for balancing...\n"; // just a sign
+		Logger::info("TMSTC - Cutting for balancing... at iteration " + std::to_string(cur_iter));
+
 		double minn = 2e9, maxx = -1;
 		int min_cut = -1, max_cut = -1;
 		for (int i = 0; i < cuts.size(); ++i)
@@ -523,23 +680,12 @@ void PathCut::MSTC_Star()
 		curr_diff = maxx - minn;
 
 		cout << "before adjustment opt and wst: " << maxx << "  " << minn << " diff: (" << (maxx - minn) << ")\n";
+		Logger::info("TMSTC - Before adjustment opt and wst: " + std::to_string(maxx) + "  " + std::to_string(minn) + " diff: (" + std::to_string(maxx - minn) + ")");
 		// Judge whether to go clockwise or counter-clockwise
 		vector<int> clw = getHalfCuts(min_cut, max_cut, 1);
 		vector<int> ccw = getHalfCuts(min_cut, max_cut, -1);
 		clw.size() < ccw.size() ? Balanced_Cut(clw) : Balanced_Cut(ccw);
 
-		// Well, you can't break by simply comparing the longest path.
-		/*int cur_opt = std::max_element(cuts.begin(), cuts.end(), [](cut& a, cut& b) { return a.val < b.val; })->val;
-		if (cur_opt >= opt + opt / 4) {
-			cout << "MSTC_Star Cutoff finished!\n\n\n";
-			break;
-		}
-		else {
-			opt = cur_opt;
-			cur_iter++;
-		}*/
-		// opt = std::max_element(cuts.begin(), cuts.end(), [](cut& a, cut& b) { return a.val < b.val; })->val;
-		// wst = std::min_element(cuts.begin(), cuts.end(), [](cut& a, cut& b) { return a.val < b.val; })->val;
 		opt = 0, wst = 2e9;
 		for (int i = 0; i < cuts.size(); ++i)
 		{
@@ -548,14 +694,17 @@ void PathCut::MSTC_Star()
 		}
 
 		cout << "after adjustment opt and wst: " << opt << "  " << wst << " diff: (" << (opt - wst) << ")\n";
+		Logger::info("TMSTC - After adjustment opt and wst: " + std::to_string(opt) + "  " + std::to_string(wst) + " diff: (" + std::to_string(opt - wst) + ")");
 
 		prev_diff = curr_diff;
 		curr_diff = opt - wst;
-		if (std::abs(prev_diff - curr_diff) < 10)
+		if (std::abs(prev_diff - curr_diff) < 10 && opt - wst < 500)
 		{
 			cout << "MSTC_Star Cutoff finished!\n\n\n";
+			Logger::info("TMSTC - MSTC_Star cutoff finished at iteration " + std::to_string(cur_iter));
 			break;
 		}
+		
 	}
 }
 
@@ -777,4 +926,135 @@ double computePathCost(const std::vector<int> &path, const VehicleParameters &ve
 	totalCost += turnCost;
 
 	return totalCost;
+}
+
+void PathCut::optimizePathWithOutliersAndUpdateSequence(const std::vector<int> &valid_points)
+{
+	// Create a working copy of the valid points
+	std::vector<int> working_path = valid_points;
+
+	// Create a lookup table for segment costs
+	static std::unordered_map<std::tuple<int, int, int>, double, tuple_hash> cost_lookup;
+	auto computeSegmentCost = [&](int prev, int curr, int next)
+	{
+		auto key = std::make_tuple(prev, curr, next);
+		if (cost_lookup.find(key) == cost_lookup.end())
+		{
+			
+			// std::function<double(int, int)> calculateDistanceMap = [smallcols = smallcols, cellSize = vehicleParams.cellSize_m](int idx1, int idx2)
+			// {
+			// 	int x1, y1, x2, y2;
+			// 	x1 = idx1 / smallcols;
+			// 	y1 = idx1 % smallcols;
+			// 	x2 = idx2 / smallcols;
+			// 	y2 = idx2 % smallcols;
+			// 	double dx = (x1 - x2) * cellSize; // Adjust with actual cell size
+			// 	double dy = (y1 - y2) * cellSize;
+			// 	return sqrt(dx * dx + dy * dy);
+			// };
+			
+			// cost_lookup[key] = calculateDistanceMap(prev, curr) + calculateDistanceMap(curr, next); // computePathCost(segment, vehicleParams, smallcols);
+			
+			std::vector<int> segment = {prev, curr, next};
+			cost_lookup[key] = computePathCost(segment, vehicleParams, smallcols);
+		}
+		return cost_lookup[key];
+	};
+
+	// Iterate through the working path and adjust points
+	for (size_t i = 0; i < working_path.size(); ++i)
+	{
+
+		auto j= i; // Wrap around to handle circular paths
+		int current_point = working_path[j];
+		int prev_index = (j - 1 + working_path.size()) % working_path.size();
+		int next_index = (j + 1) % working_path.size();
+
+		int prev_point = working_path[prev_index];
+		int next_point = working_path[next_index];
+
+		// Calculate current cost
+		double current_cost = computeSegmentCost(prev_point, current_point, next_point);
+
+		// Calculate neighbor costs
+		int prev_prev_index = (j - 2 + working_path.size()) % working_path.size();
+		int prev_prev_prev_index = (j - 3 + working_path.size()) % working_path.size();
+		int next_next_index = (j + 2) % working_path.size();
+		int next_next_next_index = (j + 3) % working_path.size();
+
+		int prev_prev_point = working_path[prev_prev_index];
+		int prev_prev_prev_point = working_path[prev_prev_prev_index];
+		int next_next_point = working_path[next_next_index];
+		int next_next_next_point = working_path[next_next_next_index];
+
+		double neighbor_cost_prev = computeSegmentCost(prev_prev_prev_point, prev_prev_point, prev_point);
+		double neighbor_cost_next = computeSegmentCost(next_point, next_next_point, next_next_next_point);
+
+		//print current and neighbor costs and ratio
+		// std::cout << "Current cost: " << current_cost << ", Neighbor costs: " << neighbor_cost_prev << ", " << neighbor_cost_next << std::endl;
+		// std::cout << "Ratio: " << current_cost / neighbor_cost_prev << ", " << current_cost / neighbor_cost_next << std::endl;
+		// Logger::info("Current cost: " + std::to_string(current_cost) + ", Neighbor costs: " + std::to_string(neighbor_cost_prev) + ", " + std::to_string(neighbor_cost_next));
+		// Logger::info("Ratio: " + std::to_string(current_cost / neighbor_cost_prev) + ", " + std::to_string(current_cost / neighbor_cost_next));
+		
+		// Check if the current cost is substantially higher than neighbor costs
+		size_t iteration_count = 0;
+		auto threshold = 15.0; // Adjust this threshold as needed
+		while ((current_cost > threshold * neighbor_cost_prev || current_cost > threshold * neighbor_cost_next) && iteration_count < working_path.size() - 2)
+		{
+			Logger::info("TMSTC - Iteration: " + std::to_string(iteration_count) + ", Current cost: " + std::to_string(current_cost) + ", Neighbor costs: " + std::to_string(neighbor_cost_prev) + ", " + std::to_string(neighbor_cost_next));
+			std::cout << "Iteration: " << iteration_count << ", Current cost: " << current_cost << ", Neighbor costs: " << neighbor_cost_prev << ", " << neighbor_cost_next << std::endl;
+			// Try moving the current point either past next or before prev
+			double cost_move_past_next = computeSegmentCost(next_point, current_point, next_next_point);
+			double cost_move_before_prev = computeSegmentCost(prev_prev_point, current_point, prev_point);
+
+			if (cost_move_past_next < cost_move_before_prev && cost_move_past_next < current_cost)
+			{
+				// Move current point past next
+				working_path.erase(working_path.begin() + j);
+				working_path.insert(working_path.begin() + next_index, current_point);
+				j = next_index; 
+				Logger::info("TMSTC - Moved current point past next");
+				std::cout << "Moved current point past next" << std::endl;
+			}
+			else if (cost_move_before_prev < current_cost)
+			{
+				// Move current point before prev
+				working_path.erase(working_path.begin() + j);
+				working_path.insert(working_path.begin() + prev_index, current_point);
+				j = prev_index;
+				Logger::info("TMSTC - Moved current point before prev");
+				std::cout << "Moved current point before prev" << std::endl;
+			}
+			else
+			{
+				break; // Stop if no improvement is found
+			}
+
+			// Update costs after moving
+			prev_index = (j - 1 + working_path.size()) % working_path.size();
+			next_index = (j + 1) % working_path.size();
+			prev_point = working_path[prev_index];
+			next_point = working_path[next_index];
+			current_cost = computeSegmentCost(prev_point, current_point, next_point);
+
+			prev_prev_index = (j - 2 + working_path.size()) % working_path.size();
+			prev_prev_prev_index = (j - 3 + working_path.size()) % working_path.size();
+			next_next_index = (j + 2) % working_path.size();
+			next_next_next_index = (j + 3) % working_path.size();
+
+			prev_prev_point = working_path[prev_prev_index];
+			prev_prev_prev_point = working_path[prev_prev_prev_index];
+			next_next_point = working_path[next_next_index];
+			next_next_next_point = working_path[next_next_next_index];
+
+			neighbor_cost_prev = computeSegmentCost(prev_prev_prev_point, prev_prev_point, prev_point);
+			neighbor_cost_next = computeSegmentCost(next_point, next_next_point, next_next_next_point);
+
+			++iteration_count;
+		}
+	}
+
+	// Overwrite the original pathSequence with the optimized working path
+	pathSequence = working_path;
+	circleLen = pathSequence.size();
 }

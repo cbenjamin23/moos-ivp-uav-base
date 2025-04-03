@@ -46,6 +46,9 @@ protected:
   void doPlanPaths();
   void assignPathsToVehicles(Mat paths);
   XYSegList pruneDiscoveredWaypoints(const XYSegList &original_path);
+  std::vector<XYPoint> getCellsInSquare(double center_x, double center_y,
+                                        double square_side_length,
+                                        const XYConvexGrid &grid) const;
 
   void notifyCalculatedPathsAndExecute(bool executePath = false);
   void postCalculatedPaths(bool visible = true);
@@ -58,11 +61,13 @@ protected:
 
   void clearAllGenerateWarnings();
 
+  bool is_pathIdx_filtered(int idx);
+
 protected: // Config vars
   // Sensor data
   double m_sensor_radius;
   double m_region_grid_size_ratio;
-  double m_cellradius;
+  double m_coveragecellradius;
 
   bool m_isRunningMoosPid;
 
@@ -78,6 +83,8 @@ protected: // Config vars
 
 protected: // State vars
   XYConvexGrid m_grid_viz;
+  using cellP = std::pair<double, double>;
+  std::map<cellP, unsigned int> m_map_grid_cellCenter_idxs;
   std::map<unsigned int, double> m_map_grid_updates;
 
   bool m_do_plan_paths;

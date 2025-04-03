@@ -433,7 +433,7 @@ XYPoint TMSTCGridConverter::spanningCoord2XYPointMoos(int col, int row) const
     return null;
 }
 
-XYSegList TMSTCGridConverter::regionCoords2XYSeglisMoos(std::vector<std::pair<int, int>> regionCoords) const
+XYSegList TMSTCGridConverter::regionCoords2XYSeglistMoos(std::vector<std::pair<int, int>> regionCoords) const
 {
 
     XYSegList segList;

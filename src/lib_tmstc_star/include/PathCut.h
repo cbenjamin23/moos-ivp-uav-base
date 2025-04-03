@@ -7,6 +7,7 @@
 #include <unordered_set>
 #include <algorithm>
 #include <cmath>
+#include <functional>
 
 using std::cout;
 using std::endl;
@@ -77,6 +78,10 @@ private:
 	VehicleParameters vehicleParams;
 	int maxIterations = 10000;
 
+	// Point filtering and TSP optimization
+	std::function<bool(int)> is_point_filtered_func = nullptr; // Function to determine if a point should be ignored
+	std::vector<int> filterValidPoints(const std::vector<int> &path);
+
 public:
 	PathCut(Mat &map, Mat &region, Mat &tree, vector<int> &robotInitPos, VehicleParameters vp, int maxIter, bool _coverAndReturn = false) : Map(map), Region(region), MST(tree), depot(robotInitPos), vehicleParams(vp), maxIterations(maxIter), coverAndReturn(_coverAndReturn)
 	{
@@ -119,6 +124,14 @@ public:
 	{
 		return a + c == 2 * b;
 	}
+
+	// Set the point filtering function
+	void setPointFilteringFunction(std::function<bool(int)> filter_func)
+	{
+		is_point_filtered_func = filter_func;
+	}
+
+	void optimizePathWithOutliersAndUpdateSequence(const std::vector<int> &valid_points);
 };
 
 double computePathCost(const std::vector<int> &path, const VehicleParameters &vehicleParams, int mapCols);

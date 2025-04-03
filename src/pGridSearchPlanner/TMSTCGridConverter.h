@@ -48,11 +48,13 @@ public:
     bool saveSpanningGridToFile(const std::string &filename) const;
     bool isGridsConverted() const;
 
-    XYSegList regionCoords2XYSeglisMoos(std::vector<std::pair<int, int>> regionCoords) const;
+    XYSegList regionCoords2XYSeglistMoos(std::vector<std::pair<int, int>> regionCoords) const;
     XYSegList spanningCoords2XYSeglisMoos(std::vector<std::pair<int, int>> spanningCoords) const;
 
     XYPoint regionCoord2XYPointMoos(int col, int row) const;
     XYPoint spanningCoord2XYPointMoos(int col, int row) const;
+
+    XYPolygon getSearchRegion() const { return m_searchRegion; }
 
 private:
     XYPolygon m_searchRegion;                   // The search area polygon

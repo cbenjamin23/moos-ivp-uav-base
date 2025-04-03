@@ -82,17 +82,20 @@ bool GridSearchViz::OnNewMail(MOOSMSG_LIST &NewMail)
       handled = handleMailIgnoredRegionAlert(sval);
     else if (key == "GSV_VISUALIZE_SENSOR_AREA")
       handled = setBooleanOnString(m_visualize_sensor_area, sval);
-    else if (key == "XENABLE_MISSION"){
+    else if (key == "XENABLE_MISSION")
+    {
       handled = setBooleanOnString(m_missionEnabled, sval);
       retractRunWarnings(warnings);
     }
     else if (key == "XDISABLE_RESET_MISSION")
       handled = handleMailDisableResetMission(warning);
 
-    if (!handled){
-      if(warning.empty())
+    if (!handled)
+    {
+      if (warning.empty())
         reportRunWarning("Unhandled Mail: " + key);
-      else{
+      else
+      {
         reportRunWarning(warning);
         warnings.push_back(warning);
       }
@@ -102,7 +105,8 @@ bool GridSearchViz::OnNewMail(MOOSMSG_LIST &NewMail)
   return (true);
 }
 
-void GridSearchViz::retractRunWarnings(std::vector<std::string> warnings){
+void GridSearchViz::retractRunWarnings(std::vector<std::string> warnings)
+{
   for (const auto &warning : warnings)
     retractRunWarning(warning);
 }
@@ -197,7 +201,7 @@ bool GridSearchViz::OnStartUp()
         handled = setBooleanOnString(m_missionEnabled, value);
       else if (param == "is_running_moos_pid")
         handled = setBooleanOnString(m_isRunningMoosPid, value);
-        
+
       if (!handled)
         reportUnhandledConfigWarning(orig);
     }
@@ -302,7 +306,7 @@ bool GridSearchViz::handleMailNodeReport(std::string str)
   }
 
   // Only post the circle visualization if configured to do so
-  sensorArea.set_active(m_visualize_sensor_area); 
+  sensorArea.set_active(m_visualize_sensor_area);
   Notify("VIEW_CIRCLE", sensorArea.get_spec());
 
   return true;
@@ -310,33 +314,36 @@ bool GridSearchViz::handleMailNodeReport(std::string str)
 
 //------------------------------------------------------------
 // Procedure: handleFinishMission();
-bool GridSearchViz::handleMailDisableResetMission(std::string& warning)
+bool GridSearchViz::handleMailDisableResetMission(std::string &warning)
 {
   const std::string warningMessage = "Failed Mail: Mission is already disabled or not started.";
-  if (m_missionStartTime == 0 && !m_missionEnabled){
+  if (m_missionStartTime == 0 && !m_missionEnabled)
+  {
 
     warning = warningMessage;
     return false;
   }
-  
 
   m_missionEnabled = false;
   m_missionStartTime = 0;
 
   Notify("MISSION_START_TIME", m_missionStartTime); // notify UFFS
   Notify("XENABLE_MISSION", "false");
-  gridResetCells();                                   // reset the grid
+  gridResetCells(); // reset the grid
   postGrid();
 
   // Notify("GCS_COMMAND_ALL", "LOITER");
 
   // if running MOOS PID simulation
-  if(m_isRunningMoosPid){
+  if (m_isRunningMoosPid)
+  {
     Notify("DO_SURVEY_ALL", "false");
     Notify("DEPLOY_ALL", "true");
     Notify("RETURN_ALL", "false");
     Notify("MOOS_MANUAL_OVERRIDE_ALL", "false");
-  } else {
+  }
+  else
+  {
     Notify("GCS_COMMAND_ALL", "LOITER");
   }
 
@@ -413,7 +420,7 @@ bool GridSearchViz::unregisterIgnoredRegion(std::string name)
   registerCellIndeces(cell_indices);
 
   m_map_ignored_cell_indices.erase(name);
-  
+
   return true;
 }
 
@@ -499,13 +506,14 @@ void GridSearchViz::postGrid()
 
 void GridSearchViz::postGridUpdates()
 {
-  if (m_map_deltas.size() == 0)
+  if (m_map_updates.size() == 0)
     return;
 
   XYGridUpdate update(m_grid_label);
+  update.setUpdateTypeReplace();
 
   std::map<unsigned int, double>::iterator p;
-  for (p = m_map_deltas.begin(); p != m_map_deltas.end(); p++)
+  for (p = m_map_updates.begin(); p != m_map_updates.end(); p++)
   {
     unsigned int ix = p->first;
     double delta = p->second;
@@ -513,7 +521,7 @@ void GridSearchViz::postGridUpdates()
   }
   std::string msg = update.get_spec();
 
-  m_map_deltas.clear();
+  m_map_updates.clear();
 
   // By default m_grid_var_name="VIEW_GRID"
   Notify(m_grid_var_name + "_DELTA", msg);
@@ -638,7 +646,6 @@ bool GridSearchViz::buildReport()
   return (true);
 }
 
-
 //------------------------------------------------------------
 // Procedure: gridSetCell()
 void GridSearchViz::gridResetCells()
@@ -658,17 +665,17 @@ void GridSearchViz::gridSetCell(const int ix, const double val)
 
   // m_grid.setVal(ix, val, 0);
 
+  // m_map_updates[ix] = val; // std::max(std::min(delta, m_grid.getMaxLimit(0)), m_grid.getMinLimit(0));
+  
   double delta = val - curr;
-  m_map_deltas[ix] = delta; // std::max(std::min(delta, m_grid.getMaxLimit(0)), m_grid.getMinLimit(0));
-
   gridModifyCell(ix, delta);
 }
 //------------------------------------------------------------
 // Procedure: gridIncrementCell()
 void GridSearchViz::gridModifyCell(const int ix, const double val)
 {
-  m_map_deltas[ix] += val;
   m_grid.incVal(ix, val, 0);
+  m_map_updates[ix] = m_grid.getVal(ix, 0);
 }
 
 //------------------------------------------------------------
@@ -700,7 +707,7 @@ void GridSearchViz::registerCellIndeces(std::vector<int> &cell_indices)
 // Procedure: calculateCoverageStatistics()
 void GridSearchViz::calculateCoverageStatistics()
 {
-  
+
   static double decay_time = m_grid_cell_decay_time;
 
   const double MoosNow = MOOSTime();

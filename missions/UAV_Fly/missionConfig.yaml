@@ -3,7 +3,7 @@
 # Global simulation parameters
 simulation:
   useMoosSimPid: true # Use MOOS-IvP Vechicle simulator
-  time_warp: 5
+  time_warp: 10
   number_of_drones: 3
 
   ardupilot_ip: "0.0.0.0"
@@ -58,10 +58,10 @@ missionParams:
   fire_spawn_interval : 300:500 # s - The time interval for which the delayed fires will be spawned (randomly) ( 0 <= [tmin,tmax] <= mission_duration)
   
   # Ignored region parameters
-  # ignoredRegion_file_default   : "ignoredRegions.txt" # The file containing the ignored region data if generate not set
-  ignoredRegion_file_default   : "regions_c8_sep150.txt" # The file containing the ignored region data if generate not set
+  ignoredRegion_file_default   : "ignoredRegions.txt" # The file containing the ignored region data if generate not set
+  # ignoredRegion_file_default   : "regions_c8_sep150.txt" # The file containing the ignored region data if generate not set
   ignoredRegion_generate       : false # If true, the ignored regions will be generated randomly, otherwise they will be read from a file
-  ignoredRegion_count          : 8 # The number of ignored regions to be placed in the region at launch
+  ignoredRegion_count          : 3 # The number of ignored regions to be placed in the region at launch
   ignoredRegion_sep_min        : 150 # m - The minimum separation between ignored regions
   ignoredRegion_spawn_count    : 0 # The number of ignored regions to spawn after the mission has started
   ignoredRegion_spawn_interval : 300:500 # s - The time interval for which the delayed ignored regions will be spawned (randomly) ( 0 <= [tmin,tmax] <= mission_duration)

@@ -112,10 +112,12 @@ void TMSTCStar::getPathInfo()
     std::cout << "--------------------------------------" << std::endl;
     std::cout << "Path information:" << std::endl;
     // std::cout << "path size: " << paths_.size() << std::endl;
+
+    std::cout << "Number of paths: " << paths_.size() << std::endl;
     for (int i = 0; i < paths_.size(); ++i)
     {
-        // std::cout << "Number of paths for robot " << i << ": " << std::flush;
-        // std::cout << paths_[i].size() << std::endl;
+        std::cout << "Number of paths for robot " << i << ": " << std::flush;
+        std::cout << paths_[i].size() << std::endl;
 
         int turns = 0;
         for (int j = 1; j < paths_[i].size() - 1; ++j)
@@ -179,6 +181,7 @@ Mat TMSTCStar::calculateRegionIndxPaths()
 
         // Create PathCut solver
         PathCut cut(map_, region_, mst_, robot_init_pos_, config_.vehicle_params, config_.max_iterations ,config_.cover_and_return);
+        cut.setPointFilteringFunction(config_.is_point_filtered_func);
         paths_ = cut.cutSolver();
     }
     else if (config_.allocate_method == "MTSP")
@@ -190,11 +193,12 @@ Mat TMSTCStar::calculateRegionIndxPaths()
     else
     {
         std::cout << "Unknown allocation method: " << config_.allocate_method << ", defaulting to MSTC" << std::endl;
-
+        
         Division div(map_);
         mst_ = div.rectDivisionSolver();
-
+        
         PathCut cut(map_, region_, mst_, robot_init_pos_, config_.vehicle_params, config_.max_iterations ,config_.cover_and_return);
+        cut.setPointFilteringFunction(config_.is_point_filtered_func);
         paths_ = cut.cutSolver();
     }
 

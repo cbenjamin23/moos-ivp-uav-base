@@ -44,7 +44,7 @@ protected:
   void registerVariables();
   bool handleMailNodeReport(std::string);
   bool handleMailIgnoredRegionAlert(std::string);
-  bool handleMailDisableResetMission(std::string& warning);
+  bool handleMailDisableResetMission(std::string &warning);
   void retractRunWarnings(std::vector<std::string> warnings);
 
   bool registerIgnoredRegion(std::string str);
@@ -89,7 +89,7 @@ protected: // State vars
   XYConvexGrid m_grid;
 
   std::map<std::string, DroneRecord> m_map_drone_records;
-  std::map<unsigned int, double> m_map_deltas;
+  std::map<unsigned int, double> m_map_updates;
 
   std::map<std::string, double> m_map_coverage_statistics;
   double m_missionStartTime;

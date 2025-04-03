@@ -144,9 +144,9 @@ int main(int argc, char **argv)
     }
     if (robot_count == 3)
     {
-        robot_positions.push_back({2, 3}); // Top-right
-        robot_positions.push_back({1, 1});
-        robot_positions.push_back({2, 2});
+        robot_positions.push_back({4, 6}); // Top-right
+        robot_positions.push_back({5, 4});
+        robot_positions.push_back({6, 7});
 
         robot_positions_indx.push_back(TMSTCStar::coordToIndex(0, 1, region_width));
         robot_positions_indx.push_back(TMSTCStar::coordToIndex(2, 3, region_width));
@@ -182,6 +182,11 @@ int main(int argc, char **argv)
     config.robot_num = robot_count;
     config.cover_and_return = return_to_start;
     config.vehicle_params = {0.8, 0.6, 0.5, 100}; // Example vehicle parameters
+    config.is_point_filtered_func = [](int point_idx)
+    {
+        // Example filter: Skip every 5 point for demonstration
+        return point_idx % 5 == 1;
+    };
 
     // Create the TMSTC* instance and calculate paths
     TMSTCStar tmstc(map, robot_positions, config);

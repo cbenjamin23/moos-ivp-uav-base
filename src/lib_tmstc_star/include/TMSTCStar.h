@@ -23,6 +23,7 @@ struct TMSTCStarConfig
     bool cover_and_return = false;
     int max_iterations = 1000; // For iterative algorithms
     VehicleParameters vehicle_params = {0.8, 0.6, 0.5, 0.5}; // rad/s, m/s^2, m/s, meters
+    std::function<bool(int)> is_point_filtered_func = nullptr; // Function to determine if a point should be ignored
 };
 
 class TMSTCStar
