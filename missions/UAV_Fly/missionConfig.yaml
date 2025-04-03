@@ -44,8 +44,8 @@ missionParams:
   TMSTC_gridsizeSensorRangeRatio: 0.4 # might work better in simulation
   TMSTC_config_vmax: 18 # [m/s] The maximum speed of the drone (to be used in the TMSTC* algorithm when calculating the grid travel time)
   TMSTC_config_phi_max_rad: 45 # [degrees] The maximum bank angle of the drone (to be used in the TMSTC* algorithm when calculating the grid travel time)
-
-
+  TMSTC_point_filtering: true # If true, the TMSTC* algorithm will filter out the grid cells that are already visited when replanning
+                              # points not outside the search Area and in ignored region will always be removed.
   # Fire parameters:
   fire_file_default   : "fires_02.txt" # The file containing the fire data if generate not set
 

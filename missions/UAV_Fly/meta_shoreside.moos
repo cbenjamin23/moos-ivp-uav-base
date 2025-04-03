@@ -273,6 +273,7 @@ ProcessConfig = pGridSearchPlanner
 
   tmstc_star_config_vmax = $(TMSTC_CONFIG_VMAX)
   tmstc_star_config_phi_max_rad = $(TMSTC_CONFIG_PHI_MAX_RAD)
+  tmstc_star_point_filtering = $(TMSTC_POINT_FILTERING)
 
 #ifdef USE_MOOS_SIM_PID true
   is_running_moos_pid = true

@@ -36,6 +36,7 @@ GridSearchPlanner::GridSearchPlanner()
   m_map_print_version = 0; // 0=off, 1=init, 2=cover, 3=direction
 
   m_start_point_closest = false;
+  m_tmstc_star_point_filtering = false;
 
   m_path_publish_variable = "SURVEY_UPDATE";
 
@@ -190,6 +191,8 @@ bool GridSearchPlanner::OnStartUp()
         handled = setBooleanOnString(m_start_point_closest, value);
       else if (param == "is_running_moos_pid")
         handled = setBooleanOnString(m_isRunningMoosPid, value);
+      else if (param == "tmstc_star_point_filtering")
+        handled = setBooleanOnString(m_tmstc_star_point_filtering, value);
       else if (param == "path_publish_variable")
       {
         m_path_publish_variable = value;
@@ -296,10 +299,12 @@ void GridSearchPlanner::doPlanPaths()
 
   // Create the TMSTC* instance and calculate paths
   m_tmstc_star_ptr->reconfigureMapRobot(spanningMap, robot_region_indeces);
+  
+
   m_tmstc_star_ptr->getConfig().is_point_filtered_func = [this](int point_idx)
-                                                                {
-                                                                  return is_pathIdx_filtered(point_idx);
-                                                                };
+                                                          {
+                                                            return is_pathIdx_filtered(point_idx);
+                                                          };
 
   Mat paths_robot_indx;
   try
@@ -376,6 +381,9 @@ bool GridSearchPlanner::is_pathIdx_filtered(int idx)
     }
   }
 
+
+  if(!m_tmstc_star_point_filtering)
+    return false; // No filtering needed
 
   // Define the square area around the waypoint (sensor coverage)
   double x_min = x - m_coveragecellradius;
@@ -662,48 +670,6 @@ bool GridSearchPlanner::handleMailViewGridUpdate(std::string str)
 
   m_grid_viz.processDelta(str);
   return true;
-
-  XYGridUpdate grid_update = stringToGridUpdate(str);
-  if (!grid_update.valid())
-  {
-    reportRunWarning("Received invalid grid update: " + str);
-    Logger::warning("Received invalid grid update: " + str);
-    return (false);
-  }
-
-  if (grid_update.getGridName() != m_grid_viz.get_label())
-  {
-    reportRunWarning("Received grid update for a different grid: " + grid_update.getGridName());
-    Logger::warning("Received grid update for a different grid: " + grid_update.getGridName());
-    return (false);
-  }
-
-  // Make a first pass over all updates. Reject them all (return false
-  // before applying) if even one of them is invalid.
-  for (unsigned int i = 0; i < grid_update.size(); i++)
-  {
-    unsigned int grid_ix = grid_update.getCellIX(i);
-    string cell_var = grid_update.getCellVar(i);
-    if (grid_ix >= m_grid_viz.size())
-      return (false);
-    if (!m_grid_viz.hasCellVar(cell_var))
-      return (false);
-  }
-
-  // If we get here, all updates are valid. Apply them to the grid.
-
-  for (unsigned int i = 0; i < grid_update.size(); i++)
-  {
-    unsigned int grid_ix = grid_update.getCellIX(i);
-    double cell_val = grid_update.getCellVal(i);
-
-    if (grid_update.isUpdateTypeDelta())
-      m_map_grid_updates[grid_ix] += cell_val;
-    else if (grid_update.isUpdateTypeReplace())
-      m_map_grid_updates[grid_ix] = cell_val;
-  }
-
-  return true;
 }
 
 //------------------------------------------------------------
@@ -815,6 +781,7 @@ bool GridSearchPlanner::buildReport()
 
   m_msgs << "TMSTC* algorithm" << std::endl;
   m_msgs << "---------------------------------" << std::endl;
+  m_msgs << "   TMSTC* point filtering: " << boolToString(m_tmstc_star_point_filtering) << std::endl;
   // m_msgs << "   Allocate method: " << m_tmstc_star_ptr->getConfig().allocate_method << std::endl;
   // m_msgs << "   MST shape: " << m_tmstc_star_ptr->getConfig().mst_shape << std::endl;
   // m_msgs << "   Robot num: " << m_tmstc_star_ptr->getConfig().robot_num << std::endl;

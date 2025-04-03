@@ -76,8 +76,10 @@ protected: // Config vars
   int m_map_print_version;
 
   bool m_start_point_closest;
+  bool m_tmstc_star_point_filtering;
 
   std::string m_path_publish_variable;
+
 
   bool m_missionEnabled;
 
@@ -85,7 +87,6 @@ protected: // State vars
   XYConvexGrid m_grid_viz;
   using cellP = std::pair<double, double>;
   std::map<cellP, unsigned int> m_map_grid_cellCenter_idxs;
-  std::map<unsigned int, double> m_map_grid_updates;
 
   bool m_do_plan_paths;
   bool m_is_paths_calculated;
