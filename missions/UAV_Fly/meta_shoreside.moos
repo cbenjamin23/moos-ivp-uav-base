@@ -22,7 +22,7 @@ Processconfig = ANTLER
   Run = pHostInfo           @ NewConsole = false
   Run = uFldShoreBroker     @ NewConsole = false
   Run = uFldNodeComms       @ NewConsole = false
-  Run = uFldVoronoi         @ NewConsole = false
+  // Run = uFldVoronoi         @ NewConsole = false
   Run = uFldCollisionDetect @ NewConsole = false
   Run = pRealm              @ NewConsole = false
   Run = pGridSearchViz      @ NewConsole = false //, XConfig=HOLDSettings
@@ -137,12 +137,14 @@ ProcessConfig = uFldNodeComms
   critical_range   = 1000
   min_msg_interval = 0
   min_rpt_interval = 0
-  max_msg_length   = 1000
+  max_msg_length   = 2000
   view_node_rpt_pulses = true
 
   msg_color = white
 
   pulse_duration = 12
+
+  // view_node_rpt_pulses=true
 }
 
 //--------------------------------------------------
@@ -172,7 +174,7 @@ ProcessConfig = uFldShoreBroker
 
   qbridge = ARM_UAV, HELM_STATUS, MOOS_MANUAL_OVERRIDE
 
-  qbridge = GCS_COMMAND // Most commands from the GCS
+  qbridge = GCS_COMMAND, PROX_POLY_VIEW // Most commands from the GCS
 
   qbridge = HEARTBEAT  // Heartbeat from the GCS to all vehicles
 
@@ -408,6 +410,7 @@ ProcessConfig = pMarineViewer
   action+ = menu_key=Toggle_TMSTC_grid #  GSP_VISUALIZE_PLANNER_GRIDS=toggle
   action+ = menu_key=Toggle_TMSTC_path #  GSP_VISUALIZE_PLANNER_PATHS=toggle
   action+ = menu_key=Toggle_TMSTC_closest_start #  GSP_START_POINT_CLOSEST=toggle
+  action+ = menu_key=Toggle_prox_poly_view #  PROX_POLY_VIEW_ALL=toggle
 
   action = menu_key=GSP_map_print_off #  GSP_MAP_PRINT=0
   action = menu_key=GSP_map_print_init #  GSP_MAP_PRINT=1
