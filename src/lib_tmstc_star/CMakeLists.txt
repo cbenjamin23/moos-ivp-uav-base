@@ -22,6 +22,10 @@ include_directories("${CMAKE_CURRENT_SOURCE_DIR}/include")
 # Build Library
 ADD_LIBRARY(tmstc_star ${SRC})
 
+target_link_libraries(tmstc_star
+  geometry
+)
+
 
 # build test
 ADD_EXECUTABLE(tmstc_example example_main.cpp)
@@ -32,6 +36,8 @@ ADD_EXECUTABLE(tmstc_example example_main.cpp)
 # Link the required libraries for the test executable
 TARGET_LINK_LIBRARIES(tmstc_example
   tmstc_star
+  geometry
+  mbutil
   ${SYSTEM_LIBS}
 )
 

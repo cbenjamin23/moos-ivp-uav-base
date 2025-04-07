@@ -7,6 +7,8 @@
 
 #include<set>
 
+#include "GeomUtils.h"
+
 // Define a hash function for std::tuple
 struct tuple_hash
 {
@@ -324,15 +326,22 @@ void PathCut::MST2Path()
 #ifdef USE_UAV_COST
 				// Vectors: v1 = P_{i-1} to P_i, v2 = P_i to P_{i+1}
 				int p0 = pathSequence[prev], p1 = pathSequence[curr], p2 = pathSequence[next];
-				double v1x = (p1 % smallcols - p0 % smallcols) * cellSize; // x-component
-				double v1y = (p1 / smallcols - p0 / smallcols) * cellSize; // y-component
-				double v2x = (p2 % smallcols - p1 % smallcols) * cellSize;
-				double v2y = (p2 / smallcols - p1 / smallcols) * cellSize;
+				double p0x = p0 % smallcols, p0y = p0 / smallcols; // x and y coordinates of p0
+				double p1x = p1 % smallcols, p1y = p1 / smallcols; // x and y coordinates of p1
+				double p2x = p2 % smallcols, p2y = p2 / smallcols; // x and y coordinates of p2
+
+				// double v1x = (p1 % smallcols - p0 % smallcols) * cellSize; // x-component
+				// double v1y = (p1 / smallcols - p0 / smallcols) * cellSize; // y-component
+				// double v2x = (p2 % smallcols - p1 % smallcols) * cellSize;
+				// double v2y = (p2 / smallcols - p1 / smallcols) * cellSize;
 				
-				// Compute turn angle theta
-				double dot = v1x * v2x + v1y * v2y;
-				double det = v1x * v2y - v1y * v2x;
-				double theta = std::abs(std::atan2(det, dot)); // Absolute angle in [0, pi]
+				// // Compute turn angle theta
+				// double dot = v1x * v2x + v1y * v2y;
+				// double det = v1x * v2y - v1y * v2x;
+				// double theta = std::abs(std::atan2(det, dot)); // Absolute angle in [0, pi]
+
+				
+				double theta = std::abs(segmentAngle(p0x,p0y,p1x,p1y, p2x,p2y)); // Angle between two vectors in radians
 
 				turnCost = turn_time(theta); // 90-degree turn time	// cost = turn_time)
 #else
@@ -926,15 +935,25 @@ double computePathCost(const std::vector<int> &path, const VehicleParameters &ve
 		{
 			// Vectors: v1 = P_{i-1} to P_i, v2 = P_i to P_{i+1}
 			int p0 = path[j], p1 = path[j+1], p2 = path[j + 2];
-			double v1x = (p1 % mapCols - p0 % mapCols) * vehicleParams.cellSize_m; // x-component
-			double v1y = (p1 / mapCols - p0 / mapCols) * vehicleParams.cellSize_m; // y-component
-			double v2x = (p2 % mapCols - p1 % mapCols) * vehicleParams.cellSize_m;
-			double v2y = (p2 / mapCols - p1 / mapCols) * vehicleParams.cellSize_m;
+
+			double p0x = p0 % mapCols, p0y = p0 / mapCols; // x and y coordinates of p0
+			double p1x = p1 % mapCols, p1y = p1 / mapCols; // x and y coordinates of p1
+			double p2x = p2 % mapCols, p2y = p2 / mapCols; // x and y coordinates of p2
+
+			double theta = std::abs(segmentAngle(p0x,p0y,p1x,p1y, p2x,p2y)); // Angle between two vectors in radians
+
+
+			// double v1x = (p1 % mapCols - p0 % mapCols) * vehicleParams.cellSize_m; // x-component
+			// double v1y = (p1 / mapCols - p0 / mapCols) * vehicleParams.cellSize_m; // y-component
+			// double v2x = (p2 % mapCols - p1 % mapCols) * vehicleParams.cellSize_m;
+			// double v2y = (p2 / mapCols - p1 / mapCols) * vehicleParams.cellSize_m;
 			
-			// Compute turn angle theta
-			double dot = v1x * v2x + v1y * v2y;
-			double det = v1x * v2y - v1y * v2x;
-			double theta = std::abs(std::atan2(det, dot)); // Absolute angle in [0, pi]
+			// // Compute turn angle theta
+			// double dot = v1x * v2x + v1y * v2y;
+			// double det = v1x * v2y - v1y * v2x;
+			// double theta = std::abs(std::atan2(det, dot)); // Absolute angle in [0, pi]
+
+
 
 			turnCost += turn_time(theta); // Time for the turn based on angle
 			turnCount++;
