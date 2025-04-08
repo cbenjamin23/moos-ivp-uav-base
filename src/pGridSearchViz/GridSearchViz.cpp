@@ -84,6 +84,11 @@ bool GridSearchViz::OnNewMail(MOOSMSG_LIST &NewMail)
       handled = setBooleanOnString(m_visualize_sensor_area, sval);
     else if (key == "XENABLE_MISSION")
     {
+
+      if(!m_missionEnabled){
+        gridResetCells(); // reset the grid
+        postGrid();
+      }
       handled = setBooleanOnString(m_missionEnabled, sval);
       retractRunWarnings(warnings);
     }
