@@ -93,7 +93,7 @@ Behavior = BHV_Waypoint
   #else
   capture_radius = 100
      slip_radius = 200
-            lead = 30
+            lead = 50
      lead_damper = 25
   #endif
 
