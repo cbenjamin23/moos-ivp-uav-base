@@ -25,8 +25,6 @@
 #include "GeomUtils.h"
 #include "Logger.h"
 
-XYPolygon stringMod2Poly(std::string str);
-
 //---------------------------------------------------------
 // Constructor
 
@@ -182,7 +180,7 @@ bool Proxonoi::Iterate()
   // Part 3.  Post it;
   if (m_prox_poly.is_convex())
   {
-    std::string spec = m_prox_poly.get_spec(3);
+    std::string spec = m_prox_poly.get_spec();
     bool new_spec = (spec != m_last_posted_spec);
 
     if (m_post_poly && !m_poly_erase_pending && new_spec)
@@ -233,7 +231,7 @@ bool Proxonoi::Iterate()
   else
     m_skip_count += 1;
 
-  if ((m_iteration % 20) == 0)
+  if ((m_iteration % 1) == 0)
   {
     shareProxPolyArea();
     shareProxPoly();
@@ -372,16 +370,14 @@ bool Proxonoi::handleConfigOpRegion(std::string opstr)
 bool Proxonoi::handleMailNodeMessage(std::string msg)
 {
   NodeMessage node_msg = string2NodeMessage(msg);
-  std::string vname = node_msg.getSourceNode();
+  std::string vname = tolower(node_msg.getSourceNode());
   if (vname == m_ownship)
     return (true);
 
-  // If the message is from a vehicle we are ignoring, just ignore it.
-  if (m_name_reject.count(tolower(vname)) > 0)
-    return (true);
+  Logger::info("Received node message from " + vname + ": " + msg);
 
-  // If the message is from a vehicle we are always ignoring, just ignore it.
-  if (m_name_always_reject.count(tolower(vname)) > 0)
+  // If the message is from a vehicle we are ignoring, just ignore it.
+  if (m_name_reject.count(vname) > 0)
     return (true);
 
   std::string msg_var = node_msg.getVarName();
@@ -394,12 +390,11 @@ bool Proxonoi::handleMailNodeMessage(std::string msg)
   else if (msg_var == "PROX_POLY_NEIGHBOR")
   {
 
-    auto poly = stringMod2Poly(node_msg.getStringVal());
+    auto poly = string2Poly(node_msg.getStringValX());
     if (poly.is_convex())
     {
       m_map_vPolys[vname] = poly;
       m_map_neighbour_time_received[vname] = m_curr_time;
-      Logger::info("Received valid poly from " + vname);
     }
     else
     {
@@ -408,7 +403,6 @@ bool Proxonoi::handleMailNodeMessage(std::string msg)
     }
   }
 
-  Notify("NODE_MESSAGE", msg);
   return (true);
 }
 
@@ -583,7 +577,7 @@ void Proxonoi::shareProxPolyArea()
   if (!m_prox_poly.valid())
     return;
 
-  NodeMessage msg(m_ownship, "ALL", "PROX_POLY_AREA");
+  NodeMessage msg(m_ownship, "all", "PROX_POLY_AREA");
   msg.setDoubleVal(m_prox_poly.area());
   msg.setColor("off");
 
@@ -598,14 +592,14 @@ void Proxonoi::shareProxPoly()
   if (!m_prox_poly.valid())
     return;
 
-  NodeMessage msg(m_ownship, "ALL", "PROX_POLY_NEIGHBOR");
+  NodeMessage msg(m_ownship, "all", "PROX_POLY_NEIGHBOR");
+  
+  Logger::info("Sharing Prox Poly (3spec): " + m_prox_poly.get_spec(3));
 
-  Logger::info("Sharing Prox Poly: " + m_prox_poly.get_spec());
-
-  msg.setStringVal(m_prox_poly.get_spec());
+  msg.setStringVal(m_prox_poly.get_spec(3));
   msg.setColor("off");
 
-  Notify("NODE_MESSAGE_LOCAL", msg.getSpec());
+  Notify("NODE_MESSAGE_LOCAL", msg.getSpec(3));
 }
 
 //------------------------------------------------------------
@@ -746,6 +740,8 @@ bool Proxonoi::buildReport()
     std::string time_str = "-";
     std::string valid_poly_str = "-";
 
+
+    
     if (m_map_vPolys.count(vname) > 0)
     {
       bool valid_poly = m_map_vPolys.at(vname).is_convex();
@@ -786,7 +782,7 @@ bool Proxonoi::updatePostAreaBalanceSetpoint()
   std::string label = "areaSetPt_" + m_ownship;
   areaSetPt.set_label(label);
   areaSetPt.set_label_color("off");
-  areaSetPt.set_color("vertex", "magenta");
+  areaSetPt.set_color("vertex", m_vcolor);
   areaSetPt.set_vertex_size(12);
   areaSetPt.set_duration(5);
   Notify("VIEW_POINT", areaSetPt.get_spec());
@@ -873,9 +869,17 @@ XYPoint Proxonoi::getSetPtAreaBalance() const
   XYPolygon kpoly = m_prox_poly;
   for (auto p = m_map_vPolys.begin(); p != m_map_vPolys.end(); p++)
   {
-    std::string pkey = p->first;
+    std::string pkey = tolower(p->first);
     if (pkey == m_ownship)
       continue;
+    
+    if(m_map_vAreas.count(pkey) == 0)
+      continue;
+      
+    if(m_name_reject.count(pkey) > 0)
+      continue;
+
+
 
     double dist = kpoly.dist_to_poly(p->second);
     if (dist < 1)
@@ -884,9 +888,12 @@ XYPoint Proxonoi::getSetPtAreaBalance() const
 
   if (neighbors.size() == 0)
   {
-    // Logger::info("No neighbors found");
+    Logger::info("No neighbors found");
     return (cpt);
   }
+
+  Logger::info("Found " + uintToString(neighbors.size()) + " neighbors");
+
 
   // ==============================================
   // Part 2: Calculate component vectors, one for each
@@ -1041,95 +1048,3 @@ XYPoint Proxonoi::getSetPtAreaBalance() const
 //   return (final_pt);
 // }
 
-XYPolygon stringMod2Poly(std::string str)
-{
-  XYPolygon null_poly;
-  XYPolygon new_poly;
-
-  std::string rest = stripBlankEnds(str);
-
-  Logger::info("stringStandard2Poly: " + str);
-
-  while (rest != "")
-  {
-    std::string left = stripBlankEnds(biteString(rest, '='));
-    rest = stripBlankEnds(rest);
-
-    if (left == "pts")
-    {
-      std::string pstr = biteStringX(rest, '}');
-
-      // Empty set of points is an error
-      if (pstr == "")
-        return (null_poly);
-
-      // Points should begin with an open brace (but discard now)
-      if (pstr[0] != '{')
-        return (null_poly);
-      else
-        pstr = pstr.substr(1);
-
-      // If more components after pts={}, then it should begin w/ comma
-      if (rest != "")
-      {
-        if (rest[0] != ',')
-          return (null_poly);
-        else
-          rest = rest.substr(1);
-      }
-
-      std::vector<std::string> svector = parseString(pstr, ':');
-      unsigned int i, vsize = svector.size();
-      for (i = 0; i < vsize; i++)
-      {
-        std::string vertex = stripBlankEnds(svector[i]);
-        std::string xstr = biteStringX(vertex, ',');
-        std::string ystr = biteStringX(vertex, ',');
-        std::string zstr = biteStringX(vertex, ',');
-        std::string pstr = biteStringX(vertex, ',');
-
-        std::string property;
-
-        if (!isNumber(xstr) || !isNumber(ystr))
-          return (null_poly);
-        
-        double xval = atof(xstr.c_str());
-        double yval = atof(ystr.c_str());
-        double zval = 0;
-        if (isNumber(zstr))
-          zval = atof(zstr.c_str());
-        else if (zstr != "")
-          property = zstr;
-
-        if (pstr != "")
-        {
-          if (property != "")
-            property += ",";
-          property += pstr;
-        }
-        new_poly.add_vertex(xval, yval, zval, property, false);
-      }
-      new_poly.determine_convexity();
-    }
-    else
-    {
-      std::string right = stripBlankEnds(biteString(rest, ','));
-      rest = stripBlankEnds(rest);
-      new_poly.set_param(left, right);
-    }
-  }
-
-  if (new_poly.is_convex())
-    return (new_poly);
-
-  // Mod by mikerb Jan 26,2020 Support for deactivation poly strings
-  // such as "label=foobar,active=false". This lightens the burden
-  // for apps that simply want to erase a polygon without having to
-  // provide any points.
-  if (new_poly.active() == false)
-  {
-    null_poly.set_label(new_poly.get_label());
-    null_poly.set_active(false);
-  }
-  return (null_poly);
-}

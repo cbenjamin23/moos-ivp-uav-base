@@ -24,7 +24,7 @@ Processconfig = ANTLER
   Run = uTimerScript       @ NewConsole = false
 
   Run = pRealm             @ NewConsole = false
-  Run = pProxonoi_uav      @ NewConsole = false
+  Run = pProxonoi_uav      @ NewConsole = false //, XConfig=HOLDSettings
 
 
   #ifdef USE_MOOS_SIM_PID true
@@ -75,7 +75,7 @@ ProcessConfig = pProxonoi_uav
                                                                 
   region = $(REGION)
   vcolor = $(COLOR)
-  neighbor_stale_treshold = 10
+  neighbor_stale_treshold = 15
 
   post_poly = true
   // post_region = true
