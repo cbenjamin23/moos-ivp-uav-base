@@ -2,7 +2,7 @@
 # The CMakeLists.txt for:                lib_bhv_constAlt
 # Author(s):                    Steve Carter Feujo Nomeny
 #--------------------------------------------------------
-#                                    BHV_ConstantAltitude
+#                                    BEHAVIOR LIBRARY
 #--------------------------------------------------------
 
 
@@ -19,6 +19,10 @@ endif (${WIN32})
 
 
 
+
+#--------------------------------------------------------
+#                                    BHV_ConstantAltitude
+#--------------------------------------------------------
 ADD_LIBRARY(BHV_ConstantAltitude SHARED 
    BHV_ConstantAltitude.cpp)
 
@@ -33,3 +37,21 @@ TARGET_LINK_LIBRARIES(BHV_ConstantAltitude
    geometry 
    ${SYSTEM_LIBS}
 )
+
+
+#--------------------------------------------------------
+#                                        BHV_Voronoi_uav
+#--------------------------------------------------------
+ADD_LIBRARY(BHV_Voronoi_uav SHARED 
+   BHV_Voronoi_uav.cpp )
+TARGET_LINK_LIBRARIES(BHV_Voronoi_uav
+   ufield
+   helmivp
+   behaviors 
+   ivpbuild 
+   logic 
+   ivpcore 
+   bhvutil 
+   mbutil 
+   geometry 
+   ${SYSTEM_LIBS} )

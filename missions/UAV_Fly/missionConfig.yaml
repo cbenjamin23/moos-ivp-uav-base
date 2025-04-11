@@ -39,6 +39,9 @@ missionParams:
   
   mission_duration : 6000 # s - The duration of the mission
 
+
+  voronoi_setpoint_method: gridsearch # The method used to set the path for the voronoi algorithm. Can be "gridsearch", "center" or "centroid" 
+
   # The ratio between the region grid cell distance in the TMSTC* algorithm and the sensor range. The sensor range is the maximum distance from the drone that the sensor can detect fires
   # TMSTC_gridsizeSensorRangeRatio: 0.5 
   TMSTC_gridsizeSensorRangeRatio: 0.4 # might work better in simulation

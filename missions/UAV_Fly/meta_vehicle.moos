@@ -75,10 +75,12 @@ ProcessConfig = pProxonoi_uav
                                                                 
   region = $(REGION)
   vcolor = $(COLOR)
-  neighbor_stale_treshold = 15
+  vehicle_stale_treshold = 10
 
+  setpt_method = $(VORONOI_SETPT_METHOD)
   post_poly = true
   // post_region = true
+
 }                                            
 
 

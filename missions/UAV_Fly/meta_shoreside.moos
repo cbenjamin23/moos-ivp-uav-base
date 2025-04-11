@@ -172,7 +172,7 @@ ProcessConfig = uFldShoreBroker
   // bridge  = src=RESCUE_REGION
 
 
-  qbridge = ARM_UAV, HELM_STATUS, MOOS_MANUAL_OVERRIDE
+  qbridge = ARM_UAV, HELM_STATUS, MOOS_MANUAL_OVERRIDE, PROX_SETPT_METHOD
 
   qbridge = GCS_COMMAND, PROX_POLY_VIEW // Most commands from the GCS
 
@@ -411,6 +411,11 @@ ProcessConfig = pMarineViewer
   action+ = menu_key=Toggle_TMSTC_path #  GSP_VISUALIZE_PLANNER_PATHS=toggle
   action+ = menu_key=Toggle_TMSTC_closest_start #  GSP_START_POINT_CLOSEST=toggle
   action+ = menu_key=Toggle_prox_poly_view #  PROX_POLY_VIEW_ALL=toggle
+
+  action = menu_key=setpt_method_GRIDSEARCH # PROX_SETPT_METHOD_ALL=gridsearch
+  action = menu_key=setpt_method_CENTROID # PROX_SETPT_METHOD_ALL=centroid
+  action+= menu_key=setpt_method_CENTER # PROX_SETPT_METHOD_ALL=center
+
 
   action = menu_key=GSP_map_print_off #  GSP_MAP_PRINT=0
   action = menu_key=GSP_map_print_init #  GSP_MAP_PRINT=1

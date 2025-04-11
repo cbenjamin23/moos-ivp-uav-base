@@ -38,30 +38,31 @@ protected:
   void registerVariables();
 
   bool handleConfigOpRegion(std::string);
+  bool handleStringSetPointMethod(std::string);
+
   void handleMailNodeReport(std::string);
   bool handleMailProxPolyView(std::string);
   bool handleMailProxClear();
   bool handleMailProxSetIgnoreList(std::string);
-  bool handleMailNodeMessage(std::string);
+  // bool handleMailNodeMessage(std::string);
 
   bool updateSplitLines();
   bool updateVoronoiPoly();
+  XYPoint calculateGridSearchSetpoint() const;
 
-  bool updatePostAreaBalanceSetpoint();
+  XYPoint updateViewGridSearchSetpoint();
   void postCentroidSetpoint();
-  
-  void checkPolyStaleness();
+
+  void checkRemoveVehicleStaleness();
 
   void shareProxPolyArea();
   void shareProxPoly();
-
-  XYPoint getSetPtAreaBalance(const XYPolygon op_region, std::string key, const std::map<std::string, XYPolygon> &map_vpolygons, const std::map<std::string, double> &map_vAreas) const; 
-  XYPoint getSetPtAreaBalance() const; 
 
 
 private: // Configuration variables
   std::string m_ownship;
   std::string m_vcolor;
+  std::string m_setpt_method;
 
   double m_reject_range;
   bool m_post_poly;
@@ -74,7 +75,7 @@ private: // Configuration variables
   std::string m_region_up_var;
   std::string m_ignore_list_up_var;
 
-  double m_neighbor_stale_treshold;
+  double m_node_record_stale_treshold;
 
 private: // State variables
   double m_osx;
@@ -96,11 +97,6 @@ private: // State variables
   std::map<std::string, NodeRecord> m_map_node_records;
   std::map<std::string, XYSegList> m_map_split_lines;
   std::map<std::string, double> m_map_ranges;
-
-  std::map<std::string, XYPolygon> m_map_vPolys;
-  std::map<std::string, double> m_map_vAreas;
-  std::map<std::string, double> m_map_neighbour_time_received;
 };
-
 
 #endif
