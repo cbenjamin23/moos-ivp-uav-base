@@ -169,8 +169,8 @@ ProcessConfig = uFldShoreBroker
   bridge  = src=UFFS_FINISH
   bridge  = src=DISCOVERED_FIRE
   bridge  = src=MISSION_COMPLETE
-  // bridge  = src=RESCUE_REGION
-
+  bridge  = src=VIEW_GRID
+  bridge  = src=VIEW_GRID_DELTA
 
   qbridge = ARM_UAV, HELM_STATUS, MOOS_MANUAL_OVERRIDE, PROX_SETPT_METHOD
 

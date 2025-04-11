@@ -579,7 +579,7 @@ bool GridSearchViz::buildReport()
     std::string cell_min_sofar = doubleToStringX(m_grid.getMin(i), 5);
     std::string cell_max_sofar = doubleToStringX(m_grid.getMax(i), 5);
     bool cell_min_limited = m_grid.cellVarMinLimited(i);
-    bool cell_max_limited = m_grid.cellVarMinLimited(i);
+    bool cell_max_limited = m_grid.cellVarMaxLimited(i);
     std::string cell_min_limit = "-";
     std::string cell_max_limit = "-";
     if (cell_min_limited)

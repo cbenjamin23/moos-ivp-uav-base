@@ -19,6 +19,7 @@
 #include "XYSegList.h"
 #include "NodeRecord.h"
 
+#include "XYConvexGrid.h"
 class Proxonoi : public AppCastingMOOSApp
 {
 public:
@@ -44,11 +45,13 @@ protected:
   bool handleMailProxPolyView(std::string);
   bool handleMailProxClear();
   bool handleMailProxSetIgnoreList(std::string);
-  // bool handleMailNodeMessage(std::string);
+  bool handleMailViewGrid(std::string);
+  bool handleMailViewGridUpdate(std::string);
 
   bool updateSplitLines();
   bool updateVoronoiPoly();
   XYPoint calculateGridSearchSetpoint() const;
+  XYPoint calculateAreaCenterInPolygon(const XYPolygon& pol, const XYConvexGrid grid) const;
 
   XYPoint updateViewGridSearchSetpoint();
   void postCentroidSetpoint();
@@ -93,6 +96,9 @@ private: // State variables
   XYPolygon m_prox_poly;
 
   bool m_poly_erase_pending;
+
+  
+  XYConvexGrid m_convex_region_grid;
 
   std::map<std::string, NodeRecord> m_map_node_records;
   std::map<std::string, XYSegList> m_map_split_lines;

@@ -22,6 +22,8 @@
 #include <cmath>
 #include "AngleUtils.h"
 #include "GeomUtils.h"
+
+#include "XYFormatUtilsConvexGrid.h"
 #include "Logger.h"
 
 //---------------------------------------------------------
@@ -53,7 +55,6 @@ Proxonoi::Proxonoi()
   m_setpt_method = "center";
 
   m_node_record_stale_treshold = 10;
-
 }
 
 //---------------------------------------------------------
@@ -109,8 +110,11 @@ bool Proxonoi::OnNewMail(MOOSMSG_LIST &NewMail)
       handled = handleConfigOpRegion(sval);
     }
     else if (key == "PROX_SETPT_METHOD")
-    handled = handleStringSetPointMethod(sval);
-
+      handled = handleStringSetPointMethod(sval);
+    else if (key == "VIEW_GRID")
+      handled = handleMailViewGrid(sval);
+    else if (key == "VIEW_GRID_DELTA")
+      handled = handleMailViewGridUpdate(sval);
 
     else if (key != "APPCAST_REQ") // handled by AppCastingMOOSApp
       reportRunWarning("Unhandled Mail: " + key);
@@ -149,15 +153,14 @@ bool Proxonoi::Iterate()
   //===========================================================
   updateVoronoiPoly();
 
-  
   checkRemoveVehicleStaleness();
-  
-  
+
   //===========================================================
   // Update the Setpoints
   //===========================================================
 
-  if(m_prox_region.is_convex()){
+  if (m_prox_region.is_convex())
+  {
 
     XYPoint center_reg = m_prox_region.get_center_pt();
     center_reg.set_label("center_reg");
@@ -165,7 +168,7 @@ bool Proxonoi::Iterate()
     center_reg.set_color("vertex", "red");
     center_reg.set_vertex_size(10);
     Notify("VIEW_POINT", center_reg.get_spec());
-    
+
     XYPoint centroid_reg = m_prox_region.get_centroid_pt();
     centroid_reg.set_label("centroid_reg");
     // centroid_reg.set_label_color("off");
@@ -173,20 +176,17 @@ bool Proxonoi::Iterate()
     centroid_reg.set_vertex_size(10);
     Notify("VIEW_POINT", centroid_reg.get_spec());
   }
-   
+
   auto setpt_grid = updateViewGridSearchSetpoint();
-  
+
   XYPoint setpt;
-  if (m_setpt_method=="gridsearch")
-      setpt = setpt_grid;
-  
-  if(setpt.valid())
+  if (m_setpt_method == "gridsearch")
+    setpt = setpt_grid;
+
+  if (setpt.valid())
     Notify("PROX_SEARCHCENTER", setpt.get_spec());
-  
+
   postCentroidSetpoint();
-
-
-
 
   //===========================================================
 
@@ -357,10 +357,31 @@ void Proxonoi::registerVariables()
   Register(m_ignore_list_up_var, 0);
   Register(m_region_up_var, 0);
 
-
- 
   Register("PROX_SETPT_METHOD", 0);
 
+  // From GCS
+  Register("VIEW_GRID", 0);
+  Register("VIEW_GRID_DELTA", 0);
+}
+bool Proxonoi::handleMailViewGrid(std::string str)
+{
+  str = stripBlankEnds(str);
+  auto grid = string2ConvexGrid(str);
+  if (!grid.valid())
+  {
+    reportRunWarning("Received invalid grid: " + str);
+    Logger::warning("Received invalid grid: " + str);
+    return false;
+  }
+  m_convex_region_grid = grid;
+
+  return true;
+}
+
+bool Proxonoi::handleMailViewGridUpdate(std::string str)
+{
+  m_convex_region_grid.processDelta(str);
+  return true;
 }
 
 //---------------------------------------------------------
@@ -393,7 +414,6 @@ bool Proxonoi::handleStringSetPointMethod(std::string method)
     m_setpt_method = method;
   else
     return (false);
-
 
   return (true);
 }
@@ -538,7 +558,6 @@ bool Proxonoi::updateSplitLines()
     NodeRecord record = p->second;
     double cnx = record.getX();
     double cny = record.getY();
-    
 
     // If the contact is in the op_region, then create a split line
     // otherwise the splitline associated with the contaxt is null
@@ -604,7 +623,7 @@ bool Proxonoi::updateVoronoiPoly()
     return (false);
 
   // Sanity check 2: if no ownship position return false
-  if (!m_osx_tstamp  || !m_osy_tstamp)
+  if (!m_osx_tstamp || !m_osy_tstamp)
     return (false);
 
   // Sanity check 3: if ownship not in op_region, return false
@@ -612,8 +631,8 @@ bool Proxonoi::updateVoronoiPoly()
   {
     if (m_os_in_prox_region)
       m_poly_erase_pending = true;
-    
-     m_os_in_prox_region = false;
+
+    m_os_in_prox_region = false;
     return (false);
   }
   else
@@ -732,7 +751,6 @@ bool Proxonoi::buildReport()
 
     std::string time_str = "-";
 
-   
     double time_to_treshold = (MOOSTime() - q->second.getTimeStamp());
     if (time_to_treshold > m_node_record_stale_treshold)
       time_str = "stale";
@@ -745,7 +763,6 @@ bool Proxonoi::buildReport()
 
   return (true);
 }
-
 
 XYPoint Proxonoi::updateViewGridSearchSetpoint()
 {
@@ -767,9 +784,19 @@ XYPoint Proxonoi::updateViewGridSearchSetpoint()
   // gridSearchSetPt.set_duration(5);
   Notify("VIEW_POINT", gridSearchSetPt.get_spec());
 
+
+  XYPoint searchCenter = calculateAreaCenterInPolygon(m_prox_poly, m_convex_region_grid);
+  if (searchCenter.valid())
+  {
+    searchCenter.set_label("searcCenter");
+    // centroid_reg.set_label_color("off");
+    searchCenter.set_color("vertex", m_vcolor);
+    searchCenter.set_vertex_size(8);
+    Notify("VIEW_POINT", searchCenter.get_spec());
+    // Logger::info("Search Center Setpoint: " + searchCenter.get_spec());
+  }
   return gridSearchSetPt;
 }
-
 
 //------------------------------------------------------------
 void Proxonoi::postCentroidSetpoint()
@@ -821,71 +848,132 @@ void Proxonoi::checkRemoveVehicleStaleness()
     m_map_split_lines.erase(vname);
     m_map_node_records.erase(vname);
     Logger::info("Checking Poly Staleness: Erased " + vname + " time: " + doubleToStringX(time_received, 2) + " curr_time: " + doubleToStringX(curr_time, 2) +
-                  " treshold: " + doubleToStringX(m_node_record_stale_treshold, 2) +
-                  " diff: " + doubleToStringX(timediff, 2));
+                 " treshold: " + doubleToStringX(m_node_record_stale_treshold, 2) +
+                 " diff: " + doubleToStringX(timediff, 2));
   }
 }
 
-
-XYPoint Proxonoi::calculateGridSearchSetpoint() const{
+XYPoint Proxonoi::calculateGridSearchSetpoint() const
+{
   XYPoint null_pt;
-  
-  if(!m_prox_region.valid())
-    return(null_pt);
-  if(!m_prox_poly.valid())
-    return(null_pt);
+
+  if (!m_prox_region.valid())
+    return (null_pt);
+  if (!m_prox_poly.valid())
+    return (null_pt);
 
   XYPoint centroid_pt = m_prox_poly.get_centroid_pt();
 
+  XYPoint searchCenter = calculateAreaCenterInPolygon(m_prox_poly, m_convex_region_grid);
+  
 
-  auto ref_pt = centroid_pt;
+  auto ref_pt = searchCenter;
 
-  if(!ref_pt.valid()){
+  if (!ref_pt.valid())
+  {
     Logger::warning("Centroid Setpoint not valid");
-    return(null_pt);
+    return (null_pt);
   }
 
 
-  XYPoint reg_center_pt = m_prox_region.get_center_pt(); 
+
+  XYPoint reg_center_pt = m_prox_region.get_center_pt();
   double rel_ang = relAng(reg_center_pt, ref_pt);
   // Logger::info("Relative angle calculated: " + doubleToString(rel_ang, 2));
-  
+
   static XYPoint target_pt;
-  
-  double heading = rel_ang-90;
+
+  double heading = rel_ang - 90;
   double default_dist = 200;
 
   XYPoint final_pt = projectPoint(heading, default_dist, ref_pt);
-   
+
   XYPoint cpt{m_osx, m_osy};
   double dist_to_target = 0;
   // Logger::info("Current Point: " + cpt.get_spec());
   // Logger::info("Final Point: " + final_pt.get_spec());
   // Logger::info("Target Point: " + target_pt.get_spec());
-  if(target_pt.valid()){
+  if (target_pt.valid())
+  {
     dist_to_target = distPointToPoint(cpt, target_pt);
     // Logger::info("Distance to target calculated: " + doubleToString(dist_to_target, 2));
   }
-  else{
+  else
+  {
     dist_to_target = distPointToPoint(cpt, final_pt);
     // Logger::info("Distance to final calculated: " + doubleToString(dist_to_target, 2));
   }
-  
+
   // Logger::info("Distance to target calculated: " + doubleToString(dist_to_target, 2));
   // create a function that goes to 1000 as dist goes to 30
   // double mag = 1000 * (1 - (dist / 30));
   double mag = 150 * (1 - (dist_to_target / 150));
   if (mag < 0)
     mag = 0;
-  else if (mag > 1000) 
+  else if (mag > 1000)
     mag = 1000;
 
-
-  final_pt = projectPoint(heading, mag+default_dist, ref_pt);
+  final_pt = projectPoint(heading, mag + default_dist, ref_pt);
   // Logger::info("Final point calculated: " + final_pt.get_spec());
 
   target_pt = final_pt;
-  return(final_pt); 
+  return (final_pt);
+
+}
+
+XYPoint Proxonoi::calculateAreaCenterInPolygon(const XYPolygon &pol, const XYConvexGrid grid) const
+{
+  XYPoint null_pt;
+
+  if (!pol.valid() || !grid.size())
+  {
+    Logger::error("Invalid polygon or empty grid");
+    return null_pt;
+  }
+
+  double max_visits = grid.getMaxLimit();
+  if (max_visits == 0)
+  {
+    Logger::warning("Max visits is zero, cannot calculate weighted center");
+    return null_pt;
+  }
+
+  double total_weighted_x = 0.0;
+  double total_weighted_y = 0.0;
+  double total_weight = 0.0;
+
+  for (unsigned int i = 0; i < grid.size(); ++i)
+  {
+    XYSquare cell = grid.getElement(i);
+
+    if (!pol.contains(cell.getCenterX(), cell.getCenterY()))
+    {
+      continue;
+    }
+
+    double cell_visits = grid.getVal(i);
+    double weight = max_visits - cell_visits; // Higher weight for fewer visits
+
+    if (weight > 0)
+    {
+      total_weighted_x += cell.getCenterX() * weight;
+      total_weighted_y += cell.getCenterY() * weight;
+      total_weight += weight;
+    }
+  }
+
+  if (total_weight == 0.0)
+  {
+    Logger::warning("Total weight is zero, cannot calculate weighted center");
+    return null_pt;
+  }
+
+  double center_x = total_weighted_x / total_weight;
+  double center_y = total_weighted_y / total_weight;
+
+  XYPoint weighted_center(center_x, center_y);
+  weighted_center.set_label("weighted_area_center");
+  return weighted_center;
 }
 
 //------------------------------------------------------------
