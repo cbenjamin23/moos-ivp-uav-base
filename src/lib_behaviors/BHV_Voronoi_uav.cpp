@@ -312,34 +312,39 @@ bool BHV_Voronoi::updateSetPoint()
   }
 
   double method_staleness = getBufferTimeVal("PROX_SETPT_METHOD");
-  if (method_staleness == 0)
-  {
+  if (method_staleness == 0) {
     string method_str = getBufferStringVal("PROX_SETPT_METHOD");
     handleConfigSetPointMethod(method_str);
   }
 
-  XYPoint gridsearch_setpt;
-  if (m_setpt_method == "gridsearch")
-  {
+  static XYPoint gridsearch_setpt;
+  if (m_setpt_method == "gridsearch"){
 
-    auto searchcenter_staleness = getBufferTimeVal("PROX_SEARCHCENTER");
-    if (searchcenter_staleness > m_stale_searchcenter_thresh)
-    {
-      postWMessage("Gridsearch setpt info_buffer is stale.");
-      return (false);
+    bool searchcenter_stale = getBufferTimeVal("PROX_SEARCHCENTER") > m_stale_searchcenter_thresh;
+    if (searchcenter_stale && m_ownship_in_region){
+        postWMessage("Gridsearch setpt info_buffer is stale.");
+        // return (false);
     }
+    else
+      postRetractWMessage("Gridsearch setpt info_buffer is stale.");
 
     std::string searchcenter_str = getBufferStringVal("PROX_SEARCHCENTER");
     auto pt = string2Point(searchcenter_str);
-    if (pt.valid())
-    {
-      gridsearch_setpt = pt;
-    }
+    if (!pt.valid() && m_ownship_in_region){
+      postWMessage("Gridsearch setpt is invalid");
+      // return (false);
+    } 
     else
-    {
-      postEMessage("Gridsearch setpt is invalid");
-      return (false);
+      postRetractWMessage("Gridsearch setpt is invalid");
+
+    if(!searchcenter_stale && pt.valid() ){
+      
+      if(distPointToPoint(XYPoint(m_osx, m_osy), gridsearch_setpt) <= m_capture_radius)
+        gridsearch_setpt = pt;
+        
     }
+    else if(distPointToPoint(XYPoint(m_osx, m_osy), gridsearch_setpt) < 15) // close to the old setpt
+      gridsearch_setpt = calculateCircularSetPt();  
   }
 
   // Part 2: If ownship is in the region and we have a valid
@@ -666,4 +671,21 @@ void BHV_Voronoi::eraseViewables(unsigned int id)
 
   string spec = point.get_spec();
   postMessage("VIEW_POINT", spec);
+}
+
+
+XYPoint BHV_Voronoi::calculateCircularSetPt()
+{
+
+  XYPoint reg_centroid = m_proxonoi_region.get_centroid_pt();
+  XYPoint poly_centroid = m_proxonoi_poly.get_centroid_pt();
+  double rel_ang = relAng(reg_centroid, poly_centroid);
+
+  double circular_heading = rel_ang - 90;
+  double default_dist = 150;
+
+  // XYPoint final_pt = projectPoint(heading, default_dist, ref_pt);
+  XYPoint circular_point = projectPoint(circular_heading, default_dist, poly_centroid);
+
+  return circular_point;
 }

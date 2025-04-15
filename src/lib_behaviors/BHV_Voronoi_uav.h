@@ -51,6 +51,9 @@ protected:
   void postErasableSetPoint();
   bool setState(std::string);
 
+
+  XYPoint calculateCircularSetPt();
+
 private:
 protected: // State vars
   XYPolygon m_proxonoi_poly;

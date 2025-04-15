@@ -43,6 +43,7 @@ Proxonoi::Proxonoi()
   m_ignore_list_up_var = "PROX_SET_IGNORE_LIST";
 
   // State Variables
+  m_course = 0;
   m_osx = 0;
   m_osy = 0;
   m_osx_tstamp = false;
@@ -91,6 +92,11 @@ bool Proxonoi::OnNewMail(MOOSMSG_LIST &NewMail)
     {
       m_osy = dval;
       m_osy_tstamp = mtime;
+      handled = true;
+    }
+    else if (key == "NAV_HEADING")
+    {
+      m_course = dval;
       handled = true;
     }
     else if (key == "PROX_CLEAR")
@@ -183,9 +189,8 @@ bool Proxonoi::Iterate()
   if (m_setpt_method == "gridsearch")
     setpt = setpt_grid;
 
-  if (setpt.valid())
-    Notify("PROX_SEARCHCENTER", setpt.get_spec());
-
+  postGridSearchSetpointFiltered(setpt);
+  
   postCentroidSetpoint();
 
   //===========================================================
@@ -354,6 +359,7 @@ void Proxonoi::registerVariables()
   Register("PROX_CLEAR", 0);
   Register("NAV_X", 0);
   Register("NAV_Y", 0);
+  Register("NAV_HEADING", 0);
   Register(m_ignore_list_up_var, 0);
   Register(m_region_up_var, 0);
 
@@ -772,8 +778,11 @@ XYPoint Proxonoi::updateViewGridSearchSetpoint()
   if (!gridSearchSetPt.valid())
   {
     Logger::warning("GridSearch Setpoint not valid");
-    return nullpt;
+    reportRunWarning("GridSearch Setpoint not valid");
+    gridSearchSetPt = calculateCircularSetPt();
   }
+  else
+    retractRunWarning("GridSearch Setpoint not valid");
 
   // std::string label = "gridSearchSetPt_" + m_ownship;
   std::string label = "g_" + m_ownship;
@@ -784,17 +793,6 @@ XYPoint Proxonoi::updateViewGridSearchSetpoint()
   // gridSearchSetPt.set_duration(5);
   Notify("VIEW_POINT", gridSearchSetPt.get_spec());
 
-
-  XYPoint searchCenter = calculateAreaCenterInPolygon(m_prox_poly, m_convex_region_grid);
-  if (searchCenter.valid())
-  {
-    searchCenter.set_label("searcCenter");
-    // centroid_reg.set_label_color("off");
-    searchCenter.set_color("vertex", m_vcolor);
-    searchCenter.set_vertex_size(8);
-    Notify("VIEW_POINT", searchCenter.get_spec());
-    // Logger::info("Search Center Setpoint: " + searchCenter.get_spec());
-  }
   return gridSearchSetPt;
 }
 
@@ -822,6 +820,15 @@ void Proxonoi::postCentroidSetpoint()
   centroidSetPt.set_vertex_size(10);
   // centroidSetPt.set_duration(5);
   Notify("VIEW_POINT", centroidSetPt.get_spec());
+
+  auto center = m_prox_poly.get_center_pt();
+  if (center.valid())
+  {
+    center.set_label("center");
+    center.set_color("vertex", "white");
+    center.set_vertex_size(4);
+    Notify("VIEW_POINT", center.get_spec());
+  }
 }
 
 void Proxonoi::checkRemoveVehicleStaleness()
@@ -853,7 +860,7 @@ void Proxonoi::checkRemoveVehicleStaleness()
   }
 }
 
-XYPoint Proxonoi::calculateGridSearchSetpoint() const
+XYPoint Proxonoi::calculateGridSearchSetpoint()
 {
   XYPoint null_pt;
 
@@ -862,122 +869,291 @@ XYPoint Proxonoi::calculateGridSearchSetpoint() const
   if (!m_prox_poly.valid())
     return (null_pt);
 
-  XYPoint centroid_pt = m_prox_poly.get_centroid_pt();
+  //--------------------------------------------------------------------------------------------
+  //--------------------------------------------------------------------------------------------
+  auto [forward_center, forward_weight] = calculateSearchCenter(m_prox_poly, m_convex_region_grid, -20, 20);
+  auto [left_center, left_weight] = calculateSearchCenter(m_prox_poly, m_convex_region_grid, -90, -20);
+  auto [right_center, right_weight] = calculateSearchCenter(m_prox_poly, m_convex_region_grid, 20, 90);
 
-  XYPoint searchCenter = calculateAreaCenterInPolygon(m_prox_poly, m_convex_region_grid);
-  
+  bool forward_free = !isPointInDiscoverdGridCell(forward_center);
+  bool left_free = !isPointInDiscoverdGridCell(left_center);
+  bool right_free = !isPointInDiscoverdGridCell(right_center);
+
+  forward_center.set_label("f" + m_ownship);
+  forward_center.set_color("vertex", "yellow");
+  forward_center.set_vertex_size(5);
+  forward_center.set_msg("f");
+  Notify("VIEW_POINT", forward_center.get_spec());
+
+  left_center.set_label("l" + m_ownship);
+  left_center.set_color("vertex", "green");
+  left_center.set_vertex_size(5);
+  left_center.set_msg("l");
+  Notify("VIEW_POINT", left_center.get_spec());
+
+  right_center.set_label("r" + m_ownship);
+  right_center.set_color("vertex", "red");
+  right_center.set_msg("r");
+  right_center.set_vertex_size(5);
+  Notify("VIEW_POINT", right_center.get_spec());
+
+  static std::string prev_sector = "forward";
+  double threshold = 1.4; // 40% hysteresis
+  XYPoint searchCenter;
+
+  if (prev_sector == "forward")
+  {
+
+    if ((left_weight > forward_weight * threshold  && left_free)|| (left_free && !forward_free))
+    {
+      searchCenter = left_center;
+      prev_sector = "left";
+    }
+    else if ((right_weight > forward_weight * threshold && right_free) || (right_free && !forward_free))
+    {
+      searchCenter = right_center;
+      prev_sector = "right";
+    }
+    else
+    {
+      searchCenter = forward_center;
+    }
+  }
+  else if (prev_sector == "left")
+  {
+    if ((forward_weight > left_weight * threshold && forward_free) || (forward_free && !left_free) )
+    {
+      searchCenter = forward_center;
+      prev_sector = "forward";
+    }
+    else if ((right_weight > left_weight * threshold && right_free)|| (right_free && !left_free))
+    {
+      searchCenter = right_center;
+      prev_sector = "right";
+    }
+    else
+    {
+      searchCenter = left_center;
+    }
+  }
+  else
+  { // right
+    if ((forward_weight > right_weight * threshold && forward_free) || (forward_free && !right_free))
+    {
+      searchCenter = forward_center;
+      prev_sector = "forward";
+    }
+    else if ((left_weight > right_weight * threshold && left_free) || (left_free && !right_free) )
+    {
+      searchCenter = left_center;
+      prev_sector = "left";
+    }
+    else
+    {
+      searchCenter = right_center;
+    }
+  }
+
+  if (!searchCenter.valid())
+    return null_pt;
+
+  searchCenter.set_label("searcCenter" + m_ownship);
+  searchCenter.set_label_color("off");
+  searchCenter.set_color("vertex", "blue");
+  searchCenter.set_vertex_size(8);
+  searchCenter.set_msg("searchCenter");
+  Notify("VIEW_POINT", searchCenter.get_spec());
+
+  //--------------------------------------------------------------------------------------------
+  //--------------------------------------------------------------------------------------------
+
+  XYPoint cpt{m_osx, m_osy};
+
+  // Smooth the searchCenter to avoid abrupt jumps (optional)
+  static XYPoint prev_searchCenter = searchCenter;
+  if (prev_searchCenter.valid())
+  {
+    double alpha = 0.3; // Smoothing factor (0 to 1)
+    double new_x = alpha * searchCenter.get_vx() + (1 - alpha) * prev_searchCenter.get_vx();
+    double new_y = alpha * searchCenter.get_vy() + (1 - alpha) * prev_searchCenter.get_vy();
+    searchCenter.set_vx(new_x);
+    searchCenter.set_vy(new_y);
+  }
+  prev_searchCenter = searchCenter;
 
   auto ref_pt = searchCenter;
 
-  if (!ref_pt.valid())
-  {
-    Logger::warning("Centroid Setpoint not valid");
-    return (null_pt);
-  }
-
-
-
-  XYPoint reg_center_pt = m_prox_region.get_center_pt();
-  double rel_ang = relAng(reg_center_pt, ref_pt);
   // Logger::info("Relative angle calculated: " + doubleToString(rel_ang, 2));
 
   static XYPoint target_pt;
+  XYPoint circular_point = calculateCircularSetPt();
 
-  double heading = rel_ang - 90;
-  double default_dist = 200;
+  // double dist = distPointToPoint(circular_point, ref_pt);
+  double distance_from_circle_point = distPointToPoint(circular_point, ref_pt);
+  auto heading_from_circle_point = relAng(circular_point, ref_pt);
+  XYPoint final_pt = projectPoint(heading_from_circle_point, distance_from_circle_point, circular_point);
 
-  XYPoint final_pt = projectPoint(heading, default_dist, ref_pt);
-
-  XYPoint cpt{m_osx, m_osy};
   double dist_to_target = 0;
-  // Logger::info("Current Point: " + cpt.get_spec());
-  // Logger::info("Final Point: " + final_pt.get_spec());
-  // Logger::info("Target Point: " + target_pt.get_spec());
   if (target_pt.valid())
-  {
     dist_to_target = distPointToPoint(cpt, target_pt);
-    // Logger::info("Distance to target calculated: " + doubleToString(dist_to_target, 2));
-  }
   else
-  {
     dist_to_target = distPointToPoint(cpt, final_pt);
-    // Logger::info("Distance to final calculated: " + doubleToString(dist_to_target, 2));
-  }
 
   // Logger::info("Distance to target calculated: " + doubleToString(dist_to_target, 2));
   // create a function that goes to 1000 as dist goes to 30
   // double mag = 1000 * (1 - (dist / 30));
   double mag = 150 * (1 - (dist_to_target / 150));
-  if (mag < 0)
-    mag = 0;
-  else if (mag > 1000)
-    mag = 1000;
+  mag = std::max(0.0, std::min(mag, 200.0));
 
-  final_pt = projectPoint(heading, mag + default_dist, ref_pt);
+  // final_pt = projectPoint(heading, mag + default_dist, ref_pt);
+  final_pt = projectPoint(heading_from_circle_point, mag, final_pt);
   // Logger::info("Final point calculated: " + final_pt.get_spec());
+
+  if (!m_prox_poly.contains(final_pt))
+  {
+    final_pt = m_prox_poly.closest_point_on_poly(final_pt);
+    Logger::warning("Calculated weighted center is outside the polygon");
+  }
 
   target_pt = final_pt;
   return (final_pt);
-
 }
 
-XYPoint Proxonoi::calculateAreaCenterInPolygon(const XYPolygon &pol, const XYConvexGrid grid) const
+std::pair<XYPoint, double> Proxonoi::calculateSearchCenter(const XYPolygon &pol, const XYConvexGrid &grid, double min_signed_diff, double max_signed_diff) const
 {
-  XYPoint null_pt;
 
+  std::pair<XYPoint, double> null_pair;
   if (!pol.valid() || !grid.size())
   {
     Logger::error("Invalid polygon or empty grid");
-    return null_pt;
+    return null_pair;
   }
-
   double max_visits = grid.getMaxLimit();
   if (max_visits == 0)
   {
     Logger::warning("Max visits is zero, cannot calculate weighted center");
-    return null_pt;
+    return null_pair;
   }
 
-  double total_weighted_x = 0.0;
-  double total_weighted_y = 0.0;
-  double total_weight = 0.0;
+  double total_x = 0, total_y = 0, total_weight = 0;
+  // XYPoint drone_pos(m_osx, m_osy);
+  // XYPoint drone_heading = m_course;
+
+  XYPoint reg_centroid = m_prox_region.get_centroid_pt();
+  XYPoint poly_centroid = m_prox_poly.get_centroid_pt();
+
+  double centroid_heading = relAng(reg_centroid, poly_centroid) - 90;
 
   for (unsigned int i = 0; i < grid.size(); ++i)
   {
     XYSquare cell = grid.getElement(i);
-
     if (!pol.contains(cell.getCenterX(), cell.getCenterY()))
-    {
       continue;
-    }
 
     double cell_visits = grid.getVal(i);
     double weight = max_visits - cell_visits; // Higher weight for fewer visits
+    // Skip cells that have been heavily visited
+    if (weight <= 0 || cell_visits > 0)
+      continue;
 
-    if (weight > 0)
+    XYPoint cell_center(cell.getCenterX(), cell.getCenterY());
+    double cell_angle = relAng(poly_centroid, cell_center);
+    double signed_diff = signedAngleDiff(centroid_heading, cell_angle);
+    if (signed_diff >= min_signed_diff && signed_diff <= max_signed_diff)
     {
-      total_weighted_x += cell.getCenterX() * weight;
-      total_weighted_y += cell.getCenterY() * weight;
+      double weight = 1.0 / (cell_visits + 1);
+      total_x += cell.getCenterX() * weight;
+      total_y += cell.getCenterY() * weight;
       total_weight += weight;
     }
   }
 
-  if (total_weight == 0.0)
+  XYPoint pt{total_x / total_weight, total_y / total_weight};
+
+  if (total_weight > 0)
+   return {pt, total_weight};
+  
+  return {null_pair}; // Default if no cells in sector
+}
+
+XYPoint Proxonoi::calculateCircularSetPt()
+{
+  static XYPoint prev_setpt;
+
+  XYPoint reg_centroid = m_prox_region.get_centroid_pt();
+  XYPoint poly_centroid = m_prox_poly.get_centroid_pt();
+  double rel_ang = relAng(reg_centroid, poly_centroid);
+
+  double circular_heading = rel_ang - 90;
+  double default_dist = 150;
+
+  // XYPoint final_pt = projectPoint(heading, default_dist, ref_pt);
+  XYPoint circular_point = projectPoint(circular_heading, default_dist, poly_centroid);
+
+  if (circular_point.get_vx() != prev_setpt.get_vx() || circular_point.get_vy() != prev_setpt.get_vy())
   {
-    Logger::warning("Total weight is zero, cannot calculate weighted center");
-    return null_pt;
+    circular_point.set_label("cp" + m_ownship);
+    circular_point.set_color("vertex", m_vcolor);
+    circular_point.set_vertex_size(8);
+    circular_point.set_msg("cp");
+    Notify("VIEW_POINT", circular_point.get_spec());
   }
 
-  double center_x = total_weighted_x / total_weight;
-  double center_y = total_weighted_y / total_weight;
+  prev_setpt = circular_point;
+  return circular_point;
+}
 
-  XYPoint weighted_center(center_x, center_y);
-  weighted_center.set_label("weighted_area_center");
-  return weighted_center;
+bool Proxonoi::postGridSearchSetpointFiltered(XYPoint pt) 
+{
+
+  static XYPoint prev_setpt;
+  constexpr double sep_radius = 25;
+
+  if (!pt.valid())
+    return false;
+
+  double dist = distPointToPoint(pt, prev_setpt);
+  if (dist <= sep_radius)
+    return false;
+
+  if (isPointInDiscoverdGridCell(pt))
+    return false;
+
+  prev_setpt = pt;
+
+
+  Notify("PROX_SEARCHCENTER", pt.get_spec());
+
+
+  return true;
+}
+
+bool Proxonoi::isPointInDiscoverdGridCell(XYPoint pt) const
+{
+
+  if (!m_convex_region_grid.valid())
+    return false;
+
+  for (unsigned int i = 0; i < m_convex_region_grid.size(); ++i)
+  {
+    XYSquare cell = m_convex_region_grid.getElement(i);
+    if (!cell.containsPoint(pt.get_vx(), pt.get_vy()))
+      continue;
+
+    if (m_convex_region_grid.getVal(i) > 0)
+      return true;
+  }
+
+  return false;
 }
 
 //------------------------------------------------------------
 // UTILITY FUNCTIONS
-//  These are not part of the Proxonoi class, but are
-//  used by the Proxonoi class.
 //-------------------------------------------------------------
+double signedAngleDiff(double angle1, double angle2)
+{
+  double diff = fmod(angle2 - angle1 + 360, 360);
+  if (diff > 180)
+    diff -= 360;
+  return diff;
+}

@@ -50,17 +50,22 @@ protected:
 
   bool updateSplitLines();
   bool updateVoronoiPoly();
-  XYPoint calculateGridSearchSetpoint() const;
-  XYPoint calculateAreaCenterInPolygon(const XYPolygon& pol, const XYConvexGrid grid) const;
+  XYPoint calculateGridSearchSetpoint();
+
+  std::pair<XYPoint, double> calculateSearchCenter(const XYPolygon &pol, const XYConvexGrid &grid, double min_signed_diff, double max_signed_diff) const;
+
+  XYPoint calculateCircularSetPt();
 
   XYPoint updateViewGridSearchSetpoint();
+  bool postGridSearchSetpointFiltered(XYPoint pt);
+  bool isPointInDiscoverdGridCell(XYPoint pt) const;
+
   void postCentroidSetpoint();
 
   void checkRemoveVehicleStaleness();
 
   void shareProxPolyArea();
   void shareProxPoly();
-
 
 private: // Configuration variables
   std::string m_ownship;
@@ -81,6 +86,7 @@ private: // Configuration variables
   double m_node_record_stale_treshold;
 
 private: // State variables
+  double m_course;
   double m_osx;
   double m_osy;
   bool m_osx_tstamp;
@@ -97,12 +103,13 @@ private: // State variables
 
   bool m_poly_erase_pending;
 
-  
   XYConvexGrid m_convex_region_grid;
 
   std::map<std::string, NodeRecord> m_map_node_records;
   std::map<std::string, XYSegList> m_map_split_lines;
   std::map<std::string, double> m_map_ranges;
 };
+
+double signedAngleDiff(double angle1, double angle2);
 
 #endif
