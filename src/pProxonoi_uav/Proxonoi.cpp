@@ -883,19 +883,28 @@ XYPoint Proxonoi::calculateGridSearchSetpoint()
   forward_center.set_color("vertex", "yellow");
   forward_center.set_vertex_size(5);
   forward_center.set_msg("f");
-  Notify("VIEW_POINT", forward_center.get_spec());
+  if(forward_center.valid())
+    Notify("VIEW_POINT", forward_center.get_spec());
+  else
+    Notify("VIEW_POINT", forward_center.get_spec_inactive());
 
   left_center.set_label("l" + m_ownship);
   left_center.set_color("vertex", "green");
   left_center.set_vertex_size(5);
   left_center.set_msg("l");
-  Notify("VIEW_POINT", left_center.get_spec());
+  if(left_center.valid())
+    Notify("VIEW_POINT", left_center.get_spec());
+  else
+    Notify("VIEW_POINT", left_center.get_spec_inactive());
 
   right_center.set_label("r" + m_ownship);
   right_center.set_color("vertex", "red");
   right_center.set_msg("r");
   right_center.set_vertex_size(5);
-  Notify("VIEW_POINT", right_center.get_spec());
+  if(right_center.valid())
+    Notify("VIEW_POINT", right_center.get_spec());
+  else
+    Notify("VIEW_POINT", right_center.get_spec_inactive());
 
   static std::string prev_sector = "forward";
   double threshold = 1.4; // 40% hysteresis
@@ -1005,7 +1014,6 @@ XYPoint Proxonoi::calculateGridSearchSetpoint()
   double mag = 150 * (1 - (dist_to_target / 150));
   mag = std::max(0.0, std::min(mag, 200.0));
 
-  // final_pt = projectPoint(heading, mag + default_dist, ref_pt);
   final_pt = projectPoint(heading_from_circle_point, mag, final_pt);
   // Logger::info("Final point calculated: " + final_pt.get_spec());
 
@@ -1076,8 +1084,9 @@ std::pair<XYPoint, double> Proxonoi::calculateSearchCenter(const XYPolygon &pol,
   return {null_pair}; // Default if no cells in sector
 }
 
-XYPoint Proxonoi::calculateCircularSetPt()
+XYPoint Proxonoi::calculateCircularSetPt(bool extend_setpt)
 {
+
   static XYPoint prev_setpt;
 
   XYPoint reg_centroid = m_prox_region.get_centroid_pt();
@@ -1099,8 +1108,34 @@ XYPoint Proxonoi::calculateCircularSetPt()
     Notify("VIEW_POINT", circular_point.get_spec());
   }
 
-  prev_setpt = circular_point;
-  return circular_point;
+  if(!extend_setpt){
+    prev_setpt = circular_point;
+    return circular_point;
+  }
+
+  XYPoint cpt(m_osx, m_osy);
+
+  double dist_to_target = 0;
+  if (prev_setpt.valid())
+    dist_to_target = distPointToPoint(cpt, prev_setpt);
+  else
+    dist_to_target = distPointToPoint(cpt, circular_point);
+
+  // Logger::info("Distance to target calculated: " + doubleToString(dist_to_target, 2));
+  // create a function that goes to 1000 as dist goes to 30
+  // double mag = 1000 * (1 - (dist / 30));
+  double mag = 150 * (1 - (dist_to_target / 150));
+  mag = std::max(0.0, std::min(mag, 200.0));
+
+  XYPoint extended_circular_setpt = projectPoint(circular_heading, mag, circular_point);
+  
+  if (!m_prox_poly.contains(extended_circular_setpt))
+  {
+    extended_circular_setpt = m_prox_poly.closest_point_on_poly(extended_circular_setpt);
+    Logger::warning("Calculated weighted center is outside the polygon");
+  }
+  
+  return extended_circular_setpt;
 }
 
 bool Proxonoi::postGridSearchSetpointFiltered(XYPoint pt) 

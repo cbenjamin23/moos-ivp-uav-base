@@ -300,8 +300,8 @@ bool BHV_Voronoi::handleConfigSetPointMethod(string method)
 
 //-----------------------------------------------------------
 // Procedure: updateSetPoint()
-//   Returns: true if (a) region is convex
 
+constexpr unsigned int MAX_SUPRESSED_WARNINGS = 500;
 bool BHV_Voronoi::updateSetPoint()
 {
   // Part 1: If the region is not convex, all is fubar
@@ -317,34 +317,50 @@ bool BHV_Voronoi::updateSetPoint()
     handleConfigSetPointMethod(method_str);
   }
 
+  XYPoint cpt{m_osx, m_osy};
   static XYPoint gridsearch_setpt;
   if (m_setpt_method == "gridsearch"){
 
     bool searchcenter_stale = getBufferTimeVal("PROX_SEARCHCENTER") > m_stale_searchcenter_thresh;
+    static unsigned int stale_warning = 0;
     if (searchcenter_stale && m_ownship_in_region){
+      stale_warning++;
+
+      if(stale_warning > MAX_SUPRESSED_WARNINGS)
         postWMessage("Gridsearch setpt info_buffer is stale.");
         // return (false);
     }
-    else
+    else{
       postRetractWMessage("Gridsearch setpt info_buffer is stale.");
+      stale_warning= 0;
+    }
 
     std::string searchcenter_str = getBufferStringVal("PROX_SEARCHCENTER");
     auto pt = string2Point(searchcenter_str);
+    static unsigned int invalid_warning = 0;
     if (!pt.valid() && m_ownship_in_region){
-      postWMessage("Gridsearch setpt is invalid");
-      // return (false);
+
+      invalid_warning++;
+      if (invalid_warning > MAX_SUPRESSED_WARNINGS) {
+        postWMessage("Gridsearch setpt is invalid");
+        // return (false);
+      }
     } 
-    else
+    else {
       postRetractWMessage("Gridsearch setpt is invalid");
+      invalid_warning = 0;
+    }
 
     if(!searchcenter_stale && pt.valid() ){
       
-      if(distPointToPoint(XYPoint(m_osx, m_osy), gridsearch_setpt) <= m_capture_radius)
+      if(distPointToPoint(cpt, gridsearch_setpt) <= m_capture_radius)
         gridsearch_setpt = pt;
         
     }
-    else if(distPointToPoint(XYPoint(m_osx, m_osy), gridsearch_setpt) < 15) // close to the old setpt
-      gridsearch_setpt = calculateCircularSetPt();  
+    else if(distPointToPoint(cpt, gridsearch_setpt) <= m_capture_radius ){ // close to the old setpt
+      gridsearch_setpt = calculateCircularSetPt(true);  
+    }
+
   }
 
   // Part 2: If ownship is in the region and we have a valid
@@ -674,8 +690,11 @@ void BHV_Voronoi::eraseViewables(unsigned int id)
 }
 
 
-XYPoint BHV_Voronoi::calculateCircularSetPt()
+XYPoint BHV_Voronoi::calculateCircularSetPt(bool extend_setpt)
 {
+
+  static XYPoint target_pt;
+
 
   XYPoint reg_centroid = m_proxonoi_region.get_centroid_pt();
   XYPoint poly_centroid = m_proxonoi_poly.get_centroid_pt();
@@ -687,5 +706,27 @@ XYPoint BHV_Voronoi::calculateCircularSetPt()
   // XYPoint final_pt = projectPoint(heading, default_dist, ref_pt);
   XYPoint circular_point = projectPoint(circular_heading, default_dist, poly_centroid);
 
-  return circular_point;
+  if(!extend_setpt){
+
+    target_pt = circular_point;
+    return circular_point;
+  }
+
+  XYPoint cpt(m_osx, m_osy);
+
+  double dist_to_target = 0;
+  if (target_pt.valid())
+    dist_to_target = distPointToPoint(cpt, target_pt);
+  else
+    dist_to_target = distPointToPoint(cpt, circular_point);
+
+  // Logger::info("Distance to target calculated: " + doubleToString(dist_to_target, 2));
+  // create a function that goes to 1000 as dist goes to 30
+  // double mag = 1000 * (1 - (dist / 30));
+  double mag = 150 * (1 - (dist_to_target / 150));
+  mag = std::max(0.0, std::min(mag, 200.0));
+
+  XYPoint extended_circular_setpt = projectPoint(circular_heading, mag, circular_point);
+  return extended_circular_setpt;
+
 }

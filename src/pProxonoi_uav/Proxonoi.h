@@ -54,7 +54,7 @@ protected:
 
   std::pair<XYPoint, double> calculateSearchCenter(const XYPolygon &pol, const XYConvexGrid &grid, double min_signed_diff, double max_signed_diff) const;
 
-  XYPoint calculateCircularSetPt();
+  XYPoint calculateCircularSetPt(bool extend_setpt=false);
 
   XYPoint updateViewGridSearchSetpoint();
   bool postGridSearchSetpointFiltered(XYPoint pt);

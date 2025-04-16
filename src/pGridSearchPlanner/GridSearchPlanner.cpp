@@ -1182,3 +1182,11 @@ XYSegList GridSearchPlanner::pruneDiscoveredWaypoints(const XYSegList &original_
 
   return pruned_path;
 }
+
+
+
+void GridSearchPlanner::raisePlannerFlag(){\
+
+
+
+}

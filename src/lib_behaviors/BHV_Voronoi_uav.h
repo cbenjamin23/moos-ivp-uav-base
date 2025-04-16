@@ -52,7 +52,7 @@ protected:
   bool setState(std::string);
 
 
-  XYPoint calculateCircularSetPt();
+  XYPoint calculateCircularSetPt(bool extend_setpt = false);
 
 private:
 protected: // State vars
