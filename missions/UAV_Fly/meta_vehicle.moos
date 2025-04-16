@@ -24,7 +24,7 @@ Processconfig = ANTLER
   Run = uTimerScript       @ NewConsole = false
 
   Run = pRealm             @ NewConsole = false
-  Run = pProxonoi2          @ NewConsole = false
+  Run = pProxonoi_uav      @ NewConsole = false //, XConfig=HOLDSettings
 
 
   #ifdef USE_MOOS_SIM_PID true
@@ -66,14 +66,21 @@ Processconfig = ANTLER
 
 
 //--------------------------------------------------
-// pProxonoi2 config block
+// pProxonoi_uav config block
 
-ProcessConfig = pProxonoi2                                      
+ProcessConfig = pProxonoi_uav                              
 {                                                               
   AppTick   = 2
   CommsTick = 2                                                 
                                                                 
   region = $(REGION)
+  vcolor = $(COLOR)
+  vehicle_stale_treshold = 10
+
+  setpt_method = $(VORONOI_SETPT_METHOD)
+  post_poly = true
+  // post_region = true
+
 }                                            
 
 
@@ -126,6 +133,8 @@ ProcessConfig = uFldMessageHandler
   CommsTick = 3
 
   strict_addressing = false
+
+
 }
 
 //--------------------------------------------------

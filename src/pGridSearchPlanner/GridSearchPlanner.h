@@ -43,6 +43,7 @@ protected:
   void registerIgnoredRegion(std::string str);
   void unregisterIgnoredRegion(std::string name);
 
+  void raisePlannerFlag();
   void doPlanPaths();
   void assignPathsToVehicles(Mat paths);
   XYSegList pruneDiscoveredWaypoints(const XYSegList &original_path);
@@ -82,6 +83,8 @@ protected: // Config vars
 
 
   bool m_missionEnabled;
+
+  Planner::PlannerMode m_planner_mode;
 
 protected: // State vars
   XYConvexGrid m_grid_viz;

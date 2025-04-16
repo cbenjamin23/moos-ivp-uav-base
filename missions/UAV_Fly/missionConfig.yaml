@@ -3,7 +3,7 @@
 # Global simulation parameters
 simulation:
   useMoosSimPid: true # Use MOOS-IvP Vechicle simulator
-  time_warp: 10
+  time_warp: 20
   number_of_drones: 3
 
   ardupilot_ip: "0.0.0.0"
@@ -38,6 +38,9 @@ moos:
 missionParams:
   
   mission_duration : 6000 # s - The duration of the mission
+
+
+  voronoi_setpoint_method: gridsearch # The method used to set the path for the voronoi algorithm. Can be "gridsearch", "center" or "centroid" 
 
   # The ratio between the region grid cell distance in the TMSTC* algorithm and the sensor range. The sensor range is the maximum distance from the drone that the sensor can detect fires
   # TMSTC_gridsizeSensorRangeRatio: 0.5 
@@ -80,14 +83,14 @@ missionParams:
   #   10.1502943, 63.4049352
 
   # region_lonlat: |             # Stretched octagon
-    # 10.1187944, 63.3949045
-    # 10.1129580, 63.3923098
-    # 10.1120996, 63.3864276
-    # 10.1217127, 63.3841782
-    # 10.1499081, 63.3840052
-    # 10.1596069, 63.3867929
-    # 10.1602077, 63.3924059
-    # 10.1540709, 63.3949622
+  #   10.1187944, 63.3949045
+  #   10.1129580, 63.3923098
+  #   10.1120996, 63.3864276
+  #   10.1217127, 63.3841782
+  #   10.1499081, 63.3840052
+  #   10.1596069, 63.3867929
+  #   10.1602077, 63.3924059
+  #   10.1540709, 63.3949622
 
   region_lonlat: |
     10.1356602, 63.4006697

@@ -41,6 +41,10 @@ IF( EXISTS ${CMAKE_SOURCE_DIR}/src/pArduBridge )
   LIST(APPEND ROBOT_APPS pArduBridge)
 ENDIF()
 
+IF( EXISTS ${CMAKE_SOURCE_DIR}/src/pProxonoi_uav )
+  LIST(APPEND ROBOT_APPS pProxonoi_uav)
+ENDIF()
+
 
 message("ROBOT_APPS:" ${ROBOT_APPS})
 

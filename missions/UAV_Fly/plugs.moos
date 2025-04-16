@@ -153,14 +153,14 @@ ProcessConfig = uSimMarineV22
 	//app_logging = true
 	max_speed   = 20
 	
-	turn_rate = 95
-	turn_spd_loss = 0.6
+	turn_rate = 10
+	turn_spd_loss = 0
 
 	post_des_thrust = DESIRED_THRUSTX
 	post_des_rudder = DESIRED_RUDDERX
 	
   //rotate_speed = 0.012
-  drift_x      = 1
+  // drift_x      = 1
 
   //thrust_map = -100:-2, 0:0, 20:1, 40:2, 60:3, 80:5, 100:5
   //thrust_map = -100:-2, 0:0, 20:1, 40:2, 60:3, 80:5, 100:5

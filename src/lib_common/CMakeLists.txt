@@ -8,19 +8,12 @@
 
 
 ADD_LIBRARY(lib_common SHARED 
-   BHV_ConstantAltitude.cpp)
+   common.cpp
+)
 
 
 
-
-
-   TARGET_LINK_LIBRARIES(BHV_ConstantAltitude
-   helmivp
-   behaviors 
-   ivpbuild 
-   logic 
-   ivpcore 
-   bhvutil 
+TARGET_LINK_LIBRARIES(lib_common
    mbutil 
    geometry 
    ${SYSTEM_LIBS}
