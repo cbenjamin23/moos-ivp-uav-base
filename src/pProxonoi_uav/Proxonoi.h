@@ -19,6 +19,7 @@
 #include "XYSegList.h"
 #include "NodeRecord.h"
 
+#include "common.h"
 #include "XYConvexGrid.h"
 class Proxonoi : public AppCastingMOOSApp
 {
@@ -54,7 +55,9 @@ protected:
 
   std::pair<XYPoint, double> calculateSearchCenter(const XYPolygon &pol, const XYConvexGrid &grid, double min_signed_diff, double max_signed_diff) const;
 
-  XYPoint calculateCircularSetPt(bool extend_setpt=false);
+  XYPoint calculateCircularSetPt(bool extend_setpt = false);
+
+  void handlePointVisualization(XYPoint &pt, bool force_erase = false);
 
   XYPoint updateViewGridSearchSetpoint();
   bool postGridSearchSetpointFiltered(XYPoint pt);
@@ -85,6 +88,8 @@ private: // Configuration variables
 
   double m_node_record_stale_treshold;
 
+  Planner::PlannerMode m_planner_mode;
+
 private: // State variables
   double m_course;
   double m_osx;
@@ -96,8 +101,9 @@ private: // State variables
   std::string m_last_posted_spec;
   int m_skip_count;
 
-  bool m_os_in_prox_region;
+  bool m_do_visualize;
 
+  bool m_os_in_prox_region;
   XYPolygon m_prox_region;
   XYPolygon m_prox_poly;
 

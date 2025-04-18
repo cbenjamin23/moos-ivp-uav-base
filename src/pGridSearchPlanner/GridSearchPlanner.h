@@ -18,6 +18,8 @@
 #include "TMSTCGridConverter.h"
 #include "TMSTCStar.h"
 
+#include "common.h"
+
 #include <map>
 
 class GridSearchPlanner : public AppCastingMOOSApp
@@ -43,7 +45,7 @@ protected:
   void registerIgnoredRegion(std::string str);
   void unregisterIgnoredRegion(std::string name);
 
-  void raisePlannerFlag();
+  bool raisePlannerFlag();
   void doPlanPaths();
   void assignPathsToVehicles(Mat paths);
   XYSegList pruneDiscoveredWaypoints(const XYSegList &original_path);
@@ -51,6 +53,7 @@ protected:
                                         double square_side_length,
                                         const XYConvexGrid &grid) const;
 
+  void notifyVoronoiSearching();
   void notifyCalculatedPathsAndExecute(bool executePath = false);
   void postCalculatedPaths(bool visible = true);
 
@@ -92,6 +95,7 @@ protected: // State vars
   std::map<cellP, unsigned int> m_map_grid_cellCenter_idxs;
 
   bool m_do_plan_paths;
+  bool m_do_start_voronoi_searching;
   bool m_is_paths_calculated;
 
   // key is name of drone

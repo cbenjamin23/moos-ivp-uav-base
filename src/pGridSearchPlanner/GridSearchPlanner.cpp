@@ -29,6 +29,7 @@ GridSearchPlanner::GridSearchPlanner()
   m_region_grid_size_ratio = 0.5;
   m_coveragecellradius = m_sensor_radius * m_region_grid_size_ratio;
   m_do_plan_paths = false;
+  m_do_start_voronoi_searching = false;
   m_is_paths_calculated = false;
 
   m_visualize_planner_grids = false;
@@ -43,6 +44,8 @@ GridSearchPlanner::GridSearchPlanner()
   m_missionEnabled = false;
   m_isRunningMoosPid = false;
 
+  m_planner_mode = Planner::PlannerMode::VORONOI_SEARCH;
+
   // Configure the TMSTC* algorithm
   TMSTCStarConfig config;
   config.allocate_method = "MSTC";
@@ -54,7 +57,6 @@ GridSearchPlanner::GridSearchPlanner()
   config.vehicle_params.vmax = 18;                         // m/s (max velocity)
   config.vehicle_params.phi_max_rad = 45 * (M_PI / 180.0); // rad (maximum banking angle)
   config.vehicle_params.cellSize_m = 30;                   // meters (grid cell size)
-
 
   m_tmstc_star_ptr = std::move(std::make_unique<TMSTCStar>(config));
 }
@@ -99,12 +101,32 @@ bool GridSearchPlanner::OnNewMail(MOOSMSG_LIST &NewMail)
     }
     else if (key == "GSP_START_POINT_CLOSEST")
       handled = setBooleanOnString(m_start_point_closest, sval);
-    else if (key == "XENABLE_MISSION")
+    else if (key == "XENABLE_MISSION"){
+      raisePlannerFlag();
       handled = setBooleanOnString(m_missionEnabled, sval);
+    }
     else if (key == "VIEW_GRID")
       handled = handleMailViewGrid(sval);
     else if (key == "VIEW_GRID_DELTA")
       handled = handleMailViewGridUpdate(sval);
+
+    else if (key == "CHANGE_PLANNER_MODE")
+    {
+      MOOSToUpper(sval);
+      try
+      {
+        m_planner_mode = Planner::stringToMode(sval);
+        handled = true;
+      }
+      catch (std::exception &e)
+      {
+        std::string msg = "Failed to set planner mode. Exception: " + std::string(e.what());
+        m_generate_warnings.push_back(msg);
+        Logger::error("OnNewMail:" + msg);
+        reportRunWarning(msg);
+        handled = false;
+      }
+    }
 
     if (!handled)
     {
@@ -137,6 +159,13 @@ bool GridSearchPlanner::Iterate()
     notifyCalculatedPathsAndExecute(m_missionEnabled);
     m_do_plan_paths = false;
   }
+  else if (m_do_start_voronoi_searching)
+  {
+    notifyVoronoiSearching();
+    m_do_start_voronoi_searching = false;
+  }
+
+
 
   postCalculatedPaths(m_visualize_planner_paths);
   postTMSTCGrids(m_visualize_planner_grids);
@@ -216,6 +245,24 @@ bool GridSearchPlanner::OnStartUp()
           handled = true;
         }
       }
+      else if (param == "planner_mode")
+      {
+        std::string mode_str = toupper(value);
+
+        try
+        {
+          m_planner_mode = Planner::stringToMode(mode_str);
+          handled = true;
+        }
+        catch (std::exception &e)
+        {
+          std::string msg = "Failed to set planner mode. Exception: " + std::string(e.what());
+          m_generate_warnings.push_back(msg);
+          Logger::error("OnStartUp:" + msg);
+          reportRunWarning(msg);
+          handled = false;
+        }
+      }
 
       if (!handled)
         reportUnhandledConfigWarning(orig);
@@ -268,6 +315,8 @@ void GridSearchPlanner::registerVariables()
 
   Register("VIEW_GRID", 0);
   Register("VIEW_GRID_DELTA", 0);
+
+  Register("CHANGE_PLANNER_MODE", 0);
 }
 
 void GridSearchPlanner::doPlanPaths()
@@ -299,12 +348,11 @@ void GridSearchPlanner::doPlanPaths()
 
   // Create the TMSTC* instance and calculate paths
   m_tmstc_star_ptr->reconfigureMapRobot(spanningMap, robot_region_indeces);
-  
 
   m_tmstc_star_ptr->getConfig().is_point_filtered_func = [this](int point_idx)
-                                                          {
-                                                            return is_pathIdx_filtered(point_idx);
-                                                          };
+  {
+    return is_pathIdx_filtered(point_idx);
+  };
 
   Mat paths_robot_indx;
   try
@@ -337,7 +385,6 @@ void GridSearchPlanner::doPlanPaths()
   clearAllGenerateWarnings();
 }
 
-
 bool GridSearchPlanner::is_pathIdx_filtered(int idx)
 {
 
@@ -357,8 +404,6 @@ bool GridSearchPlanner::is_pathIdx_filtered(int idx)
   static const double bbox_min_y = bbox.get_min_y();
   static const double grid_cell_size = m_grid_viz.getCellSize();
 
-
-
   double x = xy_point.get_vx();
   double y = xy_point.get_vy();
 
@@ -370,7 +415,7 @@ bool GridSearchPlanner::is_pathIdx_filtered(int idx)
     return true; // Filter out invalid points
   }
 
-  // Check if waypoint is in an ignored region 
+  // Check if waypoint is in an ignored region
   for (const auto &[_, region] : m_map_ignored_regions_poly)
   {
     if (region.contains(x, y))
@@ -381,8 +426,7 @@ bool GridSearchPlanner::is_pathIdx_filtered(int idx)
     }
   }
 
-
-  if(!m_tmstc_star_point_filtering)
+  if (!m_tmstc_star_point_filtering)
     return false; // No filtering needed
 
   // Define the square area around the waypoint (sensor coverage)
@@ -444,20 +488,18 @@ bool GridSearchPlanner::is_pathIdx_filtered(int idx)
   // If more than 50% of cells in this area are already discovered, remove the waypoint
   if (total_cells > 0 && ((double)discovered_cells / total_cells) > 0.5)
   {
-    
+
     Logger::info("Pruning waypoint at: (" + doubleToStringX(x, 2) +
-                  ", " + doubleToStringX(y, 2) + ") - " +
-                  uintToString(discovered_cells) + "/" + uintToString(total_cells) +
-                  " (" + doubleToStringX(discovered_cells / double(total_cells), 2) +
-                  ") cells already discovered");
+                 ", " + doubleToStringX(y, 2) + ") - " +
+                 uintToString(discovered_cells) + "/" + uintToString(total_cells) +
+                 " (" + doubleToStringX(discovered_cells / double(total_cells), 2) +
+                 ") cells already discovered");
 
     return true; // Filter out invalid points
   }
 
-
-   return false;
+  return false;
 }
-
 
 void GridSearchPlanner::assignPathsToVehicles(Mat paths_robot_indx)
 {
@@ -528,11 +570,11 @@ void GridSearchPlanner::notifyCalculatedPathsAndExecute(bool executePath)
 
     if (executePath)
     {
-
+      
       if (m_isRunningMoosPid)
       {
-        Notify("DO_SURVEY_" + MOOSToUpper(drone), "true"); // If running MOOS PID simulation
-        Notify("DEPLOY_" + MOOSToUpper(drone), "true");
+        Notify("DO_SURVEY_" + MOOSToUpper(drone), boolToString(m_missionEnabled)); // If running MOOS PID simulation
+        Notify("DEPLOY_" + MOOSToUpper(drone), "false");
         Notify("RETURN_" + MOOSToUpper(drone), "false");
         Notify("MOOS_MANUAL_OVERRIDE_" + MOOSToUpper(drone), "false");
       }
@@ -546,6 +588,26 @@ void GridSearchPlanner::notifyCalculatedPathsAndExecute(bool executePath)
     }
   }
 }
+
+
+void GridSearchPlanner::notifyVoronoiSearching()
+{
+  
+  if (m_isRunningMoosPid)
+  {
+    Notify("DO_SURVEY_ALL", "false"); // If running MOOS PID simulation
+    Notify("DEPLOY_ALL", boolToString(m_missionEnabled));
+    Notify("RETURN_ALL", "false");
+    Notify("MOOS_MANUAL_OVERRIDE_ALL", "false");
+  }
+  else {
+    Notify("HELM_STATUS_ALL", "ON");
+    std::string notify_var_str = "GCS_COMMAND_ALL";
+    Notify(notify_var_str, "DO_VORONOI");
+  }
+
+}
+
 void GridSearchPlanner::clearAllGenerateWarnings()
 {
   for (const auto &warning : m_generate_warnings)
@@ -686,13 +748,13 @@ bool GridSearchPlanner::handleMailIgnoredRegionAlert(std::string str)
   if (strContains(str, "unreg::"))
   {
     unregisterIgnoredRegion(str.substr(7));
-    m_do_plan_paths = true;
+    raisePlannerFlag();
     return true;
   }
   else if (strContains(str, "reg::"))
   {
     registerIgnoredRegion(str.substr(5));
-    m_do_plan_paths = true;
+    raisePlannerFlag();
     return true;
   }
 
@@ -775,23 +837,33 @@ bool GridSearchPlanner::buildReport()
   m_msgs << "Visualize planner paths: " << boolToString(m_visualize_planner_paths) << std::endl;
   m_msgs << "      Map print version: " << mapPrintVersion2string(m_map_print_version) << std::endl;
   m_msgs << " Is start point closest: " << boolToString(m_start_point_closest) << std::endl;
-  m_msgs << "        Mission enabled: " << boolToString(m_missionEnabled) << std::endl;
   m_msgs << "       isRunningMoosPid: " << boolToString(m_isRunningMoosPid) << std::endl;
+  m_msgs << "        Mission enabled: " << boolToString(m_missionEnabled) << std::endl;
   m_msgs << std::endl;
 
-  m_msgs << "TMSTC* algorithm" << std::endl;
-  m_msgs << "---------------------------------" << std::endl;
-  m_msgs << "   TMSTC* point filtering: " << boolToString(m_tmstc_star_point_filtering) << std::endl;
-  // m_msgs << "   Allocate method: " << m_tmstc_star_ptr->getConfig().allocate_method << std::endl;
-  // m_msgs << "   MST shape: " << m_tmstc_star_ptr->getConfig().mst_shape << std::endl;
-  // m_msgs << "   Robot num: " << m_tmstc_star_ptr->getConfig().robot_num << std::endl;
-  // m_msgs << "   Cover and return: " << boolToString(m_tmstc_star_ptr->getConfig().cover_and_return) << std::endl;
-  m_msgs << "   Vehicle params:" << std::endl;
-  // m_msgs << "     omega_rad: " << doubleToStringX(m_tmstc_star_ptr->getConfig().vehicle_params.omega_rad, 2) << std::endl;
-  // m_msgs << "     acc: " << doubleToStringX(m_tmstc_star_ptr->getConfig().vehicle_params.acc, 2) << std::endl;
-  m_msgs << "     vmax: " << doubleToStringX(m_tmstc_star_ptr->getConfig().vehicle_params.vmax, 2) << std::endl;
-  m_msgs << "     phi_max_rad: " << doubleToStringX(m_tmstc_star_ptr->getConfig().vehicle_params.phi_max_rad * (180.0 / M_PI), 2) << std::endl;
-  m_msgs << "     cellSize_m: " << doubleToStringX(m_tmstc_star_ptr->getConfig().vehicle_params.cellSize_m, 2) << std::endl;
+  if (m_planner_mode == Planner::PlannerMode::TMSTC_STAR)
+  {
+
+    m_msgs << "TMSTC* algorithm" << std::endl;
+    m_msgs << "---------------------------------" << std::endl;
+    m_msgs << "   TMSTC* point filtering: " << boolToString(m_tmstc_star_point_filtering) << std::endl;
+    // m_msgs << "   Allocate method: " << m_tmstc_star_ptr->getConfig().allocate_method << std::endl;
+    // m_msgs << "   MST shape: " << m_tmstc_star_ptr->getConfig().mst_shape << std::endl;
+    // m_msgs << "   Robot num: " << m_tmstc_star_ptr->getConfig().robot_num << std::endl;
+    // m_msgs << "   Cover and return: " << boolToString(m_tmstc_star_ptr->getConfig().cover_and_return) << std::endl;
+    m_msgs << "   Vehicle params:" << std::endl;
+    // m_msgs << "     omega_rad: " << doubleToStringX(m_tmstc_star_ptr->getConfig().vehicle_params.omega_rad, 2) << std::endl;
+    // m_msgs << "     acc: " << doubleToStringX(m_tmstc_star_ptr->getConfig().vehicle_params.acc, 2) << std::endl;
+    m_msgs << "     vmax: " << doubleToStringX(m_tmstc_star_ptr->getConfig().vehicle_params.vmax, 2) << std::endl;
+    m_msgs << "     phi_max_rad: " << doubleToStringX(m_tmstc_star_ptr->getConfig().vehicle_params.phi_max_rad * (180.0 / M_PI), 2) << std::endl;
+    m_msgs << "     cellSize_m: " << doubleToStringX(m_tmstc_star_ptr->getConfig().vehicle_params.cellSize_m, 2) << std::endl;
+  }
+  else if (m_planner_mode == Planner::PlannerMode::VORONOI_SEARCH)
+  {
+    m_msgs << "Voronoi Search algorithm" << std::endl;
+    m_msgs << "---------------------------------" << std::endl;
+  }
+
   m_msgs << std::endl;
 
   bool grids_converted = m_tmstc_grid_converter.isGridsConverted();
@@ -835,7 +907,7 @@ bool GridSearchPlanner::buildReport()
   m_msgs << "Do plan paths: " << boolToString(m_do_plan_paths) << std::endl;
   m_msgs << std::endl;
 
-  if (grids_converted)
+  if (grids_converted && m_planner_mode == Planner::PlannerMode::TMSTC_STAR)
   {
 
     m_msgs << std::endl;
@@ -1183,10 +1255,27 @@ XYSegList GridSearchPlanner::pruneDiscoveredWaypoints(const XYSegList &original_
   return pruned_path;
 }
 
+bool GridSearchPlanner::raisePlannerFlag()
+{
 
+  switch (m_planner_mode)
+  {
+  case Planner::PlannerMode::TMSTC_STAR:
+    m_do_plan_paths = true;
+    m_do_start_voronoi_searching = false;
 
-void GridSearchPlanner::raisePlannerFlag(){\
+    break;
 
+  case Planner::PlannerMode::VORONOI_SEARCH:
+    m_do_plan_paths = false;
+    m_do_start_voronoi_searching = true;
+    break;
 
+  default:
+    reportRunWarning("Unknown planner mode");
+    Logger::warning("Unknown planner mode");
+    return false;
+  }
 
+  return true;
 }

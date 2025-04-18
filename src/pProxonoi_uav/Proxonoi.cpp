@@ -52,10 +52,14 @@ Proxonoi::Proxonoi()
   m_last_posted_spec = "";
   m_skip_count = 0;
 
+  m_do_visualize = false;
+
   m_vcolor = "white";
   m_setpt_method = "center";
 
   m_node_record_stale_treshold = 10;
+
+  m_planner_mode = Planner::PlannerMode::VORONOI_SEARCH;
 }
 
 //---------------------------------------------------------
@@ -121,7 +125,29 @@ bool Proxonoi::OnNewMail(MOOSMSG_LIST &NewMail)
       handled = handleMailViewGrid(sval);
     else if (key == "VIEW_GRID_DELTA")
       handled = handleMailViewGridUpdate(sval);
-
+    else if (key == "CHANGE_PLANNER_MODE")
+    {
+      MOOSToUpper(sval);
+      try
+      {
+        m_planner_mode = Planner::stringToMode(sval);
+        if(m_planner_mode == Planner::PlannerMode::TMSTC_STAR)
+          m_poly_erase_pending = true;
+        else
+          handleMailProxPolyView("true");
+        
+        handled = true;
+      }
+      catch (std::exception &e)
+      {
+        std::string msg = "Failed to set planner mode. Exception: " + std::string(e.what());
+        Logger::error("OnNewMail:" + msg);
+        reportRunWarning(msg);
+        handled = false;
+      }
+    }
+    else if (key == "PROX_SET_VISUALIZATION")
+      handled = setBooleanOnString(m_do_visualize, sval);
     else if (key != "APPCAST_REQ") // handled by AppCastingMOOSApp
       reportRunWarning("Unhandled Mail: " + key);
 
@@ -150,109 +176,112 @@ bool Proxonoi::Iterate()
 
   //===========================================================
   // Part 1: Update the split line based on the information of
-  // nearby contacts.
-  //===========================================================
-  updateSplitLines();
+    // nearby contacts.
+    //===========================================================
+    updateSplitLines();
 
-  //===========================================================
-  // Part 2: Using the split lines, carve down the voronoi poly
-  //===========================================================
-  updateVoronoiPoly();
+    //===========================================================
+    // Part 2: Using the split lines, carve down the voronoi poly
+    //===========================================================
+    updateVoronoiPoly();
 
-  checkRemoveVehicleStaleness();
+    checkRemoveVehicleStaleness();
 
-  //===========================================================
-  // Update the Setpoints
-  //===========================================================
-
-  if (m_prox_region.is_convex())
-  {
-
-    XYPoint center_reg = m_prox_region.get_center_pt();
-    center_reg.set_label("center_reg");
-    // center_reg.set_label_color("off");
-    center_reg.set_color("vertex", "red");
-    center_reg.set_vertex_size(10);
-    Notify("VIEW_POINT", center_reg.get_spec());
-
-    XYPoint centroid_reg = m_prox_region.get_centroid_pt();
-    centroid_reg.set_label("centroid_reg");
-    // centroid_reg.set_label_color("off");
-    centroid_reg.set_color("vertex", "yellow");
-    centroid_reg.set_vertex_size(10);
-    Notify("VIEW_POINT", centroid_reg.get_spec());
-  }
-
-  auto setpt_grid = updateViewGridSearchSetpoint();
-
-  XYPoint setpt;
-  if (m_setpt_method == "gridsearch")
-    setpt = setpt_grid;
-
-  postGridSearchSetpointFiltered(setpt);
-  
-  postCentroidSetpoint();
-
-  //===========================================================
-
-  // Part 3.  Post it;
-  if (m_prox_poly.is_convex())
-  {
-    std::string spec = m_prox_poly.get_spec();
-    bool new_spec = (spec != m_last_posted_spec);
-
-    if (m_post_poly && !m_poly_erase_pending && new_spec)
-    {
-      Notify("VIEW_POLYGON", spec);
-      m_last_posted_spec = spec;
-    }
-    Notify("PROXONOI_POLY", spec);
-  }
-  else
-  {
-    m_prox_poly.set_active(false);
-    std::string spec = m_prox_poly.get_spec();
-    bool new_spec = (spec != m_last_posted_spec);
-    if (m_post_poly && new_spec)
-    {
-      Notify("VIEW_POLYGON", spec);
-      m_last_posted_spec = spec;
-    }
-
-    Notify("PROXONOI_POLY", spec);
-    m_poly_erase_pending = false;
-  }
-
-  if (m_poly_erase_pending)
-  {
-    m_prox_poly.set_active(false);
-    std::string spec = m_prox_poly.get_spec();
-    Notify("VIEW_POLYGON", spec);
-    m_poly_erase_pending = false;
-  }
-
-  if ((m_skip_count % 200) == 0)
-  {
+    //===========================================================
+    // Update the Setpoints
+    //===========================================================
+    
     if (m_prox_region.is_convex())
     {
-      std::string spec = m_prox_region.get_spec();
+
+      XYPoint center_reg = m_prox_region.get_center_pt();
+      center_reg.set_label("center_reg");
+      // center_reg.set_label_color("off");
+      center_reg.set_color("vertex", "red");
+      center_reg.set_vertex_size(10);
+      handlePointVisualization(center_reg);
+
+      XYPoint centroid_reg = m_prox_region.get_centroid_pt();
+      centroid_reg.set_label("centroid_reg");
+      // centroid_reg.set_label_color("off");
+      centroid_reg.set_color("vertex", "yellow");
+      centroid_reg.set_vertex_size(10);
+      handlePointVisualization(centroid_reg);
+    }
+
+    auto setpt_grid = updateViewGridSearchSetpoint();
+
+    XYPoint setpt;
+    if (m_setpt_method == "gridsearch")
+      setpt = setpt_grid;
+
+    postGridSearchSetpointFiltered(setpt);
+
+    postCentroidSetpoint();
+
+    if (m_planner_mode == Planner::PlannerMode::VORONOI_SEARCH || m_poly_erase_pending)
+    {
+    //===========================================================
+
+    // Part 3.  Post it;
+    if (m_prox_poly.is_convex())
+    {
+      std::string spec = m_prox_poly.get_spec();
       bool new_spec = (spec != m_last_posted_spec);
-      if (m_post_region && new_spec)
+
+      if (m_post_poly && !m_poly_erase_pending && new_spec)
       {
         Notify("VIEW_POLYGON", spec);
         m_last_posted_spec = spec;
       }
-      Notify("PROXONOI_REGION", spec);
+      Notify("PROXONOI_POLY", spec);
     }
-    m_skip_count = 0;
-  }
-  else
-    m_skip_count += 1;
+    else
+    {
+      m_prox_poly.set_active(false);
+      std::string spec = m_prox_poly.get_spec();
+      bool new_spec = (spec != m_last_posted_spec);
+      if (m_post_poly && new_spec)
+      {
+        Notify("VIEW_POLYGON", spec);
+        m_last_posted_spec = spec;
+      }
 
-  if ((m_iteration % 1000) == 0)
-  {
-    shareProxPolyArea();
-    shareProxPoly();
+      Notify("PROXONOI_POLY", spec);
+      m_poly_erase_pending = false;
+    }
+
+    if (m_poly_erase_pending)
+    {
+      m_prox_poly.set_active(false);
+      std::string spec = m_prox_poly.get_spec();
+      Notify("VIEW_POLYGON", spec);
+      m_poly_erase_pending = false;
+    }
+
+    if ((m_skip_count % 200) == 0)
+    {
+      if (m_prox_region.is_convex())
+      {
+        std::string spec = m_prox_region.get_spec();
+        bool new_spec = (spec != m_last_posted_spec);
+        if (m_post_region && new_spec)
+        {
+          Notify("VIEW_POLYGON", spec);
+          m_last_posted_spec = spec;
+        }
+        Notify("PROXONOI_REGION", spec);
+      }
+      m_skip_count = 0;
+    }
+    else
+      m_skip_count += 1;
+
+    if ((m_iteration % 1000) == 0)
+    {
+      shareProxPolyArea();
+      shareProxPoly();
+    }
   }
 
   AppCastingMOOSApp::PostReport();
@@ -339,6 +368,24 @@ bool Proxonoi::OnStartUp()
       m_vcolor = value;
       handled = true;
     }
+    else if (param == "planner_mode")
+    {
+      std::string mode_str = toupper(value);
+      try
+      {
+        m_planner_mode = Planner::stringToMode(mode_str);
+        handled = true;
+      }
+      catch (std::exception &e)
+      {
+        std::string msg = "Failed to set planner mode. Exception: " + std::string(e.what());
+        Logger::error("OnStartUp:" + msg);
+        reportRunWarning(msg);
+        handled = false;
+      }
+    }
+    else if (param == "do_visualize")
+      handled = setBooleanOnString(m_do_visualize, value);
 
     if (!handled)
       reportUnhandledConfigWarning(orig);
@@ -368,6 +415,9 @@ void Proxonoi::registerVariables()
   // From GCS
   Register("VIEW_GRID", 0);
   Register("VIEW_GRID_DELTA", 0);
+
+  Register("CHANGE_PLANNER_MODE", 0);
+  Register("PROX_SET_VISUALIZATION", 0);
 }
 bool Proxonoi::handleMailViewGrid(std::string str)
 {
@@ -726,6 +776,7 @@ bool Proxonoi::buildReport()
   m_msgs << "In Prox Region: " << in_region << std::endl;
   m_msgs << "Erase Pending:  " << erase_pending << std::endl;
   m_msgs << "Vehicle Treshold: " << m_node_record_stale_treshold << std::endl;
+  m_msgs << "Planner Mode:   " << Planner::modeToString(m_planner_mode) << std::endl;
   m_msgs << "\n";
 
   double area = m_prox_poly.area();
@@ -773,9 +824,10 @@ bool Proxonoi::buildReport()
 XYPoint Proxonoi::updateViewGridSearchSetpoint()
 {
   XYPoint nullpt;
+
   XYPoint gridSearchSetPt = calculateGridSearchSetpoint();
 
-  if (!gridSearchSetPt.valid())
+  if (!gridSearchSetPt.valid() && m_prox_region.contains(m_osx, m_osy))
   {
     Logger::warning("GridSearch Setpoint not valid");
     reportRunWarning("GridSearch Setpoint not valid");
@@ -791,7 +843,8 @@ XYPoint Proxonoi::updateViewGridSearchSetpoint()
   gridSearchSetPt.set_color("vertex", m_vcolor);
   gridSearchSetPt.set_vertex_size(10);
   // gridSearchSetPt.set_duration(5);
-  Notify("VIEW_POINT", gridSearchSetPt.get_spec());
+
+  handlePointVisualization(gridSearchSetPt);
 
   return gridSearchSetPt;
 }
@@ -819,7 +872,8 @@ void Proxonoi::postCentroidSetpoint()
   centroidSetPt.set_color("vertex", "white");
   centroidSetPt.set_vertex_size(10);
   // centroidSetPt.set_duration(5);
-  Notify("VIEW_POINT", centroidSetPt.get_spec());
+
+  handlePointVisualization(centroidSetPt);
 
   auto center = m_prox_poly.get_center_pt();
   if (center.valid())
@@ -827,7 +881,7 @@ void Proxonoi::postCentroidSetpoint()
     center.set_label("center");
     center.set_color("vertex", "white");
     center.set_vertex_size(4);
-    Notify("VIEW_POINT", center.get_spec());
+    handlePointVisualization(center);
   }
 }
 
@@ -883,28 +937,20 @@ XYPoint Proxonoi::calculateGridSearchSetpoint()
   forward_center.set_color("vertex", "yellow");
   forward_center.set_vertex_size(5);
   forward_center.set_msg("f");
-  if(forward_center.valid())
-    Notify("VIEW_POINT", forward_center.get_spec());
-  else
-    Notify("VIEW_POINT", forward_center.get_spec_inactive());
-
+  
+  handlePointVisualization(forward_center, !forward_center.valid());
+  
   left_center.set_label("l" + m_ownship);
   left_center.set_color("vertex", "green");
   left_center.set_vertex_size(5);
   left_center.set_msg("l");
-  if(left_center.valid())
-    Notify("VIEW_POINT", left_center.get_spec());
-  else
-    Notify("VIEW_POINT", left_center.get_spec_inactive());
+  handlePointVisualization(left_center, !left_center.valid());
 
   right_center.set_label("r" + m_ownship);
   right_center.set_color("vertex", "red");
   right_center.set_msg("r");
   right_center.set_vertex_size(5);
-  if(right_center.valid())
-    Notify("VIEW_POINT", right_center.get_spec());
-  else
-    Notify("VIEW_POINT", right_center.get_spec_inactive());
+  handlePointVisualization(right_center, !right_center.valid());
 
   static std::string prev_sector = "forward";
   double threshold = 1.4; // 40% hysteresis
@@ -913,7 +959,7 @@ XYPoint Proxonoi::calculateGridSearchSetpoint()
   if (prev_sector == "forward")
   {
 
-    if ((left_weight > forward_weight * threshold  && left_free)|| (left_free && !forward_free))
+    if ((left_weight > forward_weight * threshold && left_free) || (left_free && !forward_free))
     {
       searchCenter = left_center;
       prev_sector = "left";
@@ -930,12 +976,12 @@ XYPoint Proxonoi::calculateGridSearchSetpoint()
   }
   else if (prev_sector == "left")
   {
-    if ((forward_weight > left_weight * threshold && forward_free) || (forward_free && !left_free) )
+    if ((forward_weight > left_weight * threshold && forward_free) || (forward_free && !left_free))
     {
       searchCenter = forward_center;
       prev_sector = "forward";
     }
-    else if ((right_weight > left_weight * threshold && right_free)|| (right_free && !left_free))
+    else if ((right_weight > left_weight * threshold && right_free) || (right_free && !left_free))
     {
       searchCenter = right_center;
       prev_sector = "right";
@@ -952,7 +998,7 @@ XYPoint Proxonoi::calculateGridSearchSetpoint()
       searchCenter = forward_center;
       prev_sector = "forward";
     }
-    else if ((left_weight > right_weight * threshold && left_free) || (left_free && !right_free) )
+    else if ((left_weight > right_weight * threshold && left_free) || (left_free && !right_free))
     {
       searchCenter = left_center;
       prev_sector = "left";
@@ -971,7 +1017,7 @@ XYPoint Proxonoi::calculateGridSearchSetpoint()
   searchCenter.set_color("vertex", "blue");
   searchCenter.set_vertex_size(8);
   searchCenter.set_msg("searchCenter");
-  Notify("VIEW_POINT", searchCenter.get_spec());
+  handlePointVisualization(searchCenter);
 
   //--------------------------------------------------------------------------------------------
   //--------------------------------------------------------------------------------------------
@@ -1079,8 +1125,8 @@ std::pair<XYPoint, double> Proxonoi::calculateSearchCenter(const XYPolygon &pol,
   XYPoint pt{total_x / total_weight, total_y / total_weight};
 
   if (total_weight > 0)
-   return {pt, total_weight};
-  
+    return {pt, total_weight};
+
   return {null_pair}; // Default if no cells in sector
 }
 
@@ -1098,17 +1144,15 @@ XYPoint Proxonoi::calculateCircularSetPt(bool extend_setpt)
 
   // XYPoint final_pt = projectPoint(heading, default_dist, ref_pt);
   XYPoint circular_point = projectPoint(circular_heading, default_dist, poly_centroid);
-
-  if (circular_point.get_vx() != prev_setpt.get_vx() || circular_point.get_vy() != prev_setpt.get_vy())
+  
+  circular_point.set_label("cp" + m_ownship);
+  circular_point.set_color("vertex", m_vcolor);
+  circular_point.set_vertex_size(8);
+  circular_point.set_msg("cp");
+  handlePointVisualization(circular_point);
+  
+  if (!extend_setpt)
   {
-    circular_point.set_label("cp" + m_ownship);
-    circular_point.set_color("vertex", m_vcolor);
-    circular_point.set_vertex_size(8);
-    circular_point.set_msg("cp");
-    Notify("VIEW_POINT", circular_point.get_spec());
-  }
-
-  if(!extend_setpt){
     prev_setpt = circular_point;
     return circular_point;
   }
@@ -1128,17 +1172,17 @@ XYPoint Proxonoi::calculateCircularSetPt(bool extend_setpt)
   mag = std::max(0.0, std::min(mag, 200.0));
 
   XYPoint extended_circular_setpt = projectPoint(circular_heading, mag, circular_point);
-  
+
   if (!m_prox_poly.contains(extended_circular_setpt))
   {
     extended_circular_setpt = m_prox_poly.closest_point_on_poly(extended_circular_setpt);
     Logger::warning("Calculated weighted center is outside the polygon");
   }
-  
+
   return extended_circular_setpt;
 }
 
-bool Proxonoi::postGridSearchSetpointFiltered(XYPoint pt) 
+bool Proxonoi::postGridSearchSetpointFiltered(XYPoint pt)
 {
 
   static XYPoint prev_setpt;
@@ -1156,9 +1200,7 @@ bool Proxonoi::postGridSearchSetpointFiltered(XYPoint pt)
 
   prev_setpt = pt;
 
-
   Notify("PROX_SEARCHCENTER", pt.get_spec());
-
 
   return true;
 }
@@ -1182,6 +1224,28 @@ bool Proxonoi::isPointInDiscoverdGridCell(XYPoint pt) const
   return false;
 }
 
+void Proxonoi::handlePointVisualization(XYPoint &pt, bool force_erase )
+{
+  static std::map<std::string, bool> map_prev_visualize;
+
+  force_erase = force_erase || (m_planner_mode==Planner::PlannerMode::TMSTC_STAR);
+
+  if(map_prev_visualize.count(pt.get_label()) == 0)
+    map_prev_visualize[pt.get_label()] = m_do_visualize;
+
+  bool& prev_visualize = map_prev_visualize[pt.get_label()];
+
+
+  // Logger::info("Point visualization: force_erase: " + boolToString(force_erase) + " prev_visualize: " + boolToString(prev_visualize) + " name: "  + pt.get_label());
+  if (m_do_visualize && !force_erase)
+    Notify("VIEW_POINT", pt.get_spec());
+  else if (prev_visualize){
+    // Logger::info("Erasing point visualization: " + pt.get_spec_inactive());
+    Notify("VIEW_POINT", pt.get_spec_inactive());
+  }
+
+  prev_visualize = m_do_visualize && !force_erase;
+}
 //------------------------------------------------------------
 // UTILITY FUNCTIONS
 //-------------------------------------------------------------

@@ -235,6 +235,16 @@ if [ $? -ne 0 ]; then exit 1; fi
 TMSTC_POINT_FILTERING=$(get_global_val $CONFIG_FILE "missionParams.TMSTC_point_filtering")
 if [ $? -ne 0 ]; then exit 1; fi
 
+voronoi_search_enabled=$(get_global_val $CONFIG_FILE "missionParams.voronoi_search_enabled")
+if [ $? -ne 0 ]; then exit 1; fi
+if [ "${voronoi_search_enabled}" = "true" ]; then
+    PLANNER_MODE="VORONOI_SEARCH"
+else
+    PLANNER_MODE="TMSTC_STAR"
+fi
+
+
+
 
 #---------------------------------------------------------------
 #  Part 4: If verbose, show vars and confirm before launching
@@ -277,6 +287,8 @@ if [ "${VERBOSE}" = "yes" ]; then
     echo "TMSTC_CONFIG_VMAX = [${TMSTC_CONFIG_VMAX}]"
     echo "TMSTC_CONFIG_PHI_MAX_RAD = [${TMSTC_CONFIG_PHI_MAX_RAD}]"
     echo "TMSTC_POINT_FILTERING = [${TMSTC_POINT_FILTERING}]"
+    echo "----------------------------------"
+    echo "PLANNER_MODE = [${PLANNER_MODE}]"
     echo "----------------------------------"
     echo "FIRE_FILE_DEFAULT = [${FIRE_FILE_DEFAULT}]"
     echo "FIRE_COLOR = [${FIRE_COLOR}]"
@@ -350,7 +362,8 @@ nsplug meta_shoreside.moos targ_shoreside.moos $NSFLAGS WARP=$TIME_WARP \
     GRID_CELL_DECAY_TIME=$GRID_CELL_DECAY_TIME            \
     REGION=$REGION                                        \
     MISSION_DURATION=$MISSION_DURATION                    \
-    XMODE=$XMODE
+    XMODE=$XMODE                                          \
+    PLANNER_MODE=$PLANNER_MODE                           \
 
 
 if [ ${JUST_MAKE} = "yes" ]; then

@@ -20,6 +20,7 @@ initialize BHV_MODE = INACTIVE
   set BHV_MODE = INACTIVE {
     DEPLOY != true
     RETURN != true
+    DO_SURVEY != true
   } ACTIVE
 
   set BHV_MODE = SURVEY {

@@ -162,6 +162,8 @@ ProcessConfig = uFldShoreBroker
   
   qbridge  = FIRE_ALERT
 
+  qbridge = CHANGE_PLANNER_MODE
+
 
 
   // bridge  = src=UFFS_LEADER
@@ -172,7 +174,7 @@ ProcessConfig = uFldShoreBroker
   bridge  = src=VIEW_GRID
   bridge  = src=VIEW_GRID_DELTA
 
-  qbridge = ARM_UAV, HELM_STATUS, MOOS_MANUAL_OVERRIDE, PROX_SETPT_METHOD
+  qbridge = ARM_UAV, HELM_STATUS, MOOS_MANUAL_OVERRIDE, PROX_SETPT_METHOD, PROX_SET_VISUALIZATION
 
   qbridge = GCS_COMMAND, PROX_POLY_VIEW // Most commands from the GCS
 
@@ -280,6 +282,9 @@ ProcessConfig = pGridSearchPlanner
 #ifdef USE_MOOS_SIM_PID true
   is_running_moos_pid = true
 #endif
+
+
+  planner_mode = $(PLANNER_MODE) // TMSTC_STAR, VORONOI_SEARCH
 
   
 
@@ -416,6 +421,9 @@ ProcessConfig = pMarineViewer
   action = menu_key=setpt_method_CENTROID # PROX_SETPT_METHOD_ALL=centroid
   action+= menu_key=setpt_method_CENTER # PROX_SETPT_METHOD_ALL=center
 
+  action+= menu_key=PROX_toggle_visualization # PROX_SET_VISUALIZATION_ALL=toggle
+
+
 
   action = menu_key=GSP_map_print_off #  GSP_MAP_PRINT=0
   action = menu_key=GSP_map_print_init #  GSP_MAP_PRINT=1
@@ -527,6 +535,8 @@ ProcessConfig = pMarineViewer
   button_8 = PLAN_PATHS # DO_PLAN_PATHS=true
   button_9 = ENABLE_MISSION  # XENABLE_MISSION=true
   button_10 = RESET_MISSION  # XDISABLE_RESET_MISSION=true
+  button_11 = SET_MODE_TS  # CHANGE_PLANNER_MODE=TMSTC_STAR # CHANGE_PLANNER_MODE_ALL=TMSTC_STAR
+  button_12 = SET_MODE_VC  # CHANGE_PLANNER_MODE=VORONOI_SEARCH # CHANGE_PLANNER_MODE_ALL=VORONOI_SEARCH
 
 
   ////////////////////////////////////////////////
@@ -572,5 +582,7 @@ ProcessConfig = pMarineViewer
 
 #endif
 
-}
+  cmd= label=PROX_toggle_visualization, var=PROX_SET_VISUALIZATION, sval=toggle,  receivers=all
+
+} 
 

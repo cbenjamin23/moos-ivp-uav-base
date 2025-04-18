@@ -301,7 +301,7 @@ bool BHV_Voronoi::handleConfigSetPointMethod(string method)
 //-----------------------------------------------------------
 // Procedure: updateSetPoint()
 
-constexpr unsigned int MAX_SUPRESSED_WARNINGS = 500;
+constexpr unsigned int MAX_SUPRESSED_WARNINGS = 1000;
 bool BHV_Voronoi::updateSetPoint()
 {
   // Part 1: If the region is not convex, all is fubar
@@ -351,13 +351,15 @@ bool BHV_Voronoi::updateSetPoint()
       invalid_warning = 0;
     }
 
-    if(!searchcenter_stale && pt.valid() ){
+    if(!searchcenter_stale && pt.valid() && m_ownship_in_region){
       
-      if(distPointToPoint(cpt, gridsearch_setpt) <= m_capture_radius)
+      if( (distPointToPoint(cpt, gridsearch_setpt) <= m_capture_radius)  
+          ||  !m_proxonoi_region.contains(m_set_x, m_set_y)
+          ||  (m_set_x == 0 && m_set_y == 0)) 
         gridsearch_setpt = pt;
         
     }
-    else if(distPointToPoint(cpt, gridsearch_setpt) <= m_capture_radius ){ // close to the old setpt
+    else if(distPointToPoint(cpt, gridsearch_setpt) <= m_capture_radius  && m_ownship_in_region){ // close to the old setpt
       gridsearch_setpt = calculateCircularSetPt(true);  
     }
 

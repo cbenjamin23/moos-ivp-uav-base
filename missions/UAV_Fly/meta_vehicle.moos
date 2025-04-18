@@ -81,6 +81,8 @@ ProcessConfig = pProxonoi_uav
   post_poly = true
   // post_region = true
 
+  planner_mode = $(PLANNER_MODE)
+  do_visualize = true // default is false
 }                                            
 
 

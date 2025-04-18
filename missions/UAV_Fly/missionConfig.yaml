@@ -40,6 +40,8 @@ missionParams:
   mission_duration : 6000 # s - The duration of the mission
 
 
+  voronoi_search_enabled: true # If true, the Voronoi algorithm will be used to set the path for the drone
+                        # else, the TMSTC* algorithm will be used to set the path for the drone
   voronoi_setpoint_method: gridsearch # The method used to set the path for the voronoi algorithm. Can be "gridsearch", "center" or "centroid" 
 
   # The ratio between the region grid cell distance in the TMSTC* algorithm and the sensor range. The sensor range is the maximum distance from the drone that the sensor can detect fires
@@ -63,7 +65,7 @@ missionParams:
   # Ignored region parameters
   ignoredRegion_file_default   : "ignoredRegions.txt" # The file containing the ignored region data if generate not set
   # ignoredRegion_file_default   : "regions_c8_sep150.txt" # The file containing the ignored region data if generate not set
-  ignoredRegion_generate       : false # If true, the ignored regions will be generated randomly, otherwise they will be read from a file
+  ignoredRegion_generate       : true # If true, the ignored regions will be generated randomly, otherwise they will be read from a file
   ignoredRegion_count          : 3 # The number of ignored regions to be placed in the region at launch
   ignoredRegion_sep_min        : 150 # m - The minimum separation between ignored regions
   ignoredRegion_spawn_count    : 0 # The number of ignored regions to spawn after the mission has started

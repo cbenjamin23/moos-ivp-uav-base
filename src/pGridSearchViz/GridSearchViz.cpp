@@ -307,7 +307,7 @@ bool GridSearchViz::handleMailNodeReport(std::string str)
   {
     m_missionStartTime = MOOSTime();
     Notify("MISSION_START_TIME", m_missionStartTime); // Essentially starts the mission
-    Notify("DO_PLAN_PATHS", "true");
+    // Notify("DO_PLAN_PATHS", "true");
   }
 
   // Only post the circle visualization if configured to do so
@@ -343,7 +343,7 @@ bool GridSearchViz::handleMailDisableResetMission(std::string &warning)
   if (m_isRunningMoosPid)
   {
     Notify("DO_SURVEY_ALL", "false");
-    Notify("DEPLOY_ALL", "true");
+    Notify("DEPLOY_ALL", "false");
     Notify("RETURN_ALL", "false");
     Notify("MOOS_MANUAL_OVERRIDE_ALL", "false");
   }
