@@ -729,6 +729,10 @@ XYPoint BHV_Voronoi::calculateCircularSetPt(bool extend_setpt)
   mag = std::max(0.0, std::min(mag, 200.0));
 
   XYPoint extended_circular_setpt = projectPoint(circular_heading, mag, circular_point);
+
+  if(!m_proxonoi_region.contains(extended_circular_setpt.x(), extended_circular_setpt.y()))
+    extended_circular_setpt = m_proxonoi_region.closest_point_on_poly(extended_circular_setpt);
+  
   return extended_circular_setpt;
 
 }

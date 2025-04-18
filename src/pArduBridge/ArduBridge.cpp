@@ -142,10 +142,12 @@ bool ArduBridge::OnNewMail(MOOSMSG_LIST &NewMail)
     }
     else if (key == "HELM_STATUS")
     {
+      static bool helm_status_on = false;
       Logger::info("OnNewMail HELM_STATUS: " + msg.GetString());
+      
+      setBooleanOnString(helm_status_on, msg.GetString());
 
-      std::string overide = msg.GetString();
-      if (overide == "OFF" && m_autopilot_mode != AutopilotHelmMode::HELM_INACTIVE_LOITERING)
+      if (!helm_status_on && m_autopilot_mode != AutopilotHelmMode::HELM_INACTIVE_LOITERING)
       {
         // m_autopilot_mode = AutopilotHelmState::HELM_INACTIVE;
         reportEvent("Helm is set to OFF");
@@ -153,7 +155,7 @@ bool ArduBridge::OnNewMail(MOOSMSG_LIST &NewMail)
         m_do_loiter_pair = std::make_pair(true, "here");
         goToHelmMode(AutopilotHelmMode::HELM_INACTIVE);
       }
-      else if (overide == "ON" && !isHelmOn())
+      else if (helm_status_on && !isHelmOn())
       {
         // m_autopilot_mode = AutopilotHelmState::HELM_ACTIVE;
         goToHelmMode(AutopilotHelmMode::HELM_ACTIVE);

@@ -31,7 +31,7 @@ Processconfig = ANTLER
 
 
   Run = uProcessWatch       @ NewConsole = false
-  Run = uLoadWatch         @ NewConsole = false
+  // Run = uLoadWatch         @ NewConsole = false
   Run = uMemWatch          @ NewConsole = false
 
   HOLDSettings = -hold
@@ -514,8 +514,11 @@ ProcessConfig = pMarineViewer
     // button_one   = ARM_ALL  # ARM_UAV_ALL=true
     // button_two   = DISARM_ALL   # ARM_UAV_ALL=false 
 
-    button_2    = HELM_ON_ALL  # HELM_STATUS_ALL=ON 
-    button_3    = HELM_OFF_ALL # HELM_STATUS_ALL=OFF
+    button_2    = HELM_TOOGLE_ALL  # HELM_STATUS_ALL=toggle
+    // button_3    = HELM_OFF_ALL # HELM_STATUS_ALL=OFF
+    #ifdef XMODE SIM
+      button_3 = TKOFF_ALL  # ARM_UAV_ALL=true # GCS_COMMAND_ALL=DO_TAKEOFF
+    #endif
     
     button_4    = SURVEY_ALL  # GCS_COMMAND_ALL=SURVEY  
     
@@ -526,9 +529,8 @@ ProcessConfig = pMarineViewer
     button_7 = DO_VORONOI_ALL # GCS_COMMAND_ALL=DO_VORONOI
 
     // button_7 = PARK_HELM_ALL # MOOS_MANUAL_OVERRIDE_ALL=true
-    #ifdef XMODE SIM
-      button_11 = TKOFF_ALL  # ARM_UAV_ALL=true # GCS_COMMAND_ALL=DO_TAKEOFF
-    #endif
+
+
     
   #endif
 
@@ -542,6 +544,7 @@ ProcessConfig = pMarineViewer
   ////////////////////////////////////////////////
   // Commands
   ////////////////////////////////////////////////
+
 
 #ifdef USE_MOOS_SIM_PID true
 
@@ -579,6 +582,7 @@ ProcessConfig = pMarineViewer
   cmd = label=HELM_OFF, var=HELM_STATUS, sval=OFF, receivers=all:$(VNAMES)
 
   cmd = label=PARK_HELM, var=MOOS_MANUAL_OVERRIDE, sval=true, receivers=all:$(VNAMES)
+
 
 #endif
 

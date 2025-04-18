@@ -40,7 +40,7 @@ Processconfig = ANTLER
   #endif
   
   Run = uProcessWatch      @ NewConsole = false
-  Run = uLoadWatch         @ NewConsole = false
+  // Run = uLoadWatch         @ NewConsole = false
   Run = uMemWatch          @ NewConsole = false
 
   HOLDSettings = -hold
