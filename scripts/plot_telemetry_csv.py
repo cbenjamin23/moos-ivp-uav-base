@@ -120,8 +120,8 @@ def plot_time_series(numerical_data, timeStart, timeEnd, helm_start, helm_stop, 
 
     # Plotting
     plt.figure(figsize=(10, 5))
-    plt.plot(filtered_var1['time'], filtered_var1['value'], label=var1, color='blue')
-    plt.plot(filtered_var2['time'], filtered_var2['value'], label=var2, color='orange')
+    plt.plot(filtered_var1['time'].to_numpy(), filtered_var1['value'].to_numpy(), label=var1, color='blue')
+    plt.plot(filtered_var2['time'].to_numpy(), filtered_var2['value'].to_numpy(), label=var2, color='orange')
 
     # Mark helm start and end
     if helm_start is not None:
@@ -164,8 +164,9 @@ def plot_time_series(numerical_data, timeStart, timeEnd, helm_start, helm_stop, 
 
 # Function to plot 2D map using NAV_X and NAV_Y
 def plot_2d_position(data, timeStart, timeEnd, helm_start, helm_stop, desired_path=None, save_png=False, save_eps=False, file_path=None):
-       
-    
+    # Compute effective helm window defaults
+    helm_start_eff = helm_start if helm_start is not None else timeStart
+    helm_stop_eff = helm_stop if helm_stop is not None else timeEnd
     # Filter data by time range
     filtered_data = data[(data['time'] >= timeStart) & (data['time'] <= timeEnd)]
 
@@ -180,19 +181,20 @@ def plot_2d_position(data, timeStart, timeEnd, helm_start, helm_stop, desired_pa
 
     # Grey out points before helm_start and after helm_stop
     if helm_start is not None:
-        pre_helm_data = filtered_data[filtered_data['time'] < helm_start]
-        plt.plot(pre_helm_data['NAV_X'], pre_helm_data['NAV_Y'], color='grey', alpha=0.3, linewidth=.5, label='Path Helm Inactive')
+        pre_helm_data = filtered_data[filtered_data['time'] < helm_start_eff]
+        plt.plot(pre_helm_data['NAV_X'].to_numpy(), pre_helm_data['NAV_Y'].to_numpy(), color='grey', alpha=0.3, linewidth=.5, label='Path Helm Inactive')
     if helm_stop is not None:
-        post_helm_data = filtered_data[filtered_data['time'] > helm_stop]
-        plt.plot(post_helm_data['NAV_X'], post_helm_data['NAV_Y'], color='grey', alpha=0.3, linewidth=.5)
+        post_helm_data = filtered_data[filtered_data['time'] > helm_stop_eff]
+        plt.plot(post_helm_data['NAV_X'].to_numpy(), post_helm_data['NAV_Y'].to_numpy(), color='grey', alpha=0.3, linewidth=.5)
 
     # Plot the valid path in blue
-    valid_data = filtered_data[(filtered_data['time'] >= helm_start) & (filtered_data['time'] <= helm_stop)]
-    plt.plot(valid_data['NAV_X'], valid_data['NAV_Y'], color='blue', label='Path Helm Active')
+    valid_data = filtered_data[(filtered_data['time'] >= helm_start_eff) & (filtered_data['time'] <= helm_stop_eff)]
+    plt.plot(valid_data['NAV_X'].to_numpy(), valid_data['NAV_Y'].to_numpy(), color='blue', label='Path Helm Active')
 
-    # Mark start and end points
-    plt.text(valid_data['NAV_X'].iloc[0], valid_data['NAV_Y'].iloc[0], 'Helm Start', color='green', fontsize=12)
-    plt.text(valid_data['NAV_X'].iloc[-1], valid_data['NAV_Y'].iloc[-1], 'Helm End', color='red', fontsize=12)
+    # Mark start and end points if available
+    if not valid_data.empty:
+        plt.text(valid_data['NAV_X'].iloc[0], valid_data['NAV_Y'].iloc[0], 'Helm Start', color='green', fontsize=12)
+        plt.text(valid_data['NAV_X'].iloc[-1], valid_data['NAV_Y'].iloc[-1], 'Helm End', color='red', fontsize=12)
 
     # Plot the desired path if provided
     if desired_path:
@@ -256,18 +258,18 @@ def plot_3d_position(data, timeStart, timeEnd, helm_start, helm_stop, desired_pa
     # Grey out points before helm_start and after helm_stop
     if helm_start is not None:
         pre_helm_data = filtered_data[filtered_data['time'] < helm_start]
-        ax.plot(pre_helm_data['NAV_X'], pre_helm_data['NAV_Y'], pre_helm_data['NAV_ALTITUDE'], color='grey', alpha=0.3, linewidth=.5, label='Path Helm Inactive')
+        ax.plot(pre_helm_data['NAV_X'].to_numpy(), pre_helm_data['NAV_Y'].to_numpy(), pre_helm_data['NAV_ALTITUDE'].to_numpy(), color='grey', alpha=0.3, linewidth=.5, label='Path Helm Inactive')
     if helm_stop is not None:
         post_helm_data = filtered_data[filtered_data['time'] > helm_stop]
-        ax.plot(post_helm_data['NAV_X'], post_helm_data['NAV_Y'], post_helm_data['NAV_ALTITUDE'], color='grey', alpha=0.3, linewidth=.5)
+        ax.plot(post_helm_data['NAV_X'].to_numpy(), post_helm_data['NAV_Y'].to_numpy(), post_helm_data['NAV_ALTITUDE'].to_numpy(), color='grey', alpha=0.3, linewidth=.5)
 
-    # Plot the valid path in blue
+    # Plot the valid path in blue and mark start/end if data exists
     valid_data = filtered_data[(filtered_data['time'] >= helm_start) & (filtered_data['time'] <= helm_stop)]
-    ax.plot(valid_data['NAV_X'], valid_data['NAV_Y'], valid_data['NAV_ALTITUDE'], color='blue', label='Path Helm Active')
-
-    # Mark start and end points
-    ax.text(valid_data['NAV_X'].iloc[0], valid_data['NAV_Y'].iloc[0], valid_data['NAV_ALTITUDE'].iloc[0], 'Helm Start', color='green')
-    ax.text(valid_data['NAV_X'].iloc[-1], valid_data['NAV_Y'].iloc[-1], valid_data['NAV_ALTITUDE'].iloc[-1], 'Helm End', color='red')
+    ax.plot(valid_data['NAV_X'].to_numpy(), valid_data['NAV_Y'].to_numpy(), valid_data['NAV_ALTITUDE'].to_numpy(), color='blue', label='Path Helm Active')
+    # Mark start and end points if available
+    if not valid_data.empty:
+        ax.text(valid_data['NAV_X'].iloc[0], valid_data['NAV_Y'].iloc[0], valid_data['NAV_ALTITUDE'].iloc[0], 'Helm Start', color='green')
+        ax.text(valid_data['NAV_X'].iloc[-1], valid_data['NAV_Y'].iloc[-1], valid_data['NAV_ALTITUDE'].iloc[-1], 'Helm End', color='red')
 
     # Plot the desired path if provided
     if desired_path and desired_altitude is not None:
