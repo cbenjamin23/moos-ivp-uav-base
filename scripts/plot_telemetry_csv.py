@@ -26,6 +26,44 @@ def ensure_directory_exists(directory):
     if not os.path.exists(directory):
         os.makedirs(directory)
 
+# Function to parse fires file and extract polygon and fire coordinates
+def parse_fires_file(file_path):
+    if not file_path or not os.path.exists(file_path):
+        return None, None
+    
+    polygon_coords = None
+    fires = []
+    
+    try:
+        with open(file_path, 'r') as file:
+            for line in file:
+                line = line.strip()
+                
+                # Extract polygon coordinates
+                if line.startswith('poly =') and 'pts=' in line:
+                    match = re.search(r'pts=\{([^}]+)\}', line)
+                    if match:
+                        points_str = match.group(1)
+                        polygon_coords = parse_desired_path(points_str)
+                
+                # Extract fire coordinates
+                elif line.startswith('fire ='):
+                    match = re.search(r'x=(-?\d+\.?\d*),\s*y=(-?\d+\.?\d*)', line)
+                    if match:
+                        x = float(match.group(1))
+                        y = float(match.group(2))
+                        
+                        # Extract fire name if available
+                        name_match = re.search(r'name=(\w+)', line)
+                        name = name_match.group(1) if name_match else ""
+                        
+                        fires.append({'name': name, 'x': x, 'y': y})
+    
+    except Exception as e:
+        print(f"Error parsing fires file: {e}")
+        return None, None
+    
+    return polygon_coords, fires
 
 # Function to automatically determine the target path from the data
 def determine_target_path(categorical_data, helm_start, timeStart):
@@ -97,9 +135,6 @@ def read_categorical_csv(file_path):
     categorical_data.dropna(subset=['time'], inplace=True)
     return categorical_data
 
-
-
-
 # Function to handle time series plots
 def plot_time_series(numerical_data, timeStart, timeEnd, helm_start, helm_stop, var1, var2, title, ylabel, save_png=False, save_eps=False, file_path=None):
     # Filter data by time range
@@ -109,10 +144,6 @@ def plot_time_series(numerical_data, timeStart, timeEnd, helm_start, helm_stop, 
     filtered_var1 = filtered_data[filtered_data['variable'] == var1].copy()
     filtered_var2 = filtered_data[filtered_data['variable'] == var2].copy()
 
-    # if var1 =='DESIRED_SPEED' :
-    #     # replace all the values of desired speed with 12
-    #     filtered_var1['value'] = 11.7
-    
     # Ensure both var1 and var2 are not empty after filtering
     if filtered_var1.empty or filtered_var2.empty:
         print(f"No valid data found for {var1} or {var2} in the specified time range.")
@@ -161,40 +192,99 @@ def plot_time_series(numerical_data, timeStart, timeEnd, helm_start, helm_stop, 
     plt.tight_layout()
     plt.show()
 
-
 # Function to plot 2D map using NAV_X and NAV_Y
-def plot_2d_position(data, timeStart, timeEnd, helm_start, helm_stop, desired_path=None, save_png=False, save_eps=False, file_path=None):
+def plot_2d_position(data, timeStart, timeEnd, helm_start, helm_stop, desired_path=None, fires_file=None, save_png=False, save_eps=False, file_path=None):
     # Compute effective helm window defaults
     helm_start_eff = helm_start if helm_start is not None else timeStart
     helm_stop_eff = helm_stop if helm_stop is not None else timeEnd
     # Filter data by time range
     filtered_data = data[(data['time'] >= timeStart) & (data['time'] <= timeEnd)]
-
+    
+    if filtered_data.empty:
+        print("No data available in the specified time range.")
+        return
+    
+  
+    
+    # Check if the required columns exist in the data
+    required_columns = ['NAV_X', 'NAV_Y']
+    data_columns = filtered_data['variable'].unique()
+    missing_columns = [col for col in required_columns if col not in data_columns]
+    
+    if missing_columns:
+        print(f"Error: Required columns missing from the data: {', '.join(missing_columns)}")
+        print(f"Available columns: {', '.join(data_columns)}")
+        return
+    
+    # Pivot the data to wide format for plotting
     filtered_data = filtered_data.pivot_table(index='time', columns='variable', values='value', aggfunc='first').reset_index()
+    
+    # Check if the pivoted dataframe is empty or missing required columns
+    if filtered_data.empty or any(col not in filtered_data.columns for col in required_columns):
+        print(f"Error: Unable to create plot. The pivoted dataframe is empty or missing required columns.")
+        print(f"Available columns after pivot: {', '.join(filtered_data.columns)}")
+        return
     
     # Interpolate 
     filtered_data = filtered_data.interpolate(method='linear')
 
-    
     # Plotting the 2D map
     plt.figure(figsize=(8, 8))
+
+    # Parse fires file if provided
+    polygon_coords, fires = None, None
+    if fires_file:
+        polygon_coords, fires = parse_fires_file(fires_file)
+
+    if not polygon_coords or not fires:
+        print(f"No polygon or fire data available from the fires file {fires_file}.")
+
+    # Plot polygon region if available
+    if polygon_coords:
+        x_poly, y_poly = polygon_coords
+        # Close the polygon by adding the first point at the end
+        x_closed = x_poly + [x_poly[0]]
+        y_closed = y_poly + [y_poly[0]]
+        plt.plot(x_closed, y_closed, color='purple', linestyle='-', linewidth=2, label='Region Polygon')
+        plt.fill(x_closed, y_closed, alpha=0.1, color='purple')
+
+    # Plot fires if available
+    if fires:
+        fire_x = [fire['x'] for fire in fires]
+        fire_y = [fire['y'] for fire in fires]
+        fire_names = [fire['name'] for fire in fires]
+        
+        plt.scatter(fire_x, fire_y, color='red', marker='D', s=80, label='Fires', zorder=5)
+        
+        # Add fire labels
+        for i, name in enumerate(fire_names):
+            plt.annotate(name, (fire_x[i], fire_y[i]), fontsize=8,
+                         xytext=(5, 5), textcoords='offset points')
 
     # Grey out points before helm_start and after helm_stop
     if helm_start is not None:
         pre_helm_data = filtered_data[filtered_data['time'] < helm_start_eff]
-        plt.plot(pre_helm_data['NAV_X'].to_numpy(), pre_helm_data['NAV_Y'].to_numpy(), color='grey', alpha=0.3, linewidth=.5, label='Path Helm Inactive')
+        if not pre_helm_data.empty:
+            plt.plot(pre_helm_data['NAV_X'].to_numpy(), pre_helm_data['NAV_Y'].to_numpy(), 
+                    color='grey', alpha=0.3, linewidth=.5, label='Path Helm Inactive')
+    
     if helm_stop is not None:
         post_helm_data = filtered_data[filtered_data['time'] > helm_stop_eff]
-        plt.plot(post_helm_data['NAV_X'].to_numpy(), post_helm_data['NAV_Y'].to_numpy(), color='grey', alpha=0.3, linewidth=.5)
+        if not post_helm_data.empty:
+            plt.plot(post_helm_data['NAV_X'].to_numpy(), post_helm_data['NAV_Y'].to_numpy(), 
+                    color='grey', alpha=0.3, linewidth=.5)
 
     # Plot the valid path in blue
     valid_data = filtered_data[(filtered_data['time'] >= helm_start_eff) & (filtered_data['time'] <= helm_stop_eff)]
-    plt.plot(valid_data['NAV_X'].to_numpy(), valid_data['NAV_Y'].to_numpy(), color='blue', label='Path Helm Active')
-
-    # Mark start and end points if available
     if not valid_data.empty:
-        plt.text(valid_data['NAV_X'].iloc[0], valid_data['NAV_Y'].iloc[0], 'Helm Start', color='green', fontsize=12)
-        plt.text(valid_data['NAV_X'].iloc[-1], valid_data['NAV_Y'].iloc[-1], 'Helm End', color='red', fontsize=12)
+        plt.plot(valid_data['NAV_X'].to_numpy(), valid_data['NAV_Y'].to_numpy(), 
+                color='blue', label='Path Helm Active')
+
+        # Mark start and end points if available
+        plt.text(valid_data['NAV_X'].iloc[0], valid_data['NAV_Y'].iloc[0], 'Helm Start', 
+                color='green', fontsize=12)
+        plt.text(valid_data['NAV_X'].iloc[-1], valid_data['NAV_Y'].iloc[-1], 'Helm End', 
+                color='red', fontsize=12)
 
     # Plot the desired path if provided
     if desired_path:
@@ -203,16 +293,18 @@ def plot_2d_position(data, timeStart, timeEnd, helm_start, helm_stop, desired_pa
         plt.scatter(desired_x, desired_y, color='black', marker='o', s=50, label='Desired Path Vertex')
 
     # Find the closest point to helm_start
-    if helm_start is not None:
+    if helm_start is not None and not filtered_data.empty:
         closest_helm_start_idx = (filtered_data['time'] - helm_start).abs().idxmin()
         helm_start_data = filtered_data.loc[closest_helm_start_idx]
-        plt.scatter(helm_start_data['NAV_X'], helm_start_data['NAV_Y'], color='green', marker='o', label='Helm Start', s=20)
+        plt.scatter(helm_start_data['NAV_X'], helm_start_data['NAV_Y'], 
+                  color='green', marker='o', label='Helm Start', s=20)
 
     # Find the closest point to helm_stop
-    if helm_stop is not None:
+    if helm_stop is not None and not filtered_data.empty:
         closest_helm_stop_idx = (filtered_data['time'] - helm_stop).abs().idxmin()
         helm_stop_data = filtered_data.loc[closest_helm_stop_idx]
-        plt.scatter(helm_stop_data['NAV_X'], helm_stop_data['NAV_Y'], color='red', marker='o', label='Helm Stop', s=20)
+        plt.scatter(helm_stop_data['NAV_X'], helm_stop_data['NAV_Y'], 
+                  color='red', marker='o', label='Helm Stop', s=20)
 
     # Customize plot
     plt.xlabel('NAV_X')
@@ -221,8 +313,62 @@ def plot_2d_position(data, timeStart, timeEnd, helm_start, helm_stop, desired_pa
     plt.grid(True)
     plt.legend()
 
-    plt.xlim([filtered_data['NAV_X'].min(), filtered_data['NAV_X'].max()])
-    plt.ylim([filtered_data['NAV_Y'].min(), filtered_data['NAV_Y'].max()])
+    # Adjust axis limits - include polygon and fires in the view if available
+    if not filtered_data.empty:
+        x_min = filtered_data['NAV_X'].min()
+        x_max = filtered_data['NAV_X'].max()
+        y_min = filtered_data['NAV_Y'].min()
+        y_max = filtered_data['NAV_Y'].max()
+        
+        # Expand limits to include polygon if available
+        if polygon_coords:
+            x_poly, y_poly = polygon_coords
+            x_min = min(x_min, min(x_poly))
+            x_max = max(x_max, max(x_poly))
+            y_min = min(y_min, min(y_poly))
+            y_max = max(y_max, max(y_poly))
+        
+        # Expand limits to include fires if available
+        if fires:
+            fire_x = [fire['x'] for fire in fires]
+            fire_y = [fire['y'] for fire in fires]
+            if fire_x:
+                x_min = min(x_min, min(fire_x))
+                x_max = max(x_max, max(fire_x))
+            if fire_y:
+                y_min = min(y_min, min(fire_y))
+                y_max = max(y_max, max(fire_y))
+        
+        # Add some padding
+        padding = 0.1 * max(x_max - x_min, y_max - y_min)
+        plt.xlim([x_min - padding, x_max + padding])
+        plt.ylim([y_min - padding, y_max + padding])
+    elif polygon_coords or fires:
+        # If we don't have position data but we have polygon or fires, set limits based on those
+        x_limits = []
+        y_limits = []
+        
+        if polygon_coords:
+            x_poly, y_poly = polygon_coords
+            x_limits.extend([min(x_poly), max(x_poly)])
+            y_limits.extend([min(y_poly), max(y_poly)])
+        
+        if fires:
+            fire_x = [fire['x'] for fire in fires]
+            fire_y = [fire['y'] for fire in fires]
+            if fire_x:
+                x_limits.extend([min(fire_x), max(fire_x)])
+            if fire_y:
+                y_limits.extend([min(fire_y), max(fire_y)])
+                
+        if x_limits and y_limits:
+            x_min, x_max = min(x_limits), max(x_limits)
+            y_min, y_max = min(y_limits), max(y_limits)
+            
+            # Add some padding
+            padding = 0.1 * max(x_max - x_min, y_max - y_min)
+            plt.xlim([x_min - padding, x_max + padding])
+            plt.ylim([y_min - padding, y_max + padding])
 
     # Save the plot
     if save_png and file_path:
@@ -324,7 +470,6 @@ def plot_3d_position(data, timeStart, timeEnd, helm_start, helm_stop, desired_pa
     plt.tight_layout()
     plt.show()
 
-
 # Main function to handle command-line arguments
 def main():
     parser = argparse.ArgumentParser(description='Plot CSV data for variables or position with helm start/stop lines.')
@@ -357,6 +502,9 @@ def main():
     
     # Optional argument for desired path in 2D and 3D plots
     parser.add_argument('--desiredPath', type=str, help='Desired path as colon-separated coordinates (e.g., "10,20:15,25:20,30").')
+    
+    # New argument for fires file
+    parser.add_argument('--fireFile', type=str, help='Path to a fires file containing region polygon and fire coordinates.')
 
     # Parse the arguments
     args = parser.parse_args()
@@ -396,7 +544,6 @@ def main():
     desired_altitude = args.default_altitude
     if desired_altitude is None:
         desired_altitude = determine_desired_altitude(numerical_data, args.helmStart, timeStart)
-
 
     # Plot Heading
     if args.plotHeading:
@@ -459,6 +606,7 @@ def main():
             plot_2d_position(
                 numerical_data, timeStart, timeEnd, args.helmStart, args.helmStop,
                 desired_path=desired_path,
+                fires_file=args.fireFile,
                 save_png=save_png, save_eps=save_eps, file_path=args.numerical_file_path
             )
         else:

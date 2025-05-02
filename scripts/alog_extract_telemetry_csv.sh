@@ -12,7 +12,7 @@ cd *alvtmp
 
 # Define the numeric and categorical variables HERE!!!!
 VARS_numeric="NAV_* DESIRED_*"
-VARS_categorical="MODE TOWAYPT_UPDATE SURVEY_UPDATE"
+VARS_categorical="MODE TOWAYPT_UPDATE SURVEY_UPDATE*"
 
 # Create the output files for telemetry data
 numeric_output_file="../$numeric_output_file"
