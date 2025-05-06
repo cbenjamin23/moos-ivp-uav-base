@@ -282,7 +282,7 @@ ProcessConfig = pArduBridge
   vcolor = $(COLOR)
   prefix = NAV
 
-  command_groundspeed = true
+  command_groundspeed = false
   
 
   #ifdef XMODE SIM
