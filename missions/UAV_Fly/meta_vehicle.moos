@@ -45,7 +45,8 @@ Processconfig = ANTLER
 
   HOLDSettings = -hold
   // xterm configuration settings for pArduBridge
-  DBXConsoleSettings = -hold,-bg,#2e302c,-geometry,80x60+2+00,+sb,-T,pArduBridge-$(VNAME)
+  // DBXConsoleSettings = -hold,-bg,#2e302c,-geometry,80x60+2+00,+sb,-T,pArduBridge-$(VNAME)
+  DBXConsoleSettings = -hold,-bg, #ffe699,-fg, #000000, -geometry,80x60+2+00,+sb,-T,pArduBridge-$(VNAME)
 }
 
 
