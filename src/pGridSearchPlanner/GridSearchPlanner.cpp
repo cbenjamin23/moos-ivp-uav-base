@@ -101,7 +101,8 @@ bool GridSearchPlanner::OnNewMail(MOOSMSG_LIST &NewMail)
     }
     else if (key == "GSP_START_POINT_CLOSEST")
       handled = setBooleanOnString(m_start_point_closest, sval);
-    else if (key == "XENABLE_MISSION"){
+    else if (key == "XENABLE_MISSION")
+    {
       raisePlannerFlag();
       handled = setBooleanOnString(m_missionEnabled, sval);
     }
@@ -110,7 +111,7 @@ bool GridSearchPlanner::OnNewMail(MOOSMSG_LIST &NewMail)
     else if (key == "VIEW_GRID_DELTA")
       handled = handleMailViewGridUpdate(sval);
 
-    else if (key == "CHANGE_PLANNER_MODE")
+    else if (key == "CHANGE_PLANNER_MODEX")
     {
       MOOSToUpper(sval);
       try
@@ -164,8 +165,6 @@ bool GridSearchPlanner::Iterate()
     notifyVoronoiSearching();
     m_do_start_voronoi_searching = false;
   }
-
-
 
   postCalculatedPaths(m_visualize_planner_paths);
   postTMSTCGrids(m_visualize_planner_grids);
@@ -316,7 +315,7 @@ void GridSearchPlanner::registerVariables()
   Register("VIEW_GRID", 0);
   Register("VIEW_GRID_DELTA", 0);
 
-  Register("CHANGE_PLANNER_MODE", 0);
+  Register("CHANGE_PLANNER_MODEX", 0);
 }
 
 void GridSearchPlanner::doPlanPaths()
@@ -570,7 +569,7 @@ void GridSearchPlanner::notifyCalculatedPathsAndExecute(bool executePath)
 
     if (executePath)
     {
-      
+
       if (m_isRunningMoosPid)
       {
         Notify("DO_SURVEY_" + MOOSToUpper(drone), boolToString(m_missionEnabled)); // If running MOOS PID simulation
@@ -589,10 +588,9 @@ void GridSearchPlanner::notifyCalculatedPathsAndExecute(bool executePath)
   }
 }
 
-
 void GridSearchPlanner::notifyVoronoiSearching()
 {
-  
+
   if (m_isRunningMoosPid)
   {
     Notify("DO_SURVEY_ALL", "false"); // If running MOOS PID simulation
@@ -600,12 +598,12 @@ void GridSearchPlanner::notifyVoronoiSearching()
     Notify("RETURN_ALL", "false");
     Notify("MOOS_MANUAL_OVERRIDE_ALL", "false");
   }
-  else {
+  else
+  {
     Notify("HELM_STATUS_ALL", "ON");
     std::string notify_var_str = "GCS_COMMAND_ALL";
     Notify(notify_var_str, "DO_VORONOI");
   }
-
 }
 
 void GridSearchPlanner::clearAllGenerateWarnings()

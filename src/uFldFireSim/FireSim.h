@@ -17,6 +17,7 @@
 #include "FireSet.h"
 #include "FireMissionScorer.h"
 #include "IgnoredRegionSet.h"
+#include "common.h"
 
 constexpr double FIREMARKER_WIDTH = 20;
 constexpr double FIREMARKER_TRANSPARENCY_UNDISC = 0.3;
@@ -58,6 +59,8 @@ protected: // Incoming mail utility
   bool handleMailIgnoredRegion(std::string);
   bool handleMailDisableResetMission(std::string &warning);
   void retractRunWarnings(std::vector<std::string> warnings);
+  bool handleMissionScoreSavePath(std::string path);
+
 
 
 protected: // Outgoing mail utility
@@ -123,10 +126,8 @@ protected: // State variables
   std::map<std::string, double> m_map_node_last_discover_utc;
   std::map<std::string, unsigned int> m_map_node_scout_reqs;
   std::map<std::string, unsigned int> m_map_node_scout_tries;
-  // std::map<std::string, unsigned int> m_map_node_scouts;
 
-  // Key for this map is the scout vname
-  // std::map<std::string, std::string> m_map_node_tmate;
+
 
   // Notables map key is vname to list of recent fires discovered
   // std::map<std::string, std::list<std::string>> m_map_notables;
@@ -142,7 +143,11 @@ protected: // State variables
   double m_mission_endtime_utc; // Time at which the mission ends
 
   FireMissionScorer m_mission_scorer; // Mission scoring object
-  bool m_imputeTime;
+  bool m_imputeTime; // if true, fires not discovered by deadline are given a time of discovery equal to the deadline
+
+  Planner::PlannerMode m_planner_mode;
+
+  std::string m_mission_score_save_path;
 
 protected: // Configuration variables
   std::vector<VarDataPair> m_winner_flags;

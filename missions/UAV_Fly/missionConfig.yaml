@@ -37,7 +37,7 @@ moos:
 
 missionParams:
   
-  mission_duration : 6000 # s - The duration of the mission
+  mission_duration : 600 # s - The duration of the mission
 
 
   voronoi_search_enabled: true # If true, the Voronoi algorithm will be used to set the path for the drone
@@ -54,7 +54,7 @@ missionParams:
   # Fire parameters:
   fire_file_default   : "fires_01.txt" # The file containing the fire data if generate not set
 
-  fire_generate       : false # If true, the fires will be generated randomly, otherwise they will be read from a file
+  fire_generate       : true # If true, the fires will be generated randomly, otherwise they will be read from a file
   fire_count          : 10 # The number of fires to be placed in the region at launch
   fire_sep_min        : 10 # m - The minimum separation between fires
   fire_color          : red # The color of the fire, or "vehicle" if the fire should take the color of the vehicle as well

@@ -26,16 +26,22 @@ initialize BHV_MODE = INACTIVE
   set BHV_MODE = SURVEY {
     BHV_MODE = ACTIVE
     DO_SURVEY = true
+    DEPLOY != true
+    RETURN != true
   }
   
   set BHV_MODE = VORONOI {
     BHV_MODE = ACTIVE
     DEPLOY = true
+    RETURN != true
+    DO_SURVEY != true
   } 
 
   set BHV_MODE = TOWAYPT {
     BHV_MODE = ACTIVE
     RETURN = true
+    DEPLOY != true
+    DO_SURVEY != true
   }
 
 #else

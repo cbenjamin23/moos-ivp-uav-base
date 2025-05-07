@@ -12,7 +12,12 @@ FireMissionScorer::FireMissionScorer()
     m_deadline = 0.0;
     m_totalArea = 0.0;
     m_coveragePercentage = 0.0;
-
+    
+    m_droneCount = 0;
+    m_ignoredRegionCount = 0;
+    m_spawnedIgnoredRegionCount = 0;
+    m_algorithmName = "UNKNOWN";
+    
     m_totalFiresDetected = 0;
     m_totalFiresDetections = 0;
     m_latestDetectionTime = 0.0;
@@ -152,6 +157,12 @@ bool FireMissionScorer::PublishScore(std::function<void(std::string, std::string
         reportFnc("FIRE_MISSION_AVERAGE_DETECTION_TIME", doubleToString(m_avgDetectionTime));
         reportFnc("FIRE_MISSION_MEDIAN_DETECTION_TIME", doubleToString(m_medianDetectionTime));
         reportFnc("FIRE_MISSION_SUMMARY", GetScoreSummary());
+
+        reportFnc("FIRE_MISSION_ALGORITHM_NAME", m_algorithmName);
+        reportFnc("FIRE_MISSION_IGNORED_REGION_COUNT", uintToString(m_ignoredRegionCount));
+        reportFnc("FIRE_MISSION_SPAWNED_IGNORED_REGION_COUNT", uintToString(m_spawnedIgnoredRegionCount));
+        reportFnc("FIRE_MISSION_DEADLINE", doubleToString(m_deadline));
+        reportFnc("FIRE_MISSION_DRONE_COUNT", uintToString(m_droneCount));
         return true;
     }
 
@@ -195,6 +206,11 @@ std::string FireMissionScorer::GetScoreSummary()
     ss << "Total Detections: " << m_totalFiresDetections << "\n";
     ss << "Area Coverage: " << std::fixed << std::setprecision(2) << m_coveragePercentage << "%\n";
     ss << "========================================\n";
-
+    ss << "Algorithm: " << m_algorithmName << "\n";
+    ss << "Ignored Regions: " << m_ignoredRegionCount << "\n";
+    ss << "Spawned Ignored Regions: " << m_spawnedIgnoredRegionCount << "\n";
+    ss << "Deadline: " << std::fixed << std::setprecision(2) << m_deadline << " s\n";
+    ss << "Drone Count: " << m_droneCount << "\n";
+    ss << "========================================\n";
     return ss.str();
 }

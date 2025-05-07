@@ -24,7 +24,7 @@
 #include "XYRangePulse.h"
 
 #include "Logger.h"
-#include "common.h"
+#include <filesystem>
 //---------------------------------------------------------
 // Constructor
 
@@ -59,6 +59,8 @@ FireSim::FireSim()
   m_mission_start_utc = 0;
 
   m_imputeTime = false;
+
+  m_planner_mode = Planner::PlannerMode::UNKNOWN_MODE;
 }
 
 //---------------------------------------------------------
@@ -111,12 +113,26 @@ bool FireSim::OnNewMail(MOOSMSG_LIST &NewMail)
     }
     else if (key == "MISSION_START_TIME")
     {
-      m_mission_start_utc = dval;
-      m_fireset.setMissionStartTimeOnFires(dval);
-      m_ignoredRegionset.setMissionStartTimeOnRegions(dval);
-      trySpawnFire();
-      handled = true;
-      retractRunWarnings(warnings);
+      try 
+      { 
+        m_mission_scorer.setAlgorithmName(Planner::modeToString(m_planner_mode));
+        m_mission_scorer.setIgnoredRegionCount(m_ignoredRegionset.size());
+        m_mission_scorer.setSpawnedIgnoredRegionCount(m_ignoredRegionset.spawnsize());
+        m_mission_scorer.setDroneCount(m_map_node_records.size());
+
+        m_mission_start_utc = dval;
+        m_fireset.setMissionStartTimeOnFires(dval);
+        m_ignoredRegionset.setMissionStartTimeOnRegions(dval);
+        trySpawnFire();
+        handled = true;
+        retractRunWarnings(warnings);
+      }catch (std::exception &e)
+      {
+        handled = false;
+        warning = "Failed to set mission start time. Exception: " + std::string(e.what());
+        Logger::error("OnNewMail:" + warning);
+        reportRunWarning(warning);
+      }
     }
     else if (key == "GSV_COVERAGE_PERCENTAGE")
     {
@@ -130,12 +146,28 @@ bool FireSim::OnNewMail(MOOSMSG_LIST &NewMail)
       handled = handleMailIgnoredRegion(sval);
     else if (key == "XDISABLE_RESET_MISSION")
       handled = handleMailDisableResetMission(warning);
-
+    else if (key == "CHANGE_PLANNER_MODEX")
+    {
+      MOOSToUpper(sval);
+      try
+      {
+        m_planner_mode = Planner::stringToMode(sval);
+        handled = true;
+      }
+      catch (std::exception &e)
+      {
+        std::string msg = "Failed to set planner mode. Exception: " + std::string(e.what());
+        Logger::error("OnNewMail:" + msg);
+        reportRunWarning(msg);
+        handled = false;
+      }
+    }
     if (!handled)
     {
-      if(warning.empty())
+      if (warning.empty())
         reportRunWarning("Unhandled Mail: " + key);
-      else{
+      else
+      {
         reportRunWarning(warning);
         warnings.push_back(warning);
       }
@@ -144,13 +176,13 @@ bool FireSim::OnNewMail(MOOSMSG_LIST &NewMail)
   return (true);
 }
 
-void FireSim::retractRunWarnings(std::vector<std::string> warnings){
+void FireSim::retractRunWarnings(std::vector<std::string> warnings)
+{
   for (const auto &warning : warnings)
     retractRunWarning(warning);
 }
 
-
-bool FireSim::handleMailDisableResetMission(std::string& warning)
+bool FireSim::handleMailDisableResetMission(std::string &warning)
 {
 
   const std::string warningMessage = "Failed Mail: Mission is already disabled or not started.";
@@ -169,6 +201,10 @@ bool FireSim::handleMailDisableResetMission(std::string& warning)
   m_finished = false;
   m_mission_scorer.setDeadline(m_mission_duration_s);
   m_mission_endtime_utc = 0;
+
+  m_mission_scorer.setIgnoredRegionCount(0);
+  m_mission_scorer.setSpawnedIgnoredRegionCount(0);
+
   retractRunWarning(warningMessage);
   return true;
 }
@@ -273,6 +309,7 @@ void FireSim::registerVariables()
   Register("GSV_COVERAGE_PERCENTAGE", 0);
 
   Register("IGNORED_REGION", 0);
+  Register("CHANGE_PLANNER_MODEX", 0);
 
   Register("XDISABLE_RESET_MISSION", 0);
 }
@@ -366,6 +403,8 @@ bool FireSim::OnStartUp()
       ignoredRegion_config += value;
       handled = true;
     }
+    else if (param == "mission_score_save_path")
+      handled = handleMissionScoreSavePath(value);
     else if (param == "show_detect_rng")
       handled = setBooleanOnString(m_scout_rng_show, value);
     else if (param == "detect_rng_min")
@@ -444,6 +483,29 @@ bool FireSim::OnStartUp()
   return (true);
 }
 
+
+
+bool FireSim::handleMissionScoreSavePath(std::string path)
+{
+  if (path.empty())
+    return false;
+
+  m_mission_score_save_path = getenv("HOME");
+  m_mission_score_save_path += "/moos-ivp-uav/" + path;
+  
+  // ensure directory exists
+  if (!std::filesystem::exists(m_mission_score_save_path))
+  {
+    std::filesystem::create_directories(m_mission_score_save_path);
+    if (!std::filesystem::exists(m_mission_score_save_path))
+    {
+      Logger::error("Failed to create directory: " + m_mission_score_save_path);
+      return false;
+    }
+  }
+  
+  return true;
+}
 //------------------------------------------------------------
 // Procedure: handleConfigDetectRangeMin()
 
@@ -1469,9 +1531,18 @@ void FireSim::calculateMissionScore(bool imputeTime)
   auto min_sep = m_fireset.getMinSeparation() * MOOSDIST2METERS;
 
   std::string sep_str = (min_sep) ? "_sep" + uintToString(min_sep, 0) : "";
-  std::string score_filename = "mission_score_c" + uintToString(totalFires, 0) + sep_str + ".txt";
 
-  std::string file_path = m_fireset.getSavePath() + score_filename;
+  // Get the current date and time
+  std::time_t now = std::time(nullptr);
+  std::tm *tm = std::localtime(&now);
+  char buffer[80];
+  std::strftime(buffer, sizeof(buffer), "%Y-%m-%d_%H-%M-%S", tm);
+  std::string date_str(buffer);
+  // date_str = "_" + date_str.substr(0, 10) + "_" + date_str.substr(11, 5);
+
+  std::string score_filename = "mission_score_f" + uintToString(totalFires, 0) + "_" + date_str + ".txt";
+
+  std::string file_path = m_mission_score_save_path + score_filename;
 
   m_mission_scorer.SaveScoreToFile(file_path);
   Notify("PLOGGER_CMD", "COPY_FILE_REQUEST=" + file_path);

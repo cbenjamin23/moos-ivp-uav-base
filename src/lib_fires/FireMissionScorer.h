@@ -18,6 +18,10 @@ public:
     // init with mission parameters
     void init(int totalFires, double deadlineSeconds, double totalCoverageArea);
     void setDeadline(double deadlineSeconds) { m_deadline = deadlineSeconds;  m_scoreCalculated = false; }  
+    void setSpawnedIgnoredRegionCount(unsigned int count) { m_spawnedIgnoredRegionCount = count; }
+    void setIgnoredRegionCount(unsigned int count) { m_ignoredRegionCount = count; }
+    void setAlgorithmName(const std::string &name) { m_algorithmName = name; }
+    void setDroneCount(unsigned int count) { m_droneCount = count; }
 
     double calculateScoreFromFireSet(const FireSet &fireSet, bool imputeTime = false);
 
@@ -51,6 +55,14 @@ private:
     double m_deadline;
     double m_totalArea;
     double m_coveragePercentage;
+    unsigned int m_droneCount;
+
+
+    unsigned int m_ignoredRegionCount;
+    unsigned int m_spawnedIgnoredRegionCount;
+    std::string m_algorithmName;
+
+
 
     // Detected fires
     unsigned int m_totalFiresDetected;

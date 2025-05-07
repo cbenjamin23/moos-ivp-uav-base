@@ -239,6 +239,9 @@ ProcessConfig = uFldFireSim
 	scout_rng_transparency = 0.1
 	show_detect_rng = true
 
+  mission_score_save_path = "missions/UAV_Fly/mission_score/sim/" // is withing the moos-ivp-uav folder
+
+
   finish_flag = MISSION_COMPLETE=true
 
 #ifdef USE_MOOS_SIM_PID true
@@ -537,8 +540,8 @@ ProcessConfig = pMarineViewer
   button_8 = PLAN_PATHS # DO_PLAN_PATHS=true
   button_9 = ENABLE_MISSION  # XENABLE_MISSION=true
   button_10 = RESET_MISSION  # XDISABLE_RESET_MISSION=true
-  button_11 = SET_MODE_TS  # CHANGE_PLANNER_MODE=TMSTC_STAR # CHANGE_PLANNER_MODE_ALL=TMSTC_STAR
-  button_12 = SET_MODE_VC  # CHANGE_PLANNER_MODE=VORONOI_SEARCH # CHANGE_PLANNER_MODE_ALL=VORONOI_SEARCH
+  button_11 = SET_MODE_TS  # CHANGE_PLANNER_MODEX=TMSTC_STAR # CHANGE_PLANNER_MODE_ALL=TMSTC_STAR
+  button_12 = SET_MODE_VC  # CHANGE_PLANNER_MODEX=VORONOI_SEARCH # CHANGE_PLANNER_MODE_ALL=VORONOI_SEARCH
 
 
   ////////////////////////////////////////////////

@@ -182,11 +182,11 @@ int main(int argc, char **argv)
     config.robot_num = robot_count;
     config.cover_and_return = return_to_start;
     config.vehicle_params = {0.8, 0.6, 0.5, 100}; // Example vehicle parameters
-    config.is_point_filtered_func = [](int point_idx)
-    {
-        // Example filter: Skip every 5 point for demonstration
-        return point_idx % 5 == 1;
-    };
+    // config.is_point_filtered_func = [](int point_idx)
+    // {
+    //     // Example filter: Skip every 5 point for demonstration
+    //     return point_idx % 5 == 1;
+    // };
 
     // Create the TMSTC* instance and calculate paths
     TMSTCStar tmstc(map, robot_positions, config);

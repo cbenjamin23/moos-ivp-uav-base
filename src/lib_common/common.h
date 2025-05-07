@@ -7,7 +7,8 @@ namespace Planner
 
     enum PlannerMode {
         TMSTC_STAR,
-        VORONOI_SEARCH
+        VORONOI_SEARCH,
+        UNKNOWN_MODE
     };
 
     inline std::string modeToString(PlannerMode mode)
