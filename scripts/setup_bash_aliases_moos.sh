@@ -200,5 +200,6 @@ IVP_IMAGE_DIRS=~/moos-ivp-uav/Maps/NTNU_UAV_Airport
 export IVP_IMAGE_DIRS
 
 
+source ~/moos-ivp-uav/scripts/alog_extract_telemetry_csv.sh
 
 ####################### PATHS - END #########################################
