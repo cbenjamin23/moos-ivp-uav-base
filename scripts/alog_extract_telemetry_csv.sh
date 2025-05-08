@@ -12,7 +12,7 @@ cd *alvtmp
 
 # Define the numeric and categorical variables HERE!!!!
 VARS_numeric="NAV_* DESIRED_*"
-VARS_categorical="MODE TOWAYPT_UPDATE SURVEY_UPDATE*"
+VARS_categorical="AUTOPILOT_MODE TOWAYPT_UPDATE SURVEY_UPDATE*"
 
 # Create the output files for telemetry data
 numeric_output_file="../$numeric_output_file"
@@ -42,7 +42,7 @@ for var in $VARS_numeric $VARS_categorical; do
             aloggrep "$nav_file" "$base_name" --tvv --css >> $categorical_output_file
         else
             # Numeric variable: append to the numeric telemetry file
-            aloggrep "$nav_file" "$base_name" --tvv --css >> $numeric_output_file
+            aloggrep "$nav_file" "$base_name" --tvv --css  >> $numeric_output_file
         fi
     else
         echo "No matching files for $nav_file"

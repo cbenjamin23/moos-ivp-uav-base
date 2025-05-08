@@ -9,6 +9,8 @@ import re
 
 FILTERTIME_OFFSETT = -150
 
+DESIRED_PATH_VERTEX_SIZE = 15
+
 # Function to parse the desired path
 def parse_desired_path(desired_path):
     points = desired_path.split(':')
@@ -70,6 +72,7 @@ def determine_target_path(categorical_data, helm_start, timeStart):
     if categorical_data is None:
         return None
 
+    # print(f"Categorical data:\n {categorical_data}")
     # Filter the categorical data after helm_start or timeStart
     start_time = helm_start if helm_start is not None else timeStart
     filtered_categorical = categorical_data[categorical_data['time'] >= start_time]
@@ -82,11 +85,13 @@ def determine_target_path(categorical_data, helm_start, timeStart):
     variable_towaypoint = None
     variable_survey = None
     
-    print(filtered_categorical)
+    print(f"filtered categorical:\n {filtered_categorical}")
     # Iterate through the categorical data to find the last relevant mode and corresponding update
+    
+    desired_path = None
     for _, row in filtered_categorical.iterrows():
 
-        if row['variable'] == 'MODE':
+        if row['variable'] == 'AUTOPILOT_MODE':
             mode = row['value']
         elif row['variable'] == 'TOWAYPT_UPDATE':
             variable_towaypoint = row['value']
@@ -95,8 +100,18 @@ def determine_target_path(categorical_data, helm_start, timeStart):
         
         if mode == 'HELM_TOWAYPT' and variable_towaypoint is not None:
             return variable_towaypoint.replace('points=', '')
-        elif mode == 'HELM_SURVEYING' and variable_survey is not None:
-            return variable_survey.replace('points=', '')
+        elif mode == 'HELM_SURVEYING':
+            ret = variable_survey.replace('points=', '')
+            ret = ret.replace('points =', '')
+            ret = ret.replace('pts=', '')
+            ret = ret.replace('{', '')
+            ret = ret.replace('}', '')
+            ret = ret.replace(' ', '')
+            
+            desired_path = ret
+            
+        if desired_path is not None and variable_survey is not None:    
+            return desired_path
         
     return None
 
@@ -193,7 +208,7 @@ def plot_time_series(numerical_data, timeStart, timeEnd, helm_start, helm_stop, 
     plt.show()
 
 # Function to plot 2D map using NAV_X and NAV_Y
-def plot_2d_position(data, timeStart, timeEnd, helm_start, helm_stop, desired_path=None, fires_file=None, save_png=False, save_eps=False, file_path=None):
+def plot_2d_position(data, timeStart, timeEnd, helm_start, helm_stop, desired_path=None, fires_file=None, save_png=False, save_eps=False, file_path=None, sensor_position=None):
     # Compute effective helm window defaults
     helm_start_eff = helm_start if helm_start is not None else timeStart
     helm_stop_eff = helm_stop if helm_stop is not None else timeEnd
@@ -286,11 +301,37 @@ def plot_2d_position(data, timeStart, timeEnd, helm_start, helm_stop, desired_pa
         plt.text(valid_data['NAV_X'].iloc[-1], valid_data['NAV_Y'].iloc[-1], 'Helm End', 
                 color='red', fontsize=12)
 
+        # Plot sensor radius circles
+        # Determine position for sensor radius circles
+        
+        idx = len(valid_data) // 2 
+        
+        if (sensor_position is not None ) and 0 < sensor_position and sensor_position < 1:
+            idx = round(len(valid_data) * sensor_position)        
+            idx = min(idx, len(valid_data) - 1)
+    
+        
+        sensor_x = valid_data['NAV_X'].iloc[idx]
+        sensor_y = valid_data['NAV_Y'].iloc[idx]
+            
+        # Plot inner sensor radius circle (diameter 50)
+        inner_circle = plt.Circle((sensor_x, sensor_y), 25, color='blue', fill=True, alpha=0.15, 
+                                 linestyle='--', linewidth=1, label='Inner Detect Range (20m)')
+        plt.gca().add_patch(inner_circle)
+        
+        # Plot outer sensor radius circle (diameter 70)
+        outer_circle = plt.Circle((sensor_x, sensor_y), 35, color='blue', fill=True, alpha=0.05, 
+                                 linestyle='--', linewidth=1, label='Outer Detect Range (30m)')
+        plt.gca().add_patch(outer_circle)
+        
+        # Add text annotation
+        plt.text(sensor_x, sensor_y + 35, 'Detect Range', ha='center', color='blue', fontsize=10)
+
     # Plot the desired path if provided
     if desired_path:
         desired_x, desired_y = parse_desired_path(desired_path)
         plt.plot(desired_x, desired_y, color='black', linestyle='--', linewidth=2, label='Desired Path')
-        plt.scatter(desired_x, desired_y, color='black', marker='o', s=50, label='Desired Path Vertex')
+        plt.scatter(desired_x, desired_y, color='black', marker='o', s=DESIRED_PATH_VERTEX_SIZE, label='Desired Path Vertex')
 
     # Find the closest point to helm_start
     if helm_start is not None and not filtered_data.empty:
@@ -429,7 +470,7 @@ def plot_3d_position(data, timeStart, timeEnd, helm_start, helm_stop, desired_pa
             # If desired_altitude is a constant, replicate it across all points
             desired_z = [desired_altitude] * len(desired_x)
         ax.plot(desired_x, desired_y, desired_z, color='black', linestyle='--', linewidth=2, label='Desired Path')
-        ax.scatter(desired_x, desired_y, desired_z, color='black', marker='o', s=50, label='Desired Path Vertex')
+        ax.scatter(desired_x, desired_y, desired_z, color='black', marker='o', s=DESIRED_PATH_VERTEX_SIZE, label='Desired Path Vertex')
 
 
     # Find the closest point to helm_start
@@ -503,9 +544,12 @@ def main():
     # Optional argument for desired path in 2D and 3D plots
     parser.add_argument('--desiredPath', type=str, help='Desired path as colon-separated coordinates (e.g., "10,20:15,25:20,30").')
     
-    # New argument for fires file
+    # argument for fires file
     parser.add_argument('--fireFile', type=str, help='Path to a fires file containing region polygon and fire coordinates.')
 
+    # Optional argument for sensor position
+    parser.add_argument('--sensorPosition', '--sp', type=float, default=None, help='Sensor position as a fraction of the path (0 to 1).')
+    
     # Parse the arguments
     args = parser.parse_args()
 
@@ -539,6 +583,7 @@ def main():
         desired_path = determine_target_path(categorical_data, args.helmStart, timeStart)
 
     print("Desired Path: ", desired_path)
+    
 
     # Determine the desired altitude if default is not given
     desired_altitude = args.default_altitude
@@ -607,7 +652,8 @@ def main():
                 numerical_data, timeStart, timeEnd, args.helmStart, args.helmStop,
                 desired_path=desired_path,
                 fires_file=args.fireFile,
-                save_png=save_png, save_eps=save_eps, file_path=args.numerical_file_path
+                save_png=save_png, save_eps=save_eps, file_path=args.numerical_file_path,
+                sensor_position=args.sensorPosition
             )
         else:
             print("NAV_X or NAV_Y data not available for 2D position plot.")

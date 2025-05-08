@@ -55,10 +55,18 @@ def generate_mission_score_csv(input_folder="sim", output_folder=None, output_cs
     input_path = Path(input_folder)
     # output_path = Path(output_folder) if output_folder else input_path.parent
     output_path = Path(output_folder) if output_folder else input_path
-    output_csv = output_path / (output_csv_name + "_" + input_folder + ".csv") \
+    
+    if input_folder[-1] == "/":
+        input_folder = input_folder[:-1]
+    if output_folder[-1] == "/":
+        output_folder = output_folder[:-1]
+    
+    id = input_folder.split("/")[-1]
+    # print("ID: ", id)
+    output_csv = output_path / (output_csv_name + "_" + id + ".csv") \
                  if (output_folder is not None) else input_path / (output_csv_name + ".csv")
 
-    files = sorted(input_path.glob("mission_score*.txt"))  # Score files are .txt
+    files = sorted(input_path.glob("mission_score*.*txt"))  # Score files are .txt
     headers = [
         'MissionID', 'Algorithm', 'DroneCount', 'Deadline', 'IgnoredRegions',
         'TotalScore', 'Completeness', 'TimeEfficiency', 'CoverageScore',
