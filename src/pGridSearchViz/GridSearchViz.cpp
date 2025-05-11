@@ -337,11 +337,11 @@ bool GridSearchViz::handleMailDisableResetMission(std::string &warning)
   gridResetCells(); // reset the grid
   postGrid();
 
-  // Notify("GCS_COMMAND_ALL", "LOITER");
 
   // if running MOOS PID simulation
   if (m_isRunningMoosPid)
   {
+    Notify("LOITER_ALL", "true");
     Notify("DO_SURVEY_ALL", "false");
     Notify("DEPLOY_ALL", "false");
     Notify("RETURN_ALL", "false");

@@ -243,6 +243,9 @@ else
     PLANNER_MODE="TMSTC_STAR"
 fi
 
+LOG_ENABLED=$(get_global_val $CONFIG_FILE "missionParams.log_enabled")
+if [ $? -ne 0 ]; then exit 1; fi
+
 
 
 
@@ -312,6 +315,8 @@ if [ "${VERBOSE}" = "yes" ]; then
     echo "GRID_CELL_DECAY_TIME  = [${GRID_CELL_DECAY_TIME}]"
     echo "----------------------------------"
     echo "REGION = [${REGION}]"
+    echo "----------------------------------"
+    echo "LOG_ENABLED = [${LOG_ENABLED}]"
     echo "=================================="
     echo -n "Hit any key to continue launch "
     read ANSWER
@@ -364,6 +369,7 @@ nsplug meta_shoreside.moos targ_shoreside.moos $NSFLAGS WARP=$TIME_WARP \
     MISSION_DURATION=$MISSION_DURATION                    \
     XMODE=$XMODE                                          \
     PLANNER_MODE=$PLANNER_MODE                           \
+    LOG_ENABLED=$LOG_ENABLED                             \
 
 
 if [ ${JUST_MAKE} = "yes" ]; then

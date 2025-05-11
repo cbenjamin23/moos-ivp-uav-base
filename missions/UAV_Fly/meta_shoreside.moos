@@ -17,7 +17,10 @@ Processconfig = ANTLER
   Run = pMarineViewer       @ NewConsole = false
   #endif
 
+  #ifdef LOG_ENABLED true
   Run = pLogger             @ NewConsole = false
+  #endif
+
   Run = pShare              @ NewConsole = false
   Run = pHostInfo           @ NewConsole = false
   Run = uFldShoreBroker     @ NewConsole = false
@@ -26,7 +29,7 @@ Processconfig = ANTLER
   Run = uFldCollisionDetect @ NewConsole = false
   Run = pRealm              @ NewConsole = false
   Run = pGridSearchViz      @ NewConsole = false //, XConfig=HOLDSettings
-  Run = pGridSearchPlanner  @ NewConsole = false //, XConfig=HOLDSettings
+  Run = pGridSearchPlanner  @ NewConsole = false // true, XConfig=HOLDSettings
   Run = uFldFireSim         @ NewConsole = false
 
 
@@ -186,7 +189,7 @@ ProcessConfig = uFldShoreBroker
 
 
   #ifdef USE_MOOS_SIM_PID true
-    qbridge = DEPLOY, TOWAYPT_UPDATE , RETURN, DO_SURVEY
+    qbridge = DEPLOY, TOWAYPT_UPDATE , RETURN, DO_SURVEY, LOITER
   #endif
 
   // bridge  = src=RETURN_ALL, alias=RETURN
@@ -246,6 +249,7 @@ ProcessConfig = uFldFireSim
 
 #ifdef USE_MOOS_SIM_PID true
   // TOWAYPT button
+  finish_flag = LOITER_ALL=false 
   finish_flag = DO_SURVEY_ALL=false 
   finish_flag = DEPLOY_ALL=false
   finish_flag = RETURN_ALL=true 
@@ -505,9 +509,10 @@ ProcessConfig = pMarineViewer
   ////////////////////////////////////////////////
 
   #ifdef USE_MOOS_SIM_PID true
-    button_1 = DEPLOY  # DO_SURVEY_ALL=false # DEPLOY_ALL=true # RETURN_ALL=false # MOOS_MANUAL_OVERRIDE_ALL=false
-    button_2 = TOWAYPT # DO_SURVEY_ALL=false # DEPLOY_ALL=false # RETURN_ALL=true # MOOS_MANUAL_OVERRIDE_ALL=false
-    button_3 = SURVEY # DO_SURVEY_ALL=true # DEPLOY_ALL=true # RETURN_ALL=false # MOOS_MANUAL_OVERRIDE_ALL=false
+    button_1 = DEPLOY  # DO_SURVEY_ALL=false # DEPLOY_ALL=true # RETURN_ALL=false # LOITER_ALL=false # MOOS_MANUAL_OVERRIDE_ALL=false
+    button_2 = TOWAYPT # DO_SURVEY_ALL=false # DEPLOY_ALL=false # RETURN_ALL=true # LOITER_ALL=false # MOOS_MANUAL_OVERRIDE_ALL=false
+    button_3 = SURVEY # DO_SURVEY_ALL=true # DEPLOY_ALL=false # RETURN_ALL=false # LOITER_ALL=false # MOOS_MANUAL_OVERRIDE_ALL=false
+    button_3 = LOITER # DO_SURVEY_ALL=false # DEPLOY_ALL=false # RETURN_ALL=false # LOITER_ALL=true # MOOS_MANUAL_OVERRIDE_ALL=false
   #else
 
     // button_1 = DEPLOY  # DEPLOY_ALL=true # MOOS_MANUAL_OVERRIDE_ALL=false

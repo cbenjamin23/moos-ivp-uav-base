@@ -10,7 +10,9 @@ Processconfig = ANTLER
   MSBetweenLaunches = 200
    
   Run = MOOSDB             @ NewConsole = false
-  Run = pLogger            @ NewConsole = false
+  #ifdef LOG_ENABLED true
+  Run = pLogger             @ NewConsole = false
+  #endif
   Run = pNodeReporter      @ NewConsole = false
   Run = pDeadManPost       @ NewConsole = false
 
@@ -24,7 +26,7 @@ Processconfig = ANTLER
   Run = uTimerScript       @ NewConsole = false
 
   Run = pRealm             @ NewConsole = false
-  Run = pProxonoi_uav      @ NewConsole = false //, XConfig=HOLDSettings
+  Run = pProxonoi_uav      @ NewConsole = false //true , XConfig=HOLDSettings
 
 
   #ifdef USE_MOOS_SIM_PID true
@@ -83,7 +85,7 @@ ProcessConfig = pProxonoi_uav
   // post_region = true
 
   planner_mode = $(PLANNER_MODE)
-  do_visualize = true // default is false
+  do_visualize = false // default is false
 }                                            
 
 

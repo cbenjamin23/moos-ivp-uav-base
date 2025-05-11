@@ -1,0 +1,22 @@
+======= FIRE MISSION SCORE SUMMARY =======
+Total Score: 78.04 / 100
+----------------------------------------
+Completeness Score: 48.75 / 50
+Time Efficiency Score: 26.35 / 50
+Coverage Score: 9.92 / 10
+Redundant Detection Penalty: -6.97
+----------------------------------------
+Latest Detection Time: 600.00 seconds
+Average Detection Time: 169.79 seconds
+Median Detection Time: 119.76 seconds
+----------------------------------------
+Fires Detected: 39 / 40
+Total Detections: 505
+Area Coverage: 99.17%
+========================================
+Algorithm: TMSTC_STAR
+Ignored Regions: 0
+Spawned Ignored Regions: 0
+Deadline: 600.00 s
+Drone Count: 6
+========================================

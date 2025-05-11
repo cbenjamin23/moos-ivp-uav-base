@@ -151,10 +151,17 @@ ProcessConfig = uSimMarineV22
   prefix    = NAV
 
 	//app_logging = true
-	max_speed   = 20
+	// max_speed   = $(MAX_SPEED)
+
+	thrust_map = 100:$(SPEED)
+  thrust_reflect = true
+
+
+
+	//turn_rate = 5 // when max_speed is 5 this is good
 	
-	turn_rate = 5
-	turn_spd_loss = 0
+  turn_rate = 25 // when max_speed is 19
+	turn_spd_loss = 0.7
 
 	post_des_thrust = DESIRED_THRUSTX
 	post_des_rudder = DESIRED_RUDDERX
@@ -192,5 +199,5 @@ ProcessConfig = pMarinePIDV22
   
   // A non-zero SPEED_FACTOR overrides use of SPEED_PID
   // Will set DESIRED_THRUST = DESIRED_SPEED * SPEED_FACTOR
-  speed_factor = 20
+  // speed_factor = 20
 }    

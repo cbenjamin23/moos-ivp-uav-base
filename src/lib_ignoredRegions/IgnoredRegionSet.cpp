@@ -29,6 +29,18 @@ IgnoredRegionSet::IgnoredRegionSet()
     shuffleIDs();
 }
 
+bool IgnoredRegionSet::reset(double curr_time, const std::vector<XYPoint> &fire_points){ 
+    if(m_region_config_str.empty()) 
+        return false;
+    
+    std::string _ = "";
+    IgnoredRegionSet temp;
+    temp.handleIgnoredRegionConfig(m_region_config_str, curr_time, _, fire_points); 
+    *this = temp;
+    return true;
+}
+
+
 // Format:  generate = true, file = region.txt, count = 10, sep_min = 10, \
             region = {x0,y0:x1,y1:...:x2,y2}, save_path = "missions/UAV_FLY/gen_regions/", \
             spawn_count=10, spawn_interval = 200:400

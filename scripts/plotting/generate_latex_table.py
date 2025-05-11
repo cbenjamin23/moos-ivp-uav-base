@@ -119,7 +119,6 @@ def generate_latex_table(csv_file, algorithms, drone_counts, save=False):
 \newcommand*{\maxvalFifty}{50.0} % Maximum for Completeness, Time Efficiency
 \newcommand*{\maxvalTen}{10.0} % Maximum for Coverage Score
 \newcommand*{\maxvalSixhundred}{600.0} % Maximum for Detection Times
-\newcommand*{\maxvalSixty}{60.0} % Maximum for Total Detections
 
 % Gradient function for single cell
 % \gradientcell{cell_val}{min_val}{max_val}{colorlow}{colorhigh}{opacity}
@@ -149,11 +148,8 @@ def generate_latex_table(csv_file, algorithms, drone_counts, save=False):
 \newcommand{\gcN}[1]{% For Redundant Penalty (-10 to 0)
     \gradientcell{#1}{\minvalNeg}{\minval}{\lowColor}{\highColor}{\opacity}%
 }
-\newcommand{\gct}[1]{% For Detection Times (0 to 600)
+\newcommand{\gctL}[1]{% For Detection Times (0 to 600)
     \gradientcell{#1}{\minval}{\maxvalSixhundred}{\lowColor}{\highColor}{\opacity}%
-}
-\newcommand{\gcTotalDetections}[1]{% For Total Detections (0 to 60)
-    \gradientcell{#1}{\minval}{\maxvalSixty}{\highColor}{\lowColor}{\opacity}%
 }
 
 \begin{document}
@@ -173,9 +169,9 @@ def generate_latex_table(csv_file, algorithms, drone_counts, save=False):
         Time Efficiency [50 max] & \gcF{""" + f"{stats['TimeEfficiency'][0]:.2f}" + r"""} & """ + f"{stats['TimeEfficiency'][1]:.3f}" + r""" & \gcF{""" + f"{stats['TimeEfficiency'][2]:.2f}" + r"""} & \gcF{""" + f"{stats['TimeEfficiency'][3]:.2f}" + r"""} \\
         % Coverage Score [10 max] & \gcT{""" + f"{stats['CoverageScore'][0]:.2f}" + r"""} & """ + f"{stats['CoverageScore'][1]:.3f}" + r""" & \gcT{""" + f"{stats['CoverageScore'][2]:.2f}" + r"""} & \gcT{""" + f"{stats['CoverageScore'][3]:.2f}" + r"""} \\
         % Redundant Penalty [-10 min] & \gcN{""" + f"{stats['RedundantPenalty'][0]:.2f}" + r"""} & """ + f"{stats['RedundantPenalty'][1]:.3f}" + r""" & \gcN{""" + f"{stats['RedundantPenalty'][2]:.2f}" + r"""} & \gcN{""" + f"{stats['RedundantPenalty'][3]:.2f}" + r"""} \\
-        Latest Detection Time [s] & \gct{""" + f"{stats['LatestDetTime'][0]:.2f}" + r"""} & """ + f"{stats['LatestDetTime'][1]:.3f}" + r""" & \gct{""" + f"{stats['LatestDetTime'][2]:.2f}" + r"""} & \gct{""" + f"{stats['LatestDetTime'][3]:.2f}" + r"""} \\
-        Average Detection Time [s] & \gct{""" + f"{stats['AvgDetTime'][0]:.2f}" + r"""} & """ + f"{stats['AvgDetTime'][1]:.3f}" + r""" & \gct{""" + f"{stats['AvgDetTime'][2]:.2f}" + r"""} & \gct{""" + f"{stats['AvgDetTime'][3]:.2f}" + r"""} \\
-        Median Detection Time [s] & \gct{""" + f"{stats['MedDetTime'][0]:.2f}" + r"""} & """ + f"{stats['MedDetTime'][1]:.3f}" + r""" & \gct{""" + f"{stats['MedDetTime'][2]:.2f}" + r"""} & \gct{""" + f"{stats['MedDetTime'][3]:.2f}" + r"""} \\
+        Latest Detection Time [s] & \gctL{""" + f"{stats['LatestDetTime'][0]:.2f}" + r"""} & """ + f"{stats['LatestDetTime'][1]:.3f}" + r""" & \gctL{""" + f"{stats['LatestDetTime'][2]:.2f}" + r"""} & \gctL{""" + f"{stats['LatestDetTime'][3]:.2f}" + r"""} \\
+        Average Detection Time [s] & \gctL{""" + f"{stats['AvgDetTime'][0]:.2f}" + r"""} & """ + f"{stats['AvgDetTime'][1]:.3f}" + r""" & \gctL{""" + f"{stats['AvgDetTime'][2]:.2f}" + r"""} & \gctL{""" + f"{stats['AvgDetTime'][3]:.2f}" + r"""} \\
+        Median Detection Time [s] & \gctL{""" + f"{stats['MedDetTime'][0]:.2f}" + r"""} & """ + f"{stats['MedDetTime'][1]:.3f}" + r""" & \gctL{""" + f"{stats['MedDetTime'][2]:.2f}" + r"""} & \gctL{""" + f"{stats['MedDetTime'][3]:.2f}" + r"""} \\
         % Total Detections & """ + f"{stats.get('TotalDetections', (0.0, 0.0, 0.0, 0.0))[0]:.2f}" + r""" & """ + f"{stats.get('TotalDetections', (0.0, 0.0, 0.0, 0.0))[1]:.3f}" + r""" & """ + f"{stats.get('TotalDetections', (0.0, 0.0, 0.0, 0.0))[2]:.2f}" + r""" & """ + f"{stats.get('TotalDetections', (0.0, 0.0, 0.0, 0.0))[3]:.2f}" + r""" \\
         Area Coverage [\%] & \gcH{""" + f"{stats['AreaCoverage'][0]:.2f}" + r"""} & """ + f"{stats['AreaCoverage'][1]:.3f}" + r""" & \gcH{""" + f"{stats['AreaCoverage'][2]:.2f}" + r"""} & \gcH{""" + f"{stats['AreaCoverage'][3]:.2f}" + r"""} \\
         \hline

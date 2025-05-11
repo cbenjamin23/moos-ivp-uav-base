@@ -101,10 +101,11 @@ bool GridSearchPlanner::OnNewMail(MOOSMSG_LIST &NewMail)
     }
     else if (key == "GSP_START_POINT_CLOSEST")
       handled = setBooleanOnString(m_start_point_closest, sval);
-    else if (key == "XENABLE_MISSION")
+    else if (key == "XENABLE_MISSION" )
     {
-      raisePlannerFlag();
       handled = setBooleanOnString(m_missionEnabled, sval);
+      if(m_missionEnabled)
+        raisePlannerFlag();
     }
     else if (key == "VIEW_GRID")
       handled = handleMailViewGrid(sval);
@@ -574,6 +575,7 @@ void GridSearchPlanner::notifyCalculatedPathsAndExecute(bool executePath)
       {
         Notify("DO_SURVEY_" + MOOSToUpper(drone), boolToString(m_missionEnabled)); // If running MOOS PID simulation
         Notify("DEPLOY_" + MOOSToUpper(drone), "false");
+        Notify("LOITER_" + MOOSToUpper(drone), "false");
         Notify("RETURN_" + MOOSToUpper(drone), "false");
         Notify("MOOS_MANUAL_OVERRIDE_" + MOOSToUpper(drone), "false");
       }
@@ -594,6 +596,7 @@ void GridSearchPlanner::notifyVoronoiSearching()
   if (m_isRunningMoosPid)
   {
     Notify("DO_SURVEY_ALL", "false"); // If running MOOS PID simulation
+    Notify("LOITER_ALL", "false");
     Notify("DEPLOY_ALL", boolToString(m_missionEnabled));
     Notify("RETURN_ALL", "false");
     Notify("MOOS_MANUAL_OVERRIDE_ALL", "false");

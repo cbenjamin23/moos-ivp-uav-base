@@ -100,6 +100,10 @@ else
     PLANNER_MODE="TMSTC_STAR"
 fi
 
+
+LOG_ENABLED=$(get_global_val $CONFIG_FILE "missionParams.log_enabled")
+if [ $? -ne 0 ]; then exit 1; fi
+
 #-------------------------------------------------------
 #  Part 2: Check for and handle command-line arguments
 #-------------------------------------------------------
@@ -271,7 +275,8 @@ if [ "${XMODE}" = "REAL" ]; then
 
 else # if simulation
 
-    SPEED=15 # It is 15 in simulation
+    SPEED=18 # It is 15 in simulation
+    # SPEED=${MAXSPD} # It is 15 in simulation
 
     USE_MOOS_SIM_PID=$(get_global_val $CONFIG_FILE simulation.useMoosSimPid)
     if [ $? -ne 0 ]; then exit 1; fi
@@ -324,6 +329,8 @@ if [ "${VERBOSE}" = "yes" ]; then
     echo "VORONOI_SETPT_METHOD = [${VORONOI_SETPT_METHOD}]"
     echo "PLANNER_MODE =   [${PLANNER_MODE}]"
     echo "----------------------------------"
+    echo "LOG_ENABLED =    [${LOG_ENABLED}]"
+    echo "----------------------------------"
     echo -n "Hit any key to continue with launching"
     read ANSWER
 fi
@@ -349,7 +356,9 @@ nsplug meta_vehicle.moos targ_$VNAME.moos $NSFLAGS WARP=$TIME_WARP \
        USE_MOOS_SIM_PID=$USE_MOOS_SIM_PID                      \
        VORONOI_SETPT_METHOD=$VORONOI_SETPT_METHOD \
        REGION=$REGION                                          \
-       PLANNER_MODE=$PLANNER_MODE 
+       PLANNER_MODE=$PLANNER_MODE             \
+       LOG_ENABLED=$LOG_ENABLED \
+       SPEED=$SPEED \
 
 nsplug meta_vehicle.bhv targ_$VNAME.bhv $NSFLAGS VNAME=$VNAME \
        SPEED=$SPEED                  START_POS=$START_POS     \

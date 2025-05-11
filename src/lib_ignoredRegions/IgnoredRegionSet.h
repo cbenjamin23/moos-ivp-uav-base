@@ -59,6 +59,7 @@ public:
                                         double new_x, double new_y,
                                         const std::vector<XYPoint> &fire_points,
                                         double scale_factor = 1.0);
+    bool reset(double curr_time, const std::vector<XYPoint> &fire_points = {});
 
 protected:
     void shuffleIDs();
@@ -72,6 +73,8 @@ protected: // State variables
     std::vector<int> m_shuffled_ids;
 
 protected: // Configuration variables
+    std::string m_region_config_str;
+
     std::string m_region_config_save_path;
     std::string m_region_file;
     XYPolygon m_search_region;

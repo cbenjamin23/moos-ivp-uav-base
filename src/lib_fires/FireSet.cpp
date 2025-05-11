@@ -30,6 +30,19 @@ FireSet::FireSet()
     shuffleIDs();
 }
 
+bool FireSet::reset(double curr_time){ 
+    if(m_fire_config_str.empty()) 
+        return false;
+    
+    std::string _ = "";
+    FireSet temp;
+    temp.handleFireConfig(m_fire_config_str, curr_time, _); 
+
+    *this = temp;
+    return true;
+}
+
+
 // Format:  generate = true, file = fire.txt, count = 10, sep_min = 10, \
             region = {x0,y0:x1,y1:...:x2,y2}, save_path = "missions/UAV_FLY/gen_fires/", \
             spawn_count=10, spawn_interval = 200:400
@@ -48,6 +61,8 @@ bool FireSet::handleFireConfig(std::string str, double curr_time, std::string &w
         warning = "Bad FireConfig Line (need a file if not generating): " + str;
         return false;
     }
+
+    m_fire_config_str = str;
 
     if (!generate)
         return handleFireFile(file, curr_time, warning);

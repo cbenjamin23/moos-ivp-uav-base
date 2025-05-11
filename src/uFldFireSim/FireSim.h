@@ -107,6 +107,7 @@ protected: // Utilities
   void addNotable(std::string vname, std::string fname);
   bool isNotable(std::string fname);
 
+
 protected: // State variables
   FireSet m_fireset;
   IgnoredRegionSet m_ignoredRegionset;

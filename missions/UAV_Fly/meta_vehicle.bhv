@@ -5,9 +5,9 @@
   initialize   DEPLOY = false
   initialize   RETURN = false
   initialize   DO_SURVEY = false
+  initialize   LOITER = false
 #endif
 
-// initialize   SURVEY = false
 initialize   AVOID  = true
 
 // initialize_   AUTOPILOT_MODE = HELM_PARKED
@@ -21,6 +21,7 @@ initialize BHV_MODE = INACTIVE
     DEPLOY != true
     RETURN != true
     DO_SURVEY != true
+    LOITER != true
   } ACTIVE
 
   set BHV_MODE = SURVEY {
@@ -28,6 +29,7 @@ initialize BHV_MODE = INACTIVE
     DO_SURVEY = true
     DEPLOY != true
     RETURN != true
+    LOITER != true
   }
   
   set BHV_MODE = VORONOI {
@@ -35,12 +37,22 @@ initialize BHV_MODE = INACTIVE
     DEPLOY = true
     RETURN != true
     DO_SURVEY != true
+    LOITER != true
   } 
 
   set BHV_MODE = TOWAYPT {
     BHV_MODE = ACTIVE
     RETURN = true
     DEPLOY != true
+    DO_SURVEY != true
+    LOITER != true
+  }
+  
+  set BHV_MODE = LOITER {
+    BHV_MODE = ACTIVE
+    LOITER = true
+    DEPLOY != true
+    RETURN != true
     DO_SURVEY != true
   }
 
@@ -134,6 +146,30 @@ Behavior = BHV_ConstantAltitude{
 
   duration = -1
 }
+#else 
+
+//----------------------------------------------
+Behavior = BHV_Loiter
+{
+  name      = loiter
+  pwt       = 100
+  condition = BHV_MODE==LOITER
+  updates   = LOITER_UPDATE
+
+   post_suffix = A
+         speed = $(SPEED)
+     clockwise = false
+        radius = 8.0
+     nm_radius = 15.0
+
+     center_activate = true
+     
+       polygon = radial:: x=0, y=0, radius=20, pts=8, snap=1, label=$(VNAME)_LOITER
+  visual_hints = nextpt_color=white, nextpt_lcolor=khaki
+  visual_hints = edge_color=orange, vertex_color=white
+  visual_hints = edge_size=1, vertex_size=2
+}
+
 
 #endif
 
@@ -223,6 +259,10 @@ Behavior = BHV_AvoidCollision
     min_util_cpa_dist = 20 // 10 m
     max_util_cpa_dist = 80 // 40 m
 }
+
+
+
+
 
 
 // //----------------------------------------------

@@ -115,6 +115,7 @@ bool FireSim::OnNewMail(MOOSMSG_LIST &NewMail)
     {
       try 
       { 
+        m_mission_scorer.setDeadline(m_mission_duration_s);
         m_mission_scorer.setAlgorithmName(Planner::modeToString(m_planner_mode));
         m_mission_scorer.setIgnoredRegionCount(m_ignoredRegionset.size());
         m_mission_scorer.setSpawnedIgnoredRegionCount(m_ignoredRegionset.spawnsize());
@@ -192,14 +193,22 @@ bool FireSim::handleMailDisableResetMission(std::string &warning)
     return false;
   }
 
-  auto duration_s = m_curr_time - m_mission_start_utc;
-  m_mission_scorer.setDeadline(duration_s);
-  calculateMissionScore(m_imputeTime);
 
-  Notify("MISSION_FINISHED_TIME", doubleToString(m_mission_endtime_utc));
+  m_fireset.reset(m_curr_time);
+  auto fire_points = m_fireset.getFirePoints();
+  m_ignoredRegionset.reset(m_curr_time, fire_points);
+  
+  postFireMarkers();
+  postIgnoredRegions();
+
+  // This ends the mission and calculates a score
+  // auto duration_s = m_curr_time - m_mission_start_utc;
+  // m_mission_scorer.setDeadline(duration_s);
+  // calculateMissionScore(m_imputeTime);
+
+  // Notify("MISSION_FINISHED_TIME", doubleToString(m_mission_endtime_utc));
 
   m_finished = false;
-  m_mission_scorer.setDeadline(m_mission_duration_s);
   m_mission_endtime_utc = 0;
 
   m_mission_scorer.setIgnoredRegionCount(0);

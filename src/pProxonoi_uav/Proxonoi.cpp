@@ -209,11 +209,10 @@ bool Proxonoi::Iterate()
     handlePointVisualization(centroid_reg);
   }
 
-  auto setpt_grid = updateViewGridSearchSetpoint();
-
   XYPoint setpt;
-  if (m_setpt_method == "gridsearch")
-    setpt = setpt_grid;
+  if(m_planner_mode == Planner::PlannerMode::VORONOI_SEARCH )
+    setpt = updateViewGridSearchSetpoint();
+
 
   postGridSearchSetpointFiltered(setpt);
 

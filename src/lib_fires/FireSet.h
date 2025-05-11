@@ -57,6 +57,8 @@ public:
     double getMinSeparation() const { return (m_min_sep); }
     std::string getSavePath() const { return (m_fire_config_save_path); }
 
+    bool reset(double curr_time);
+    
 protected:
     void shuffleIDs();
 
@@ -68,6 +70,9 @@ protected: // State variables
     std::vector<int> m_shuffled_ids;
 
 protected: // Configuration variables
+    
+    std::string m_fire_config_str;
+
     std::string m_fire_config_save_path;
     std::string m_fire_file;
     double m_min_sep;
