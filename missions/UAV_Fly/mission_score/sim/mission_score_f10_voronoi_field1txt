@@ -1,0 +1,22 @@
+======= FIRE MISSION SCORE SUMMARY =======
+Total Score: 100.00 / 100
+----------------------------------------
+Completeness Score: 50.00 / 50
+Time Efficiency Score: 49.10 / 50
+Coverage Score: 9.71 / 10
+Redundant Detection Penalty: -4.62
+----------------------------------------
+Latest Detection Time: 185.72 seconds
+Average Detection Time: 84.60 seconds
+Median Detection Time: 61.95 seconds
+----------------------------------------
+Fires Detected: 10 / 10
+Total Detections: 72
+Area Coverage: 97.08%
+========================================
+Algorithm: VORONOI_SEARCH
+Ignored Regions: 0
+Spawned Ignored Regions: 0
+Deadline: 6000.00 s
+Drone Count: 2
+========================================

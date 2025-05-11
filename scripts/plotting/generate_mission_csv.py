@@ -58,13 +58,15 @@ def generate_mission_score_csv(input_folder="sim", output_folder=None, output_cs
     
     if input_folder[-1] == "/":
         input_folder = input_folder[:-1]
-    if output_folder[-1] == "/":
+    if output_folder and output_folder[-1] == "/":
         output_folder = output_folder[:-1]
     
     id = input_folder.split("/")[-1]
     # print("ID: ", id)
     output_csv = output_path / (output_csv_name + "_" + id + ".csv") \
                  if (output_folder is not None) else input_path / (output_csv_name + ".csv")
+                 
+    # print(f"output_csv: {output_csv}")
 
     files = sorted(input_path.glob("mission_score*.*txt"))  # Score files are .txt
     headers = [

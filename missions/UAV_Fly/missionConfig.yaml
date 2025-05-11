@@ -2,9 +2,9 @@
 
 # Global simulation parameters
 simulation:
-  useMoosSimPid: true # Use MOOS-IvP Vechicle simulator
-  time_warp: 15
-  number_of_drones: 3
+  useMoosSimPid: false # Use MOOS-IvP Vechicle simulator
+  time_warp: 2
+  number_of_drones: 1
 
   ardupilot_ip: "0.0.0.0"
   ardupilot_protocol: "udp"
@@ -37,7 +37,7 @@ moos:
 
 missionParams:
   
-  mission_duration : 600 # s - The duration of the mission
+  mission_duration : 6000 # s - The duration of the mission
 
 
   voronoi_search_enabled: true # If true, the Voronoi algorithm will be used to set the path for the drone
@@ -52,9 +52,9 @@ missionParams:
   TMSTC_point_filtering: true # If true, the TMSTC* algorithm will filter out the grid cells that are already visited when replanning
                               # points not outside the search Area and in ignored region will always be removed.
   # Fire parameters:
-  fire_file_default   : "fires_01.txt" # The file containing the fire data if generate not set
+  fire_file_default   : "fires_field.txt" # The file containing the fire data if generate not set
 
-  fire_generate       : true # If true, the fires will be generated randomly, otherwise they will be read from a file
+  fire_generate       : false # If true, the fires will be generated randomly, otherwise they will be read from a file
   fire_count          : 10 # The number of fires to be placed in the region at launch
   fire_sep_min        : 10 # m - The minimum separation between fires
   fire_color          : red # The color of the fire, or "vehicle" if the fire should take the color of the vehicle as well
@@ -94,25 +94,25 @@ missionParams:
   #   10.1602077, 63.3924059
   #   10.1540709, 63.3949622
 
-  region_lonlat: |
-    10.1356602, 63.4006697
-    10.1259184, 63.3971146
-    10.1233006, 63.3922521
-    10.1484919, 63.3894265
-    10.1663446, 63.3964228
-    10.1657867, 63.4000164
-    10.1519251, 63.4015728
+  # region_lonlat: |
+  #   10.1356602, 63.4006697
+  #   10.1259184, 63.3971146
+  #   10.1233006, 63.3922521
+  #   10.1484919, 63.3894265
+  #   10.1663446, 63.3964228
+  #   10.1657867, 63.4000164
+  #   10.1519251, 63.4015728
 
-  # region_lonlat: |  #  Testing Master_v2.0
-  #   10.1402199, 63.3989018
-  #   10.1470220, 63.4002037
-  #   10.1508093, 63.3985463
-  #   10.1488352, 63.3973356
-  #   10.1472044, 63.3964516
-  #   10.1456809, 63.3956348
-  #   10.1426983, 63.3940492
-  #   10.1379776, 63.3942126
-  #   10.1344800, 63.3968936
+  region_lonlat: |  #  Testing Master_v2.0
+    10.1402199, 63.3989018
+    10.1470220, 63.4002037
+    10.1508093, 63.3985463
+    10.1488352, 63.3973356
+    10.1472044, 63.3964516
+    10.1456809, 63.3956348
+    10.1426983, 63.3940492
+    10.1379776, 63.3942126
+    10.1344800, 63.3968936
   # Waypoint parameters
   # capture_radius: 50 # m  - The distance from the waypoint that the drone must be within to consider it captured
   capture_radius: 30 # works better in simulation

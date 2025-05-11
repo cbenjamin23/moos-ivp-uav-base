@@ -7,7 +7,15 @@ extract_GCS_telemetry() {
         return 1
     fi
 
-    local alog_file=$1
+    local alog_file
+
+    # if argument is provided, use it as the alog file
+    if [ $# -gt 0 ]; then
+        alog_file=("$1")
+    else
+        alog_file=(XLOG_*.alog)
+    fi
+
     if [ ! -f "$alog_file" ]; then
         echo "File $alog_file not found."
         return 1

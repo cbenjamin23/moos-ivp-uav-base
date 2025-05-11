@@ -404,8 +404,10 @@ def plot_time_series(numerical_data, timeStart, timeEnd, helm_start, helm_stop, 
 
     # Plotting
     plt.figure(figsize=(10, 5))
-    plt.plot(filtered_var1['time'].to_numpy(), filtered_var1['value'].to_numpy(), label=var1, color='blue')
-    plt.plot(filtered_var2['time'].to_numpy(), filtered_var2['value'].to_numpy(), label=var2, color='orange')
+    label1 = var1 if var1 != 'DESIRED_HEADING' else 'DESIRED_COURSE'
+    label2 = var2 if var2 != 'NAV_HEADING' else 'NAV_COURSE'
+    plt.plot(filtered_var1['time'].to_numpy(), filtered_var1['value'].to_numpy(), label=label1, color='blue')
+    plt.plot(filtered_var2['time'].to_numpy(), filtered_var2['value'].to_numpy(), label=label2, color='orange')
 
     # Mark helm start and end
     if helm_start is not None:
@@ -436,11 +438,13 @@ def plot_time_series(numerical_data, timeStart, timeEnd, helm_start, helm_stop, 
     if save_png and file_path:
         png_directory = os.path.join(os.path.dirname(file_path), 'png')
         ensure_directory_exists(png_directory)
-        plt.savefig(os.path.join(png_directory, os.path.basename(file_path).replace('.csv', f'_{var1}_vs_{var2}.png')), format='png', dpi=300)
+        plt.savefig(os.path.join(png_directory, os.path.basename(file_path).replace('.csv', f'_{label1}_vs_{label2}.png')), format='png', dpi=300)
+    
     if save_eps and file_path:
         eps_directory = os.path.join(os.path.dirname(file_path), 'eps')
         ensure_directory_exists(eps_directory)
-        plt.savefig(os.path.join(eps_directory, os.path.basename(file_path).replace('.csv', f'_{var1}_vs_{var2}.eps')), format='eps', dpi=300)
+        plt.savefig(os.path.join(eps_directory, os.path.basename(file_path).replace('.csv', f'_{label1}_vs_{label2}.eps')), format='eps', dpi=300)
+
 
     plt.tight_layout()
     plt.show()
@@ -549,19 +553,20 @@ def plot_2d_position(data, timeStart, timeEnd, helm_start, helm_stop, desired_pa
         
         sensor_x = valid_data['NAV_X'].iloc[idx]
         sensor_y = valid_data['NAV_Y'].iloc[idx]
+        
+        if(sensor_position!=-1):            
+            # Plot inner sensor radius circle (diameter 50)
+            inner_circle = plt.Circle((sensor_x, sensor_y), 25, color='blue', fill=True, alpha=0.15, 
+                                    linestyle='--', linewidth=1, label='Inner Detect Range (20m)')
+            plt.gca().add_patch(inner_circle)
             
-        # Plot inner sensor radius circle (diameter 50)
-        inner_circle = plt.Circle((sensor_x, sensor_y), 25, color='blue', fill=True, alpha=0.15, 
-                                 linestyle='--', linewidth=1, label='Inner Detect Range (20m)')
-        plt.gca().add_patch(inner_circle)
-        
-        # Plot outer sensor radius circle (diameter 70)
-        outer_circle = plt.Circle((sensor_x, sensor_y), 35, color='blue', fill=True, alpha=0.1, 
-                                 linestyle='--', linewidth=1, label='Outer Detect Range (30m)')
-        plt.gca().add_patch(outer_circle)
-        
-        # Add text annotation
-        plt.text(sensor_x, sensor_y + 35, 'Detect Range', ha='center', color='blue', fontsize=10)
+            # Plot outer sensor radius circle (diameter 70)
+            outer_circle = plt.Circle((sensor_x, sensor_y), 35, color='blue', fill=True, alpha=0.1, 
+                                    linestyle='--', linewidth=1, label='Outer Detect Range (30m)')
+            plt.gca().add_patch(outer_circle)
+            
+            # Add text annotation
+            plt.text(sensor_x, sensor_y + 35, 'Detect Range', ha='center', color='blue', fontsize=10)
 
     # Plot the desired path if provided
     if desired_path:
@@ -658,6 +663,15 @@ def plot_2d_position(data, timeStart, timeEnd, helm_start, helm_stop, desired_pa
         ensure_directory_exists(eps_directory)
         plt.savefig(os.path.join(eps_directory, os.path.basename(file_path).replace('.csv', '_2d_position.eps')), format='eps', dpi=300)
 
+        pdf_directory = os.path.join(os.path.dirname(file_path), 'pdf')
+        ensure_directory_exists(pdf_directory)
+        plt.savefig(
+            os.path.join(pdf_directory, os.path.basename(file_path).replace('.csv', '_2d_position.pdf')),
+            format='pdf',
+            dpi=300,
+            transparent=True  
+        )
+        
     plt.tight_layout()
     plt.show()
 
@@ -760,8 +774,8 @@ def plot_3d_position(data, timeStart, timeEnd, helm_start, helm_stop, desired_pa
                   color='red', marker='o', s=100, label='Helm Stop')
 
     # Customize plot
-    ax.set_xlabel('X [m]')
-    ax.set_ylabel('Y [m]')
+    ax.set_xlabel('NAV_X')
+    ax.set_ylabel('NAV_Y')
     ax.set_zlabel('Altitude [m]')
     ax.set_title(f'3D Position Plot')
     ax.legend()
@@ -777,6 +791,14 @@ def plot_3d_position(data, timeStart, timeEnd, helm_start, helm_stop, desired_pa
         ensure_directory_exists(eps_directory)
         plt.savefig(os.path.join(eps_directory, os.path.basename(file_path).replace('.csv', '_3d_position.eps')), format='eps', dpi=300)
 
+        pdf_directory = os.path.join(os.path.dirname(file_path), 'pdf')
+        ensure_directory_exists(pdf_directory)
+        plt.savefig(
+            os.path.join(pdf_directory, os.path.basename(file_path).replace('.csv', '_3d_position.pdf')),
+            format='pdf',
+            dpi=300,
+            transparent=True  
+        )
     plt.tight_layout()
     plt.show()
 
@@ -823,6 +845,7 @@ def plot_multi_vehicle_2d(data, timeStart, timeEnd, helm_start, helm_stop, fires
                          xytext=(5, 5), textcoords='offset points')
     
     # Plot the desired paths first (so they appear behind the actual paths)
+    DesiredPathLegend = False
     if vehicles_paths:
         for vehicle_name, path_data in vehicles_paths.items():
             # Get the vehicle color from vehicles_data if available, otherwise use black
@@ -841,10 +864,13 @@ def plot_multi_vehicle_2d(data, timeStart, timeEnd, helm_start, helm_stop, fires
             # print(f"Vehicle {vehicle_name} dark-color: {darker_color}")
             plt.plot(path_data['x'], path_data['y'], 
                      color="black", linestyle='--', linewidth=1.5, 
-                     label=f'{vehicle_name} Path' if vehicle_name not in locals() else "")
+                     label=f'Desired Path' if not DesiredPathLegend else "")
             plt.scatter(path_data['x'], path_data['y'], 
                         color=darker_color, marker='o', s=DESIRED_PATH_VERTEX_SIZE)
-    
+            DesiredPathLegend = True
+
+    VehicleInactiveLegend = False
+    HelmStartStopLegend = False
     # Plot each vehicle's path
     for vehicle_name, vehicle_data in vehicles_data.items():
         # Convert lists to numpy arrays for easier manipulation
@@ -873,7 +899,9 @@ def plot_multi_vehicle_2d(data, timeStart, timeEnd, helm_start, helm_stop, fires
             pre_helm_data = df[df['time'] < helm_start_eff]
             if not pre_helm_data.empty:
                 plt.plot(pre_helm_data['x'].to_numpy(), pre_helm_data['y'].to_numpy(), 
-                        color='grey', alpha=0.3, linewidth=.5, label=f'{vehicle_name} (Helm Inactive)' if pre_helm_data.iloc[0].name == 0 else "")
+                        color='grey', alpha=0.3, linewidth=.5, label=f'Path Helm Inactive' if not VehicleInactiveLegend else "")
+                VehicleInactiveLegend = True
+                
         
         # Grey out points after helm_stop
         if helm_stop is not None:
@@ -889,13 +917,14 @@ def plot_multi_vehicle_2d(data, timeStart, timeEnd, helm_start, helm_stop, fires
                     color=color, label=f'{vehicle_name}')
             
             # Mark start and end points
-            plt.scatter(valid_data['x'].iloc[0], valid_data['y'].iloc[0], color='green', marker='o', s=30)
+            plt.scatter(valid_data['x'].iloc[0], valid_data['y'].iloc[0], color='green', marker='o', s=30, label=f'Helm Start' if not HelmStartStopLegend else "")
             plt.text(valid_data['x'].iloc[0], valid_data['y'].iloc[0], f'{vehicle_name} Start', 
                     color='green', fontsize=8, verticalalignment='bottom')
             
-            plt.scatter(valid_data['x'].iloc[-1], valid_data['y'].iloc[-1], color='red', marker='o', s=30)
+            plt.scatter(valid_data['x'].iloc[-1], valid_data['y'].iloc[-1], color='red', marker='o', s=30, label=f'Helm Stop' if not HelmStartStopLegend else "")
             plt.text(valid_data['x'].iloc[-1], valid_data['y'].iloc[-1], f'{vehicle_name} End', 
                     color='red', fontsize=8, verticalalignment='bottom')
+            HelmStartStopLegend = True
             
             # Add detect range visualization at the specified position along the valid path
             if 0 <= detect_position <= 1:
@@ -908,22 +937,23 @@ def plot_multi_vehicle_2d(data, timeStart, timeEnd, helm_start, helm_stop, fires
             sensor_x = valid_data['x'].iloc[idx]
             sensor_y = valid_data['y'].iloc[idx]
             
-            # Plot inner sensor radius circle (diameter 50)
-            inner_circle = plt.Circle((sensor_x, sensor_y), 25, color=color, fill=True, alpha=0.15, 
-                                    linestyle='--', linewidth=1)
-            plt.gca().add_patch(inner_circle)
-            
-            # Plot outer sensor radius circle (diameter 70)
-            outer_circle = plt.Circle((sensor_x, sensor_y), 35, color=color, fill=True, alpha=0.1, 
-                                    linestyle='--', linewidth=1)
-            plt.gca().add_patch(outer_circle)
-            
-            # Add text annotation
-            plt.text(sensor_x, sensor_y + 35, f'{vehicle_name} Range', ha='center', color=color, fontsize=8)
+            if(detect_position!=-1):                    
+                # Plot inner sensor radius circle (diameter 50)
+                inner_circle = plt.Circle((sensor_x, sensor_y), 25, color=color, fill=True, alpha=0.15, 
+                                        linestyle='--', linewidth=1)
+                plt.gca().add_patch(inner_circle)
+                
+                # Plot outer sensor radius circle (diameter 70)
+                outer_circle = plt.Circle((sensor_x, sensor_y), 35, color=color, fill=True, alpha=0.1, 
+                                        linestyle='--', linewidth=1)
+                plt.gca().add_patch(outer_circle)
+                
+                # Add text annotation
+                plt.text(sensor_x, sensor_y + 35, f'{vehicle_name} Range', ha='center', color=color, fontsize=8)
     
     # Customize the plot
-    plt.xlabel('X [m]')
-    plt.ylabel('Y [m]')
+    plt.xlabel('NAV_X')
+    plt.ylabel('NAV_Y')
     plt.title('Multi-Vehicle 2D Position Plot')
     plt.grid(True)
     plt.legend(loc='best')
@@ -970,6 +1000,15 @@ def plot_multi_vehicle_2d(data, timeStart, timeEnd, helm_start, helm_stop, fires
         ensure_directory_exists(eps_directory)
         plt.savefig(os.path.join(eps_directory, os.path.basename(file_path).replace('.csv', '_multi_vehicle_2d.eps')), format='eps', dpi=300)
 
+        pdf_directory = os.path.join(os.path.dirname(file_path), 'pdf')
+        ensure_directory_exists(pdf_directory)
+        plt.savefig(
+            os.path.join(pdf_directory, os.path.basename(file_path).replace('.csv', '_multi_vehicle_2d.pdf')),
+            format='pdf',
+            dpi=300,
+            transparent=True  
+        )
+
     plt.tight_layout()
     plt.show()
 
@@ -990,6 +1029,7 @@ def plot_multi_vehicle_3d(data, timeStart, timeEnd, helm_start, helm_stop, save_
     ax = fig.add_subplot(111, projection='3d')
     
     # Plot the desired paths first (so they appear behind the actual paths)
+    DesiredPathLegend = False
     if vehicles_paths:
         # Get default altitude for each vehicle from their data
         default_altitudes = {}
@@ -1038,11 +1078,14 @@ def plot_multi_vehicle_3d(data, timeStart, timeEnd, helm_start, helm_stop, save_
             
             ax.plot(path_data['x'], path_data['y'], desired_z, 
                    color="black", linestyle='--', linewidth=1.5, 
-                   label=f'{vehicle_name} Path' if vehicle_name not in locals() else "")
+                   label=f'Desired Path' if not DesiredPathLegend else "")
             ax.scatter(path_data['x'], path_data['y'], desired_z,
                       color=darker_color, marker='o', s=DESIRED_PATH_VERTEX_SIZE)
+            DesiredPathLegend = True
     
     # Plot each vehicle's path
+    VehicleInactiveLegend = False
+    HelmStartStopLegend = False
     for vehicle_name, vehicle_data in vehicles_data.items():
         # Skip if no altitude data
         if not vehicle_data['altitude']:
@@ -1076,7 +1119,8 @@ def plot_multi_vehicle_3d(data, timeStart, timeEnd, helm_start, helm_stop, save_
             pre_helm_data = df[df['time'] < helm_start_eff]
             if not pre_helm_data.empty:
                 ax.plot(pre_helm_data['x'].to_numpy(), pre_helm_data['y'].to_numpy(), pre_helm_data['altitude'].to_numpy(),
-                       color='grey', alpha=0.3, linewidth=.5, label=f'{vehicle_name} (Helm Inactive)' if pre_helm_data.iloc[0].name == 0 else "")
+                       color='grey', alpha=0.3, linewidth=.5, label=f'Path Helm Inactive' if not VehicleInactiveLegend else "")
+                VehicleInactiveLegend = True
         
         # Grey out points after helm_stop
         if helm_stop is not None:
@@ -1093,18 +1137,19 @@ def plot_multi_vehicle_3d(data, timeStart, timeEnd, helm_start, helm_stop, save_
             
             # Mark start and end points
             ax.scatter(valid_data['x'].iloc[0], valid_data['y'].iloc[0], valid_data['altitude'].iloc[0], 
-                      color='green', marker='o', s=30)
+                      color='green', marker='o', s=30, label=f'Helm Start' if not HelmStartStopLegend else "")
             ax.text(valid_data['x'].iloc[0], valid_data['y'].iloc[0], valid_data['altitude'].iloc[0],
                    f'{vehicle_name} Start', color='green', fontsize=8)
             
             ax.scatter(valid_data['x'].iloc[-1], valid_data['y'].iloc[-1], valid_data['altitude'].iloc[-1],
-                      color='red', marker='o', s=30)
+                      color='red', marker='o', s=30, label=f'Helm Stop' if not HelmStartStopLegend else "")
             ax.text(valid_data['x'].iloc[-1], valid_data['y'].iloc[-1], valid_data['altitude'].iloc[-1],
                    f'{vehicle_name} End', color='red', fontsize=8)
+            HelmStartStopLegend = True
     
     # Customize the plot
-    ax.set_xlabel('X [m]')
-    ax.set_ylabel('Y [m]')
+    ax.set_xlabel('NAV_X')
+    ax.set_ylabel('NAV_Y')
     ax.set_zlabel('Altitude [m]')
     ax.set_title('Multi-Vehicle 3D Position Plot')
     ax.legend(loc='best')
@@ -1119,6 +1164,15 @@ def plot_multi_vehicle_3d(data, timeStart, timeEnd, helm_start, helm_stop, save_
         eps_directory = os.path.join(os.path.dirname(file_path), 'eps')
         ensure_directory_exists(eps_directory)
         plt.savefig(os.path.join(eps_directory, os.path.basename(file_path).replace('.csv', '_multi_vehicle_3d.eps')), format='eps', dpi=300)
+
+        pdf_directory = os.path.join(os.path.dirname(file_path), 'pdf')
+        ensure_directory_exists(pdf_directory)
+        plt.savefig(
+            os.path.join(pdf_directory, os.path.basename(file_path).replace('.csv', '_multi_vehicle_3d.pdf')),
+            format='pdf',
+            dpi=300,
+            transparent=True  
+        )
 
     plt.tight_layout()
     plt.show()
@@ -1174,6 +1228,7 @@ def plot_multi_vehicle_2d_with_auto_stops(data, timeStart, timeEnd, helm_start, 
                          xytext=(5, 5), textcoords='offset points')
     
     # Plot the desired paths first (so they appear behind the actual paths)
+    DesiredPathLegend = False
     if vehicles_paths:
         for vehicle_name, path_data in vehicles_paths.items():
             # Get the vehicle color from vehicles_data if available, otherwise use black
@@ -1191,11 +1246,14 @@ def plot_multi_vehicle_2d_with_auto_stops(data, timeStart, timeEnd, helm_start, 
             
             plt.plot(path_data['x'], path_data['y'], 
                      color="black", linestyle='--', linewidth=1.5, 
-                     label=f'{vehicle_name} Path' if vehicle_name not in locals() else "")
+                     label=f'Desired Path' if not DesiredPathLegend else "")
             plt.scatter(path_data['x'], path_data['y'], 
                         color=darker_color, marker='o', s=DESIRED_PATH_VERTEX_SIZE)
+            DesiredPathLegend = True
     
     # Plot each vehicle's path with its specific helm stop time
+    VehicleInactiveLegend = False
+    HelmStartStopLegend = False
     for vehicle_name, vehicle_data in vehicles_data.items():
         # Convert lists to numpy arrays for easier manipulation
         times = pd.Series(vehicle_data['time'])
@@ -1227,7 +1285,8 @@ def plot_multi_vehicle_2d_with_auto_stops(data, timeStart, timeEnd, helm_start, 
             pre_helm_data = df[df['time'] < helm_start_eff]
             if not pre_helm_data.empty:
                 plt.plot(pre_helm_data['x'].to_numpy(), pre_helm_data['y'].to_numpy(), 
-                        color='grey', alpha=0.3, linewidth=.5, label=f'{vehicle_name} (Helm Inactive)' if pre_helm_data.iloc[0].name == 0 else "")
+                        color='grey', alpha=0.3, linewidth=.5, label=f'Path Helm Inactive' if not VehicleInactiveLegend else "")
+                VehicleInactiveLegend = True
         
         # Grey out points after vehicle-specific helm_stop
         post_helm_data = df[df['time'] > helm_stop_eff]
@@ -1242,13 +1301,14 @@ def plot_multi_vehicle_2d_with_auto_stops(data, timeStart, timeEnd, helm_start, 
                     color=color, label=f'{vehicle_name}')
             
             # Mark start and end points
-            plt.scatter(valid_data['x'].iloc[0], valid_data['y'].iloc[0], color='green', marker='o', s=30)
+            plt.scatter(valid_data['x'].iloc[0], valid_data['y'].iloc[0], color='green', marker='o', s=30, label=f'Helm Start' if not HelmStartStopLegend else "")
             plt.text(valid_data['x'].iloc[0], valid_data['y'].iloc[0], f'{vehicle_name} Start', 
                     color='green', fontsize=8, verticalalignment='bottom')
             
-            plt.scatter(valid_data['x'].iloc[-1], valid_data['y'].iloc[-1], color='red', marker='o', s=30)
+            plt.scatter(valid_data['x'].iloc[-1], valid_data['y'].iloc[-1], color='red', marker='o', s=30, label=f'Helm Stop' if not HelmStartStopLegend else "")
             plt.text(valid_data['x'].iloc[-1], valid_data['y'].iloc[-1], f'{vehicle_name} End', 
                     color='red', fontsize=8, verticalalignment='bottom')
+            HelmStartStopLegend = True
             
             # Add detect range visualization at the specified position along the valid path
             if 0 <= detect_position <= 1:
@@ -1261,23 +1321,24 @@ def plot_multi_vehicle_2d_with_auto_stops(data, timeStart, timeEnd, helm_start, 
             sensor_x = valid_data['x'].iloc[idx]
             sensor_y = valid_data['y'].iloc[idx]
             
-            # Plot inner sensor radius circle (diameter 50)
-            inner_circle = plt.Circle((sensor_x, sensor_y), 25, color=color, fill=True, alpha=0.15, 
-                                    linestyle='--', linewidth=1)
-            plt.gca().add_patch(inner_circle)
-            
-            # Plot outer sensor radius circle (diameter 70)
-            outer_circle = plt.Circle((sensor_x, sensor_y), 35, color=color, fill=True, alpha=0.1, 
-                                    linestyle='--', linewidth=1)
-            plt.gca().add_patch(outer_circle)
-            
-            # Add text annotation
-            plt.text(sensor_x, sensor_y + 35, f'{vehicle_name} Range', ha='center', color=color, fontsize=8)
+            if(detect_position!=-1):   
+                # Plot inner sensor radius circle (diameter 50)
+                inner_circle = plt.Circle((sensor_x, sensor_y), 25, color=color, fill=True, alpha=0.15, 
+                                        linestyle='--', linewidth=1)
+                plt.gca().add_patch(inner_circle)
+                
+                # Plot outer sensor radius circle (diameter 70)
+                outer_circle = plt.Circle((sensor_x, sensor_y), 35, color=color, fill=True, alpha=0.1, 
+                                        linestyle='--', linewidth=1)
+                plt.gca().add_patch(outer_circle)
+                
+                # Add text annotation
+                plt.text(sensor_x, sensor_y + 35, f'{vehicle_name} Range', ha='center', color=color, fontsize=8)
     
     # Customize the plot
-    plt.xlabel('X [m]')
-    plt.ylabel('Y [m]')
-    plt.title('Multi-Vehicle 2D Position Plot (Auto Helm Stops)')
+    plt.xlabel('NAV_X')
+    plt.ylabel('NAV_Y')
+    plt.title('Multi-Vehicle 2D Position Plot')
     plt.grid(True)
     plt.legend(loc='best')
     
@@ -1323,6 +1384,16 @@ def plot_multi_vehicle_2d_with_auto_stops(data, timeStart, timeEnd, helm_start, 
         ensure_directory_exists(eps_directory)
         plt.savefig(os.path.join(eps_directory, os.path.basename(file_path).replace('.csv', '_multi_vehicle_2d_auto.eps')), format='eps', dpi=300)
 
+
+        pdf_directory = os.path.join(os.path.dirname(file_path), 'pdf')
+        ensure_directory_exists(pdf_directory)
+        plt.savefig(
+            os.path.join(pdf_directory, os.path.basename(file_path).replace('.csv', '_multi_vehicle_2d_auto.pdf')),
+            format='pdf',
+            dpi=300,
+            transparent=True  
+        )
+        
     plt.tight_layout()
     plt.show()
 
@@ -1351,6 +1422,7 @@ def plot_multi_vehicle_3d_with_auto_stops(data, timeStart, timeEnd, helm_start, 
     ax = fig.add_subplot(111, projection='3d')
     
     # Plot the desired paths first (so they appear behind the actual paths)
+    DesiredPathLegend = False
     if vehicles_paths:
         # Get default altitude for each vehicle from their data during their active helm periods
         default_altitudes = {}
@@ -1407,11 +1479,14 @@ def plot_multi_vehicle_3d_with_auto_stops(data, timeStart, timeEnd, helm_start, 
             
             ax.plot(path_data['x'], path_data['y'], desired_z, 
                    color="black", linestyle='--', linewidth=1.5, 
-                   label=f'{vehicle_name} Path' if vehicle_name not in locals() else "")
+                   label=f'Desired Path' if not DesiredPathLegend else "")
             ax.scatter(path_data['x'], path_data['y'], desired_z,
                       color=darker_color, marker='o', s=DESIRED_PATH_VERTEX_SIZE)
+            DesiredPathLegend = True
     
     # Plot each vehicle's path with its specific helm stop time
+    VehicleInactiveLegend = False
+    HelmStartStopLegend = False
     for vehicle_name, vehicle_data in vehicles_data.items():
         # Skip if no altitude data
         if not vehicle_data['altitude']:
@@ -1449,7 +1524,8 @@ def plot_multi_vehicle_3d_with_auto_stops(data, timeStart, timeEnd, helm_start, 
             pre_helm_data = df[df['time'] < helm_start_eff]
             if not pre_helm_data.empty:
                 ax.plot(pre_helm_data['x'].to_numpy(), pre_helm_data['y'].to_numpy(), pre_helm_data['altitude'].to_numpy(),
-                       color='grey', alpha=0.3, linewidth=.5, label=f'{vehicle_name} (Helm Inactive)' if pre_helm_data.iloc[0].name == 0 else "")
+                       color='grey', alpha=0.3, linewidth=.5, label=f'Path Helm Inactive' if not VehicleInactiveLegend else "")
+                VehicleInactiveLegend = True
         
         # Grey out points after helm_stop
         if helm_stop is not None:
@@ -1466,21 +1542,23 @@ def plot_multi_vehicle_3d_with_auto_stops(data, timeStart, timeEnd, helm_start, 
             
             # Mark start and end points
             ax.scatter(valid_data['x'].iloc[0], valid_data['y'].iloc[0], valid_data['altitude'].iloc[0], 
-                      color='green', marker='o', s=30)
+                      color='green', marker='o', s=30, label=f'Helm Start' if not HelmStartStopLegend else "")
             ax.text(valid_data['x'].iloc[0], valid_data['y'].iloc[0], valid_data['altitude'].iloc[0],
                    f'{vehicle_name} Start', color='green', fontsize=8)
             
             ax.scatter(valid_data['x'].iloc[-1], valid_data['y'].iloc[-1], valid_data['altitude'].iloc[-1],
-                      color='red', marker='o', s=30)
+                      color='red', marker='o', s=30,label=f'Helm Start' if not HelmStartStopLegend else "")
             ax.text(valid_data['x'].iloc[-1], valid_data['y'].iloc[-1], valid_data['altitude'].iloc[-1],
                    f'{vehicle_name} End', color='red', fontsize=8)
     
     # Customize the plot
-    ax.set_xlabel('X [m]')
-    ax.set_ylabel('Y [m]')
+    ax.set_xlabel('NAV_X')
+    ax.set_ylabel('NAV_Y')
     ax.set_zlabel('Altitude [m]')
-    ax.set_title('Multi-Vehicle 3D Position Plot (Auto Helm Stops)')
+    ax.set_title('Multi-Vehicle 3D Position Plot ')
     ax.legend(loc='best')
+    
+    ax.view_init(elev=20, azim=135)
     
     # Save the plot
     if save_png and file_path:
@@ -1493,6 +1571,15 @@ def plot_multi_vehicle_3d_with_auto_stops(data, timeStart, timeEnd, helm_start, 
         ensure_directory_exists(eps_directory)
         plt.savefig(os.path.join(eps_directory, os.path.basename(file_path).replace('.csv', '_multi_vehicle_3d_auto.eps')), format='eps', dpi=300)
 
+        pdf_directory = os.path.join(os.path.dirname(file_path), 'pdf')
+        ensure_directory_exists(pdf_directory)
+        plt.savefig(
+            os.path.join(pdf_directory, os.path.basename(file_path).replace('.csv', '_multi_vehicle_3d_auto.pdf')),
+            format='pdf',
+            dpi=300,
+            transparent=True  
+        )
+        
     plt.tight_layout()
     plt.show()
 
@@ -1516,7 +1603,7 @@ def main():
 
     # Plot types
     parser.add_argument('--plotAll', action='store_true', help='Plot all available plots.')
-    parser.add_argument('--plotHeading', action='store_true', help='Plot Desired Heading vs. NAV Heading.')
+    parser.add_argument('--plotHeading', action='store_true', help='Plot Desired Heading vs. NAV Heading. (NOTE: This is actually course over ground)')
     parser.add_argument('--plotSpeed', action='store_true', help='Plot Desired Speed vs. NAV Speed.')
     parser.add_argument('--plotAltitude', action='store_true', help='Plot Desired Altitude vs. NAV Altitude.')
     parser.add_argument('--plot2D', action='store_true', help='Plot 2D position map using NAV_X and NAV_Y.')
@@ -1631,7 +1718,7 @@ def main():
             plot_time_series(
                 numerical_data, timeStart, timeEnd, args.helmStart, helm_stop,
                 'DESIRED_HEADING', 'NAV_HEADING',
-                'Heading over Time', 'Heading [deg]',
+                'Course over ground', 'COG [deg]',
                 save_png, save_eps, args.numerical_file_path
             )
         else:
@@ -1643,7 +1730,7 @@ def main():
             plot_time_series(
                 numerical_data, timeStart, timeEnd, args.helmStart, helm_stop,
                 'DESIRED_SPEED', 'NAV_SPEED',
-                'Speed over Time', 'Speed [m/s]',
+                'Airspeed over Time', 'Airspeed [m/s]',
                 save_png, save_eps, args.numerical_file_path
             )
         else:
@@ -1659,13 +1746,13 @@ def main():
                     'Altitude over Time', 'Altitude AGL [m]',
                     save_png, save_eps, args.numerical_file_path
                 )
-            elif args.default_altitude is not None:
-                numerical_data['value'] = numerical_data.apply(lambda row: args.default_altitude if row['variable'] == 'DESIRED_ALTITUDE' else row['value'], axis=1)
+            elif desired_altitude is not None:
+                numerical_data['value'] = numerical_data.apply(lambda row: desired_altitude if row['variable'] == 'DESIRED_ALTITUDE' else row['value'], axis=1)
                 # Add rows for 'DESIRED_ALTITUDE' 
                 # Create new rows with default altitude value
                 new_rows = numerical_data[numerical_data['variable'] == 'NAV_ALTITUDE'].copy()
                 new_rows['variable'] = 'DESIRED_ALTITUDE'
-                new_rows['value'] = args.default_altitude
+                new_rows['value'] = desired_altitude
 
                 # Append new rows to the DataFrame
                 numerical_data = pd.concat([numerical_data, new_rows], ignore_index=True)
