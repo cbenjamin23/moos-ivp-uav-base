@@ -122,6 +122,12 @@ bool MissionOperator::handleMailMissionComplete(std::string sval)
     return true;
   }
 
+  if(m_missionOperatorEnabled)
+  {
+    Logger::info("Mission l received but no mission in progress.");
+    return true;
+  }
+
   return false;
 }
 

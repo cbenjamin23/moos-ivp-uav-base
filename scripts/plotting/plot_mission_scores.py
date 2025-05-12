@@ -25,10 +25,10 @@ def plot_score_distributions(df, output_dir, save):
 
     df = df[df["DroneCount"].isin(selected_drones)]
     
-    # Get unique algorithms for proper palette creation
+    # Get unique algorithms for overall palette creation
     unique_algorithms = df['Algorithm'].unique()
-    # Create a palette with the exact number of colors needed
-    palette = sns.color_palette("Set2", n_colors=len(unique_algorithms))
+    # Create a dictionary mapping algorithm to a consistent color
+    algo_color_map = {algo: sns.color_palette("Set2")[i % 8] for i, algo in enumerate(unique_algorithms)}
 
     for metric_label, (column, divisor) in metrics.items():
         fig, axes = plt.subplots(nrows=2, ncols=2, figsize=(14, 10), sharey=True)
@@ -46,14 +46,18 @@ def plot_score_distributions(df, output_dir, save):
             )
 
             bucketed = subset.groupby(["Algorithm", "Bucket"], observed=False).size().reset_index(name="Count")
-
+            
+            # Get the unique algorithms in this specific subset
+            subset_algos = subset['Algorithm'].unique()
+            # Create a specific palette for this subset using our mapping for consistency
+            subset_palette = [algo_color_map[algo] for algo in subset_algos]
             
             sns.barplot(
                 data=bucketed,
                 x="Bucket",
                 y="Count",
                 hue="Algorithm",
-                palette=palette,
+                palette=subset_palette,
                 ax=ax
             )
             
@@ -110,9 +114,9 @@ def plot_time_statistics(df, output_dir, save):
     axes = axes.flatten()
     statistics = list(time_columns.keys())
     
-    # Color palette for consistency
-    palette = sns.color_palette("Set2", n_colors=len(df_filtered['Algorithm'].unique()))
-    algorithms = df_filtered['Algorithm'].unique()
+    # Get unique algorithms and create a consistent color mapping
+    unique_algorithms = df_filtered['Algorithm'].unique()
+    algo_color_map = {algo: sns.color_palette("Set2")[i % 8] for i, algo in enumerate(unique_algorithms)}
     
     # Create a legend-only subplot
     legend_handles = []
@@ -139,7 +143,7 @@ def plot_time_statistics(df, output_dir, save):
                 linewidth=2,
                 markersize=8,
                 label=algorithm,
-                color=palette[j]
+                color=algo_color_map[algorithm]  # Use consistent color mapping
             )[0]
             
             # Create handles for the legend
@@ -197,9 +201,9 @@ def plot_avg_metrics_by_drone_count(df, output_dir, save):
     # Create a figure with subplots for each metric
     fig, axes = plt.subplots(1, 2, figsize=(14, 6), sharey=False)
     
-    # Color palette for consistency
-    palette = sns.color_palette("Set2", n_colors=len(df_filtered['Algorithm'].unique()))
-    algorithms = df_filtered['Algorithm'].unique()
+    # Get unique algorithms and create a consistent color mapping
+    unique_algorithms = df_filtered['Algorithm'].unique()
+    algo_color_map = {algo: sns.color_palette("Set2")[i % 8] for i, algo in enumerate(unique_algorithms)}
     
     for i, (metric_name, column_name) in enumerate(metrics.items()):
         ax = axes[i]
@@ -208,7 +212,7 @@ def plot_avg_metrics_by_drone_count(df, output_dir, save):
         avg_metric = df_filtered.groupby(['Algorithm', 'DroneCount'])[column_name].mean().reset_index()
         
         # Plot lines for each algorithm
-        for j, algorithm in enumerate(algorithms):
+        for j, algorithm in enumerate(unique_algorithms):
             algo_data = avg_metric[avg_metric['Algorithm'] == algorithm]
             
             # Sort by drone count for proper line plotting
@@ -222,7 +226,7 @@ def plot_avg_metrics_by_drone_count(df, output_dir, save):
                 linewidth=2,
                 markersize=8,
                 label=algorithm,
-                color=palette[j]
+                color=algo_color_map[algorithm]
             )
         
         ax.set_title(f"Average {metric_name} by Drone Count")
@@ -258,11 +262,9 @@ def plot_fires_detected_by_drone_count(df, output_dir, save):
     
     plt.figure(figsize=(12, 8))
     
-    # Create a custom palette
-    palette = sns.color_palette("Set2", n_colors=len(df_filtered['Algorithm'].unique()))
-    
-    # Create a dictionary to map algorithms to colors for consistency
-    algo_colors = {algo: palette[i] for i, algo in enumerate(df_filtered['Algorithm'].unique())}
+    # Get unique algorithms and create a consistent color mapping
+    unique_algorithms = df_filtered['Algorithm'].unique()
+    algo_color_map = {algo: sns.color_palette("Set2")[i % 8] for i, algo in enumerate(unique_algorithms)}
     
     # Create a dictionary to map drone counts to y-positions
     drone_positions = {count: i for i, count in enumerate(selected_drones)}
@@ -280,7 +282,7 @@ def plot_fires_detected_by_drone_count(df, output_dir, save):
             row['FiresDetected'], 
             y_pos,
             s=100,  # Point size
-            color=algo_colors[row['Algorithm']],
+            color=algo_color_map[row['Algorithm']],
             alpha=0.7,
             edgecolors='black',
             linewidths=0.5,
@@ -304,8 +306,8 @@ def plot_fires_detected_by_drone_count(df, output_dir, save):
     
     # Create a legend for algorithms
     legend_elements = [plt.Line2D([0], [0], marker='o', color='w', 
-                                 markerfacecolor=color, markersize=10, label=algo)
-                     for algo, color in algo_colors.items()]
+                                 markerfacecolor=algo_color_map[algo], markersize=10, label=algo)
+                     for algo in unique_algorithms]
     
     # Add a legend element for total fires
     legend_elements.append(plt.Line2D([0], [0], marker='X', color='w', 

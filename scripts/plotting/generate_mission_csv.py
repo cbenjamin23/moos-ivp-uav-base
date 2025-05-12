@@ -2,6 +2,7 @@ import os
 import re
 import csv
 from pathlib import Path
+from collections import Counter, defaultdict
 
 import argparse
 
@@ -76,6 +77,11 @@ def generate_mission_score_csv(input_folder="sim", output_folder=None, output_cs
         'FiresDetected', 'TotalFires', 'TotalDetections', 'AreaCoverage'
     ]
 
+    # Counter to track the number of missions for each algorithm
+    algorithm_counter = Counter()
+    # Dictionary to track the drones involved in each algorithm's missions
+    algorithm_drone_counts = defaultdict(list)
+
     with open(output_csv, 'w', newline='') as csvfile:
         writer = csv.DictWriter(csvfile, fieldnames=headers)
         writer.writeheader()
@@ -101,7 +107,32 @@ def generate_mission_score_csv(input_folder="sim", output_folder=None, output_cs
                 'AreaCoverage': data['AreaCoverage']
             }
             writer.writerow(row)
+            
+            # Count missions by algorithm
+            if data['Algorithm']:
+                algorithm_counter[data['Algorithm']] += 1
+                # Track drone counts for each algorithm
+                if data['DroneCount']:
+                    algorithm_drone_counts[data['Algorithm']].append(data['DroneCount'])
 
+    # Print the count of missions by algorithm and drone counts
+    print("\nMission count by algorithm:")
+    if algorithm_counter:
+        for algorithm, count in algorithm_counter.items():
+            print(f"  {algorithm}: {count} missions")
+            
+            # Print drone count information for this algorithm
+            drone_counts = algorithm_drone_counts[algorithm]
+            if drone_counts:
+                drone_counter = Counter(drone_counts)
+                print(f"    Drone distribution:")
+                for drone_count, frequency in sorted(drone_counter.items()):
+                    print(f"      {drone_count} drones: {frequency} missions")
+               
+    else:
+        print("  No algorithm data found in the mission files")
+
+    print(f"\nTotal missions processed: {len(files)}")
     return output_csv
 
 
@@ -117,4 +148,4 @@ if __name__ == '__main__':
     args = parser.parse_args()
     # Call the function with command line arguments
     generate_mission_score_csv(args.input_folder, args.output_folder, args.output_csv_name)
-    
+
