@@ -45,7 +45,7 @@ protected:
   bool handleMailNodeReport(std::string);
   bool handleMailIgnoredRegionAlert(std::string);
   bool handleMailDisableResetMission(std::string &warning);
-  void retractRunWarnings(std::vector<std::string> warnings);
+  void retractRunWarnings(std::vector<std::string>& warnings);
 
   bool registerIgnoredRegion(std::string str);
   bool unregisterIgnoredRegion(std::string name);

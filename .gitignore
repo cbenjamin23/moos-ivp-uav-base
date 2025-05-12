@@ -104,3 +104,8 @@ missions/UAV_Fly/**.txt
 .mem_* 
 
 *__pycache__/**
+
+
+*mission_score_f*.txt
+
+mission_scores.csv

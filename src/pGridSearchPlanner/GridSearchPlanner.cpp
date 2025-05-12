@@ -83,6 +83,10 @@ bool GridSearchPlanner::OnNewMail(MOOSMSG_LIST &NewMail)
     // string msrc  = msg.GetSource();
     // std::string community = msg.GetCommunity();
 
+    if (msg.GetSource() == m_sAppName)
+      continue;
+    
+
     if ((key == "NODE_REPORT") || (key == "NODE_REPORT_LOCAL"))
       handled = handleMailNodeReport(sval);
     else if (key == "IGNORED_REGION_ALERT")
@@ -129,7 +133,10 @@ bool GridSearchPlanner::OnNewMail(MOOSMSG_LIST &NewMail)
         handled = false;
       }
     }
+    else if("XREQUEST_PLANNER_MODE")
+      Notify("CHANGE_PLANNER_MODEX", Planner::modeToString(m_planner_mode));
 
+    
     if (!handled)
     {
       reportRunWarning("Unhandled mail: " + key);
@@ -291,6 +298,7 @@ bool GridSearchPlanner::OnStartUp()
   postTMSTCGrids();
 
   registerVariables();
+
   return (true);
 }
 
@@ -317,6 +325,8 @@ void GridSearchPlanner::registerVariables()
   Register("VIEW_GRID_DELTA", 0);
 
   Register("CHANGE_PLANNER_MODEX", 0);
+
+  Register("XREQUEST_PLANNER_MODE", 0);
 }
 
 void GridSearchPlanner::doPlanPaths()
@@ -840,6 +850,7 @@ bool GridSearchPlanner::buildReport()
   m_msgs << " Is start point closest: " << boolToString(m_start_point_closest) << std::endl;
   m_msgs << "       isRunningMoosPid: " << boolToString(m_isRunningMoosPid) << std::endl;
   m_msgs << "        Mission enabled: " << boolToString(m_missionEnabled) << std::endl;
+  m_msgs << "          Planner mode : " << Planner::modeToString(m_planner_mode) << std::endl;
   m_msgs << std::endl;
 
   if (m_planner_mode == Planner::PlannerMode::TMSTC_STAR)

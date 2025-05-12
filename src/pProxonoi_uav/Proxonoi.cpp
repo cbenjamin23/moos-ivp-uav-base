@@ -889,24 +889,30 @@ void Proxonoi::checkRemoveVehicleStaleness()
 
   double curr_time = MOOSTime();
 
-  for (auto p = m_map_node_records.begin(); p != m_map_node_records.end(); p++)
+  auto p = m_map_node_records.begin();
+  while( p != m_map_node_records.end())
   {
     std::string vname = p->first;
     double time_received = p->second.getTimeStamp();
 
-    if (vname == m_ownship)
+    if (vname == m_ownship){
+      p++;
       continue;
+    }
 
     auto timediff = (curr_time - time_received);
     // Logger::info("Checking Poly Staleness: " + vname + " " + doubleToStringX(timediff, 1));
 
     // Check if the time received is older than the threshold
-    if ((curr_time - time_received) < m_node_record_stale_treshold)
+    if ((curr_time - time_received) < m_node_record_stale_treshold){
+      p++;
       continue;
+    }
 
     m_map_ranges.erase(vname);
-    m_map_split_lines.erase(vname);
-    m_map_node_records.erase(vname);
+    m_map_split_lines.erase(vname);    
+    p = m_map_node_records.erase(p);
+    
     Logger::info("Checking Poly Staleness: Erased " + vname + " time: " + doubleToStringX(time_received, 2) + " curr_time: " + doubleToStringX(curr_time, 2) +
                  " treshold: " + doubleToStringX(m_node_record_stale_treshold, 2) +
                  " diff: " + doubleToStringX(timediff, 2));

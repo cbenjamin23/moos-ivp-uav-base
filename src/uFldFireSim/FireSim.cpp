@@ -70,7 +70,7 @@ bool FireSim::OnNewMail(MOOSMSG_LIST &NewMail)
 {
   AppCastingMOOSApp::OnNewMail(NewMail);
 
-  std::vector<std::string> warnings;
+  static std::vector<std::string> warnings;
 
   MOOSMSG_LIST::iterator p;
   for (p = NewMail.begin(); p != NewMail.end(); p++)
@@ -127,6 +127,7 @@ bool FireSim::OnNewMail(MOOSMSG_LIST &NewMail)
         trySpawnFire();
         handled = true;
         retractRunWarnings(warnings);
+
       }catch (std::exception &e)
       {
         handled = false;
@@ -163,24 +164,28 @@ bool FireSim::OnNewMail(MOOSMSG_LIST &NewMail)
         handled = false;
       }
     }
+    
+    if(!warning.empty())
+      warnings.push_back(warning);
+     
+    
     if (!handled)
     {
       if (warning.empty())
         reportRunWarning("Unhandled Mail: " + key);
       else
-      {
         reportRunWarning(warning);
-        warnings.push_back(warning);
-      }
     }
   }
   return (true);
 }
 
-void FireSim::retractRunWarnings(std::vector<std::string> warnings)
+void FireSim::retractRunWarnings(std::vector<std::string>& warnings)
 {
   for (const auto &warning : warnings)
     retractRunWarning(warning);
+
+  warnings.clear();
 }
 
 bool FireSim::handleMailDisableResetMission(std::string &warning)
@@ -197,7 +202,7 @@ bool FireSim::handleMailDisableResetMission(std::string &warning)
   m_fireset.reset(m_curr_time);
   auto fire_points = m_fireset.getFirePoints();
   m_ignoredRegionset.reset(m_curr_time, fire_points);
-  
+
   postFireMarkers();
   postIgnoredRegions();
 
@@ -210,6 +215,7 @@ bool FireSim::handleMailDisableResetMission(std::string &warning)
 
   m_finished = false;
   m_mission_endtime_utc = 0;
+  m_mission_start_utc = 0;
 
   m_mission_scorer.setIgnoredRegionCount(0);
   m_mission_scorer.setSpawnedIgnoredRegionCount(0);
@@ -297,6 +303,8 @@ void FireSim::registerRemoveIgnoredRegion(std::string pos_str, bool doRegister)
 bool FireSim::OnConnectToServer()
 {
   registerVariables();
+
+  Notify("XREQUEST_PLANNER_MODE", "true");
   return (true);
 }
 
@@ -321,6 +329,7 @@ void FireSim::registerVariables()
   Register("CHANGE_PLANNER_MODEX", 0);
 
   Register("XDISABLE_RESET_MISSION", 0);
+  
 }
 
 //---------------------------------------------------------
@@ -1406,7 +1415,8 @@ bool FireSim::buildReport()
   m_msgs << "detect_rng_fixed : " << boolToString(m_detect_rng_fixed) << std::endl;
   m_msgs << "      fire_color : " << m_fire_color << std::endl;
   m_msgs << "fire_transparency: " << str_trans << std::endl;
-  m_msgs << "       fire_file: " << m_fireset.getFireFile() << std::endl;
+  m_msgs << "        fire_file: " << m_fireset.getFireFile() << std::endl;
+  m_msgs << "     planner mode: " << Planner::modeToString(m_planner_mode) << std::endl;
   m_msgs << std::endl;
 
   m_msgs << "======================================" << std::endl;

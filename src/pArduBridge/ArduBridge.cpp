@@ -97,10 +97,9 @@ bool ArduBridge::OnNewMail(MOOSMSG_LIST &NewMail)
     bool   mstr  = msg.IsString();
 #endif
 
-    if (msg.GetSource() == "pArduBridge")
-    {
+    if (msg.GetSource() == m_sAppName)
       continue;
-    }
+    
 
     if (key == "DESIRED_HEADING") // DESIRED_COURSE comes in as DESIRED_HEADING from pHelm for legacy reasons
     {
@@ -293,7 +292,7 @@ bool ArduBridge::OnConnectToServer()
 
 bool ArduBridge::Iterate()
 {
-  Logger::info("Iterate Start");
+  // Logger::info("Iterate Start");
 
   AppCastingMOOSApp::Iterate();
 
@@ -616,7 +615,7 @@ bool ArduBridge::Iterate()
 
   AppCastingMOOSApp::PostReport();
 
-  Logger::info("Iterate Complete \n\n");
+  // Logger::info("Iterate Complete \n\n");
   return (true);
 }
 

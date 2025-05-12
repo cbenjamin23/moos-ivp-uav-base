@@ -51,7 +51,7 @@ bool GridSearchViz::OnNewMail(MOOSMSG_LIST &NewMail)
 {
   AppCastingMOOSApp::OnNewMail(NewMail);
 
-  std::vector<std::string> warnings;
+  static std::vector<std::string> warnings;
 
   MOOSMSG_LIST::iterator p;
   for (p = NewMail.begin(); p != NewMail.end(); p++)
@@ -95,6 +95,10 @@ bool GridSearchViz::OnNewMail(MOOSMSG_LIST &NewMail)
     else if (key == "XDISABLE_RESET_MISSION")
       handled = handleMailDisableResetMission(warning);
 
+
+    if(!warning.empty())
+      warnings.push_back(warning);
+    
     if (!handled)
     {
       if (warning.empty())
@@ -110,10 +114,12 @@ bool GridSearchViz::OnNewMail(MOOSMSG_LIST &NewMail)
   return (true);
 }
 
-void GridSearchViz::retractRunWarnings(std::vector<std::string> warnings)
+void GridSearchViz::retractRunWarnings(std::vector<std::string>& warnings)
 {
   for (const auto &warning : warnings)
     retractRunWarning(warning);
+
+  warnings.clear();
 }
 
 //---------------------------------------------------------
