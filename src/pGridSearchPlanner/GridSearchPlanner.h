@@ -46,7 +46,7 @@ protected:
   void unregisterIgnoredRegion(std::string name);
 
   bool raisePlannerFlag();
-  void doPlanPaths();
+  bool doPlanPaths();
   void assignPathsToVehicles(Mat paths);
   XYSegList pruneDiscoveredWaypoints(const XYSegList &original_path);
   std::vector<XYPoint> getCellsInSquare(double center_x, double center_y,

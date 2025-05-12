@@ -24,7 +24,7 @@ def plot_score_distributions(df, output_dir, save):
     selected_drones = [3, 6, 9]
 
     df = df[df["DroneCount"].isin(selected_drones)]
-    
+
     # Get unique algorithms for overall palette creation
     unique_algorithms = df['Algorithm'].unique()
     # Create a dictionary mapping algorithm to a consistent color
@@ -33,7 +33,7 @@ def plot_score_distributions(df, output_dir, save):
     for metric_label, (column, divisor) in metrics.items():
         fig, axes = plt.subplots(nrows=2, ncols=2, figsize=(14, 10), sharey=True)
         axes = axes.flatten()
-        
+
         # Initialize legend handles and labels
         legend_handles = []
         legend_labels = []
@@ -42,31 +42,27 @@ def plot_score_distributions(df, output_dir, save):
             ax = axes[i]
             subset = df[df["DroneCount"] == drone_count].copy()
             subset["Bucket"] = pd.cut(
-                100 * subset[column] / divisor, bins=bins, labels=labels, right=False
+                100 * subset[column] / divisor, bins=bins, labels=labels, right=True
             )
 
             bucketed = subset.groupby(["Algorithm", "Bucket"], observed=False).size().reset_index(name="Count")
-            
-            # Get the unique algorithms in this specific subset
-            subset_algos = subset['Algorithm'].unique()
-            # Create a specific palette for this subset using our mapping for consistency
-            subset_palette = [algo_color_map[algo] for algo in subset_algos]
-            
+
+            # Use the global color mapping for consistency across all drone counts
             sns.barplot(
                 data=bucketed,
                 x="Bucket",
                 y="Count",
                 hue="Algorithm",
-                palette=subset_palette,
+                palette=algo_color_map,
                 ax=ax
             )
-            
+
             ax.set_title(f"{metric_label} (Drones: {drone_count})")
             ax.set_xlabel("Score Bucket (%)")
             ax.set_ylabel("Missions")
             ax.set_xticks(range(len(labels)))
             ax.set_xticklabels(labels, rotation=45)
-            
+
             # Remove individual legends
             if ax.get_legend() is not None:
                 if i == 0:  # Capture legend handles from first plot
@@ -314,7 +310,7 @@ def plot_fires_detected_by_drone_count(df, output_dir, save):
                                      markerfacecolor='gray', markersize=8, 
                                      label='Total Fires Available'))
     
-    plt.legend(handles=legend_elements, loc='upper right', title='Algorithm')
+    plt.legend(handles=legend_elements, loc='upper left', title='Algorithm')
     
     # Set custom y-ticks at the drone count positions
     plt.yticks(list(drone_positions.values()), list(drone_positions.keys()))

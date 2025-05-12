@@ -572,8 +572,8 @@ double PathCut::getTurnAndLength(int i)
 
 double PathCut::getTurnAndLength(int i)
 {
-	int start = cuts[i].start;
-	int ending = (cuts[i].start + cuts[i].len - 1) % circleLen;
+	int start = cuts.at(i).start;
+	int ending = (cuts.at(i).start + cuts.at(i).len - 1) % circleLen;
 
 	// Handle wrap-around by adjusting ending to the second cycle if needed
 	if (ending < start)
@@ -582,7 +582,7 @@ double PathCut::getTurnAndLength(int i)
 	}
 
 	// Cost is the difference in pathValue
-	double cost = pathValue[ending] - pathValue[start];
+	double cost = pathValue.at(ending) - pathValue.at(start);
 
 	return cost;
 }
@@ -705,9 +705,9 @@ void PathCut::MSTC_Star()
 		// Judge whether to go clockwise or counter-clockwise
 		vector<int> clw = getHalfCuts(min_cut, max_cut, 1);
 		vector<int> ccw = getHalfCuts(min_cut, max_cut, -1);
+		Logger::info("before balanced cut");
 		clw.size() < ccw.size() ? Balanced_Cut(clw) : Balanced_Cut(ccw);
 
-		Logger::info("Adjusted cut");
 
 		opt = 0, wst = 2e9;
 		for (int i = 0; i < cuts.size(); ++i)
@@ -751,6 +751,7 @@ vector<int> PathCut::getHalfCuts(int cut_min, int cut_max, int dir)
 // Only need to update cut's starting point, length and weight, and there's no need to modify the cut vec structure
 void PathCut::Balanced_Cut(vector<int> &adjustCuts)
 {
+
 	int r_first = adjustCuts.front(), r_last = adjustCuts.back();
 	double old_val_max = -1, old_val_sum = 0;
 	for (auto &x : adjustCuts)
@@ -758,6 +759,8 @@ void PathCut::Balanced_Cut(vector<int> &adjustCuts)
 		old_val_max = std::max(old_val_max, cuts.at(x).val);
 		old_val_sum += cuts.at(x).val;
 	}
+
+
 
 	pair<double, double> res{old_val_max, old_val_sum};
 	int old_len_r_first = cuts.at(r_first).len, old_len_r_last = cuts.at(r_last).len;
@@ -769,6 +772,7 @@ void PathCut::Balanced_Cut(vector<int> &adjustCuts)
 
 	// Originally we only used length comparison to divide, now we changed to weights, i.e., path length + turn weight to divide, then update the length
 	// Updated length can only start from the beginning and divide the path length
+	
 	while (rig - lef > eps)
 	{
 		double mid = (lef + rig) / 2;
@@ -1042,7 +1046,7 @@ void PathCut::optimizePathWithOutliersAndUpdateSequence(const std::vector<int> &
 		// std::cout << "Current cost: " << current_cost << ", Neighbor costs: " << neighbor_cost_prev << ", " << neighbor_cost_next << std::endl;
 		// std::cout << "Ratio: " << current_cost / neighbor_cost_prev << ", " << current_cost / neighbor_cost_next << std::endl;
 		// Logger::info("Current cost: " + std::to_string(current_cost) + ", Neighbor costs: " + std::to_string(neighbor_cost_prev) + ", " + std::to_string(neighbor_cost_next));
-		Logger::info("Ratio: " + std::to_string(current_cost / neighbor_cost_prev) + ", " + std::to_string(current_cost / neighbor_cost_next));
+		// Logger::info("Ratio: " + std::to_string(current_cost / neighbor_cost_prev) + ", " + std::to_string(current_cost / neighbor_cost_next));
 		
 		// Check if the current cost is substantially higher than neighbor costs
 		size_t iteration_count = 0;

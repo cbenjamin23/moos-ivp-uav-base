@@ -164,9 +164,12 @@ bool GridSearchPlanner::Iterate()
 
   if (m_do_plan_paths)
   {
-    doPlanPaths();
-    notifyCalculatedPathsAndExecute(m_missionEnabled);
-    m_do_plan_paths = false;
+    if(doPlanPaths()){
+
+      notifyCalculatedPathsAndExecute(m_missionEnabled);
+      m_do_plan_paths = false;
+    };
+
   }
   else if (m_do_start_voronoi_searching)
   {
@@ -329,7 +332,7 @@ void GridSearchPlanner::registerVariables()
   Register("XREQUEST_PLANNER_MODE", 0);
 }
 
-void GridSearchPlanner::doPlanPaths()
+bool GridSearchPlanner::doPlanPaths()
 {
 
   if (m_tmstc_star_ptr == nullptr)
@@ -337,7 +340,7 @@ void GridSearchPlanner::doPlanPaths()
     Logger::error("doPlanPaths: TMSTC* instance is null.");
     reportRunWarning("Failed to calculate paths. TMSTC* instance is not initialized.");
     m_is_paths_calculated = false;
-    return;
+    return false;
   }
 
   m_tmstc_grid_converter.transformGrid();
@@ -353,7 +356,7 @@ void GridSearchPlanner::doPlanPaths()
     reportRunWarning(msg);
     postCalculatedPaths(false);
     m_is_paths_calculated = false;
-    return;
+    return false;
   }
 
   // Create the TMSTC* instance and calculate paths
@@ -365,26 +368,70 @@ void GridSearchPlanner::doPlanPaths()
   };
 
   Mat paths_robot_indx;
-  try
-  {
-    m_tmstc_star_ptr->eliminateIslands();
-    reportEvent("Calculating paths...");
-    Logger::info("doPlanPaths: Calculating paths...");
-    paths_robot_indx = m_tmstc_star_ptr->calculateRegionIndxPaths();
-    Logger::info("doPlanPaths: Calculating paths... Region Index paths calculated.");
-    m_is_paths_calculated = true;
+
+  const int tries = 1;
+  for(int i = 0; i < tries; i++)
+  { 
+    try
+    {
+      if(i == 0){
+        m_tmstc_star_ptr->eliminateIslands();
+        reportEvent("Calculating paths...");
+        Logger::info("doPlanPat<hs: Calculating paths...");
+      }
+      else{
+        reportEvent("Retrying path calculation...");
+        Logger::info("doPlanPaths: Retrying path calculation...");
+      }
+      paths_robot_indx = m_tmstc_star_ptr->calculateRegionIndxPaths();
+      Logger::info("doPlanPaths: Calculating paths... Region Index paths calculated.");
+
+
+      m_is_paths_calculated = true;
+      break; // Exit loop if successful
+    }
+    catch (const std::exception &e)
+    {
+
+      std::string msg = "Failed to calculate paths. Exception: " + std::string(e.what());
+      m_generate_warnings.push_back(msg);
+
+      Logger::error("doPlanPaths:" + msg);
+      reportRunWarning(msg);
+      postCalculatedPaths(false);
+      m_is_paths_calculated = false;
+
+      if(i == tries - 1)
+      {
+        Logger::error("doPlanPaths: Max retries reached. Unable to calculate paths.");
+        return false; // Exit if max retries reached
+      }
+
+    }
   }
-  catch (const std::exception &e)
+
+
+  if(paths_robot_indx.size() != m_map_drone_records.size())
+    {
+      std::string msg = "Number of paths calculated (" + std::to_string(paths_robot_indx.size()) + ") does not match number of drones (" + std::to_string(m_map_drone_records.size()) + ").";
+      m_generate_warnings.push_back(msg);
+      reportRunWarning(msg);
+      Logger::error("doPlanPaths:" + msg);
+      m_is_paths_calculated = false;
+      return false;
+    }
+
+  for(auto path : paths_robot_indx)
   {
-
-    std::string msg = "Failed to calculate paths. Exception: " + std::string(e.what());
-    m_generate_warnings.push_back(msg);
-
-    Logger::error("doPlanPaths:" + msg);
-    reportRunWarning(msg);
-    postCalculatedPaths(false);
-    m_is_paths_calculated = false;
-    return;
+    if(path.size() == 0)
+    {
+      std::string msg = "Empty path calculated for a vehicle.";
+      m_generate_warnings.push_back(msg);
+      reportRunWarning(msg);
+      Logger::error("doPlanPaths:" + msg);
+      m_is_paths_calculated = false;
+      return false;
+    }
   }
 
   assignPathsToVehicles(paths_robot_indx);
@@ -393,6 +440,7 @@ void GridSearchPlanner::doPlanPaths()
   reportEvent("Paths calculated.");
 
   clearAllGenerateWarnings();
+  return true;
 }
 
 bool GridSearchPlanner::is_pathIdx_filtered(int idx)
