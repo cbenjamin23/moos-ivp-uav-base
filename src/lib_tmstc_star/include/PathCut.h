@@ -76,7 +76,7 @@ private:
 	bool coverAndReturn;
 
 	VehicleParameters vehicleParams;
-	int maxIterations = 10000;
+	int maxIterations = 150;
 
 	// Point filtering and TSP optimization
 	std::function<bool(int)> is_point_filtered_func = nullptr; // Function to determine if a point should be ignored

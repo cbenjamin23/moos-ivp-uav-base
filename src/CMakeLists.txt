@@ -46,7 +46,10 @@ IF( EXISTS ${CMAKE_SOURCE_DIR}/src/pProxonoi_uav )
 ENDIF()
 
 
+
 message("ROBOT_APPS:" ${ROBOT_APPS})
+
+SET(APPS_TO_BUILD ${ROBOT_APPS})
 
 #===============================================================
 # Set the GUI Apps
@@ -86,8 +89,9 @@ IF(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/uFldFireSim)
   LIST(APPEND SHORE_APPS uFldFireSim)
 ENDIF()
 
-SET(APPS_TO_BUILD ${ROBOT_APPS})
-
+IF(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/pMissionOperator)
+  LIST(APPEND SHORE_APPS pMissionOperator)
+ENDIF()
 
 
 #===============================================================

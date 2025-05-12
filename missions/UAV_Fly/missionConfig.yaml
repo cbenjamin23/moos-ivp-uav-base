@@ -3,7 +3,7 @@
 # Global simulation parameters
 simulation:
   useMoosSimPid: true # Use MOOS-IvP Vechicle simulator
-  time_warp: 15
+  time_warp: 10
   number_of_drones: 6
 
   ardupilot_ip: "0.0.0.0"
@@ -40,7 +40,7 @@ missionParams:
   log_enabled: false # If true, the mission will be logged to a file  
   mission_duration : 600 # s - The duration of the mission (20min)
 
-  voronoi_search_enabled: true # If true, the Voronoi algorithm will be used to set the path for the drone
+  voronoi_search_enabled: false # If true, the Voronoi algorithm will be used to set the path for the drone, else TMSTC* will be used
                         # else, the TMSTC* algorithm will be used to set the path for the drone
   voronoi_setpoint_method: gridsearch # The method used to set the path for the voronoi algorithm. Can be "gridsearch", "center" or "centroid" 
 
@@ -71,6 +71,13 @@ missionParams:
   ignoredRegion_spawn_count    : 0 # The number of ignored regions to spawn after the mission has started
   ignoredRegion_spawn_interval : 300:500 # s - The time interval for which the delayed ignored regions will be spawned (randomly) ( 0 <= [tmin,tmax] <= mission_duration)
   
+
+  # Mission operator parameters - For simulating many missions
+  mission_operator_reset_delay: 2 # s - Delay between mission completion and reset in (actual) seconds
+
+  mission_operator_voronoi_missions: 2 # The number of VORONOI_SEARCH missions to be run
+  mission_operator_TMSTC_missions: 4  # The number of TMSTC* missions to be run
+
 
   # Region parameters: The region in which the mission is to be conducted
   # TOOL: https://www.keene.edu/campus/maps/tool/

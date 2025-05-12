@@ -644,10 +644,10 @@ void PathCut::MSTC_Star()
 	{
 		for (int j = 0; j < depot.size(); ++j)
 		{
-			if (invSequence[depot[i]] == tmp[j])
+			if (invSequence[depot.at(i)] == tmp.at(j))
 			{
-				depot_cut[i] = j;
-				cut_depot[j] = i;
+				depot_cut.at(i) = j;
+				cut_depot.at(j) = i;
 			}
 		}
 	}
@@ -655,11 +655,11 @@ void PathCut::MSTC_Star()
 	double opt = 0, wst = 2e9;
 	for (int i = 0; i < depot.size(); ++i)
 	{
-		cuts[i].start = invSequence[depot[cut_depot[i]]];
-		cuts[i].len = (invSequence[depot[cut_depot[(i + 1) % depot.size()]]] - invSequence[depot[cut_depot[i]]] + circleLen) % circleLen; // nr - nl + 1 - 1
-		cuts[i].val = updateCutVal(i);
-		opt = std::max(opt, cuts[i].val);
-		wst = std::min(wst, cuts[i].val);
+		cuts.at(i).start = invSequence[depot[cut_depot.at(i)]];
+		cuts.at(i).len = (invSequence[depot[cut_depot[(i + 1) % depot.size()]]] - invSequence[depot[cut_depot.at(i)]] + circleLen) % circleLen; // nr - nl + 1 - 1
+		cuts.at(i).val = updateCutVal(i);
+		opt = std::max(opt, cuts.at(i).val);
+		wst = std::min(wst, cuts.at(i).val);
 
 		// Logger::info("TMSTC - opt: " + std::to_string(opt) + " wst: " + std::to_string(wst) + " cut[" + std::to_string(i) + "] val: " + std::to_string(cuts[i].val));
 	}
@@ -686,14 +686,14 @@ void PathCut::MSTC_Star()
 		int min_cut = -1, max_cut = -1;
 		for (int i = 0; i < cuts.size(); ++i)
 		{
-			if (minn > cuts[i].val)
+			if (minn > cuts.at(i).val)
 			{
-				minn = cuts[i].val;
+				minn = cuts.at(i).val;
 				min_cut = i;
 			}
-			if (maxx < cuts[i].val)
+			if (maxx < cuts.at(i).val)
 			{
-				maxx = cuts[i].val;
+				maxx = cuts.at(i).val;
 				max_cut = i;
 			}
 		}
@@ -707,11 +707,13 @@ void PathCut::MSTC_Star()
 		vector<int> ccw = getHalfCuts(min_cut, max_cut, -1);
 		clw.size() < ccw.size() ? Balanced_Cut(clw) : Balanced_Cut(ccw);
 
+		Logger::info("Adjusted cut");
+
 		opt = 0, wst = 2e9;
 		for (int i = 0; i < cuts.size(); ++i)
 		{
-			opt = std::max(opt, cuts[i].val);
-			wst = std::min(wst, cuts[i].val);
+			opt = std::max(opt, cuts.at(i).val);
+			wst = std::min(wst, cuts.at(i).val);
 		}
 
 		cout << "after adjustment opt and wst: " << opt << "  " << wst << " diff: (" << (opt - wst) << ")\n";
@@ -753,16 +755,16 @@ void PathCut::Balanced_Cut(vector<int> &adjustCuts)
 	double old_val_max = -1, old_val_sum = 0;
 	for (auto &x : adjustCuts)
 	{
-		old_val_max = std::max(old_val_max, cuts[x].val);
-		old_val_sum += cuts[x].val;
+		old_val_max = std::max(old_val_max, cuts.at(x).val);
+		old_val_sum += cuts.at(x).val;
 	}
 
 	pair<double, double> res{old_val_max, old_val_sum};
-	int old_len_r_first = cuts[r_first].len, old_len_r_last = cuts[r_last].len;
+	int old_len_r_first = cuts.at(r_first).len, old_len_r_last = cuts.at(r_last).len;
 	double cur_val_max = -1, cur_val_sum = 0;
 	bool update_success = false;
 
-	// int lef = 0, rig = cuts[r_first].len + cuts[r_last].len - 1;  // -1 ensures the divided length is not 0
+	// int lef = 0, rig = cuts.at(r_first).len + cuts.at(r_last).len - 1;  // -1 ensures the divided length is not 0
 	double lef = 0, rig = getTurnAndLength(r_first) + getTurnAndLength(r_last);
 
 	// Originally we only used length comparison to divide, now we changed to weights, i.e., path length + turn weight to divide, then update the length
@@ -770,19 +772,19 @@ void PathCut::Balanced_Cut(vector<int> &adjustCuts)
 	while (rig - lef > eps)
 	{
 		double mid = (lef + rig) / 2;
-		int firstCutLen = std::lower_bound(pathValue.begin() + cuts[r_first].start, pathValue.end(), mid + pathValue[cuts[r_first].start]) - pathValue.begin() - cuts[r_first].start + 1;
-		cuts[r_first].len = firstCutLen;
-		cuts[r_last].len = old_len_r_first + old_len_r_last - firstCutLen;
+		int firstCutLen = std::lower_bound(pathValue.begin() + cuts.at(r_first).start, pathValue.end(), mid + pathValue.at(cuts.at(r_first).start)) - pathValue.begin() - cuts.at(r_first).start + 1;
+		cuts.at(r_first).len = firstCutLen;
+		cuts.at(r_last).len = old_len_r_first + old_len_r_last - firstCutLen;
 
 		vector<int>::iterator it = adjustCuts.begin();
 		while (it != adjustCuts.end())
 		{
 			if (it != adjustCuts.begin())
-				cuts[*it].start = (cuts[*(it - 1)].start + cuts[*(it - 1)].len) % circleLen;
+				cuts.at(*it).start = (cuts.at(*(it - 1)).start + cuts.at(*(it - 1)).len) % circleLen;
 
-			cuts[*it].val = updateCutVal(*it);
-			cur_val_max = std::max(cur_val_max, cuts[*it].val);
-			cur_val_sum += cuts[*it].val;
+			cuts.at(*it).val = updateCutVal(*it);
+			cur_val_max = std::max(cur_val_max, cuts.at(*it).val);
+			cur_val_sum += cuts.at(*it).val;
 
 			it++;
 		}
@@ -794,9 +796,9 @@ void PathCut::Balanced_Cut(vector<int> &adjustCuts)
 			old_val_sum = cur_val_sum;
 		}
 
-		if (cuts[r_first].val < cuts[r_last].val)
+		if (cuts.at(r_first).val < cuts.at(r_last).val)
 			lef = mid + 1;
-		else if (cuts[r_first].val > cuts[r_last].val)
+		else if (cuts.at(r_first).val > cuts.at(r_last).val)
 			rig = mid - 1;
 		else
 			break;

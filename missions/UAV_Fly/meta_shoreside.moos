@@ -29,9 +29,11 @@ Processconfig = ANTLER
   Run = uFldCollisionDetect @ NewConsole = false
   Run = pRealm              @ NewConsole = false
   Run = pGridSearchViz      @ NewConsole = false //, XConfig=HOLDSettings
-  Run = pGridSearchPlanner  @ NewConsole = false // true, XConfig=HOLDSettings
+  Run = pGridSearchPlanner  @ NewConsole = true, XConfig=HOLDSettings
   Run = uFldFireSim         @ NewConsole = false
 
+
+  Run = pMissionOperator    @ NewConsole = false
 
   Run = uProcessWatch       @ NewConsole = false
   // Run = uLoadWatch         @ NewConsole = false
@@ -68,6 +70,33 @@ ProcessConfig = pLogger
   WildCardLogging = true 
 }
 
+
+
+ProcessConfig = pMissionOperator                                     
+{                                                               
+  AppTick   = 4                                                 
+  CommsTick = 4                                                 
+                                                                
+  // required
+#ifdef USE_MOOS_SIM_PID true
+  is_running_moos_pid = true // Set to true if running in MOOS-IvP
+#endif
+
+
+  op_region = $(REGION) // Operating region
+
+  // Mission operation parameters
+  mission_duration = $(MISSION_DURATION)     // Maximum mission time in seconds
+  reset_delay = $(MO_RESET_DELAY)            // Delay between mission completion and reset in (MOOS) seconds
+                                       
+  // Algorithm missions - specify how many missions to run with each algorithm
+  tmstc_missions = $(MO_TMSTC_MISSIONS)         // Run missions with TMSTC_STAR
+  voronoi_missions = $(MO_VORONOI_MISSIONS)      // Run missions with VORONOI_SEARCH
+  
+  // Initial planner mode (optional, will use first algorithm with missions if not specified)
+  // planner_mode = $(PLANNER_MODE) // VORONOI_SEARCH, TMSTC_STAR
+  
+}
 
 
 ProcessConfig = uFldVoronoi
@@ -458,6 +487,8 @@ ProcessConfig = pMarineViewer
   action = CHANGE__ALL=10
   action+ = CHANGE__ALL=-10
 
+  action = ENABLE_MISSION_OPERATOR # XMISSION_OPERATOR_ENABLE=true
+  action = DISABLE_MISSION_OPERATOR # XMISSION_OPERATOR_ENABLE=false
 
 
   ////////////////////////////////////////////////
@@ -512,7 +543,10 @@ ProcessConfig = pMarineViewer
     button_1 = DEPLOY  # DO_SURVEY_ALL=false # DEPLOY_ALL=true # RETURN_ALL=false # LOITER_ALL=false # MOOS_MANUAL_OVERRIDE_ALL=false
     button_2 = TOWAYPT # DO_SURVEY_ALL=false # DEPLOY_ALL=false # RETURN_ALL=true # LOITER_ALL=false # MOOS_MANUAL_OVERRIDE_ALL=false
     button_3 = SURVEY # DO_SURVEY_ALL=true # DEPLOY_ALL=false # RETURN_ALL=false # LOITER_ALL=false # MOOS_MANUAL_OVERRIDE_ALL=false
-    button_3 = LOITER # DO_SURVEY_ALL=false # DEPLOY_ALL=false # RETURN_ALL=false # LOITER_ALL=true # MOOS_MANUAL_OVERRIDE_ALL=false
+    button_4 = LOITER # DO_SURVEY_ALL=false # DEPLOY_ALL=false # RETURN_ALL=false # LOITER_ALL=true # MOOS_MANUAL_OVERRIDE_ALL=false
+    
+    button_5 = ENABLE_MO # XMISSION_OPERATOR_ENABLE=true
+    button_6 = DISABLE_MO # XMISSION_OPERATOR_ENABLE=false 
   #else
 
     // button_1 = DEPLOY  # DEPLOY_ALL=true # MOOS_MANUAL_OVERRIDE_ALL=false
@@ -595,6 +629,7 @@ ProcessConfig = pMarineViewer
 #endif
 
   cmd= label=PROX_toggle_visualization, var=PROX_SET_VISUALIZATION, sval=toggle,  receivers=all
+
 
 } 
 

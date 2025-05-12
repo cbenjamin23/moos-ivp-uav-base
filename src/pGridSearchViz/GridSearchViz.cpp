@@ -343,6 +343,8 @@ bool GridSearchViz::handleMailDisableResetMission(std::string &warning)
   gridResetCells(); // reset the grid
   postGrid();
 
+  Logger::info("Mission disabled / ended.");
+
 
   // if running MOOS PID simulation
   if (m_isRunningMoosPid)

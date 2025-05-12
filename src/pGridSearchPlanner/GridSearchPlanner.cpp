@@ -359,7 +359,7 @@ void GridSearchPlanner::doPlanPaths()
   // Create the TMSTC* instance and calculate paths
   m_tmstc_star_ptr->reconfigureMapRobot(spanningMap, robot_region_indeces);
 
-  m_tmstc_star_ptr->getConfig().is_point_filtered_func = [this](int point_idx)
+  m_tmstc_star_ptr->getConfig().is_point_filtered_func =  [this](int point_idx)
   {
     return is_pathIdx_filtered(point_idx);
   };
@@ -726,15 +726,24 @@ bool GridSearchPlanner::handleMailViewGrid(std::string str)
   }
   m_grid_viz = grid;
 
+  bool nonemptyGrid = false;
+  double lowerlimit = m_grid_viz.getMinLimit(0);
   for (unsigned int ix = 0; ix < m_grid_viz.size(); ix++)
   {
     XYSquare cell = m_grid_viz.getElement(ix);
     cellP cell_center(cell.getCenterX(), cell.getCenterY());
     m_map_grid_cellCenter_idxs[cell_center] = ix;
 
+    if(m_grid_viz.getVal(ix, 0) > lowerlimit)
+      nonemptyGrid = true;
     // Logger::info("Grid cell index: " + doubleToStringX(ix, 2) + " at center: (" + doubleToStringX(cell_center.first, 2) + ", " + doubleToStringX(cell_center.second, 2) + ")");
   }
 
+  if(!nonemptyGrid){
+    Notify("XGSP_GRID_EMPTY", "true");
+    Logger::info("GridSearchPlanner: Grid is empty");
+  }
+  
   return true;
 }
 

@@ -248,6 +248,14 @@ if [ $? -ne 0 ]; then exit 1; fi
 
 
 
+MO_RESET_DELAY=$(get_global_val $CONFIG_FILE "missionParams.mission_operator_reset_delay")
+if [ $? -ne 0 ]; then exit 1; fi
+MO_VORONOI_MISSIONS=$(get_global_val $CONFIG_FILE "missionParams.mission_operator_voronoi_missions")
+if [ $? -ne 0 ]; then exit 1; fi
+MO_TMSTC_MISSIONS=$(get_global_val $CONFIG_FILE "missionParams.mission_operator_TMSTC_missions")
+if [ $? -ne 0 ]; then exit 1; fi
+
+
 
 #---------------------------------------------------------------
 #  Part 4: If verbose, show vars and confirm before launching
@@ -317,6 +325,10 @@ if [ "${VERBOSE}" = "yes" ]; then
     echo "REGION = [${REGION}]"
     echo "----------------------------------"
     echo "LOG_ENABLED = [${LOG_ENABLED}]"
+    echo "----------------------------------"
+    echo "MO_RESET_DELAY = [${MO_RESET_DELAY}]"
+    echo "MO_VORONOI_MISSIONS = [${MO_VORONOI_MISSIONS}]"
+    echo "MO_TMSTC_MISSIONS = [${MO_TMSTC_MISSIONS}]"
     echo "=================================="
     echo -n "Hit any key to continue launch "
     read ANSWER
@@ -370,6 +382,9 @@ nsplug meta_shoreside.moos targ_shoreside.moos $NSFLAGS WARP=$TIME_WARP \
     XMODE=$XMODE                                          \
     PLANNER_MODE=$PLANNER_MODE                           \
     LOG_ENABLED=$LOG_ENABLED                             \
+    MO_RESET_DELAY=$MO_RESET_DELAY                       \
+    MO_VORONOI_MISSIONS=$MO_VORONOI_MISSIONS             \
+    MO_TMSTC_MISSIONS=$MO_TMSTC_MISSIONS                 \
 
 
 if [ ${JUST_MAKE} = "yes" ]; then

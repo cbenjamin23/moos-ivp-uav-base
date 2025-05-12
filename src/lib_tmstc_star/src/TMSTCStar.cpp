@@ -117,18 +117,20 @@ void TMSTCStar::getPathInfo()
     for (int i = 0; i < paths_.size(); ++i)
     {
         std::cout << "Number of paths for robot " << i << ": " << std::flush;
-        std::cout << paths_[i].size() << std::endl;
+        std::cout << paths_.at(i).size() << std::endl;
+
+
 
         int turns = 0;
-        for (int j = 1; j < paths_[i].size() - 1; ++j)
+        for (int j = 1; j < paths_.at(i).size()!=0 && paths_.at(i).size() - 1 ; ++j)
         {
-            turns += isSameLine(paths_[i][j - 1], paths_[i][j], paths_[i][j + 1]) ? 0 : 1;
+            turns += isSameLine(paths_.at(i)[j - 1], paths_.at(i)[j], paths_.at(i)[j + 1]) ? 0 : 1;
         }
 
-        std::cout << "Path " << i << ": length=" << paths_[i].size()
+        std::cout << "Path " << i << ": length=" << paths_.at(i).size()
                   << ", turns=" << turns
-                //   << ", total_cost=" << (1.0 * paths_[i].size() + ONE_TURN_VAL * turns)
-                  << ", total_cost=" << computePathCost(paths_[i], config_.vehicle_params, smallcols_)
+                //   << ", total_cost=" << (1.0 * paths_.at(i).size() + ONE_TURN_VAL * turns)
+                  << ", total_cost=" << computePathCost(paths_.at(i), config_.vehicle_params, smallcols_)
                   << std::endl;
     }
 }
