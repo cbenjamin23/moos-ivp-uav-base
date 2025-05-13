@@ -4,14 +4,12 @@
 simulation:
   useMoosSimPid: true # Use MOOS-IvP Vechicle simulator
   time_warp: 10
-  number_of_drones: 3
+  number_of_drones: 6
 
   ardupilot_ip: "0.0.0.0"
   ardupilot_protocol: "udp"
   fdm_port_in_default: 9002
   ardupilot_port_default: 14550
-
-  
 
 # Field deployment parameters
 field:
@@ -19,10 +17,9 @@ field:
   ardupilot_ip: "ttySAC0" # serial port
   ardupilot_port: "115200" # baudrate
   ardupilot_protocol: "serial"
-  speed: 
+  speed:
     max: 19 # m/s
     min: 11 # m/s
-
 
 moos:
   datum:
@@ -31,53 +28,52 @@ moos:
 
   # shoreside / Ground Station parameters
   shore_ip: 10.0.60.1
-  defaultPorts: 
+  defaultPorts:
     DB: 9000
     PSHARE: 9200
 
 missionParams:
+  log_enabled: false # If true, the mission will be logged to a file
+  mission_duration: 600 # s - The duration of the mission (20min)
 
-  log_enabled: false # If true, the mission will be logged to a file  
-  mission_duration : 600 # s - The duration of the mission (20min)
-
-  voronoi_search_enabled: false # If true, the Voronoi algorithm will be used to set the path for the drone, else TMSTC* will be used
-                        # else, the TMSTC* algorithm will be used to set the path for the drone
-  voronoi_setpoint_method: gridsearch # The method used to set the path for the voronoi algorithm. Can be "gridsearch", "center" or "centroid" 
+  voronoi_search_enabled:
+    false # If true, the Voronoi algorithm will be used to set the path for the drone, else TMSTC* will be used
+    # else, the TMSTC* algorithm will be used to set the path for the drone
+  voronoi_setpoint_method: gridsearch # The method used to set the path for the voronoi algorithm. Can be "gridsearch", "center" or "centroid"
 
   # The ratio between the region grid cell distance in the TMSTC* algorithm and the sensor range. The sensor range is the maximum distance from the drone that the sensor can detect fires
-  # TMSTC_gridsizeSensorRangeRatio: 0.5 
+  # TMSTC_gridsizeSensorRangeRatio: 0.5
   TMSTC_gridsizeSensorRangeRatio: 0.4 # might work better in simulation
   TMSTC_config_vmax: 18 # [m/s] The maximum speed of the drone (to be used in the TMSTC* algorithm when calculating the grid travel time)
   TMSTC_config_phi_max_rad: 45 # [degrees] The maximum bank angle of the drone (to be used in the TMSTC* algorithm when calculating the grid travel time)
-  TMSTC_point_filtering: true # If true, the TMSTC* algorithm will filter out the grid cells that are already visited when replanning
-                              # points not outside the search Area and in ignored region will always be removed.
+  TMSTC_point_filtering:
+    true # If true, the TMSTC* algorithm will filter out the grid cells that are already visited when replanning
+    # points not outside the search Area and in ignored region will always be removed.
   # Fire parameters:
-  fire_file_default   : "fires_field.txt" # The file containing the fire data if generate not set
+  fire_file_default: "fires_field.txt" # The file containing the fire data if generate not set
 
-  fire_generate       : true # If true, the fires will be generated randomly, otherwise they will be read from a file
-  fire_count          : 40 # The number of fires to be placed in the region at launch
-  fire_sep_min        : 10 # m - The minimum separation between fires
-  fire_color          : red # The color of the fire, or "vehicle" if the fire should take the color of the vehicle as well
-  
-  fire_spawn_count    : 0 # The number of fires to spawn after the mission has started
-  fire_spawn_interval : 300:500 # s - The time interval for which the delayed fires will be spawned (randomly) ( 0 <= [tmin,tmax] <= mission_duration)
-  
+  fire_generate: true # If true, the fires will be generated randomly, otherwise they will be read from a file
+  fire_count: 40 # The number of fires to be placed in the region at launch
+  fire_sep_min: 10 # m - The minimum separation between fires
+  fire_color: red # The color of the fire, or "vehicle" if the fire should take the color of the vehicle as well
+
+  fire_spawn_count: 0 # The number of fires to spawn after the mission has started
+  fire_spawn_interval: 300:500 # s - The time interval for which the delayed fires will be spawned (randomly) ( 0 <= [tmin,tmax] <= mission_duration)
+
   # Ignored region parameters
-  ignoredRegion_file_default   : "ignoredRegions.txt" # The file containing the ignored region data if generate not set
+  ignoredRegion_file_default: "ignoredRegions.txt" # The file containing the ignored region data if generate not set
   # ignoredRegion_file_default   : "regions_c8_sep150.txt" # The file containing the ignored region data if generate not set
-  ignoredRegion_generate       : false # If true, the ignored regions will be generated randomly, otherwise they will be read from a file
-  ignoredRegion_count          : 3 # The number of ignored regions to be placed in the region at launch
-  ignoredRegion_sep_min        : 150 # m - The minimum separation between ignored regions
-  ignoredRegion_spawn_count    : 0 # The number of ignored regions to spawn after the mission has started
-  ignoredRegion_spawn_interval : 300:500 # s - The time interval for which the delayed ignored regions will be spawned (randomly) ( 0 <= [tmin,tmax] <= mission_duration)
-  
+  ignoredRegion_generate: false # If true, the ignored regions will be generated randomly, otherwise they will be read from a file
+  ignoredRegion_count: 3 # The number of ignored regions to be placed in the region at launch
+  ignoredRegion_sep_min: 150 # m - The minimum separation between ignored regions
+  ignoredRegion_spawn_count: 0 # The number of ignored regions to spawn after the mission has started
+  ignoredRegion_spawn_interval: 300:500 # s - The time interval for which the delayed ignored regions will be spawned (randomly) ( 0 <= [tmin,tmax] <= mission_duration)
 
   # Mission operator parameters - For simulating many missions
   mission_operator_reset_delay: 2 # s - Delay between mission completion and reset in (actual) seconds
 
-  mission_operator_voronoi_missions: 2 # The number of VORONOI_SEARCH missions to be run
-  mission_operator_TMSTC_missions: 4  # The number of TMSTC* missions to be run
-
+  mission_operator_TMSTC_missions: 0 # The number of TMSTC* missions to be run
+  mission_operator_voronoi_missions: 10 # The number of VORONOI_SEARCH missions to be run
 
   # Region parameters: The region in which the mission is to be conducted
   # TOOL: https://www.keene.edu/campus/maps/tool/
@@ -101,7 +97,7 @@ missionParams:
   #   10.1602077, 63.3924059
   #   10.1540709, 63.3949622
 
-  region_lonlat: |       # Larger region
+  region_lonlat: | # Larger region
     10.1356602, 63.4006697
     10.1259184, 63.3971146
     10.1233006, 63.3922521
@@ -121,30 +117,28 @@ missionParams:
   #   10.1379776, 63.3942126
   #   10.1344800, 63.3968936
 
-
   # Waypoint parameters
   # capture_radius: 50 # m  - The distance from the waypoint that the drone must be within to consider it captured
   capture_radius: 30 # works better in simulation
-  slip_radius   : 75     # m   (both currently modify sim parameters)
+  slip_radius: 75 # m   (both currently modify sim parameters)
 
   # Grid parameters
-  grid_cell_size: 10      # m - The distance between each waypoint in the grid
+  grid_cell_size: 10 # m - The distance between each waypoint in the grid
   grid_cell_max_count: 20 # Max number og visit before it is fully coloured
-  grid_cell_decay_time: 0  # s - The decay rate of the grid cell value. Every x seconds it is decreased by 1 // 0 means no decay
+  grid_cell_decay_time: 0 # s - The decay rate of the grid cell value. Every x seconds it is decreased by 1 // 0 means no decay
 
   # Sensor parameters
-  sensor_detect_pd    : 1.0 # Probability of detection of fire
-  sensor_radius_min   : 20 # m - The farthest distance from the drone from which the drone has a possibility to detect fires with detect_pd
-  sensor_radius_max   : 30 # m - The distance from which after sensor_radius_min the probability of detection drops linearly to 0
-  sensor_color        : white # The color of the sensor circle/area
-  sensor_altitude_max : 130 # m - The maximum altitude at which the sensor has a range of 100% (sensor_radius_max)
-  sensor_radius_fixed : true # If true, the sensor radius will be fixed at sensor_radius, regardless of altitude
+  sensor_detect_pd: 1.0 # Probability of detection of fire
+  sensor_radius_min: 20 # m - The farthest distance from the drone from which the drone has a possibility to detect fires with detect_pd
+  sensor_radius_max: 30 # m - The distance from which after sensor_radius_min the probability of detection drops linearly to 0
+  sensor_color: white # The color of the sensor circle/area
+  sensor_altitude_max: 130 # m - The maximum altitude at which the sensor has a range of 100% (sensor_radius_max)
+  sensor_radius_fixed: true # If true, the sensor radius will be fixed at sensor_radius, regardless of altitude
 
   # Collision avoidance parameters
   encounter_radius: 100 # m - The distance from the drone that the other drone must be within to consider it encountered
   near_miss_radius: 50 # m - The distance from the drone that the other drone must be within to consider it near missed
   collision_radius: 10 # m - The distance from the drone that the other drone must be within to consider it collided
-
 
 drones:
   - name: "skywalker"
@@ -197,11 +191,11 @@ drones:
       x: 16
       y: -96
       hdg: 56 # deg
-  
+
   - name: "sky7"
     color: "brown"
     start_orientaton_moos: # +x is east, +y is north [m]
-      x:  95
+      x: 95
       y: -100
       hdg: 56 # deg
 

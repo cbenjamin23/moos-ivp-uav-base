@@ -533,7 +533,7 @@ bool MissionOperator::buildReport()
   m_msgs << std::endl;
   if (m_mission_in_progress)
   {
-    double elapsed = std::chrono::duration<double>(std::chrono::steady_clock::now() - m_reset_start_time).count();
+    double elapsed =  m_curr_time - m_mission_start_time;
     m_msgs << "     Mission time elapsed: " << doubleToStringX(elapsed, 1) << " seconds" << std::endl;
     m_msgs << "       Mission timeout at: " << doubleToStringX(m_mission_duration, 1) << " seconds" << std::endl;
     m_msgs << "           Time remaining: " << doubleToStringX(m_mission_duration - elapsed, 1) << " seconds" << std::endl;

@@ -30,6 +30,7 @@ def plot_score_distributions(df, output_dir, save):
     # Create a dictionary mapping algorithm to a consistent color
     algo_color_map = {algo: sns.color_palette("Set2")[i % 8] for i, algo in enumerate(unique_algorithms)}
 
+    total_simulations = len(df)
     for metric_label, (column, divisor) in metrics.items():
         fig, axes = plt.subplots(nrows=2, ncols=2, figsize=(14, 10), sharey=True)
         axes = axes.flatten()
@@ -81,7 +82,8 @@ def plot_score_distributions(df, output_dir, save):
                 fontsize=12
             )
 
-        plt.tight_layout()
+        plt.suptitle(f"{metric_label} Distribution (Total Simulations: {total_simulations})", fontsize=16)
+        plt.tight_layout(rect=[0, 0, 1, 0.96])
         if save:
             os.makedirs(output_dir, exist_ok=True)
             base_name = f"{metric_label.lower()}_distribution"
@@ -105,6 +107,9 @@ def plot_time_statistics(df, output_dir, save):
     selected_drones = [3, 6, 9]
     df_filtered = df[df["DroneCount"].isin(selected_drones)].copy()
     
+    # Get the deadline value (assuming it's consistent across all missions)
+    deadline = df_filtered['Deadline'].iloc[0]
+    
     # Create a figure with 2x2 grid of subplots (one will be empty or for legend)
     fig, axes = plt.subplots(2, 2, figsize=(14, 10), sharex=True, sharey=True)
     axes = axes.flatten()
@@ -117,7 +122,8 @@ def plot_time_statistics(df, output_dir, save):
     # Create a legend-only subplot
     legend_handles = []
     legend_labels = []
-    
+
+    total_simulations = len(df_filtered)
     for i, (stat_name, column_name) in enumerate(time_columns.items()):
         ax = axes[i]
         
@@ -147,6 +153,14 @@ def plot_time_statistics(df, output_dir, save):
                 legend_handles.append(line)
                 legend_labels.append(algorithm)
         
+        # Add a horizontal line for the deadline
+        deadline_line = ax.axhline(y=deadline, color='red', linestyle='-', linewidth=2, alpha=0.7)
+        
+        # Add deadline to legend only once
+        if i == 0:
+            legend_handles.append(deadline_line)
+            legend_labels.append(f"Deadline ({deadline}s)")
+        
         ax.set_title(f"{stat_name} Time by Drone Count")
         ax.set_xlabel("Number of Drones")
         ax.set_ylabel("Time (seconds)")
@@ -171,8 +185,9 @@ def plot_time_statistics(df, output_dir, save):
             bbox_to_anchor=(0.5, 0.5),
             bbox_transform=axes[3].transAxes
         )
-    
-    plt.tight_layout()
+
+    plt.suptitle(f"Time Statistics (Total Simulations: {total_simulations})", fontsize=16)
+    plt.tight_layout(rect=[0, 0, 1, 0.96])
     if save:
         os.makedirs(output_dir, exist_ok=True)
         plt.savefig(os.path.join(output_dir, "time_statistics.png"))
@@ -201,6 +216,7 @@ def plot_avg_metrics_by_drone_count(df, output_dir, save):
     unique_algorithms = df_filtered['Algorithm'].unique()
     algo_color_map = {algo: sns.color_palette("Set2")[i % 8] for i, algo in enumerate(unique_algorithms)}
     
+    total_simulations = len(df_filtered)
     for i, (metric_name, column_name) in enumerate(metrics.items()):
         ax = axes[i]
         
@@ -238,8 +254,10 @@ def plot_avg_metrics_by_drone_count(df, output_dir, save):
         # Only add legend to the first plot
         if i == 0:
             ax.legend(title="Algorithm")
-    
-    plt.tight_layout()
+
+
+    plt.suptitle(f"Average metric by Drone Count (Total Simulations: {total_simulations})", fontsize=16)
+    plt.tight_layout(rect=[0, 0, 1, 0.96])
     if save:
         os.makedirs(output_dir, exist_ok=True)
         plt.savefig(os.path.join(output_dir, "avg_metrics_by_drone_count.png"))
@@ -268,6 +286,7 @@ def plot_fires_detected_by_drone_count(df, output_dir, save):
     # Add small random jitter to y-positions for better visualization
     jitter = 0.1
     
+    total_simulations = len(df_filtered)
     # Plot each data point
     for idx, row in df_filtered.iterrows():
         # Add small random vertical jitter for better visualization
@@ -321,8 +340,8 @@ def plot_fires_detected_by_drone_count(df, output_dir, save):
     # Set labels and title
     plt.xlabel('Number of Fires Detected', fontsize=12)
     plt.ylabel('Number of Drones', fontsize=12)
-    plt.title('Fires Detected by Drone Count and Algorithm', fontsize=14)
-    
+    plt.title(f"Fires Detected by Drone Count and Algorithm (Total Simulations: {total_simulations})", fontsize=14)
+
     # Add a text annotation explaining the X markers
     plt.figtext(0.5, 0.01, 'Gray X markers indicate the total number of fires available in the mission', 
                ha='center', fontsize=10, style='italic')
@@ -343,7 +362,7 @@ def plot_mission_scores(
     score_dir="sim"
 ):
     csv_path = score_dir + "/" + csv_name
-    output_dir = score_dir + "/" + output_dir
+    output_dir = output_dir
     
     if regenerate:
         print(f"📄 Regenerating CSV from score files in: {score_dir}")
