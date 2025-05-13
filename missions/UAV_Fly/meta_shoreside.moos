@@ -271,7 +271,7 @@ ProcessConfig = uFldFireSim
 	scout_rng_transparency = 0.1
 	show_detect_rng = true
 
-  mission_score_save_path = "missions/UAV_Fly/mission_score/sim/" // is withing the moos-ivp-uav folder
+  mission_score_save_path = "missions/UAV_Fly/mission_score/wIR/" // is withing the moos-ivp-uav folder
 
 
   finish_flag = MISSION_COMPLETE=true

@@ -426,7 +426,7 @@ bool GridSearchViz::unregisterIgnoredRegion(std::string name)
   name = stripBlankEnds(name);
 
   if (m_map_ignored_cell_indices.count(name) == 0)
-    return false;
+    return true;
 
   std::vector<int> &cell_indices = m_map_ignored_cell_indices[name];
 

@@ -58,12 +58,18 @@ std::vector<int> PathCut::filterValidPoints(const std::vector<int> &path)
 			auto it = std::find(depot.begin(), depot.end(), point);
 			if (it != depot.end())
 			{
+				
+				
+				
+				const int max_iterations = 1000;
 				// If point is depot, change depot to next point
 				// keep changing until next point is not already a depot
 				auto inc = 1;
-
 				auto next_depot = std::find(depot.begin(), depot.end(), path[(i + inc) % path.size()]); 
-				while (next_depot != depot.end() || ignored_points.find( path[(i + inc) % path.size()]) != ignored_points.end())
+				while ( 
+					( next_depot != depot.end() || ignored_points.find( path[(i + inc) % path.size()]) != ignored_points.end())
+					&& (inc < max_iterations)
+				)
 				{
 					// std::cout << "Changing depot to next point: " << path[(i + inc) % path.size()] << std::endl;
 					// Logger::info("Changing depot to next point: " + std::to_string(path[(i + inc) % path.size()]));
@@ -71,10 +77,14 @@ std::vector<int> PathCut::filterValidPoints(const std::vector<int> &path)
 					inc++;
 					next_depot = std::find(depot.begin(), depot.end(), path[(i + inc) % path.size()]);
 				}
-		
 
 				*it = path[(i + inc) % path.size()]; // Change depot to next point
-				 
+				
+				if (inc >= max_iterations)
+				{
+					std::cout << "Max iterations reached while changing depot to next point: " << path[(i + inc) % path.size()] << std::endl;
+					Logger::error("Max iterations reached while changing depot to next point: " + std::to_string(path[(i + inc) % path.size()]));
+				}
 				
 				std::cout << "Changed depot to next point: " << *it << std::endl;
 				Logger::info("Changed depot to next point: " + std::to_string(*it));

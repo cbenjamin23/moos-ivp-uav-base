@@ -66,6 +66,7 @@ protected: // Incoming mail utility
 protected: // Outgoing mail utility
   void declareDiscoveredFire(std::string vname, std::string fname);
   void declareDiscoveredIgnoredRegion(std::string vname, std::string rname);
+  void notifyUnregIgnoredRegions();
 
 protected: // Utilities
   void registerRemoveIgnoredRegion(std::string pos_str, bool doRegister = true);

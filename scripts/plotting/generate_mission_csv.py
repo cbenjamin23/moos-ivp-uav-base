@@ -64,6 +64,12 @@ def generate_mission_score_csv(input_folder="sim", output_folder=None, output_cs
     
     id = input_folder.split("/")[-1]
     # print("ID: ", id)
+    
+    
+    # if ends with .csv, remove it
+    if output_csv_name.endswith(".csv"):
+        output_csv_name = output_csv_name[:-4]
+        
     output_csv = output_path / (output_csv_name + "_" + id + ".csv") \
                  if (output_folder is not None) else input_path / (output_csv_name + ".csv")
                  

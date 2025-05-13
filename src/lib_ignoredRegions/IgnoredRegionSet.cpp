@@ -60,6 +60,9 @@ bool IgnoredRegionSet::handleIgnoredRegionConfig(std::string str, double curr_ti
         return false;
     }
 
+    m_region_config_str = str; 
+
+
     if (!generate)
         return handleRegionFile(file, save_path, curr_time, warning);
 

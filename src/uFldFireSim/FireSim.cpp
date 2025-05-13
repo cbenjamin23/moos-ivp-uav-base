@@ -198,6 +198,7 @@ bool FireSim::handleMailDisableResetMission(std::string &warning)
     return false;
   }
 
+  notifyUnregIgnoredRegions();
 
   m_fireset.reset(m_curr_time);
   auto fire_points = m_fireset.getFirePoints();
@@ -297,6 +298,13 @@ void FireSim::registerRemoveIgnoredRegion(std::string pos_str, bool doRegister)
   }
 }
 
+
+void FireSim::notifyUnregIgnoredRegions(){
+  auto unreg_regions = m_ignoredRegionset.getIgnoredRegionNames();
+  for (const auto &region : unreg_regions)
+    Notify("IGNORED_REGION_ALERT", "unreg::" + region);
+  
+}
 //---------------------------------------------------------
 // Procedure: OnConnectToServer()
 
@@ -666,8 +674,8 @@ void FireSim::tryScoutsVNameFire(std::string vname, std::string fname)
 
   Fire fire = m_fireset.getFire(fname);
 
-  bool result = rollDiceFire(vname, fname);
-  if (result)
+  bool discovered = rollDiceFire(vname, fname);
+  if (discovered)
   {
     fire.incDiscoverCnt();
     m_fireset.modFire(fire);
@@ -686,8 +694,8 @@ void FireSim::tryScoutsVNameIgnoredRegion(std::string vname, std::string rname)
 {
   IgnoredRegion ignoredRegion = m_ignoredRegionset.getIgnoredRegion(rname);
 
-  bool result = rollDiceIgnoredRegion(vname, rname);
-  if (result && !ignoredRegion.isDiscovered())
+  bool discovered = rollDiceIgnoredRegion(vname, rname);
+  if (discovered && !ignoredRegion.isDiscovered())
     declareDiscoveredIgnoredRegion(vname, rname);
 }
 
@@ -1029,6 +1037,26 @@ void FireSim::declareDiscoveredIgnoredRegion(std::string vname, std::string rnam
 
   std::string alert_spec = "reg::" + ignoredRegion.getSpec();
   Notify("IGNORED_REGION_ALERT", alert_spec);
+
+
+  // if fire in ignored region, then declare it discovered
+  std::set<std::string> fire_names = m_fireset.getFireNames();
+  for (const auto &fname : fire_names)
+  {
+    Fire fire = m_fireset.getFire(fname);
+    
+    if (fire.isDiscovered())
+      continue;
+
+    if (ignoredRegion.contains(fire.getCurrX(), fire.getCurrY()))
+    {
+      fire.incDiscoverCnt();
+      m_fireset.modFire(fire);
+      declareDiscoveredFire(vname, fname);
+    }
+  }
+
+  
 }
 
 //------------------------------------------------------------
