@@ -41,7 +41,7 @@ def generate_latex_table(csv_file, algorithms, drone_counts, save=False):
             if algo == "TMSTC_STAR":
                 display_names.append("TMSTC*")
             else:
-                display_names.append("Voronoi search")
+                display_names.append("Voronoi Search")
         algo_label = ", ".join(display_names) if len(display_names) > 1 else display_names[0]
     
     # Process drone counts
@@ -65,6 +65,9 @@ def generate_latex_table(csv_file, algorithms, drone_counts, save=False):
                 drone_label_for_table = "_".join([drone_count_words.get(dc, str(dc)) for dc in drone_filter])
         except ValueError:
             return "Error: --drone_count must be comma-separated integers or 'all'.", None
+    
+    drone_label_for_table = drone_label_for_table + f":{algo_label}"
+    drone_label_for_table = drone_label_for_table.replace(" ", "_")
     
     # Filter data
     filtered_df = df[
@@ -97,7 +100,7 @@ def generate_latex_table(csv_file, algorithms, drone_counts, save=False):
             stats[metric] = (0.0, 0.0, 0.0, 0.0)
     
     # LaTeX table template matching the provided format
-    caption = f"Statistics of Metrics for {algo_label} Algorithm with {drone_label} Drones on the field"
+    caption = f"Statistics for {len(filtered_df)} simulated missions with {algo_label} Algorithm with {drone_label} Drones"
     latex = r"""
 \documentclass{article}
 \usepackage[table]{xcolor} % For table coloring
@@ -157,10 +160,10 @@ def generate_latex_table(csv_file, algorithms, drone_counts, save=False):
 \begin{table}[!h]
     \centering
     \caption{""" + caption + r"""}
-    \label{tab:field:""" + drone_label_for_table + r""":fire_mission_scenarios_stats}
+    \label{tab:sim:""" + drone_label_for_table + r""":fire_mission_scenarios_stats}
     \begin{tabular}{|l|c|c|c|c|}
         \hhline{~*{4}{-}}
-        \multicolumn{1}{c|}{} & \multicolumn{4}{c|}{\textbf{""" + algo_label + r""" Algorithm - Field}} \\
+        \multicolumn{1}{c|}{} & \multicolumn{4}{c|}{\textbf{""" + algo_label + r""" Algorithm - """ + drone_label + r""" Drones Sim}} \\
         \hline
         \textbf{Metric} & \textbf{Average} & \textbf{Std. Dev.} & \textbf{Low} & \textbf{High} \\
         \hline

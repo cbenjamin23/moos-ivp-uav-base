@@ -432,7 +432,7 @@ ProcessConfig = pMarineViewer
 
 
   vehicles_shape_scale = 5.0
-  vehicles_name_mode   = names+depth
+  vehicles_name_mode   = names
   vehicles_active_color = skyblue // (87,ce,eb)
   vehicles_inactive_color = gray // (80,80,80)
 
