@@ -359,14 +359,26 @@ def plot_mission_scores(
     output_dir="plots",
     save=True,
     regenerate=False,
-    score_dir="sim"
+    score_dir="sim",
+    ignored_regions=None
 ):
+    """
+    Plot mission scores data from CSV file.
+    
+    Args:
+        csv_name (str): Base name of the CSV file to load/generate
+        output_dir (str): Directory to save the plots
+        save (bool): Whether to save the plots
+        regenerate (bool): Whether to regenerate the CSV file
+        score_dir (str): Directory containing the score files
+        ignored_regions (int or None): Filter by number of ignored regions (default: None, include all)
+    """
     csv_path = score_dir + "/" + csv_name
     output_dir = output_dir
     
     if regenerate:
         print(f"📄 Regenerating CSV from score files in: {score_dir}")
-        generate_csv(input_folder=score_dir, output_csv_name=csv_name)
+        generate_csv(input_folder=score_dir, output_csv_name=csv_name, ignored_regions=ignored_regions)
 
     if not os.path.exists(csv_path):
         print(f"❌ CSV file not found at {csv_path}")
@@ -391,8 +403,13 @@ def plot_mission_scores(
         print(f"❌ Missing columns in CSV: {missing_columns}")
         sys.exit(1)
 
-    
-    
+    # Display information about the dataset
+    print(f"\n📊 Dataset Information:")
+    print(f"Total missions: {len(df)}")
+    print(f"Algorithms: {df['Algorithm'].unique()}")
+    print(f"Drone counts: {sorted(df['DroneCount'].unique())}")
+    if ignored_regions is not None:
+        print(f"Filtered by ignored regions: {ignored_regions}")
     
     sns.set_theme(style="whitegrid")
     plt.rcParams["figure.autolayout"] = True
@@ -403,14 +420,11 @@ def plot_mission_scores(
             plt.savefig(os.path.join(output_dir, f"{name}.png"))
             plt.savefig(os.path.join(output_dir, f"{name}.eps"), format='eps')
 
-
     ####### PLOTTING #######
     
-
     # Print the df
     # print(f"df\n {df}")
         
-    
     plot_score_distributions(df, output_dir, save)
     
     # Plot time statistics
@@ -472,7 +486,8 @@ if __name__ == "__main__":
     parser.add_argument("--out", default="plots", help="Directory to save plots.")
     parser.add_argument("--save", action="store_true", help="Save plots to file.")
     parser.add_argument("--regenerate", action="store_true", help="Regenerate CSV file before plotting.")
-    parser.add_argument("--score_dir", default="sim", help="Directory containing mission score files.")
+    parser.add_argument("--score_dir","--sd", default="sim", help="Directory containing mission score files.")
+    parser.add_argument("--ignored_regions","--ir", type=int, default=None, help="Filter by number of ignored regions.")
     args = parser.parse_args()
 
     plot_mission_scores(
@@ -481,4 +496,5 @@ if __name__ == "__main__":
         save=args.save,
         regenerate=args.regenerate,
         score_dir=args.score_dir,
+        ignored_regions=args.ignored_regions,
     )

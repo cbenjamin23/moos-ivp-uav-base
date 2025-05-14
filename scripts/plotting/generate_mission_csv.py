@@ -52,7 +52,19 @@ def parse_score_file(filepath):
 
     return data
 
-def generate_mission_score_csv(input_folder="sim", output_folder=None, output_csv_name="mission_scores"):
+def generate_mission_score_csv(input_folder="sim", output_folder=None, output_csv_name="mission_scores", ignored_regions=None):
+    """
+    Generate a CSV file with mission scores from individual score files.
+    
+    Args:
+        input_folder (str): Folder containing mission score files
+        output_folder (str): Folder to save the CSV file (default: same as input_folder)
+        output_csv_name (str): Name of the output CSV file (default: "mission_scores")
+        ignored_regions (int or None): Filter by number of ignored regions (default: None, include all)
+    
+    Returns:
+        Path: Path to the generated CSV file
+    """
     input_path = Path(input_folder)
     # output_path = Path(output_folder) if output_folder else input_path.parent
     output_path = Path(output_folder) if output_folder else input_path
@@ -87,14 +99,26 @@ def generate_mission_score_csv(input_folder="sim", output_folder=None, output_cs
     algorithm_counter = Counter()
     # Dictionary to track the drones involved in each algorithm's missions
     algorithm_drone_counts = defaultdict(list)
+    # Track filtered vs total missions
+    total_files = len(files)
+    filtered_files = 0
 
     with open(output_csv, 'w', newline='') as csvfile:
         writer = csv.DictWriter(csvfile, fieldnames=headers)
         writer.writeheader()
-        for i, file in enumerate(files, start=1):
+        mission_id = 1  # Start with mission ID 1
+        
+        for file in files:
             data = parse_score_file(file)
+            
+            # Skip if ignored_regions filter is set and doesn't match
+            if ignored_regions is not None and data['IgnoredRegions'] != ignored_regions:
+                continue
+                
+            filtered_files += 1
+            
             row = {
-                'MissionID': i,
+                'MissionID': mission_id,
                 'Algorithm': data['Algorithm'],
                 'DroneCount': data['DroneCount'],
                 'Deadline': data['Deadline'],
@@ -120,6 +144,8 @@ def generate_mission_score_csv(input_folder="sim", output_folder=None, output_cs
                 # Track drone counts for each algorithm
                 if data['DroneCount']:
                     algorithm_drone_counts[data['Algorithm']].append(data['DroneCount'])
+                    
+            mission_id += 1  # Increment mission ID for each included mission
 
     # Print the count of missions by algorithm and drone counts
     print("\nMission count by algorithm:")
@@ -138,7 +164,13 @@ def generate_mission_score_csv(input_folder="sim", output_folder=None, output_cs
     else:
         print("  No algorithm data found in the mission files")
 
-    print(f"\nTotal missions processed: {len(files)}")
+    # Print filter information
+    if ignored_regions is not None:
+        print(f"\nFilter: Ignored Regions = {ignored_regions}")
+        print(f"Missions included: {filtered_files} out of {total_files} total missions")
+    else:
+        print(f"\nTotal missions processed: {filtered_files}")
+        
     return output_csv
 
 
@@ -151,7 +183,8 @@ if __name__ == '__main__':
     parser.add_argument('--input_folder', '--if', type=str, default="sim", help='Input folder containing score files.')
     parser.add_argument('--output_folder', '--of',type=str, default=None, help='Output folder for the CSV file.')
     parser.add_argument('--output_csv_name', '-n', type=str, default="mission_scores", help='Output CSV file name.')
+    parser.add_argument('--ignored_regions', '--ir', type=int, default=None, help='Filter by number of ignored regions.')
     args = parser.parse_args()
     # Call the function with command line arguments
-    generate_mission_score_csv(args.input_folder, args.output_folder, args.output_csv_name)
+    generate_mission_score_csv(args.input_folder, args.output_folder, args.output_csv_name, args.ignored_regions)
 
