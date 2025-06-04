@@ -75,7 +75,7 @@ void showExampleConfigAndExit()
   blk("  CommsTick = 4                                                 ");
   blk("                                                                ");
   blk("  op_region = -1008.5,-586.1:247.2,451.5 // Operating region  ");
-  blk("  mission_operator_enable = false // Enable mission operator     "); 
+  blk("  mission_operator_enable = false // Enable mission operator     ");
   blk("  // required                                                   ");
   blk("  is_running_moos_pid = true                                    ");
   blk("                                                                ");
@@ -107,15 +107,29 @@ void showInterfaceAndExit()
   blk("                                                                ");
   blk("SUBSCRIPTIONS:                                                  ");
   blk("------------------------------------                            ");
-  blk("  MISSION_COMPLETE    = true                                    ");
-  blk("  CHANGE_PLANNER_MODEX                                          ");
+  blk("  MISSION_COMPLETE = true         // Mission completion signal ");
+  blk("  XREQUEST_PLANNER_MODE = true    // Request current planner    ");
+  blk("  XMISSION_OPERATOR_ENABLE = true // Enable/disable operator   ");
+  blk("  NODE_REPORT = NAME=alpha,X=100,Y=200  // Vehicle positions   ");
+  blk("  XGSP_GRID_EMPTY = true          // GridSearchPlanner status  ");
   blk("                                                                ");
   blk("PUBLICATIONS:                                                   ");
   blk("------------------------------------                            ");
-  blk("  CHANGE_PLANNER_MODEX = VORONOI_SEARCH                         ");
-  blk("  CHANGE_PLANNER_MODE_ALL = VORONOI_SEARCH                      ");
-  blk("  XENABLE_MISSION = true                                        ");
-  blk("  XDISABLE_RESET_MISSION = true                                 ");
+  blk("  CHANGE_PLANNER_MODEX = VORONOI_SEARCH    // Set planner mode ");
+  blk("  CHANGE_PLANNER_MODE_ALL = TMSTC_STAR     // Set all planners ");
+  blk("  XENABLE_MISSION = true                   // Start mission    ");
+  blk("  XDISABLE_RESET_MISSION = true            // Reset mission    ");
+  blk("                                                                ");
+  blk("CONFIGURATION PARAMETERS:                                       ");
+  blk("------------------------------------                            ");
+  blk("  is_running_moos_pid = true       // Required: MOOS-PID mode   ");
+  blk("  mission_duration = 600           // Max mission time (sec)    ");
+  blk("  reset_delay = 2                  // Reset delay (sec)         ");
+  blk("  voronoi_missions = 10            // VORONOI_SEARCH missions   ");
+  blk("  tmstc_missions = 5               // TMSTC_STAR missions       ");
+  blk("  planner_mode = VORONOI_SEARCH    // Initial planner mode      ");
+  blk("  op_region = pts{x1,y1:x2,y2}     // Operational region poly   ");
+  blk("  mission_operator_enable = true   // Enable at startup         ");
   blk("                                                                ");
   exit(0);
 }
@@ -125,6 +139,6 @@ void showInterfaceAndExit()
 
 void showReleaseInfoAndExit()
 {
-  showReleaseInfo("pMissionOperator", "gpl");
+  //showReleaseInfo("pMissionOperator", "gpl");
   exit(0);
 }

@@ -810,7 +810,7 @@ void FireSim::updateWinnerStatus(bool finished)
     return;
 
   m_vname_winner = would_be_winner;
-  Notify("UFFS_WINNER", m_vname_winner);
+  //Notify("UFFS_WINNER", m_vname_winner);
   postFlags(m_winner_flags);
 }
 

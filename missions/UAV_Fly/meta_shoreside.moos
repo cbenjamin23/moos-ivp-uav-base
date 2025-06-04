@@ -29,7 +29,7 @@ Processconfig = ANTLER
   Run = uFldCollisionDetect @ NewConsole = false
   Run = pRealm              @ NewConsole = false
   Run = pGridSearchViz      @ NewConsole = false //, XConfig=HOLDSettings
-  Run = pGridSearchPlanner  @ NewConsole = true, XConfig=HOLDSettings
+  Run = pGridSearchPlanner  @ NewConsole = false // true, XConfig=HOLDSettings
   Run = uFldFireSim         @ NewConsole = false
 
 

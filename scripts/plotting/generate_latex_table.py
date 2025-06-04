@@ -194,19 +194,19 @@ def main():
     # Set up argument parser
     parser = argparse.ArgumentParser(description="Generate a LaTeX table from mission scores CSV.")
     parser.add_argument(
-        "--csv_file",
+        "--csv_file","--csv",
         type=str,
         default="mission_scores.csv",
         help="Path to the CSV file (default: mission_scores.csv)"
     )
     parser.add_argument(
-        "--algorithm",
+        "--algorithm","--algo",
         type=str,
         default="TMSTC_STAR",
         help="Algorithm(s) to filter, comma-separated, or 'all' [TMSTC_STAR, VORONOI_SEARCH] (default: TMSTC_STAR)"
     )
     parser.add_argument(
-        "--drone_count",
+        "--drone_count","--dc",
         type=str,
         default="2",
         help="Drone count(s) to filter, comma-separated, or 'all' (default: 2)"

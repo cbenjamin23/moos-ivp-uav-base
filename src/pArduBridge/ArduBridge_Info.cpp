@@ -138,7 +138,7 @@ void showInterfaceAndExit()
 
 void showReleaseInfoAndExit()
 {
-  showReleaseInfo("pArduBridge", "gpl");
+  //showReleaseInfo("pArduBridge", "gpl");
   exit(0);
 }
 

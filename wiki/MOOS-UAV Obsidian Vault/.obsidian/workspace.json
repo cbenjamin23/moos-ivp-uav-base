@@ -13,43 +13,14 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "Info/Data Management.md",
+                "file": "Info/MAIN System architecture.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "Data Management"
+              "title": "MAIN System architecture"
             },
             "group": "edaf1042f95ceebf"
-          },
-          {
-            "id": "f14ef42dd08bd54a",
-            "type": "leaf",
-            "state": {
-              "type": "markdown",
-              "state": {
-                "file": "Info/pMarineViewer - MOOS  IVP.md",
-                "mode": "source",
-                "source": false
-              },
-              "icon": "lucide-file",
-              "title": "pMarineViewer - MOOS  IVP"
-            }
-          },
-          {
-            "id": "40a14e625136148f",
-            "type": "leaf",
-            "state": {
-              "type": "markdown",
-              "state": {
-                "file": "Info/ArduPilot & MavProx.md",
-                "mode": "source",
-                "source": false
-              },
-              "icon": "lucide-file",
-              "title": "ArduPilot & MavProx"
-            },
-            "group": "971996182042d422"
           },
           {
             "id": "b2759795cfef3d7c",
@@ -65,8 +36,7 @@
               "title": "ardupilot_gazebo plugin"
             }
           }
-        ],
-        "currentTab": 1
+        ]
       },
       {
         "id": "821e164b3d11c07b",
@@ -78,29 +48,14 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "Info/Data Management.md",
+                "file": "Info/MAIN System architecture.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "Data Management"
+              "title": "MAIN System architecture"
             },
             "group": "edaf1042f95ceebf"
-          },
-          {
-            "id": "7000d0c8a156708a",
-            "type": "leaf",
-            "state": {
-              "type": "markdown",
-              "state": {
-                "file": "Info/ArduPilot & MavProx.md",
-                "mode": "source",
-                "source": false
-              },
-              "icon": "lucide-file",
-              "title": "ArduPilot & MavProx"
-            },
-            "group": "971996182042d422"
           },
           {
             "id": "9498a02ccdc7fadb",
@@ -117,7 +72,7 @@
             }
           }
         ],
-        "currentTab": 2
+        "currentTab": 1
       }
     ],
     "direction": "vertical"
@@ -149,7 +104,7 @@
             "state": {
               "type": "search",
               "state": {
-                "query": "map",
+                "query": "main",
                 "matchingCase": false,
                 "explainSearch": false,
                 "collapseAll": false,
@@ -170,8 +125,7 @@
               "title": "Bookmarks"
             }
           }
-        ],
-        "currentTab": 1
+        ]
       }
     ],
     "direction": "horizontal",
@@ -260,22 +214,24 @@
       "command-palette:Open command palette": false
     }
   },
-  "active": "f14ef42dd08bd54a",
+  "active": "da26bb1516200fb8",
   "lastOpenFiles": [
+    "Info/Data Management.md",
+    "().md",
+    "Info/MAIN System architecture.md",
+    "Info/ArduPilot & MavProx.md",
+    "mail@scnomeny.com.md",
+    "Info/pMarineViewer - MOOS  IVP.md",
+    "Info/Install, Build & Run MAVSDK.md",
     "Troubleshooting.md",
     "Info/ardupilot_gazebo plugin.md",
     "Info/LSTS Toolchain/Dune.md",
-    "Info/Install, Build & Run MAVSDK.md",
     "Info/Launching System.md",
-    "Info/ArduPilot & MavProx.md",
-    "Info/MAIN System architecture.md",
     "Info/Swarm in ArduPilot.md",
     "Info/Gazebo.md",
-    "Info/pMarineViewer - MOOS  IVP.md",
     "attachments/Pasted image 20250215110203.png",
     "Advantages of MOOS-IVP.md",
     "Helpful definitions.md",
-    "Info/Data Management.md",
     "Info/Mission Planner info.md",
     "Info/Skywalker X8.md",
     "attachments/Pasted image 20240829151142.png",
@@ -300,7 +256,6 @@
     "Why is MOOS better that everything else.md",
     "LSTS Toolchain/LSTS.md",
     "LSTS Toolchain",
-    "LSTS Toolchain/Neptus.md",
     "Papers",
     "attachments",
     "Info/attachments/Pasted image 20240903113547.png",

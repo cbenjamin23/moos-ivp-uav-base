@@ -90,15 +90,14 @@ in your folder where you have the project.
 
 ## Install MOOS IVP SWARM Toolbox
 
-**Note:** Codebase is currently being moved from svn to github
 
-Download the [codebase](https://oceanai.mit.edu/svn/moos-ivp-swarm-aro-j24 "https://oceanai.mit.edu/svn/moos-ivp-swarm-aro-j24")using svn to your home folder `~/.`
+The codebase is private on github own by pavlab-MIT and needs access to use or clone.
 
-```shell
-svn co https://oceanai.mit.edu/svn/moos-ivp-swarm-aro-j24/trunk moos-ivp-swarm
-```
+Contact `scnomeny@mit.edu` for access.
 
-Checkout and build the library:
+**Note:** If you don't hear back with a reasonable time, email `mail@scnomeny.com`
+
+After the code is downloaded, checkout and build the library:
 ```shell
 cd moos-ivp-swarm
 ./build.sh
