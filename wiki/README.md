@@ -26,7 +26,7 @@ This documentation provides guidance on setting up and running the MOOS-IVP UAV 
 - **[Data Management.md](Data%20Management.md)** - Managing mission data
 - **[Swarm in ArduPilot.md](Swarm%20in%20ArduPilot.md)** - Swarm capabilities
 - **[pMarineViewer - MOOS  IVP.md](pMarineViewer%20-%20MOOS%20%20IVP.md)** - Viewer application
-- **[../Troubleshooting.md](../Troubleshooting.md)** - Common issues and solutions
+- **[Troubleshooting.md](Troubleshooting.md)** - Common issues and solutions
 
 ## Getting Started Steps
 
@@ -53,6 +53,6 @@ Refer to [Launching System.md](Launching%20System.md) for commands to launch veh
 
 ## Need Help?
 
-If you encounter issues, check [Troubleshooting.md](../Troubleshooting.md) for common problems and solutions.
+If you encounter issues, check [Troubleshooting.md](Troubleshooting.md) for common problems and solutions.
 
 For questions about specific components, refer to the relevant documentation files listed above.

@@ -5,9 +5,9 @@ This fork aims to further develop compatibility with other vehicles (UAV, AUVs e
 
 ## Documentation
 
-For detailed setup and usage instructions, see the [Getting Started Guide](wiki/MOOS-UAV%20Obsidian%20Vault/Info/README.md).
+For detailed setup and usage instructions, see the [Getting Started Guide](wiki/README.md).
 
 Key documentation:
-- [System Architecture & Installation](wiki/MOOS-UAV%20Obsidian%20Vault/Info/MAIN%20System%20architecture.md)
-- [Launching System](wiki/MOOS-UAV%20Obsidian%20Vault/Info/Launching%20System.md)
-- [Troubleshooting](wiki/MOOS-UAV%20Obsidian%20Vault/Troubleshooting.md)
+- [System Architecture & Installation](wiki/MAIN%20System%20architecture.md)
+- [Launching System](wiki/Launching%20System.md)
+- [Troubleshooting](wiki/Troubleshooting.md)

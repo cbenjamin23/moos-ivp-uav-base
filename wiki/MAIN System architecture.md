@@ -104,7 +104,7 @@ cd moos-ivp-swarm
 ```
 **PS**: Build with flag `-m` if building on vehicle
 
-*Note:* If bugs appear during the build process, fix them in the code base before retrying the build. More info in [Troubleshooting](../Troubleshooting.md)
+*Note:* If bugs appear during the build process, fix them in the code base before retrying the build. More info in [Troubleshooting](Troubleshooting.md)
 
 Update your environmental variables, `PATH` and `IVP_BEHAVIOR_DIRS`, in your `.bashrc` file.
 ```shell
@@ -136,7 +136,7 @@ which pMediator
 - ~/ardupilot/
 - [Install guide](https://ardupilot.org/dev/docs/building-setup-linux.html#building-setup-linux)
 	- Run `git submodule update --init --recursive`
-	- Run `install-prereqs-ubuntu.sh` before switching branch! More in [Troubleshooting](../Troubleshooting.md)
+	- Run `install-prereqs-ubuntu.sh` before switching branch! More in [Troubleshooting](Troubleshooting.md)
 	- **CHECKOUT** version `Plane-4.5.7` (branch)
 - [More info](ArduPilot%20&%20MavProx.md)
 ## ardupilot_gazebo (*gazebo Ionic*)
@@ -174,4 +174,4 @@ More on [Gazebo](Gazebo.md)
 
 
 ---
-Relevant topics: [Troubleshooting](../Troubleshooting.md)
+Relevant topics: [Troubleshooting](Troubleshooting.md)
