@@ -156,15 +156,19 @@ $HOME/SITL_Models/Gazebo/worlds:\
 $HOME/moos-ivp-uav/GazeboSim/models:\
 $HOME/moos-ivp-uav/GazeboSim/worlds:
 ```
-More on [Gazebo](Gazebo.md)
-
 
 **IMPORTANT:** Before using the plugin, remember to build it by calling cmake in the build folder and then make. 
+
+### Gazebo Version Information
+
+This project uses the newer **Gazebo Sim 8** (Ionic version, often referred to as Gazebo 11 or later versions) rather than Gazebo Classic (usually referring to earlier versions like Gazebo 9 and 10).
+
+For more information on Gazebo environmental variables, see: https://answers.gazebosim.org//question/29153/some-questions-about-uri-in-sdf-files/ 
 
 ## MissionPLanner
 - ~/Mission_Planner/
 - [Install guide](https://ardupilot.org/planner/docs/mission-planner-installation.html)
-- [Mission Planner info](Mission%20Planner%20info.md)
+- Configuration details can be found in [ArduPilot & MavProx](ArduPilot%20&%20MavProx.md)
 ## MAVSDK 
 
 **No need to install as it comes as a submodule with moos-ivp-uav)**
