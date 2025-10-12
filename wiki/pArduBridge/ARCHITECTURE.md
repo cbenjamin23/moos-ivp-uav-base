@@ -246,38 +246,38 @@ class WarningSystem
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
 │                    Main Thread (MOOS Loop)                          │
-│  ┌──────────────────────────────────────────────────────────────┐  │
-│  │  ArduBridge::Iterate() - Called at AppTick rate             │  │
-│  │                                                              │  │
-│  │  - Process incoming MOOS mail (OnNewMail)                   │  │
-│  │  - Update SetpointManager (thread-safe)                     │  │
-│  │  - Process command flags (takeoff, waypoint, RTL, loiter)   │  │
-│  │  - Check async operation status (future polling)            │  │
-│  │  - Update autopilot helm state machine                      │  │
-│  │  - Check warning conditions                                 │  │
-│  │  - Publish telemetry to MOOS                                │  │
-│  │  - Build and post AppCast report                            │  │
-│  └──────────────────────────────────────────────────────────────┘  │
+│  ┌──────────────────────────────────────────────────────────────┐   │
+│  │  ArduBridge::Iterate() - Called at AppTick rate              │   │
+│  │                                                              │   │
+│  │  - Process incoming MOOS mail (OnNewMail)                    │   │
+│  │  - Update SetpointManager (thread-safe)                      │   │
+│  │  - Process command flags (takeoff, waypoint, RTL, loiter)    │   │
+│  │  - Check async operation status (future polling)             │   │
+│  │  - Update autopilot helm state machine                       │   │
+│  │  - Check warning conditions                                  │   │
+│  │  - Publish telemetry to MOOS                                 │   │
+│  │  - Build and post AppCast report                             │   │
+│  └──────────────────────────────────────────────────────────────┘   │
 └────────────────┬────────────────────────────────────────────────────┘
                  │ Thread-Safe Communication
                  │ (ThreadSafeVariable, Command Queue)
                  ▼
 ┌─────────────────────────────────────────────────────────────────────┐
 │          UAV_Model Command Sender Thread                            │
-│  ┌──────────────────────────────────────────────────────────────┐  │
-│  │  UAV_Model::runCommandsender()                               │  │
-│  │                                                              │  │
-│  │  Initialization:                                             │  │
-│  │    - Subscribe to telemetry                                  │  │
-│  │    - Poll autopilot parameters                               │  │
-│  │                                                              │  │
-│  │  Main Loop:                                                  │  │
-│  │    - Wait for commands or periodic send signal               │  │
-│  │    - Execute commands from queue                             │  │
-│  │    - Send desired values periodically (if enabled)           │  │
-│  │    - Poll parameters after command execution                 │  │
-│  │    - Update flight mode state                                │  │
-│  └──────────────────────────────────────────────────────────────┘  │
+│  ┌──────────────────────────────────────────────────────────────┐   │
+│  │  UAV_Model::runCommandsender()                               │   │
+│  │                                                              │   │
+│  │  Initialization:                                             │   │
+│  │    - Subscribe to telemetry                                  │   │
+│  │    - Poll autopilot parameters                               │   │
+│  │                                                              │   │
+│  │  Main Loop:                                                  │   │
+│  │    - Wait for commands or periodic send signal               │   │
+│  │    - Execute commands from queue                             │   │
+│  │    - Send desired values periodically (if enabled)           │   │
+│  │    - Poll parameters after command execution                 │   │
+│  │    - Update flight mode state                                │   │
+│  └──────────────────────────────────────────────────────────────┘   │
 └────────────────┬────────────────────────────────────────────────────┘
                  │ MAVLink Commands
                  ▼
@@ -324,7 +324,7 @@ class WarningSystem
        │
        ▼
 ┌─────────────────────────────────────────────────┐
-│  UAV_Model::runCommandsender() [Thread]        │
+│  UAV_Model::runCommandsender() [Thread]         │
 │  - Wakes up periodically                        │
 │  - Calls sendDesiredValuesFunction              │
 └──────┬──────────────────────────────────────────┘
@@ -437,7 +437,7 @@ class WarningSystem
        │
        ▼
 ┌─────────────────────────────────────────────────┐
-│  UAV_Model::runCommandsender() [Thread]        │
+│  UAV_Model::runCommandsender() [Thread]         │
 │  - Dequeues command                             │
 │  - Executes command                             │
 │  - Sets promise result                          │
@@ -526,7 +526,7 @@ The ArduBridge manages an autopilot helm state machine that coordinates between 
 ├──────────────────────────────────────────────────────────┤
 │  - m_uav_model : UAV_Model                               │
 │  - m_helm_desiredValues : ThreadSafeVariable<SetpointMgr>│
-│  - m_warning_system_ptr : shared_ptr<WarningSystem>     │
+│  - m_warning_system_ptr : shared_ptr<WarningSystem>      │
 │  - m_geodesy : CMOOSGeodesy                              │
 │  - m_autopilot_mode : AutopilotHelmMode                  │
 ├──────────────────────────────────────────────────────────┤
@@ -632,7 +632,7 @@ pHelmIvp  MOOS  ArduBridge    SetpointMgr  UAV_Thread  UAV_Model  ArduPilot
    │        │        │sendValues────┼──────────►│           │          │
    │        │        │              │  [Wakeup] │           │          │
    │        │        │              │           │           │          │
-   │        │        │              │           │sendDesiredValues    │
+   │        │        │              │           │sendDesiredValues     │
    │        │        │◄─────────────┼───────────┤           │          │
    │        │        │get changed   │           │           │          │
    │        │        ├─────────────►│           │           │          │
