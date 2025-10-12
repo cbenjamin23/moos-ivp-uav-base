@@ -161,7 +161,7 @@ When contributing to pArduBridge, please:
 
 **Author**: Steve Carter Feujo Nomeny  
 **Organization**: NTNU, MIT  
-**Date**: September 9th, 2024  
+**Email**: scnomeny@mit.edu  
 **Documentation Created**: October 12th, 2024
 
 ---
