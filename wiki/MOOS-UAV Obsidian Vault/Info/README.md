@@ -32,8 +32,8 @@ This documentation provides guidance on setting up and running the MOOS-IVP UAV 
 
 ### 1. Clone the Repository
 ```bash
-git clone git@github.com:Scarter668/moos-ivp-uav.git
-cd moos-ivp-uav
+git clone git@github.com:cbenjamin23/moos-ivp-uav-base.git
+cd moos-ivp-uav-base
 git submodule update --init --recursive
 ```
 

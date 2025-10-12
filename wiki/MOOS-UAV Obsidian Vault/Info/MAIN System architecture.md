@@ -5,11 +5,11 @@
 This repository consist of a submodule for MAVSDK 
 
 
-Clone the [repo](https://github.com/Scarter668/moos-ivp-uav.git) (with ssh) and the submodules:
+Clone the [repo](https://github.com/cbenjamin23/moos-ivp-uav-base.git) (with ssh) and the submodules:
 
 ```bash
-git clone git@github.com:Scarter668/moos-ivp-uav.git;
-cd moos-ivp-uav;
+git clone git@github.com:cbenjamin23/moos-ivp-uav-base.git;
+cd moos-ivp-uav-base;
 git submodule update --init --recursive
 ```
 
