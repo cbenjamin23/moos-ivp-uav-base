@@ -60,7 +60,7 @@ git clone https://github.com/UAVCAN/libcanard.git modules/libcanard
 git clone https://github.com/UAVCAN/uavcan.git modules/uavcan
 ```
 
-After this it is **IMPORTANT** to modify the UAVCAN Library Code as described in [[ArduPilot & MavProx]]
+After this it is **IMPORTANT** to modify the UAVCAN Library Code as described in [ArduPilot & MavProx](Info/ArduPilot%20&%20MavProx.md)
 
 
 ## How to search in files:
@@ -70,7 +70,6 @@ After this it is **IMPORTANT** to modify the UAVCAN Library Code as described in
 		grep -ri “matrix” <path_to_dune_src>
 		- ./Maneuver/CoverArea/Task.cpp: Math::Matrix m_rows; // etc
 
-![[Pasted image 20240903114151.png]]
 
 
 
@@ -121,7 +120,6 @@ If you experience linker issues with `geodaid`, comment out the library.
 # VSCode not showing included MOOS files
 
 If you get red squiggles under you include files in VScode. Intellisense is not properly set up.
-![[Pasted image 20250215110203.png]]
 Solution: 
 ```bash
 cd ~/moos-ivp
