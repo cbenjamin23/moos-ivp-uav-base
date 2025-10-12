@@ -17,9 +17,6 @@ This documentation provides guidance on setting up and running the MOOS-IVP UAV 
 - **[System Launch Guide.md](System%20Launch%20Guide.md)** - How to launch missions and ground stations
 - **[Gazebo Plugin Configuration.md](Gazebo%20Plugin%20Configuration.md)** - Gazebo plugin details and version information
 
-### Hardware and Configuration
-- **[Skywalker X8.md](Skywalker%20X8.md)** - Skywalker X8 specific information
-
 ### Additional Resources
 - **[Telemetry Data Extraction.md](Telemetry%20Data%20Extraction.md)** - Managing mission data and telemetry extraction
 - **[Visualization and Mapping.md](Visualization%20and%20Mapping.md)** - Viewer application and map management

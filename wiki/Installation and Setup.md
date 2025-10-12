@@ -143,7 +143,7 @@ which pMediator
 - Install the [Gazebo Ionic](https://gazebosim.org/docs/ionic/install_ubuntu/) simulator binary:
 	- Test that it runs `gz sim -v4 -r shapes.sdf`
 - In folder: ~/gz_ws/ardupilot_gazebo/
-- Modified installation to match with Ionic version can be found in [ardupilot_gazebo plugin](ardupilot_gazebo%20plugin.md)
+- Modified installation to match with Ionic version can be found in [Gazebo Plugin Configuration](Gazebo%20Plugin%20Configuration.md)
 - Install the SITL_Models from cloning repo into home
 ```bash 
 git clone git@github.com:ArduPilot/ardupilot_gazebo.git
@@ -173,7 +173,7 @@ For more information on Gazebo environmental variables, see: https://answers.gaz
 
 **No need to install as it comes as a submodule with moos-ivp-uav)**
 - ~/MAVSDK/
-- [Install, Build & Run MAVSDK](Install,%20Build%20&%20Run%20MAVSDK.md)
+- [MAVSDK Setup and Usage](MAVSDK%20Setup%20and%20Usage.md)
 
 
 
