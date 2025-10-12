@@ -2,14 +2,14 @@
 # moos-ivp-uav
 
 
-This repository consist of a submodule for #MAVSDK 
+This repository consist of a submodule for MAVSDK 
 
 
-Clone the [repo](https://github.com/Scarter668/moos-ivp-uav.git) (with ssh) and the submodules:
+Clone the [repo](https://github.com/cbenjamin23/moos-ivp-uav-base.git) (with ssh) and the submodules:
 
 ```bash
-git clone git@github.com:Scarter668/moos-ivp-uav.git;
-cd moos-ivp-uav;
+git clone git@github.com:cbenjamin23/moos-ivp-uav-base.git;
+cd moos-ivp-uav-base;
 git submodule update --init --recursive
 ```
 
@@ -104,7 +104,7 @@ cd moos-ivp-swarm
 ```
 **PS**: Build with flag `-m` if building on vehicle
 
-*Note:* If bugs appear during the build process, fix them in the code base before retrying the build. More info in  [[Troubleshooting]]
+*Note:* If bugs appear during the build process, fix them in the code base before retrying the build. More info in [Troubleshooting](Troubleshooting.md)
 
 Update your environmental variables, `PATH` and `IVP_BEHAVIOR_DIRS`, in your `.bashrc` file.
 ```shell
@@ -136,14 +136,14 @@ which pMediator
 - ~/ardupilot/
 - [Install guide](https://ardupilot.org/dev/docs/building-setup-linux.html#building-setup-linux)
 	- Run `git submodule update --init --recursive`
-	- Run `install-prereqs-ubuntu.sh` before switching branch! More in [[Troubleshooting]]
+	- Run `install-prereqs-ubuntu.sh` before switching branch! More in [Troubleshooting](Troubleshooting.md)
 	- **CHECKOUT** version `Plane-4.5.7` (branch)
 - [More info](ArduPilot%20&%20MavProx.md)
 ## ardupilot_gazebo (*gazebo Ionic*)
 - Install the [Gazebo Ionic](https://gazebosim.org/docs/ionic/install_ubuntu/) simulator binary:
 	- Test that it runs `gz sim -v4 -r shapes.sdf`
 - In folder: ~/gz_ws/ardupilot_gazebo/
-- Modified installation to match with Ionic version can be found in  [[ardupilot_gazebo plugin]]
+- Modified installation to match with Ionic version can be found in [ardupilot_gazebo plugin](ardupilot_gazebo%20plugin.md)
 - Install the SITL_Models from cloning repo into home
 ```bash 
 git clone git@github.com:ArduPilot/ardupilot_gazebo.git
@@ -156,7 +156,7 @@ $HOME/SITL_Models/Gazebo/worlds:\
 $HOME/moos-ivp-uav/GazeboSim/models:\
 $HOME/moos-ivp-uav/GazeboSim/worlds:
 ```
-More on [[Gazebo]]
+More on [Gazebo](Gazebo.md)
 
 
 **IMPORTANT:** Before using the plugin, remember to build it by calling cmake in the build folder and then make. 
@@ -164,14 +164,14 @@ More on [[Gazebo]]
 ## MissionPLanner
 - ~/Mission_Planner/
 - [Install guide](https://ardupilot.org/planner/docs/mission-planner-installation.html)
-- [[Mission Planner info]]
+- [Mission Planner info](Mission%20Planner%20info.md)
 ## MAVSDK 
 
 **No need to install as it comes as a submodule with moos-ivp-uav)**
 - ~/MAVSDK/
-- [[Install, Build & Run MAVSDK]]
+- [Install, Build & Run MAVSDK](Install,%20Build%20&%20Run%20MAVSDK.md)
 
 
 
 ---
-Relevant topics: [[Troubleshooting]]
+Relevant topics: [Troubleshooting](Troubleshooting.md)

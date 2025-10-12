@@ -180,7 +180,7 @@ YAW2SRV_SLIP     0.000000
 YAW2SRV_IMAX     1500
 ```
 
-for more on `tunable` values see [[Mission Planner info]]
+for more on `tunable` values see [Mission Planner info](Mission%20Planner%20info.md)
 
 
 ## Changing speed in Ardupilot SITL
