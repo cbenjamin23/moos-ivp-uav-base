@@ -8,6 +8,6 @@ This fork aims to further develop compatibility with other vehicles (UAV, AUVs e
 For detailed setup and usage instructions, see the [Getting Started Guide](wiki/README.md).
 
 Key documentation:
-- [System Architecture & Installation](wiki/MAIN%20System%20architecture.md)
-- [Launching System](wiki/Launching%20System.md)
+- [Installation and Setup](wiki/Installation%20and%20Setup.md)
+- [System Launch Guide](wiki/System%20Launch%20Guide.md)
 - [Troubleshooting](wiki/Troubleshooting.md)
