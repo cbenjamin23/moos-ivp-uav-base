@@ -178,7 +178,7 @@ PARAMFILE=$HOME/moos-ivp-uav-base/scripts/simulation/$PARAMFILE
 # num vehicles greater than 1
 if [ $READ_CONFIG == "YES" ]; then
     echo "Generating SDF files from configuration file"
-    python /home/steve/moos-ivp-uav-base/scripts/generate_drone_sdf.py $FORCE\
+    python ~/moos-ivp-uav-base/scripts/generate_drone_sdf.py $FORCE\
         --config_file               $CONFIG_FILE \
         --default_models_folder     ~/SITL_Models/Gazebo/models/skywalker_x8/ \
         --destination_models_folder ~/moos-ivp-uav-base/GazeboSim/models/ \
