@@ -177,7 +177,7 @@ def generate_mission_score_csv(input_folder="sim", output_folder=None, output_cs
 if __name__ == '__main__':
     # homefolder = os.path.expanduser("~")
 
-    # simfolder = homefolder+"/moos-ivp-uav/missions/UAV_fly/mission_score/sim"
+    # simfolder = homefolder+"/moos-ivp-uav-base/missions/UAV_fly/mission_score/sim"
 
     parser = argparse.ArgumentParser(description='Generate mission score CSV from score files.')
     parser.add_argument('--input_folder', '--if', type=str, default="sim", help='Input folder containing score files.')
