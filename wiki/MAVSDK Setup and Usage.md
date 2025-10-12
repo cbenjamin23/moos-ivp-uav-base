@@ -67,7 +67,7 @@ To build apps in moos and update the compile_commands from this repo and submodu
 alias bldm='sudo .;
 			bld;
 			mavsdk_build_install;
-			cd ~/moos-ivp-uav/scripts;
+			cd ~/moos-ivp-uav-base/scripts;
 			./merge_compile_commands.sh;
 			cd -'
 ```

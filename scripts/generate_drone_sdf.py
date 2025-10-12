@@ -822,8 +822,8 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Generate SDF files for vehicles and world.")
     parser.add_argument(
         "--config_file",
-        default=os.path.join(home_path, "moos-ivp-uav/missions/UAV_Fly/missionConfig.yaml"),
-        help="Path to the configuration YAML file. Default: ~/moos-ivp-uav/missions/UAV_Fly/missionConfig.yaml"
+        default=os.path.join(home_path, "moos-ivp-uav-base/missions/UAV_Fly/missionConfig.yaml"),
+        help="Path to the configuration YAML file. Default: ~/moos-ivp-uav-base/missions/UAV_Fly/missionConfig.yaml"
     )
     parser.add_argument(
         "--default_models_folder",
@@ -833,13 +833,13 @@ if __name__ == "__main__":
 
     parser.add_argument(
         "--destination_models_folder",
-        default=os.path.join(home_path, "moos-ivp-uav/GazeboSim/models/"),
-        help="Path to the destination models folder. Default: ~/moos-ivp-uav/GazeboSim/models/"
+        default=os.path.join(home_path, "moos-ivp-uav-base/GazeboSim/models/"),
+        help="Path to the destination models folder. Default: ~/moos-ivp-uav-base/GazeboSim/models/"
     )
     parser.add_argument(
         "--destination_worlds_folder",
-        default=os.path.join(home_path, "moos-ivp-uav/GazeboSim/worlds/"),
-        help="Path to the destination worlds folder. Default: ~/moos-ivp-uav/GazeboSim/worlds/"
+        default=os.path.join(home_path, "moos-ivp-uav-base/GazeboSim/worlds/"),
+        help="Path to the destination worlds folder. Default: ~/moos-ivp-uav-base/GazeboSim/worlds/"
     )
     parser.add_argument(
         "--forceOverwrite", '-f',

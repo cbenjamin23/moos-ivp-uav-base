@@ -12,9 +12,9 @@ zoom=16
 tileServerIDGMAPS=0
 tileServerIDGSAT=1
 stitchFormat=".png"
-baseDir="~/moos-ivp-uav/Maps"  # Base directory for saving maps
+baseDir="~/moos-ivp-uav-base/Maps"  # Base directory for saving maps
 folderName="NTNU_UAV_Airport"  # Folder name under baseDir
-tilesDir="~/moos-ivp-uav/Maps/anaximap"  # Directory for downloaded tiles
+tilesDir="~/moos-ivp-uav-base/Maps/anaximap"  # Directory for downloaded tiles
 
 # Function to display help message
 display_help() {
@@ -89,7 +89,7 @@ fi
 cwd=$(pwd)
 
 # Move to AnaxiMap directory
-cd ~/moos-ivp-uav/Maps/anaximap
+cd ~/moos-ivp-uav-base/Maps/anaximap
 
 # Create the output folder if it doesn't exist
 mkdir -p "$outputFolder"
