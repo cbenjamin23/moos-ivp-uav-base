@@ -1,3 +1,13 @@
+# ArduPilot Gazebo Plugin Setup
+
+## About Gazebo
+
+This project uses the newer **Gazebo Sim 8** (Ionic version, often referred to as Gazebo 11 or later versions) rather than Gazebo Classic (usually referring to earlier versions like Gazebo 9 and 10).
+
+For more information on Gazebo environmental variables, see: https://answers.gazebosim.org//question/29153/some-questions-about-uri-in-sdf-files/
+
+## Plugin Modification
+
 When the plugin is downloaded modify it to make it compatible with gazebo ionic by adding to the file `ardupilot_gazebo/CMakeLists.txt`
 
 ```bash

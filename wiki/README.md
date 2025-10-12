@@ -13,18 +13,15 @@ This documentation provides guidance on setting up and running the MOOS-IVP UAV 
 
 ### Key Components
 - **[Install, Build & Run MAVSDK.md](Install,%20Build%20&%20Run%20MAVSDK.md)** - MAVSDK installation and usage
-- **[ArduPilot & MavProx.md](ArduPilot%20&%20MavProx.md)** - ArduPilot configuration and parameters
+- **[ArduPilot & MavProx.md](ArduPilot%20&%20MavProx.md)** - ArduPilot configuration, parameters, Mission Planner setup, and swarm capabilities
 - **[Launching System.md](Launching%20System.md)** - How to launch missions and ground stations
-- **[Gazebo.md](Gazebo.md)** - Gazebo simulator setup
+- **[ardupilot_gazebo plugin.md](ardupilot_gazebo%20plugin.md)** - Gazebo plugin details and version information
 
 ### Hardware and Configuration
 - **[Skywalker X8.md](Skywalker%20X8.md)** - Skywalker X8 specific information
-- **[Mission Planner info.md](Mission%20Planner%20info.md)** - Mission Planner configuration
-- **[ardupilot_gazebo plugin.md](ardupilot_gazebo%20plugin.md)** - Gazebo plugin details
 
 ### Additional Resources
 - **[Data Management.md](Data%20Management.md)** - Managing mission data
-- **[Swarm in ArduPilot.md](Swarm%20in%20ArduPilot.md)** - Swarm capabilities
 - **[pMarineViewer - MOOS  IVP.md](pMarineViewer%20-%20MOOS%20%20IVP.md)** - Viewer application
 - **[Troubleshooting.md](Troubleshooting.md)** - Common issues and solutions
 

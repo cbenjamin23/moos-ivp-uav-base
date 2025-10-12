@@ -180,7 +180,24 @@ YAW2SRV_SLIP     0.000000
 YAW2SRV_IMAX     1500
 ```
 
-for more on `tunable` values see [Mission Planner info](Mission%20Planner%20info.md)
+## Mission Planner Configuration
+
+### Loading Generic Waypoint Missions
+
+Load a generic waypoint mission from:
+
+	~/ardupilot/Tools/autotest/Generic_Missions/
+
+### PID Tuning Values
+
+The PID values from Mission Planner are as follows (see image reference in original documentation - green indicates important changes from default values).
+
+Also change under Servo Yaw:
+	
+	Dampening: 0.1 
+	Integral: 0.05
+
+For more details on tunable parameters, see the sections above on parameter configuration.
 
 
 ## Changing speed in Ardupilot SITL
@@ -231,3 +248,15 @@ SIM_WIND_T_COEF,0.01
 SIM_WIND_TURB,0
 SIM_WOW_PIN,-1
 ```
+
+## Swarm Capabilities in ArduPilot
+
+### Multiple Vehicles with MavProxy
+
+For detailed information on running multiple vehicles, refer to the [Multiple Vehicles with Mavproxy](https://ardupilot.org/mavproxy/docs/getting_started/multi.html#multi) documentation.
+
+When launching the simulation, the following arguments are important for swarms:
+- `--sysid=*` - Sets the system ID for each vehicle
+- `-IX` (e.g. `I0`, `I1`, `I2`) - Indicates incrementation of ArduPilot's UDP connection use
+
+For additional swarm setup instructions, see the [Intelligent Quads tutorial](https://github.com/Intelligent-Quads/iq_tutorials/blob/master/docs/swarming_ardupilot.md).
