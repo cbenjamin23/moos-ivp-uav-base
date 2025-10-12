@@ -305,7 +305,7 @@ If you encounter issues:
 2. Review the AppCast for detailed status
 3. Verify your configuration matches the examples
 4. Check that all prerequisites are installed and running
-5. Review the log file: `~/moos-ivp-uav/missions/pArduBrigeLog_<vname>.log`
+5. Review the log file: `~/moos-ivp-uav-base/missions/pArduBrigeLog_<vname>.log`
 
 ---
 

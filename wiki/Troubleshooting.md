@@ -89,7 +89,7 @@ Run the script: `gdb_attach_arduplane.sh` in `scripts/` after which you can ente
 - To debug pArduBridge  add the alias:
   
 ```bash
-alias launchSkywalker_gdb='cd ~/moos-ivp-uav/missions/UAV_Fly;
+alias launchSkywalker_gdb='cd ~/moos-ivp-uav-base/missions/UAV_Fly;
                        gdb --args env MAVSDK_CALLBACK_DEBUGGING=1 MAVSDK_COMMAND_DEBUGGING=1 MAVSDK_PARAMETER_DEBUGGING=1 pArduBridge targ_skywalker.moos;'
 ```
 

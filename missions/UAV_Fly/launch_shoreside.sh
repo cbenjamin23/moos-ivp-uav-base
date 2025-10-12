@@ -31,12 +31,12 @@ CONFIG_FILE="./missionConfig.yaml"
 
 XMODE=REAL
 
-# check that ~/moos-ivp-uav/scripts/get_region_xy.sh exists and source it
-if [ ! -f ~/moos-ivp-uav/scripts/configfileHelperFunctions.sh ]; then
-    echo "Error: File ~/moos-ivp-uav/scripts/configfileHelperFunctions.sh not found." >&2
+# check that ~/moos-ivp-uav-base/scripts/get_region_xy.sh exists and source it
+if [ ! -f ~/moos-ivp-uav-base/scripts/configfileHelperFunctions.sh ]; then
+    echo "Error: File ~/moos-ivp-uav-base/scripts/configfileHelperFunctions.sh not found." >&2
     exit 1
 fi
-source ~/moos-ivp-uav/scripts/configfileHelperFunctions.sh
+source ~/moos-ivp-uav-base/scripts/configfileHelperFunctions.sh
 
 
 

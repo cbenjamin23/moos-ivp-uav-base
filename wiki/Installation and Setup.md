@@ -1,5 +1,5 @@
 
-# moos-ivp-uav
+# moos-ivp-uav-base
 
 
 This repository consist of a submodule for MAVSDK 
@@ -16,11 +16,11 @@ git submodule update --init --recursive
 
 ### Setup bash aliases
 
-The file `moos-ivp-uav/scripts/setup_bash_aliases_moos.sh` defines and sets up some useful aliases. 
+The file `moos-ivp-uav-base/scripts/setup_bash_aliases_moos.sh` defines and sets up some useful aliases. 
 Make the file executable
 
 ```bash
-chmod +x ~/moos-ivp-uav/scripts/setup_bash_aliases_moos.sh
+chmod +x ~/moos-ivp-uav-base/scripts/setup_bash_aliases_moos.sh
 ```
 
 and source it from your bashrc. 
@@ -71,7 +71,7 @@ cd ./ivp/missions/s1_alpha;
 pAntler --MOOSTimeWarp=10 alpha.moos
 ```
 
-Add path to bin folder in moos-ivp-uav to bashrc: `PATH=$PATH:~/moos-ivp-uav/bin`
+Add path to bin folder in moos-ivp-uav-base to bashrc: `PATH=$PATH:~/moos-ivp-uav-base/bin`
 
 **NOTE**: When building moos-ivp, remember to use the `-m` flag to only build nongui apps: `.build.sh -m`
 
@@ -153,8 +153,8 @@ And add to bashrc:
 export GZ_SIM_RESOURCE_PATH=$GZ_SIM_RESOURCE_PATH:\
 $HOME/SITL_Models/Gazebo/models:\
 $HOME/SITL_Models/Gazebo/worlds:\
-$HOME/moos-ivp-uav/GazeboSim/models:\
-$HOME/moos-ivp-uav/GazeboSim/worlds:
+$HOME/moos-ivp-uav-base/GazeboSim/models:\
+$HOME/moos-ivp-uav-base/GazeboSim/worlds:
 ```
 
 **IMPORTANT:** Before using the plugin, remember to build it by calling cmake in the build folder and then make. 
@@ -171,7 +171,7 @@ For more information on Gazebo environmental variables, see: https://answers.gaz
 - Configuration details can be found in [ArduPilot & MavProx](ArduPilot%20&%20MavProx.md)
 ## MAVSDK 
 
-**No need to install as it comes as a submodule with moos-ivp-uav)**
+**No need to install as it comes as a submodule with moos-ivp-uav-base)**
 - ~/MAVSDK/
 - [MAVSDK Setup and Usage](MAVSDK%20Setup%20and%20Usage.md)
 

@@ -72,7 +72,7 @@ alias lll='ktm; cll; ./launch.sh'
 ## Launching MOOS-IvP
 
 # use MAVSDK_MESSAGE_HANDLER_DEBUGGING=1 for debugging on incoming messages from ardupilot
-alias launchSkywalker='cd ~/moos-ivp-uav/missions/UAV_Fly;
+alias launchSkywalker='cd ~/moos-ivp-uav-base/missions/UAV_Fly;
                        MAVSDK_CALLBACK_DEBUGGING=1 MAVSDK_COMMAND_DEBUGGING=1 MAVSDK_PARAMETER_DEBUGGING=1 pArduBridge targ_skywalker.moos;'
 
 alias launchSkyfollower='cdmis;
@@ -88,8 +88,8 @@ alias cdmm='cdm; cd ivp/missions'
 alias cdmma='cdmm; cd s1_alpha'
 alias cdmsrc='cdm; cd ivp/src'
 
-# for moos-ivp-uav
-alias cduav='cd ~/moos-ivp-uav/'
+# for moos-ivp-uav-base
+alias cduav='cd ~/moos-ivp-uav-base/'
 
 alias cdsc='cduav; cd ./scripts'
 alias cdmi='cduav; cd ./missions'
@@ -140,18 +140,18 @@ alias ip_fw_o='sudo /usr/local/bin/setup_nat_ip_forwarding.sh'
 ###################### MAVSDK - START #########################################
 
 
-alias mavsdk_configure_build_install="cd ~/moos-ivp-uav/MAVSDK;
+alias mavsdk_configure_build_install="cd ~/moos-ivp-uav-base/MAVSDK;
                                         cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=1 -DCMAKE_BUILD_TYPE=Debug -Bbuild/default -H. -DBUILD_SHARED_LIBS=ON -DSUPERBUILD=ON -DBUILD_TESTS=OFF; 
                                         sudo cmake --build build/default --target install;
                                         cd -"
-alias mavsdk_build_install="cd ~/moos-ivp-uav/MAVSDK;
+alias mavsdk_build_install="cd ~/moos-ivp-uav-base/MAVSDK;
                             sudo cmake --build build/default --target install;
                             cd -"   
 
 alias bldm='sudo .;
             mavsdk_build_install;
             bld; 
-            cd ~/moos-ivp-uav/scripts;
+            cd ~/moos-ivp-uav-base/scripts;
             ./merge_compile_commands.sh;
             cd -'
 
@@ -176,7 +176,7 @@ PATH=$PATH:/usr/sbin
 PATH=$PATH:~/moos-ivp
 PATH=$PATH:~/moos-ivp/bin
 PATH=$PATH:~/moos-ivp/scripts
-PATH=$PATH:~/moos-ivp-uav/bin 
+PATH=$PATH:~/moos-ivp-uav-base/bin 
 PATH=$PATH:~/moos-ivp-swarm/bin 
 
 export PATH
@@ -190,16 +190,16 @@ if [[ ! -z $IVP_BEHAVIOR_DIRS ]]; then
 else
     export IVP_BEHAVIOR_DIRS=~/moos-ivp/lib
 fi
-IVP_BEHAVIOR_DIRS=$IVP_BEHAVIOR_DIRS:~/moos-ivp-uav/lib
+IVP_BEHAVIOR_DIRS=$IVP_BEHAVIOR_DIRS:~/moos-ivp-uav-base/lib
 IVP_BEHAVIOR_DIRS=$IVP_BEHAVIOR_DIRS:~/moos-ivp-swarm/lib
 export IVP_BEHAVIOR_DIRS
 
 
 
-IVP_IMAGE_DIRS=~/moos-ivp-uav/Maps/NTNU_UAV_Airport
+IVP_IMAGE_DIRS=~/moos-ivp-uav-base/Maps/NTNU_UAV_Airport
 export IVP_IMAGE_DIRS
 
 
-source ~/moos-ivp-uav/scripts/alog_extract_telemetry_csv.sh
+source ~/moos-ivp-uav-base/scripts/alog_extract_telemetry_csv.sh
 
 ####################### PATHS - END #########################################

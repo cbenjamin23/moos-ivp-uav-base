@@ -13,7 +13,7 @@ GZ_ONLY=OFF
 
 READ_CONFIG=YES # Do that by default
 
-CONFIG_FILE="$HOME/moos-ivp-uav/missions/UAV_Fly/missionConfig.yaml"
+CONFIG_FILE="$HOME/moos-ivp-uav-base/missions/UAV_Fly/missionConfig.yaml"
 FORCE=""
 
 vecho() { if [ "$VERBOSE" != "" ]; then echo " -> $ME: $1"; fi }
@@ -39,7 +39,7 @@ kill_drone_session () {
 }
 
 cleanup() {
-    for file in ~/moos-ivp-uav/missions/MavlinkLog*.log; do
+    for file in ~/moos-ivp-uav-base/missions/MavlinkLog*.log; do
         > "$file"
     done
 
@@ -171,18 +171,18 @@ if ! [[ "$NUM_VEHICLES" =~ ^[0-9]+$ ]]; then
 fi
 
 
-PARAMFILE=$HOME/moos-ivp-uav/scripts/simulation/$PARAMFILE
+PARAMFILE=$HOME/moos-ivp-uav-base/scripts/simulation/$PARAMFILE
 
 
 
 # num vehicles greater than 1
 if [ $READ_CONFIG == "YES" ]; then
     echo "Generating SDF files from configuration file"
-    python /home/steve/moos-ivp-uav/scripts/generate_drone_sdf.py $FORCE\
+    python /home/steve/moos-ivp-uav-base/scripts/generate_drone_sdf.py $FORCE\
         --config_file               $CONFIG_FILE \
         --default_models_folder     ~/SITL_Models/Gazebo/models/skywalker_x8/ \
-        --destination_models_folder ~/moos-ivp-uav/GazeboSim/models/ \
-        --destination_worlds_folder ~/moos-ivp-uav/GazeboSim/worlds/  \
+        --destination_models_folder ~/moos-ivp-uav-base/GazeboSim/models/ \
+        --destination_worlds_folder ~/moos-ivp-uav-base/GazeboSim/worlds/  \
         $FORCE
     
     
