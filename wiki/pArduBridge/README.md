@@ -350,4 +350,4 @@ This documentation should be updated as pArduBridge evolves. Key areas that may 
 
 **Author**: Steve Carter Feujo Nomeny  
 **Organization**: NTNU, MIT  
-**Date**: September 9th, 2024
+**Email**: scnomeny@mit.edu

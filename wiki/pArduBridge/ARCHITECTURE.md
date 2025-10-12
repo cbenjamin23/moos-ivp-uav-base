@@ -791,11 +791,11 @@ m_thread_cv.wait(lock, [this]() {
 
 Potential areas for evolution:
 
-1. **Multi-UAV Support**: Managing multiple UAV_Model instances
-2. **Enhanced Telemetry**: Additional sensor streams (camera, rangefinder)
-3. **Mission Planning**: Dynamic mission upload and modification
-4. **Geofencing**: Safety boundaries and return-to-safe-area
-5. **Swarm Behaviors**: Coordination between multiple UAVs
+1. **Extended Functionality**: Adding compatibility with autoland and other advanced ArduPilot features
+2. **Platform Compatibility**: Support for VTOL aircraft and other ArduPilot variants
+3. **Enhanced Telemetry**: Additional sensor streams (camera, rangefinder)
+4. **Mission Planning**: Dynamic mission upload and modification
+5. **Geofencing**: Safety boundaries and return-to-safe-area
 6. **Advanced Autonomy**: Integration with computer vision and AI
 
 ---
@@ -814,4 +814,4 @@ Potential areas for evolution:
 
 **Author**: Steve Carter Feujo Nomeny  
 **Organization**: NTNU, MIT  
-**Date**: September 9th, 2024
+**Email**: scnomeny@mit.edu
