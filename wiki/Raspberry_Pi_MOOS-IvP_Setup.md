@@ -123,52 +123,11 @@ Add to `~/.bashrc`:
 git -C ~/uav-common pull --quiet --ff-only && source ~/uav-common/bashrc_common.sh
 ```
 
-### 9.3 Build moos-ivp
-```bash
-cd ~
-git clone https://github.com/moos-ivp/moos-ivp.git
-cd ~/moos-ivp
-./build.sh
-```
-
-### 9.4 Build moos-ivp-swarm (private)
-Request access via email. Then:
-```bash
-cd ~
-git clone git@github.com:pavlab-MIT/moos-ivp-swarm.git
-cd ~/moos-ivp-swarm
-./build.sh
-```
-
-### 9.5 Install moos-ivp-uav-base (+ MAVSDK)
-Note: For now, contact chbenj36@gmail.com to request access
-```bash
-cd ~
-git clone git@github.com:cbenjamin23/moos-ivp-uav-base.git
-cd ~/moos-ivp-uav
-git submodule update --init --recursive
-chmod +x ~/moos-ivp-uav/scripts/setup_bash_aliases_moos.sh
-```
-
-### 9.5.1 Build MAVSDK
-```bash
-cd ~/moos-ivp-uav/MAVSDK
-cmake -S . -B build/default -G Ninja   -DSUPERBUILD=ON   -DCMAKE_BUILD_TYPE=Debug   -DBUILD_SHARED_LIBS=ON   -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
-cmake --build build/default -j2
-cd ~/moos-ivp-uav
-./build.sh
-```
-
-### 9.6 Verification
-```bash
-which MOOSDB || echo "MOOSDB not in PATH"
-which pAntler || echo "pAntler not in PATH"
-test -d ~/moos-ivp-uav/build || echo "uav build missing"
-ls ~/moos-ivp-uav/MAVSDK/build/default || echo "MAVSDK missing"
-```
-
-### 9.7 Notes
-- Pi: use `-j2` and `minrobot` build.  
-- Mac: more parallel jobs, deps via Homebrew.
+### 9.3 Build moos-ivp related repos
+Follow additional wiki instructions to build the following repos on your pi:
+- moos-ivp-swarm (private)
+- moos-ivp-uav-base (this)
+- MAVSDK (inside moos-ivp-uav-base), 
+- Note: generally use the `minrobot` option, when presented, to build repos on the pi as it simply excludes gui-related apps.
 
 ## 10) To Be Continued
