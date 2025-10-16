@@ -4,6 +4,9 @@ This documentation provides guidance on setting up and running the MOOS-IVP UAV 
 
 ## Quick Navigation
 
+### Preliminary Payload Computer Setup
+- **[Raspberry Pi MOOS-IvP Setup.md](Raspberry_Pi_MOOS-IvP_Setup.md)** - Preliminary setup if installing moos-ivp-uav-base on a raspberry pi
+
 ### Essential Setup Documentation
 - **[Installation & Setup.md](Installation_&_Setup.md)** - Core system installation and setup instructions
   - Clone repository and submodules
@@ -12,14 +15,14 @@ This documentation provides guidance on setting up and running the MOOS-IVP UAV 
   - Setup ArduPilot, Gazebo, and related tools
 
 ### Key Components
-- **[MAVSDK Setup and Usage.md](MAVSDK_Setup_&_Usage.md)** - MAVSDK installation and usage
+- **[MAVSDK Setup & Usage.md](MAVSDK_Setup_&_Usage.md)** - MAVSDK installation and usage
 - **[ArduPilot & MavProx.md](ArduPilot_&_MavProx.md)** - ArduPilot configuration, parameters, Mission Planner setup, and swarm capabilities
 - **[System Launch Guide.md](System_Launch_Guide.md)** - How to launch missions and ground stations
 - **[Gazebo Plugin Configuration.md](Gazebo_Plugin_Configuration.md)** - Gazebo plugin details and version information
 
 ### Additional Resources
 - **[Telemetry Data Extraction.md](Telemetry_Data_Extraction.md)** - Managing mission data and telemetry extraction
-- **[Visualization and Mapping.md](Visualization_&_Mapping.md)** - Viewer application and map management
+- **[Visualization & Mapping.md](Visualization_&_Mapping.md)** - Viewer application and map management
 - **[Troubleshooting.md](Troubleshooting.md)** - Common issues and solutions
 
 ## Getting Started Steps
