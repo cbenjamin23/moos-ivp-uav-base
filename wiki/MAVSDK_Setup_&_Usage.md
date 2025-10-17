@@ -23,7 +23,7 @@ Clone from fork of official MAVSDK
 
 #### Install with moos
 
-Read instructions [Installation and Setup](Installation_and_Setup.md)
+Read instructions [Installation_&_Setup](Installation_&_Setup.md)
 
 ### Building the library
 
