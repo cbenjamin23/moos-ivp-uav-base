@@ -168,12 +168,12 @@ For more information on Gazebo environmental variables, see: https://answers.gaz
 ## MissionPLanner
 - ~/Mission_Planner/
 - [Install guide](https://ardupilot.org/planner/docs/mission-planner-installation.html)
-- Configuration details can be found in [ArduPilot & MavProx](ArduPilot%20&%20MavProx.md)
+- Configuration details can be found in [ArduPilot & MavProx](ArduPilot_&_MavProx.md)
 ## MAVSDK 
 
 **No need to install as it comes as a submodule with moos-ivp-uav-base)**
 - ~/MAVSDK/
-- [MAVSDK Setup and Usage](MAVSDK%20Setup%20and%20Usage.md)
+- [MAVSDK Setup and Usage](MAVSDK_Setup_&_Usage.md)
 
 
 
