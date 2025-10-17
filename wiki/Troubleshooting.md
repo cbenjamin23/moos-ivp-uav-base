@@ -60,7 +60,7 @@ git clone https://github.com/UAVCAN/libcanard.git modules/libcanard
 git clone https://github.com/UAVCAN/uavcan.git modules/uavcan
 ```
 
-After this it is **IMPORTANT** to modify the UAVCAN Library Code as described in [ArduPilot & MavProx](ArduPilot%20&%20MavProx.md)
+After this it is **IMPORTANT** to modify the UAVCAN Library Code as described in [ArduPilot_&_MavProx](ArduPilot_&_MavProx.md)
 
 
 ## How to search in files:
