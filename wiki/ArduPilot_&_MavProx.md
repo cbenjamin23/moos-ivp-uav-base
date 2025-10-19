@@ -2,10 +2,19 @@
 
 # ArduPilot
 
-The spesific parameter list used for ArduPilot Plane can be found in [here](https://ardupilot.org/plane/docs/parameters-Plane-stable-V4.5.7.html)  (web) of [here](https://autotest.ardupilot.org/Parameters/ArduPlane/apm.pdef.xml) (xml).
-and look for plane version **Plane-4.5.7**
+## Version Compatibility
 
-For All parameter across all vehicles look [here](https://ardupilot.org/dev/docs/mavlink-get-set-params.html) which also informs about the Mavlink Interface with ArduPilot
+This project was tested with **ArduPilot Plane version 4.5.7**, but it can be utilized with newer versions as well. The specific parameter list for Plane-4.5.7 can be found [here](https://ardupilot.org/plane/docs/parameters-Plane-stable-V4.5.7.html) (web) or [here](https://autotest.ardupilot.org/Parameters/ArduPlane/apm.pdef.xml) (xml).
+
+**Important Note:** Some parameter names can and have changed from version to version. Before using a different plane version, verify that the following required parameters are available and have the same names:
+
+- `AIRSPEED_CRUISE`
+- `AIRSPEED_MAX`
+- `AIRSPEED_MIN`
+
+If these parameters have different names in your version, you will need to update the configuration accordingly.
+
+For all parameters across all vehicles, look [here](https://ardupilot.org/dev/docs/mavlink-get-set-params.html), which also provides information about the Mavlink Interface with ArduPilot
 
 
 
@@ -21,6 +30,79 @@ AIRSPEED_MAX 19
 AIRSPEED_MIN 11
 ```
 
+## Launching the Simulation
+
+### Using start_simulation.sh Script
+
+The simulation can be launched using the `scripts/start_simulation.sh` script. This script provides a convenient way to start the ArduPilot SITL (Software In The Loop) simulation along with Gazebo for visualization.
+
+**Basic Usage:**
+```bash
+cd ~/moos-ivp-uav-base/scripts
+./start_simulation.sh
+```
+
+**What the script does:**
+
+The script reads configuration from the `missionConfig.yaml` file (located in `missions/UAV_Fly/`) and:
+
+1. **Generates drone SDF files** from the configuration using `generate_drone_sdf.py`
+2. **Starts Gazebo** with the appropriate number of vehicles based on the configuration
+3. **Launches ArduPilot SITL instances** for each drone in a tmux session named `drone_sim`
+4. Sets up each drone with:
+   - Unique system ID
+   - Custom starting location (lat/lon/altitude/heading)
+   - Simulation speed/time warp
+   - MAVLink connection ports
+
+**Important Configuration: useMoosSimPid Parameter**
+
+The behavior of the simulation depends on the `useMoosSimPid` parameter in `missionConfig.yaml`:
+
+- **When `useMoosSimPid: false`**: 
+  - The script launches ArduPilot SITL instances
+  - Gazebo is started to connect to the ArduPilot instances
+  - pArduBridge will communicate with these ArduPilot instances
+  - This provides full flight dynamics simulation through ArduPilot
+
+- **When `useMoosSimPid: true`**:
+  - ArduPilot SITL and Gazebo are NOT launched
+  - The MOOS-IvP vehicle simulator is used instead
+  - pArduBridge will not launch
+  - This is a lighter-weight simulation option
+
+**Script Options:**
+```bash
+./start_simulation.sh [OPTIONS]
+  --gdb           : Start ArduPilot SITL in GDB mode (debugging)
+  --mp            : Start Mission Planner
+  --just_gz       : Start Gazebo only (no ArduPilot SITL)
+  --parm=filename : Use specified parameter file for ArduPilot SITL
+  --swarm=N       : Start Gazebo with N vehicles
+  --config        : Use configuration file to generate drone SDF files (default)
+  --force, -f     : Force overwrite of existing drone SDF files and restart Gazebo
+  --clean         : Clean up simulation files
+  --ks            : Kill existing tmux session and exit
+  --nt            : Open new terminal windows for the simulation
+  --verbose, -v   : Verbose output
+```
+
+### Using pMarineViewer
+
+**pMarineViewer** is a MOOS-IvP application for visualizing vehicle missions and operations. It works similarly regardless of the `useMoosSimPid` setting:
+
+- It connects to the MOOS database to visualize vehicle positions, paths, and mission data
+- It provides a graphical interface to monitor drone positions and mission progress
+- It can be used to send commands to the vehicles
+- For detailed pMarineViewer usage, see the [pArduBridge documentation](pArduBridge/QUICKSTART.md)
+
+**Launching pMarineViewer:**
+
+pMarineViewer is typically launched as part of the shoreside/ground station:
+```bash
+cd ~/moos-ivp-uav-base/missions/UAV_Fly
+./launch_shoreside.sh
+```
 
 #### SIM_OPOS parameters
 ```default
