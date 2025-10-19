@@ -171,7 +171,7 @@ For more information on Gazebo environmental variables, see: https://answers.gaz
 - Configuration details can be found in [ArduPilot & MavProx](ArduPilot_&_MavProx.md)
 ## MAVSDK 
 
-**No need to install seperately as it comes as a submodule with moos-ivp-uav-base. However, follow the instructions below for building it or directly use the mavsdk_build_install alias from the [alias file](setup_bash_aliases_moos.sh)**
+**No need to install seperately as it comes as a submodule with moos-ivp-uav-base. However, follow the instructions below for building it or directly use the mavsdk_build_install alias from the [alias file](https://github.com/cbenjamin23/moos-ivp-uav-base/blob/main/scripts/setup_bash_aliases_moos.sh)**
 - ~/MAVSDK/
 - [MAVSDK Setup and Usage](MAVSDK_Setup_&_Usage.md) - **(Optional guide)** - Only needed if you want to build custom MAVSDK applications for learning purposes
 
