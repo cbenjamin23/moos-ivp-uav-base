@@ -1,0 +1,386 @@
+//*******************************************************
+// ShoreSide Configuration File
+
+ServerHost = localhost
+ServerPort = 9010
+Community  = shoreside
+
+// Need to declare MOOSTimeWarp becuase we use this file as targ file
+MOOSTimeWarp = 1
+
+//Kongsberg Discovery Strandpromenaden 50
+LatOrigin  = 59.43111 
+LongOrigin = 10.46696
+
+//Trondheim
+//LatOrigin = 63.44160683864529
+//LongOrigin = 10.4205322265625
+
+//Lahelle
+//LatOrigin = 59.12454
+//LongOrigin = 10.30000
+//LatOrigin  = 59.131922
+//LongOrigin = 10.292352
+  
+//--------------------------------------------------------
+Processconfig = ANTLER
+{
+  MSBetweenLaunches = 100
+
+  Run = MOOSDB          @ NewConsole = false
+  Run = pRealm          @ NewConsole = false
+  Run = pMarineViewer   @ NewConsole = false
+  Run = pLogger         @ NewConsole = false
+
+  Run = pShare          @ NewConsole = false
+  Run = pHostInfo       @ NewConsole = false
+  Run = uFldShoreBroker @ NewConsole = false
+  Run = uMemWatch       @ NewConsole = false
+  Run = pBoatTracker  @ NewConsole = false
+
+}
+
+#include uav_plugs.moos <uMemWatch>
+
+
+//--------------------------------------------------
+// pHostInfo configuration block 
+ProcessConfig = pHostInfo
+{
+  AppTick 	= 1
+  CommsTick = 1
+
+  DEFAULT_HOSTIP = $(IP_ADDR)
+}
+
+
+//---------------------------------------------------------
+// pShare Config Block 
+
+ProcessConfig = pShare
+{
+  AppTick    = 2
+  CommsTick  = 2
+
+  input = route = $(IP_ADDR):$(PSHARE_PORT)
+}
+
+
+//--------------------------------------------------
+// uFldShoreBroker Configuration Block
+
+ProcessConfig = uFldShoreBroker
+{
+  AppTick   = 1
+  CommsTick = 1
+
+  //bridge = NODE_REPORT, NODE_MESSAGE
+  bridge = src=APPCAST_REQ
+
+  bridge = src=MOOS_MANUAL_OVERRIDE
+  bridge = src=ControlMode
+  bridge = src=MVIEWER_LCLICK
+  bridge = src=MVIEWER_RCLICK
+  bridge = src=NEW_POINT
+  bridge = src=NEW_POINT_LIST
+  bridge = src=RM_LAST_NEW_POINT
+  bridge = src=WAYPOINT_RETURN_UPDATES
+
+  //UAV STUFF
+
+  qbridge = NODE_REPORT, NODE_MESSAGE
+  qbridge = APPCAST_REQ
+
+  bridge  = src=UFFS_FINISH
+  bridge  = src=MISSION_COMPLETE
+  bridge  = src=VIEW_GRID
+  bridge  = src=VIEW_GRID_DELTA
+
+  qbridge = ARM_UAV, HELM_STATUS, MOOS_MANUAL_OVERRIDE, PROX_SETPT_METHOD, PROX_SET_VISUALIZATION
+
+  qbridge = GCS_COMMAND, PROX_POLY_VIEW // Most commands from the GCS
+
+  qbridge = HEARTBEAT  // Heartbeat from the GCS to all vehicles
+
+
+  bridge  = src=NEXT_WAYPOINT
+  bridge  = src=REGION_INFO
+
+
+  #ifdef USE_MOOS_SIM_PID true
+    qbridge = DEPLOY, TOWAYPT_UPDATE //, RETURN, LOITER
+    bridge = src=DEPLOY_UAV
+    bridge = src=RETURN_UAV
+    bridge = src=DO_SURVEY
+  #endif
+
+  bridge = src=TOWAYPT_UPDATE
+
+}
+
+//--------------------------------------------------
+// pLogger Configuration Block
+
+ProcessConfig = pLogger
+{
+  AppTick       = 10
+  CommsTick     = 10
+  
+  File          = LOG_SHORESIDE
+  PATH          = ./
+  AsyncLog      = true
+  FileTimeStamp = true
+
+  // Log it all!!!!!
+  WildCardLogging = true 
+}
+
+//--------------------------------------------------
+// pBoatTracker configuration block 
+ProcessConfig = pBoatTracker
+{
+  AppTick 	= 4
+  CommsTick = 4
+
+}
+
+//------------------------------------------
+// pMarineViewer config block
+
+ProcessConfig = pMarineViewer
+{
+  AppTick    = 4
+  CommsTick  = 4
+
+  //tiff_file            = ../../data/KD_SP50.tif  // Issue where echo setting IVP_IMAGE_DIRS to directory
+                                                  //  of data is not fixed, hence why relative path is used here.
+	//tiff_file            = ../../data/Tonsberg.tif
+  tiff_file              = ../../data/HortenMapping.tif
+  //tiff_file            = ../../data/trondheim.tif
+  //tiff_file            = ../../data/Lahelle_Mission_gsat.tif
+  //tiff_file            = ../../data/UAV_Farm_Test_gsat.tif
+
+  //set_pan_x            = -90
+  //set_pan_y            = -280
+  zoom                   = 1.2
+  //view_center          = (-100,-100)
+
+  vehicle_shape_scale = 2.0
+  hash_delta           = 50
+  hash_shade           = 0.22
+  hash_viewable        = true
+  beat_flag = HEARTBEAT_ALL=true
+
+  // Appcast configuration
+  //////////////////////////////////
+
+  appcast_height       = 75
+  appcast_width        = 30
+  appcast_viewable     = true
+  appcast_color_scheme = indigo
+  nodes_font_size      = xlarge
+  procs_font_size      = xlarge
+  appcast_font_size    = large
+
+
+  ////////////////////////////////////////////////
+  // Mouse Contexts
+  ////////////////////////////////////////////////
+
+  right_context[new_point] = NEW_POINT = x=$[XPOS],y=$[YPOS]
+  right_context[new_point] = VIEW_POINT = x=$[XPOS],y=$[YPOS],label=new_point
+
+  right_context[return] = DEPLOY=true
+  right_context[return] = MOOS_MANUAL_OVERRIDE=false
+
+  left_context[waypt_return] = WAYPOINT_RETURN_UPDATES = points = $[XPOS],$[YPOS]
+  left_context[waypt_return]  = VIEW_POINT = x=$[XPOS],y=$[YPOS],label=return_point
+
+  //UAV
+
+  #ifdef USE_MOOS_SIM_PID true
+    left_context[register_wypt_uav] =  VIEW_MARKER = "type=gateway,x=$[XPOS],y=$[YPOS],scale=10,label=next_wpt_all,color=blue,width=10"
+    left_context[register_wypt_uav] =  TOWAYPT_UPDATE_ALL = "points=$[XPOS],$[YPOS]"   // for testing with boat AvCol
+    left_context[register_wypt_uav] =  MOOS_MANUAL_OVERRIDE_ALL=false   // for testing with boat AvCol
+
+  #else
+    // left_context[reg_waypoint]  = VIEW_POINT = x=$[XPOS],y=$[YPOS],label=next_wpt,vertex_size=4
+    
+    left_context[register_wypt_uav] =  VIEW_MARKER = "type=gateway,x=$[XPOS],y=$[YPOS],scale=10,label=next_wpt_all,color=blue,width=10"
+    left_context[register_wypt_uav] =  NEXT_WAYPOINT = "lat=$[LAT],lon=$[LON],x=$[XPOS],y=$[YPOS],vname=t1_ranger"
+    left_context[register_wypt_uav] =  TOWAYPT_UPDATE = "points=x=$[XPOS],y=$[YPOS],vname=t1_ranger"
+    
+    left_context[register_wypt_active_vehicle] =  VIEW_MARKER = "type=gateway,x=$[XPOS],y=$[YPOS],scale=10,label=next_wpt_t1_ranger,color=gray,width=10"
+    left_context[register_wypt_active_vehicle] =  NEXT_WAYPOINT = "lat=$[LAT],lon=$[LON],x=$[XPOS],y=$[YPOS],vname=t1_ranger"
+  #endif  
+
+
+  //////////////////////////////////
+  // Scoping Variables
+  //////////////////////////////////
+
+  scope  = ControlMode
+  scope  = NEW_POINT_LIST
+  scope  = RM_LAST_NEW_POINT
+  scope  = WPT_STAT
+  scope  = VIEW_SEGLIST
+  scope  = VIEW_POINT
+  scope  = VIEW_POLYGON
+  scope  = MVIEWER_LCLICK
+  scope  = MVIEWER_RCLICK
+
+  //UAV
+  scope = COLREGS_AVOID_MODE
+  scope = UVOI_RELATIVE_STD_DEV
+	scope = UNC_FULL_REPORT_REQ
+  scope = PMV_CENTER
+  scope = PROX_POLY_VIEW_ABE
+  scope = PHI_HOST_INFO
+
+  ////////////////////////////////////////////////
+  // Viewing 
+  ////////////////////////////////////////////////
+  
+	procs_font_size = medium // {xlarge, large, medium, small, xsmall}
+	nodes_font_size = medium
+	infocast_font_size = medium
+	
+  
+  appcast_viewable     = true
+  appcast_color_scheme = indigo
+  
+  
+  polygon_viewable_all    = true
+  polygon_viewable_labels = false
+  seglist_viewable_all    = true
+  seglist_viewable_labels = false
+  point_viewable_all    = true
+  point_viewable_labels = true
+
+  comms_pulse_viewable_all = true
+  range_pulse_viewable_all = false
+  node_pulse_viewable_all  = false
+
+
+  ////////////////////////////////////////////////
+  // UAV related
+  ////////////////////////////////////////////////
+
+  bearing_lines_viewable  = true
+  center_view             = average
+  trails_color            = white
+  trails_point_size       = 5.0
+
+  stale_report_thresh = 2
+  stale_remove_thresh = 120
+
+
+  vehicles_shape_scale = 5.0
+  vehicles_name_mode   = names
+  vehicles_active_color = skyblue // (87,ce,eb)
+  vehicles_inactive_color = gray // (80,80,80)
+
+  vehicles_name_color = white
+
+
+  ////////////////////////////////////////////////
+  // Actions
+  ////////////////////////////////////////////////
+ 
+  action = BLOCK_HEARTBEAT = true
+	action+ = BLOCK_HEARTBEAT = false
+ 
+  action+ = menu_key=VisualizeHome # GCS_COMMAND_ALL=VIZ_HOME
+ 
+  action = menu_key=all_vehicles_SPD # CHANGE_SPEED_ALL=1
+  action =  CHANGE_SPEED_ALL=-1
+  action =  CHANGE_SPEED_ALL=5
+  action+ =  CHANGE_SPEED_ALL=-5
+ 
+  action = menu_key=all_vehicles_ALT # CHANGE_ALTITUDE_ALL=1
+  action = CHANGE_ALTITUDE_ALL=-1
+  action = CHANGE_ALTITUDE_ALL=10
+  action+ = CHANGE_ALTITUDE_ALL=-10
+ 
+  action = menu_key=all_vehicles_HDG # CHANGE_COURSE_ALL=1
+  action = CHANGE_COURSE_ALL=-1
+  action = CHANGE_COURSE_ALL=10
+  action+ = CHANGE_COURSE_ALL=-10
+
+
+  ////////////////////////////////////////////////
+  // Buttons
+  ////////////////////////////////////////////////
+
+  button_1 = START_HELM / RECONNECT # MOOS_MANUAL_OVERRIDE=false # ControlMode = Autonomous_Inactive # MC_RECONNECT = 1
+  
+  button_2 = WPT_FOLLOW # ControlMode = Autonomous_Waypoint_Following
+  button_2 = MOOS_MANUAL_OVERRIDE = false
+  
+  button_3 = MAPPING # ControlMode = Autonomous_Mapping
+  button_3 = MOOS_MANUAL_OVERRIDE = false
+  
+  button_4 = STATION_KEEP # ControlMode = Autonomous_Station_Keeping # center_activate=true
+  button_4 = MOOS_MANUAL_OVERRIDE = false
+  
+  button_5 = RETURN_BOAT # ControlMode = Autonomous_Returning
+  button_5 = MOOS_MANUAL_OVERRIDE = false
+  
+  button_6 = AutoDocking # ControlMode = Automatic_Docking
+  button_6 = MOOS_MANUAL_OVERRIDE = false
+
+  button_7 = NEW_POINT_LIST # NEW_POINT_LIST = true
+
+  button_8 = RM_LAST_NEW_POINT # RM_LAST_NEW_POINT = true
+  
+  //UAV
+
+  #ifdef USE_MOOS_SIM_PID true
+    button_9 = TOWAYPOINT_UAV # DO_SURVEY=false # DEPLOY_UAV=true # RETURN_UAV=false# LOITER_ALL=false # MOOS_MANUAL_OVERRIDE_ALL=false
+    button_10 = RETURN_UAV # DO_SURVEY_ALL=false # DEPLOY_UAV=true # RETURN_UAV=true # LOITER_ALL=false # MOOS_MANUAL_OVERRIDE_ALL=false
+
+  #else
+
+  button_9  = TOWYP_UAV # GCS_COMMAND_ALL=FLY_WAYPOINT
+
+  button_10 = RETURN_UAV  # GCS_COMMAND_ALL=RETURN_TO_LAUNCH
+
+#endif
+
+
+  ////////////////////////////////////////////////
+  // Commands
+  ////////////////////////////////////////////////
+ 
+ 
+#ifdef USE_MOOS_SIM_PID true
+ 
+  cmd = label=SURVEY, var=DO_SURVEY, sval=true, receivers=all:$(VNAMES)
+ 
+#else
+  cmd = label=TOWAYPOINT, var=GCS_COMMAND, sval=FLY_WAYPOINT, receivers=all:$(VNAMES)
+  cmd = label=RTL, var=GCS_COMMAND, sval=RETURN_TO_LAUNCH, receivers=all:$(VNAMES)
+  cmd = label=LOITER/HOLD, var=GCS_COMMAND, sval=LOITER, receivers=all:$(VNAMES)
+  cmd = label=SPEED_TO_MIN, var=GCS_COMMAND, sval=RESET_SPEED_MIN, receivers=all:$(VNAMES)
+  cmd = label=SURVEY, var=GCS_COMMAND, sval=SURVEY, receivers=all:$(VNAMES)
+ 
+  cmd = label=AIRSPD+1, var=CHANGE_SPEED, dval=1, receivers=all:$(VNAMES)
+  cmd = label=AIRSPD-1, var=CHANGE_SPEED, dval=-1, receivers=all:$(VNAMES)
+  cmd = label=AIRSPD+5, var=CHANGE_SPEED, dval=5, receivers=all:$(VNAMES)
+  cmd = label=AIRSPD-5, var=CHANGE_SPEED, dval=-5, receivers=all:$(VNAMES)
+ 
+  cmd = label=ALT+1, var=CHANGE_ALTITUDE, dval=1, receivers=all:$(VNAMES)
+  cmd = label=ALT-1, var=CHANGE_ALTITUDE, dval=-1, receivers=all:$(VNAMES)
+  cmd = label=ALT+10, var=CHANGE_ALTITUDE, dval=10, receivers=all:$(VNAMES)
+  cmd = label=ALT-10, var=CHANGE_ALTITUDE, dval=-10, receivers=all:$(VNAMES)
+ 
+  cmd = label=HELM_ON, var=HELM_STATUS, sval=ON, receivers=all:$(VNAMES)
+  cmd = label=HELM_OFF, var=HELM_STATUS, sval=OFF, receivers=all:$(VNAMES)
+ 
+  cmd = label=PARK_HELM, var=MOOS_MANUAL_OVERRIDE, sval=true, receivers=all:$(VNAMES)
+
+#endif
+
+  cmd= label=PROX_toggle_visualization, var=PROX_SET_VISUALIZATION, sval=toggle,  receivers=all
+
+}

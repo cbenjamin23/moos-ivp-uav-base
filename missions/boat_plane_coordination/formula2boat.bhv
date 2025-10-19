@@ -1,0 +1,464 @@
+//---------------------------------------------------
+// Helm Behavior file 
+
+initialize   ControlMode  = Uninitialized
+
+//========================================================
+// Hierarchical Mode Declarations
+// (Same behaviors are configured differently for each mode)
+//  o ROOT                     
+//  |--o INACTIVE              
+//  |--o ACTIVE
+//     |--o WAYPOINT_FOLLOWING
+//        |--o BHV_AvdColregsV19
+//        |--o BHV_AvoidObstacleV24
+//        |--o BHV_Waypoint
+//     |--o MAPPING
+//        |--o BHV_AvdColregsV19
+//        |--o BHV_AvoidObstacleV24
+//        |--o BHV_Waypoint
+//     |--o RETURNING
+//        |--o BHV_AvdColregsV19
+//        |--o BHV_AvoidObstacleV24
+//        |--o BHV_Waypoint  
+//     |--o STATION_KEEP
+//        |--o BHV_StationKeep
+//        
+
+//========================================================
+
+
+set MODE = ACTIVE {
+  ControlMode != Uninitialized
+  ControlMode != Manual
+  ControlMode != Error
+  ControlMode != Automatic_Docking
+} INACTIVE
+
+set MODE = WAYPOINT_FOLLOWING {
+  MODE = ACTIVE
+  ControlMode  = Autonomous_Waypoint_Following
+}                       
+
+set MODE = MAPPING {
+  MODE = ACTIVE
+  ControlMode  = Autonomous_Mapping
+} 
+
+set MODE = STATION_KEEP{
+  MODE = ACTIVE
+  ControlMode  = Autonomous_Station_Keeping
+} 
+
+set MODE = RETURNING {
+  MODE = ACTIVE
+  ControlMode  = Autonomous_Returning
+} 
+
+//----------------------------------------WAYPOINT_FOLLOWING--------------------------------------------
+
+Behavior = BHV_Waypoint
+{
+  name      = waypoint_following
+  pwt       = 100
+  updates   = WAYPOINT_FOLLOWING_UPDATES
+  condition = MODE==WAYPOINT_FOLLOWING
+  endflag   = ControlMode = Autonomous_Inactive
+
+  capture_radius  = 10   //m
+  slip_radius     = 10  //m
+  lead            = 10
+  lead_damper     = 8
+  
+  speed           = 2
+  speed_alt       = 2
+  use_alt_speed   = true
+
+
+  //KD_SP50 & Horten Mapping 
+  //points          = pts={60,-40:60,-160:150,-160:180,-100:150,-40}
+  
+  //KD_SP50 & Tonsberg Mapping
+  //points          = pts={75.6304,-95.2654:314.371,-157.386:382.599,-316.955:220.599,-469.222:74.4129,-120.844:75.6304,-95.2654:314.371,-157.386:382.599,-316.955:220.599,-469.222:74.4129,-120.844:75.6304,-95.2654:314.371,-157.386:382.599,-316.955:220.599,-469.222:74.4129,-120.844} 
+  //points          = pts={337.508,-84.3031:352.143,-288.939:559.223,-305.992:627.407,-124.498:490.969,4.61247:374.045,-44.1081}
+  perpetual       = true
+
+  visual_hints    = vertex_size = 3            
+  visual_hints    = edge_size = 1              
+  visual_hints    = vertex_color = dodger_blue 
+  visual_hints    = edge_color = brown         
+  visual_hints    = nextpt_color = blue      
+  visual_hints    = nextpt_lcolor = azure     
+  visual_hints    = nextpt_vertex_size = 5    
+
+  //repeat          = 1
+}
+
+//-----------------------------------------------
+Behavior = BHV_AvdColregsV19
+{
+  //General Behavior Parameter
+  //-------------------------------------
+  name          = avoid_colregs_waypt
+  pwt           = 150
+  condition     = MODE==WAYPOINT_FOLLOWING
+  updates       = CONTACT_INFO
+  endflag       = CONTACT_RESOLVED = $[CONTACT]
+  templating    = spawn
+
+  //General Contact Behavior Parameters
+  //-------------------------------------
+  contact = to_be_determined
+  decay = 30,60
+  extrapolate=true
+  on_no_contact_ok = true
+  time_on_leg = 30
+
+  giveway_bow_dist = 15
+  use_refinery = true
+
+  //Parameters spesific to this behavior
+  //-------------------------------------
+  pwt_outer_dist = 100
+  pwt_inner_dist = 20
+  completed_dist = 500
+  min_util_cpa_dist = 20
+  max_util_cpa_dist = 100
+  pwt_grade           = linear
+  no_alert_request    = false
+  bearing_line_config = white:0, green:0.65, yellow:0.8, red:1.0
+}
+
+//-----------------------------------------------
+Behavior = BHV_AvoidObstacleV24
+{
+  name = avoid_obstacles_waypt
+
+  pwt        = 150 // maximum priority (applied when range smaller than min_util_cpa_dist)
+  condition  = MODE==WAYPOINT_FOLLOWING
+	templating = spawn
+  updates    = OBSTACLE_ALERT
+
+  completed_dist = 500  // behaviour dies when outside of this range (range = distance(obstacle, ownship))
+
+	max_util_cpa_dist = 100  // maneuver has max utility outside of this range
+	min_util_cpa_dist = 20  // maneuver has min utility inside this range, essentially equivalent to a collision
+
+  pwt_inner_dist = 20  // behavious has max priority inside this range
+  pwt_outer_dist = 40  // gets obstacle alerts for obstacles within this distance, bhv zero priority outside this range
+
+  use_refinery = true 
+  allowable_ttc = 20 // allowable time-to-collision
+  
+ visual_hints = obstacle_edge_color = red
+ visual_hints = obstacle_vertex_color = red
+ visual_hints = obstacle_vertex_size = 1
+ visual_hints = obstacle_fill_color = red
+ visual_hints = obstacle_fill_transparency = 0.7
+
+ visual_hints = buffer_min_edge_color = white
+ visual_hints = buffer_min_vertex_color = white
+ visual_hints = buffer_min_vertex_size = 1
+ visual_hints = buffer_min_fill_color = gray50
+ visual_hints = buffer_min_fill_transparency = 0.25
+
+ visual_hints = buffer_max_edge_color = white
+ visual_hints = buffer_max_vertex_color = white
+ visual_hints = buffer_max_vertex_size = 0 
+ visual_hints = buffer_max_fill_color = gray70
+ visual_hints = buffer_max_fill_transparency = 0.1
+}
+
+//----------------------------------------MAPPING-------------------------------------------------------
+
+Behavior = BHV_Waypoint
+{
+  name      = waypt_mapping
+  pwt       = 100
+  updates   = WAYPOINT_MAPPING_UPDATES
+  condition = MODE==MAPPING
+  endflag   = ControlMode = Autonomous_Station_Keeping
+  
+  capture_radius  = 5   //m
+  slip_radius     = 8  //m
+  lead            = 3
+  lead_damper     = 12
+  lead_to_start   = false
+  
+  speed           = 1
+
+  //KD_SP50 & Horten Mapping 
+  //points          = format=lawnmower, x=0, y=40, height=60, width=180, lane_width=15, label=Fish_path
+  //points          = format=lawnmower, x=80, y=-80, width=150, height=200, lane_width=40, rows=north-south, degs=30,  label=Fish_path
+  
+  //KD_SP50 & Tonsberg Mapping
+  //points          = format=lawnmower, x=400, y=-50, width=150, height=200, lane_width=40, rows=north-south, degs=30,  label=Fish_path
+  
+
+  
+  perpetual       = true
+  
+  visual_hints    = vertex_size = 3            // default
+  visual_hints    = edge_size = 1              // default
+  visual_hints    = vertex_color = dodger_blue // default
+  visual_hints    = edge_color = white         // default
+  visual_hints    = nextpt_color = yellow      // default
+  visual_hints    = nextpt_lcolor = aqua       // default
+  visual_hints    = nextpt_vertex_size = 5     // default
+
+
+  //repeat = 1
+}
+
+//-----------------------------------------------
+Behavior = BHV_AvdColregsV19
+{
+  //General Behavior Parameter
+  //-------------------------------------
+  name          = avoid_colregs_mapping
+  pwt           = 150
+  condition     = MODE==MAPPING
+  updates       = CONTACT_INFO
+  endflag       = CONTACT_RESOLVED = $[CONTACT]
+  templating    = spawn
+
+  //General Contact Behavior Parameters
+  //-------------------------------------
+  contact = to_be_determined
+  decay = 30,60
+  extrapolate=true
+  on_no_contact_ok = true
+  time_on_leg = 30
+
+  giveway_bow_dist = 15
+  use_refinery = true
+
+  //Parameters spesific to this behavior
+  //-------------------------------------
+  pwt_outer_dist = 50
+  pwt_inner_dist = 20
+  completed_dist = 500
+  min_util_cpa_dist = 20
+  max_util_cpa_dist = 100
+  pwt_grade           = linear
+  no_alert_request    = false
+  bearing_line_config = white:0, green:0.65, yellow:0.8, red:1.0
+}
+
+//-----------------------------------------------
+Behavior = BHV_AvoidObstacleV24
+{
+  name = avoid_obstacles_mapping_
+
+  pwt        = 150 // maximum priority (applied when range smaller than min_util_cpa_dist)
+  condition  = MODE==MAPPING
+	templating = spawn
+  updates    = OBSTACLE_ALERT
+
+  completed_dist = 500  // behaviour dies when outside of this range (range = distance(obstacle, ownship))
+
+	max_util_cpa_dist = 100  // maneuver has max utility outside of this range
+	min_util_cpa_dist = 20  // maneuver has min utility inside this range, essentially equivalent to a collision
+
+  pwt_inner_dist = 20  // behavious has max priority inside this range
+  pwt_outer_dist = 40  // gets obstacle alerts for obstacles within this distance, bhv zero priority outside this range
+
+  use_refinery = true 
+  allowable_ttc = 20 // allowable time-to-collision
+  
+ visual_hints = obstacle_edge_color = red
+ visual_hints = obstacle_vertex_color = red
+ visual_hints = obstacle_vertex_size = 1
+ visual_hints = obstacle_fill_color = red
+ visual_hints = obstacle_fill_transparency = 0.7
+
+ visual_hints = buffer_min_edge_color = white
+ visual_hints = buffer_min_vertex_color = white
+ visual_hints = buffer_min_vertex_size = 1
+ visual_hints = buffer_min_fill_color = gray50
+ visual_hints = buffer_min_fill_transparency = 0.25
+
+ visual_hints = buffer_max_edge_color = white
+ visual_hints = buffer_max_vertex_color = white
+ visual_hints = buffer_max_vertex_size = 0 
+ visual_hints = buffer_max_fill_color = gray70
+ visual_hints = buffer_max_fill_transparency = 0.1
+}
+
+//----------------------------------------RETURNING-----------------------------------------------------
+
+Behavior = BHV_Waypoint
+{
+  name      = waypt_return
+  pwt       = 100
+  updates   = WAYPOINT_RETURN_UPDATES
+  condition = MODE==RETURNING
+  endflag   = ControlMode = Autonomous_Inactive
+
+  capture_radius  = 5   //m
+  slip_radius     = 15  //m
+
+  speed           = 2
+
+  points          = pts={0,0}
+  perpetual       = true
+
+  visual_hints    = vertex_size = 3            
+  visual_hints    = edge_size = 1              
+  visual_hints    = vertex_color = greenyellow 
+  visual_hints    = edge_color = brown         
+  //visual_hints    = nextpt_color = blue      
+  //visual_hints    = nextpt_lcolor = azure     
+  //visual_hints    = nextpt_vertex_size = 5    
+}
+
+//-----------------------------------------------
+Behavior = BHV_AvdColregsV19
+{
+  //General Behavior Parameter
+  //-------------------------------------
+  name          = avoid_colregs_return_
+  pwt           = 150
+  condition     = MODE==RETURNING
+  updates       = CONTACT_INFO
+  endflag       = CONTACT_RESOLVED = $[CONTACT]
+  templating    = spawn
+
+  //General Contact Behavior Parameters
+  //-------------------------------------
+  contact = to_be_determined
+  decay = 30,60
+  extrapolate=true
+  on_no_contact_ok = true
+  time_on_leg = 30
+
+  giveway_bow_dist = 15
+  use_refinery = true
+
+  //Parameters spesific to this behavior
+  //-------------------------------------
+  pwt_outer_dist = 100
+  pwt_inner_dist = 20
+  completed_dist = 500
+  min_util_cpa_dist = 20
+  max_util_cpa_dist = 100
+  pwt_grade           = linear
+  no_alert_request    = false
+  bearing_line_config = white:0, green:0.65, yellow:0.8, red:1.0
+}
+
+//-----------------------------------------------
+Behavior = BHV_AvoidObstacleV24
+{
+  name = avoid_obstacles_return_
+
+  pwt        = 150 // maximum priority (applied when range smaller than min_util_cpa_dist)
+  condition  = MODE==RETURNING
+	templating = spawn
+  updates    = OBSTACLE_ALERT
+
+  completed_dist = 500  // behaviour dies when outside of this range (range = distance(obstacle, ownship))
+
+	max_util_cpa_dist = 100  // maneuver has max utility outside of this range
+	min_util_cpa_dist = 20  // maneuver has min utility inside this range, essentially equivalent to a collision
+
+  pwt_inner_dist = 20  // behavious has max priority inside this range
+  pwt_outer_dist = 40  // gets obstacle alerts for obstacles within this distance, bhv zero priority outside this range
+
+  use_refinery = true 
+  allowable_ttc = 20 // allowable time-to-collision
+  
+ visual_hints = obstacle_edge_color = red
+ visual_hints = obstacle_vertex_color = red
+ visual_hints = obstacle_vertex_size = 1
+ visual_hints = obstacle_fill_color = red
+ visual_hints = obstacle_fill_transparency = 0.7
+
+ visual_hints = buffer_min_edge_color = white
+ visual_hints = buffer_min_vertex_color = white
+ visual_hints = buffer_min_vertex_size = 1
+ visual_hints = buffer_min_fill_color = gray50
+ visual_hints = buffer_min_fill_transparency = 0.25
+
+ visual_hints = buffer_max_edge_color = white
+ visual_hints = buffer_max_vertex_color = white
+ visual_hints = buffer_max_vertex_size = 0 
+ visual_hints = buffer_max_fill_color = gray70
+ visual_hints = buffer_max_fill_transparency = 0.1
+}
+
+//----------------------------------------STATION_KEEP--------------------------------------------------
+
+Behavior = BHV_StationKeep
+{
+  name         = station_keep
+  pwt          = 100
+  condition    = MODE==STATION_KEEP
+  updates      = STATION_KEEP_UPDATES
+  perpetual    = true
+
+
+  //station_pt = 50,50
+  center_activate = true
+  inner_radius    = 10
+  outer_radius    = 20
+  outer_speed     = 0.3
+  transit_speed   = 1
+
+  swing_time      = 1  //s
+//  hibernation_radius = 25
+  
+  visual_hints = vertex_size = 1 // default
+  visual_hints = edge_color = light_blue // default
+  visual_hints = edge_size = 1 // default
+  visual_hints = label_color = white // default
+  visual_hints = vertex_color = red // default
+}
+
+
+
+
+//--------------------------------Unused----------------------------------
+
+//Behavior = BHV_OpRegionRecover
+{
+  name      = op_recover
+  pwt       = 100
+  condition = MODE==ACTIVE
+
+      speed = 1.3
+     radius = 3.0
+  nm_radius = 15.0
+     points = $(OSX),$(OSY)
+     repeat = 10
+       lead = 8
+}
+
+//----------------------------------------------
+//Behavior = BHV_AvoidCollision
+{
+  name         = avoid_collision_
+  pwt          = 300
+  condition    = MODE == ACTIVE
+  updates      = CONTACT_INFO
+  idleflag     = AVOIDING = idle
+  activeflag   = AVOIDING = active
+  inactiveflag = AVOIDING = inactive
+  runflag      = AVOIDING = running
+  endflag      = AVOIDING = end
+  endflag      = CONTACT_RESOLVED = $[CONTACT]
+  templating   = spawn
+
+             contact = to_be_determined
+    on_no_contact_ok = true
+         extrapolate = true
+               decay = 30,60
+
+        pwt_outer_dist = 200
+        pwt_inner_dist = 50
+        completed_dist = 100
+     min_util_cpa_dist = 10
+    max_util_cpa_dist = 75
+             pwt_grade = linear
+   bearing_line_config = white:0, green:0.65, yellow:0.8, red:1.0
+}

@@ -1,0 +1,8 @@
+lat_north= 59.44786751120396
+lat_south= 59.41993301322724
+lon_east= 10.4974365234375
+lon_west= 10.4315185546875
+
+//origin of map
+datum_lat = 59.43111
+datum_lon = 10.46696

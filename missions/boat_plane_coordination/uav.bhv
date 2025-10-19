@@ -1,0 +1,184 @@
+//--------    FILE: alpha.bhv  -------------
+
+
+#ifdef USE_MOOS_SIM_PID true
+  initialize   DEPLOY_UAV = false
+  initialize   RETURN_UAV = false
+  initialize   LOITER = false
+#endif
+
+initialize   AVOID  = true
+
+initialize BHV_MODE = INACTIVE
+
+
+#ifdef USE_MOOS_SIM_PID true
+  
+  set BHV_MODE = INACTIVE {
+    DEPLOY_UAV != true
+    RETURN_UAV != true
+    DO_SURVEY != true
+    LOITER != true
+  } ACTIVE
+
+  set BHV_MODE = TOWAYPT {
+    BHV_MODE = ACTIVE
+    RETURN_UAV != true
+    DEPLOY_UAV = true
+    DO_SURVEY != true
+    LOITER != true
+  }
+  
+  set BHV_MODE = RETURN {
+      BHV_MODE = ACTIVE
+      LOITER != true
+      DEPLOY_UAV = true
+      RETURN_UAV = true
+      DO_SURVEY != true
+    }
+
+  set BHV_MODE = LOITER {
+    BHV_MODE = ACTIVE
+    LOITER = true
+    DEPLOY_UAV = true
+    RETURN_UAV != true
+    DO_SURVEY != true
+  }
+
+#else
+
+  set BHV_MODE = ACTIVE {
+    AUTOPILOT_MODE != HELM_INACTIVE  
+    AUTOPILOT_MODE != HELM_INACTIVE_LOITERING
+    AUTOPILOT_MODE != HELM_PARKED
+  } INACTIVE
+#endif
+
+
+set BHV_MODE = TOWAYPT {
+  BHV_MODE = ACTIVE
+  AUTOPILOT_MODE = HELM_TOWAYPT
+} 
+
+set BHV_MODE = RETURN {
+  BHV_MODE = ACTIVE
+  AUTOPILOT_MODE = HELM_RETURNING
+}
+
+set BHV_MODE = SURVEY {
+  BHV_MODE = ACTIVE
+  AUTOPILOT_MODE = HELM_SURVEYING
+} 
+
+
+//------------------------------------------------------------------
+
+#ifdef USE_MOOS_SIM_PID false
+
+  Behavior = BHV_ConstantAltitude{
+    name       = const_altitude
+    pwt        = 100
+    updates    = CONST_ALTITUDE_UPDATE
+
+    condition  = BHV_MODE==ACTIVE
+
+    perpetual  = true
+
+    altitude = 50
+
+    duration = -1
+  }
+
+#else 
+
+  //----------------------------------------------
+  // Behavior = BHV_Loiter
+  {
+    name      = loiter
+    pwt       = 100
+    condition = BHV_MODE==LOITER
+    updates   = LOITER_UPDATE
+
+    post_suffix = A
+          speed = $(SPEED)
+      clockwise = false
+          radius = 8.0
+      nm_radius = 15.0
+
+      center_activate = true
+      
+        polygon = radial:: x=0, y=0, radius=20, pts=8, snap=1, label=$(VNAME)_LOITER
+    visual_hints = nextpt_color=white, nextpt_lcolor=khaki
+    visual_hints = edge_color=orange, vertex_color=white
+    visual_hints = edge_size=1, vertex_size=2
+  }
+
+
+  //----------------------------------------------
+  Behavior = BHV_StationKeep
+  {
+    name      = station-keep
+    pwt       = 100
+    condition = BHV_MODE==LOITER
+    updates   = LOITER_UPDATE
+
+      center_activate = true
+          inner_radius = 5
+          outer_radius = 10 
+          outer_speed = 1.0
+
+        transit_speed = 1.3
+            swing_time = 7
+          visual_hints = vertex_size=0, edge_color=gray50, label_color=invisible
+  }
+
+
+#endif
+
+
+//----------------------------------------------
+Behavior = BHV_Waypoint
+{
+  name       = waypt_next
+  pwt        = 100
+  updates    = TOWAYPT_UPDATE
+  condition  = BHV_MODE==TOWAYPT
+  perpetual  = true
+  endflag    = GCS_COMMAND=RETURN
+  //endflag    = GCS_COMMAND=LOITER
+
+           speed = $(SPEED)
+  capture_radius = 20 
+     slip_radius = 50
+
+	         point = $(START_POS)
+
+    visual_hints = vertex_size  = 4             // default
+    visual_hints = vertex_color = $(COLOR)   // default
+}
+
+
+//----------------------------------------------
+Behavior = BHV_Waypoint
+{
+  name       = waypt_return
+  pwt        = 100
+  updates    = RETURN_UPDATE
+  condition  = BHV_MODE==RETURN
+  perpetual  = true
+  endflag    = GCS_COMMAND=LOITER
+  // Note that LOITER is a functionality built into ardupilot
+  // and thus does not need its own behavior when running for real
+
+
+           speed = $(SPEED)
+  capture_radius = 70
+     slip_radius = 100
+
+	         point = $(START_POS)
+
+    visual_hints = vertex_size  = 4             // default
+    visual_hints = vertex_color = $(COLOR)   // default
+}
+
+
