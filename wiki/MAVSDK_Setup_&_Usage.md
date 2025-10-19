@@ -1,4 +1,19 @@
 
+# MAVSDK Setup & Usage (Optional - For Custom MAVSDK Development)
+
+> **Note:** This guide is **optional** and only needed if you want to build your own custom MAVSDK applications to gain experience working with MAVSDK directly. The MAVSDK library is already included as a submodule in moos-ivp-uav-base and is built automatically with the main project. Most users can skip this guide and proceed directly to using the system.
+
+## When to use this guide:
+- You want to build standalone MAVSDK example applications for learning
+- You need to develop custom MAVSDK applications outside of the moos-ivp-uav-base project
+- You want to experiment with MAVSDK features independently
+
+## When to skip this guide:
+- You just want to use the moos-ivp-uav-base system (MAVSDK is already set up)
+- You're following the standard installation process
+- You don't plan to write custom MAVSDK code
+
+---
 
 ### Install
 
@@ -59,9 +74,9 @@ Flag info can be found in the official guide
 
 
 
-### Alias
+### Alias (Optional - For VSCode Development)
 
-To build apps in moos and update the compile_commands from this repo and submodule MAVSKD for vscode to locate the apps.
+This alias is useful if you're developing MAVSDK applications in VSCode and need IntelliSense support. It builds apps in moos and updates the compile_commands from this repo and submodule MAVSDK for VSCode to locate the apps.
 
 ```
 alias bldm='sudo .;
@@ -73,7 +88,9 @@ alias bldm='sudo .;
 ```
 
 
-### Building an example/app
+### Building an example/app (Optional - For Learning MAVSDK)
+
+Building and running MAVSDK example applications is useful for gaining hands-on experience with MAVSDK features and understanding how to interact with drones programmatically. This is **not required** for using moos-ivp-uav-base, but can help you understand the underlying MAVSDK library better.
 
 This should be called in the folder where the .cpp`.cpp` file is defined (in MAVSDK):
 

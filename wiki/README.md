@@ -15,7 +15,7 @@ This documentation provides guidance on setting up and running the MOOS-IVP UAV 
   - Setup ArduPilot, Gazebo, and related tools
 
 ### Key Components
-- **[MAVSDK Setup & Usage.md](MAVSDK_Setup_&_Usage.md)** - MAVSDK installation and usage
+- **[MAVSDK Setup & Usage.md](MAVSDK_Setup_&_Usage.md)** - **(Optional)** MAVSDK installation and building custom applications - only needed for custom MAVSDK development
 - **[ArduPilot & MavProx.md](ArduPilot_&_MavProx.md)** - ArduPilot configuration, parameters, Mission Planner setup, and swarm capabilities
 - **[System Launch Guide.md](System_Launch_Guide.md)** - How to launch missions and ground stations
 - **[Gazebo Plugin Configuration.md](Gazebo_Plugin_Configuration.md)** - Gazebo plugin details and version information
