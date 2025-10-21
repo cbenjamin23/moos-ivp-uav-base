@@ -55,10 +55,6 @@ SET(APPS_TO_BUILD ${ROBOT_APPS})
 #===============================================================
 SET(GUI_APPS )
 
-IF(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/app_voiview)
-  LIST(APPEND GUI_APPS app_voiview)
-ENDIF()
-
 
 #===============================================================
 # Set the Shoreside Apps
