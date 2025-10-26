@@ -11,6 +11,11 @@
 #include "NodeRecord.h"
 #include "AngleUtils.h"
 
+// Undefine DEPRECATED macro from MOOS to avoid conflict with MAVSDK
+#ifdef DEPRECATED
+#undef DEPRECATED
+#endif
+
 #include <mavsdk/mavsdk.h>
 #include <mavsdk/plugins/action/action.h>
 #include <mavsdk/plugins/mission/mission.h>

@@ -1132,7 +1132,7 @@ bool create_missionPlan(std::vector<mavsdk::MissionRaw::MissionItem> &mission_pl
   mission_plan.push_back(make_mission_item_wp( // 1 takeoff
       lat_deg_home + 0.003429,                 // 382.4 meters north
       lon_deg_home - 0.000534,                 // 49 meters west
-      41.03,
+      41,
       15,
       MAV_FRAME_GLOBAL_RELATIVE_ALT,
       MAV_CMD_NAV_TAKEOFF));
