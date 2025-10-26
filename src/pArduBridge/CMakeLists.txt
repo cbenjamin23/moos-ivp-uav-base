@@ -9,6 +9,8 @@ set(CMAKE_BUILD_TYPE Debug)
 # Add the -g flag explicitly for debugging
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -g")
 
+# Suppress warnings from external MAVSDK/mavlink headers
+add_compile_options(-Wno-gnu-anonymous-struct -Wno-nested-anon-types)
 
 SET(SRC
   ArduBridge.cpp
