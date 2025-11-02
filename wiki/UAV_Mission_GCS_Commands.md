@@ -31,9 +31,9 @@ GCS commands are special MOOS variables that control UAV behavior during mission
 
 | Command | Description | Effect |
 |---------|-------------|--------|
-| `DO_TAKEOFF` | Initiate takeoff sequence | UAV arms and takes off to mission altitude |
+| `DO_TAKEOFF` | Initiate takeoff sequence | UAV arms and takes off to mission altitude (currently only works in simulation) |
 | `RETURN_TO_LAUNCH` | Return to home position | UAV flies back to starting location and lands |
-| `LOITER` | Hold current position | UAV enters loiter/hover mode at current location |
+| `LOITER` | Hold current position | UAV enters loiter mode at current location |
 | `FLY_WAYPOINT` | Fly to specified waypoint | UAV navigates to a target waypoint or resumes waypoint mission |
 
 ### Mission Commands
@@ -96,8 +96,8 @@ ProcessConfig = uFldShoreBroker
 ```
 
 **Explanation:**
-- `qbridge` - Quick bridge, broadcasts variable to all connected vehicles
-- Variables sent as `VAR_ALL` are automatically broadcast
+- `qbridge` - Quick bridge, sets up the bridge similar to the individual procedure (but is a shorthand)
+- Variables sent as `VAR_ALL` are automatically broadcast to all vehicles
 - `$V` is replaced with vehicle name for individual targeting
 
 ### 2. Defining Buttons (Shoreside)
@@ -355,23 +355,6 @@ ProcessConfig = pMissionOperator
 │                          ArduPilot (Flight Control) │
 └─────────────────────────────────────────────────────┘
 ```
-
----
-
-## Differences from Standard MOOS-IvP Missions
-
-**Standard MOOS-IvP (e.g., s1_alpha):**
-- Uses `DEPLOY`, `RETURN`, `MOOS_MANUAL_OVERRIDE` only
-- Marine vehicle simulation (uSimMarineV22, pMarinePIDV22)
-- No autopilot integration
-
-**UAV MOOS-IvP:**
-- Adds `GCS_COMMAND` variable for autopilot control
-- Uses `ARM_UAV` for arming/disarming
-- Integrates with ArduPilot via pArduBridge (MAVSDK)
-- Uses `AUTOPILOT_MODE` to track flight controller state
-- Additional commands: `DO_TAKEOFF`, `RETURN_TO_LAUNCH`, `LOITER`, etc.
-- Can use MOOS simulator OR ArduPilot SITL/hardware
 
 ---
 
