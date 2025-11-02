@@ -157,9 +157,6 @@ if [ $? -ne 0 ]; then exit 1; fi
 REGION=$(get_region_xy $CONFIG_FILE)
 if [ $? -ne 0 ]; then exit 1; fi
 
-voronoi_search_enabled=$(get_global_val $CONFIG_FILE "missionParams.voronoi_search_enabled")
-if [ $? -ne 0 ]; then exit 1; fi
-
 LOG_ENABLED=$(get_global_val $CONFIG_FILE "missionParams.log_enabled")
 if [ $? -ne 0 ]; then exit 1; fi
 

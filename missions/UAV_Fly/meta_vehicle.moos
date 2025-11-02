@@ -80,11 +80,9 @@ ProcessConfig = pProxonoi_uav
   vcolor = $(COLOR)
   vehicle_stale_treshold = 10
 
-  setpt_method = $(VORONOI_SETPT_METHOD)
   post_poly = true
   // post_region = true
 
-  planner_mode = $(PLANNER_MODE)
   do_visualize = false // default is false
 }                                            
 

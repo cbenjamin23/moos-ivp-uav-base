@@ -41,9 +41,6 @@ missionParams:
   log_enabled: true # If true, the mission will be logged to a file
   mission_duration: 600 # s - The duration of the mission (20min)
 
-  voronoi_search_enabled: false # If true, the Voronoi algorithm will be used to set the path for the drone
-  voronoi_setpoint_method: gridsearch # The method used to set the path for the voronoi algorithm. Can be "gridsearch", "center" or "centroid"
-
   # Region parameters: The region in which the mission is to be conducted
   # TOOL: https://www.keene.edu/campus/maps/tool/
   use_moos_region: false

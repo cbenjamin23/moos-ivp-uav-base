@@ -361,8 +361,6 @@ ProcessConfig = pMarineViewer
 
     button_6  = TOWYP_ALL # GCS_COMMAND_ALL=FLY_WAYPOINT
 
-    button_7 = DO_VORONOI_ALL # GCS_COMMAND_ALL=DO_VORONOI
-
     // button_7 = PARK_HELM_ALL # MOOS_MANUAL_OVERRIDE_ALL=true
 
 
@@ -389,7 +387,6 @@ ProcessConfig = pMarineViewer
   cmd = label=RTL, var=GCS_COMMAND, sval=RETURN_TO_LAUNCH, receivers=all:$(VNAMES)
   cmd = label=LOITER/HOLD, var=GCS_COMMAND, sval=LOITER, receivers=all:$(VNAMES)
   cmd = label=SPEED_TO_MIN, var=GCS_COMMAND, sval=RESET_SPEED_MIN, receivers=all:$(VNAMES)
-  cmd = label=DO_VORONOI, var=GCS_COMMAND, sval=DO_VORONOI, receivers=all:$(VNAMES)
   cmd = label=SURVEY, var=GCS_COMMAND, sval=SURVEY, receivers=all:$(VNAMES)
 
   // cmd = label=ARM, var=ARM_UAV, sval=true, receivers=all:$(VNAMES)
