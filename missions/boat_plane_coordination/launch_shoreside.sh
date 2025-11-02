@@ -142,52 +142,7 @@ COLLISION_RADIUS=$(get_global_val_in_moosDistance $CONFIG_FILE "missionParams.co
 if [ $? -ne 0 ]; then exit 1; fi
 
 
-SENSOR_DETECT_PD=$(get_global_val $CONFIG_FILE "missionParams.sensor_detect_pd")
-if [ $? -ne 0 ]; then exit 1; fi
-SENSOR_RADIUS_MAX=$(get_global_val_in_moosDistance $CONFIG_FILE "missionParams.sensor_radius_max")
-if [ $? -ne 0 ]; then exit 1; fi
-SENSOR_RADIUS_MIN=$(get_global_val_in_moosDistance $CONFIG_FILE "missionParams.sensor_radius_min")
-if [ $? -ne 0 ]; then exit 1; fi
-SENSOR_COLOR=$(get_global_val $CONFIG_FILE "missionParams.sensor_color")
-if [ $? -ne 0 ]; then exit 1; fi
-SENSOR_ALTITUDE_MAX=$(get_global_val $CONFIG_FILE "missionParams.sensor_altitude_max")
-if [ $? -ne 0 ]; then exit 1; fi
-SENSOR_RADIUS_FIXED=$(get_global_val $CONFIG_FILE "missionParams.sensor_radius_fixed")
-if [ $? -ne 0 ]; then exit 1; fi
-
-
-
 MISSION_DURATION=$(get_global_val $CONFIG_FILE "missionParams.mission_duration")
-if [ $? -ne 0 ]; then exit 1; fi
-
-
-FIRE_FILE_DEFAULT=$(get_global_val $CONFIG_FILE "missionParams.fire_file_default")
-if [ $? -ne 0 ]; then exit 1; fi
-FIRE_COLOR=$(get_global_val $CONFIG_FILE "missionParams.fire_color")
-if [ $? -ne 0 ]; then exit 1; fi
-FIRE_GENERATE=$(get_global_val $CONFIG_FILE "missionParams.fire_generate")
-if [ $? -ne 0 ]; then exit 1; fi
-FIRE_COUNT=$(get_global_val $CONFIG_FILE "missionParams.fire_count")
-if [ $? -ne 0 ]; then exit 1; fi
-FIRE_SEP_MIN=$(get_global_val_in_moosDistance $CONFIG_FILE "missionParams.fire_sep_min")
-if [ $? -ne 0 ]; then exit 1; fi
-FIRE_SPAWN_COUNT=$(get_global_val $CONFIG_FILE "missionParams.fire_spawn_count")
-if [ $? -ne 0 ]; then exit 1; fi
-FIRE_SPAWN_INTERVAL=$(get_global_val $CONFIG_FILE "missionParams.fire_spawn_interval")
-if [ $? -ne 0 ]; then exit 1; fi
-
-
-IGNORED_REGION_FILE_DEFAULT=$(get_global_val $CONFIG_FILE "missionParams.ignoredRegion_file_default")
-if [ $? -ne 0 ]; then exit 1; fi
-IGNORED_REGION_GENERATE=$(get_global_val $CONFIG_FILE "missionParams.ignoredRegion_generate")
-if [ $? -ne 0 ]; then exit 1; fi
-IGNORED_REGION_COUNT=$(get_global_val $CONFIG_FILE "missionParams.ignoredRegion_count")
-if [ $? -ne 0 ]; then exit 1; fi
-IGNORED_REGION_SEP_MIN=$(get_global_val_in_moosDistance $CONFIG_FILE "missionParams.ignoredRegion_sep_min")
-if [ $? -ne 0 ]; then exit 1; fi
-IGNORED_REGION_SPAWN_COUNT=$(get_global_val $CONFIG_FILE "missionParams.ignoredRegion_spawn_count")
-if [ $? -ne 0 ]; then exit 1; fi
-IGNORED_REGION_SPAWN_INTERVAL=$(get_global_val $CONFIG_FILE "missionParams.ignoredRegion_spawn_interval")
 if [ $? -ne 0 ]; then exit 1; fi
 
 
@@ -202,34 +157,10 @@ if [ $? -ne 0 ]; then exit 1; fi
 REGION=$(get_region_xy $CONFIG_FILE)
 if [ $? -ne 0 ]; then exit 1; fi
 
-# TMSTC* algorithm
-TMSTC_GRIDSIZESENSORRANGERATIO=$(get_global_val $CONFIG_FILE "missionParams.TMSTC_gridsizeSensorRangeRatio")
-if [ $? -ne 0 ]; then exit 1; fi
-TMSTC_CONFIG_VMAX=$(get_global_val $CONFIG_FILE "missionParams.TMSTC_config_vmax")
-if [ $? -ne 0 ]; then exit 1; fi
-TMSTC_CONFIG_PHI_MAX_RAD=$(get_global_val $CONFIG_FILE "missionParams.TMSTC_config_phi_max_rad")
-if [ $? -ne 0 ]; then exit 1; fi
-TMSTC_POINT_FILTERING=$(get_global_val $CONFIG_FILE "missionParams.TMSTC_point_filtering")
-if [ $? -ne 0 ]; then exit 1; fi
-
 voronoi_search_enabled=$(get_global_val $CONFIG_FILE "missionParams.voronoi_search_enabled")
 if [ $? -ne 0 ]; then exit 1; fi
-if [ "${voronoi_search_enabled}" = "true" ]; then
-    PLANNER_MODE="VORONOI_SEARCH"
-else
-    PLANNER_MODE="TMSTC_STAR"
-fi
 
 LOG_ENABLED=$(get_global_val $CONFIG_FILE "missionParams.log_enabled")
-if [ $? -ne 0 ]; then exit 1; fi
-
-
-
-MO_RESET_DELAY=$(get_global_val $CONFIG_FILE "missionParams.mission_operator_reset_delay")
-if [ $? -ne 0 ]; then exit 1; fi
-MO_VORONOI_MISSIONS=$(get_global_val $CONFIG_FILE "missionParams.mission_operator_voronoi_missions")
-if [ $? -ne 0 ]; then exit 1; fi
-MO_TMSTC_MISSIONS=$(get_global_val $CONFIG_FILE "missionParams.mission_operator_TMSTC_missions")
 if [ $? -ne 0 ]; then exit 1; fi
 
 

@@ -1,5 +1,5 @@
 #--------------------------------------------------------
-# The CMakeLists.txt for:                     pGridSearchViz
+# The CMakeLists.txt for:                     pMissionOperator
 # Author(s):                                Steve Nomeny 
 #--------------------------------------------------------
 

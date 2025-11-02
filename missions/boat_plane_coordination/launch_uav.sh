@@ -93,11 +93,6 @@ if [ $? -ne 0 ]; then exit 1; fi
 
 voronoi_search_enabled=$(get_global_val $CONFIG_FILE "missionParams.voronoi_search_enabled")
 if [ $? -ne 0 ]; then exit 1; fi
-if [ "${voronoi_search_enabled}" = "true" ]; then
-    PLANNER_MODE="VORONOI_SEARCH"
-else
-    PLANNER_MODE="TMSTC_STAR"
-fi
 
 
 LOG_ENABLED=$(get_global_val $CONFIG_FILE "missionParams.log_enabled")
@@ -326,7 +321,6 @@ if [ "${VERBOSE}" = "yes" ]; then
     echo "V_INDEX          =    [${VIDX}]   "
     echo "----------------------------------"
     echo "VORONOI_SETPT_METHOD = [${VORONOI_SETPT_METHOD}]"
-    echo "PLANNER_MODE =   [${PLANNER_MODE}]"
     echo "----------------------------------"
     echo "LOG_ENABLED =    [${LOG_ENABLED}]"
     echo "----------------------------------"
