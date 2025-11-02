@@ -20,6 +20,11 @@ This documentation provides guidance on setting up and running the MOOS-IVP UAV 
 - **[System Launch Guide.md](System_Launch_Guide.md)** - How to launch missions and ground stations
 - **[Gazebo Plugin Configuration.md](Gazebo_Plugin_Configuration.md)** - Gazebo plugin details and version information
 
+### UAV Mission Documentation
+- **[UAV Mission Configuration.md](UAV_Mission_Configuration.md)** - Complete guide to missionConfig.yaml parameters and structure
+- **[UAV Mission GCS Commands.md](UAV_Mission_GCS_Commands.md)** - Ground Control Station commands and their usage in .moos files
+- **[UAV Mission Launch Scripts.md](UAV_Mission_Launch_Scripts.md)** - Launch script structure and how they relate to YAML configuration
+
 ### Additional Resources
 - **[Telemetry Data Extraction.md](Telemetry_Data_Extraction.md)** - Managing mission data and telemetry extraction
 - **[Visualization & Mapping.md](Visualization_&_Mapping.md)** - Viewer application and map management
