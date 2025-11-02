@@ -21,7 +21,6 @@ ProcessConfig = pMissionOperator
 
   // Algorithm missions - specify how many missions to run with each algorithm
   voronoi_missions = 10      // Run 10 missions with VORONOI_SEARCH
-  tmstc_missions = 5         // Run 5 missions with TMSTC_STAR
   
   // Initial planner mode (optional, will use first algorithm with missions if not specified)
   planner_mode = VORONOI_SEARCH
