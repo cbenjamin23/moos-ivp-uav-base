@@ -23,7 +23,7 @@ simulation:
   
   ardupilot_ip: "0.0.0.0"       # IP address for ArduPilot SITL (0.0.0.0 = localhost)
   ardupilot_protocol: "udp"     # Communication protocol: "udp", "tcp", or "serial"
-  fdm_port_in_default: 9002     # Base port for flight dynamics model input
+  fdm_port_in_default: 9002     # Base port for flight dynamics model input for Gazebo
   ardupilot_port_default: 14550 # Base port for ArduPilot MAVLink communication
                                 # (incremented by 10 for each additional drone)
 ```
@@ -32,7 +32,7 @@ simulation:
 
 ```yaml
 field:
-  home_altitude: 106.1          # Home altitude in meters (AGL or MSL depending on setup)
+  home_altitude: 106.1          # Home altitude in meters (AGL)
   ardupilot_ip: "ttySAC0"       # Serial device path for field deployment
   ardupilot_port: "115200"      # Baud rate for serial communication
   ardupilot_protocol: "serial"  # Use serial protocol for field deployment
@@ -96,7 +96,7 @@ missionParams:
   mission_operator_voronoi_missions: 0  # Number of Voronoi missions to run
   
   # Operating Region Definition
-  use_moos_region: false        # Use MOOS XY coordinates (true) or lat/lon (false)
+  use_moos_region: false        # Use MOOS XY region coordinates (true) or lat/lon region coordinates (false)
   region_XY: 100,460:-700,-200:-700,-920:620,-920:700,-222  # XY polygon vertices
   region_lonlat: |              # Lat/lon polygon vertices (used if use_moos_region=false)
     10.1356602, 63.4006697
@@ -117,7 +117,7 @@ missionParams:
   grid_cell_decay_time: 5       # Time for visit count to decay (seconds, 0=no decay)
   
   # Sensor Model Parameters
-  sensor_detect_pd: 1.0         # Probability of detection (1.0 = 100%)
+  sensor_detect_pd: 1.0         # Probability of detection (1.0 = 100%) in inner circle
   sensor_radius_min: 20         # Inner radius with full detection probability (meters)
   sensor_radius_max: 30         # Outer radius with linearly decreasing detection (meters)
   sensor_color: white           # Display color for sensor footprint
@@ -157,7 +157,7 @@ drones:
 **Important Notes:**
 - Drone names must be unique and are used as MOOS community names
 - Starting positions use MOOS coordinates where +X is East and +Y is North
-- MOOS internally scales distances (implementation detail handled by the system)
+- MOOS internally scales distances when convering from lat/lon to XY with a factor of 2
 - Heading is in degrees: 0°=North, 90°=East, 180°=South, 270°=West
 - The number of drones defined should match `simulation.number_of_drones`
 - ArduPilot ports and FDM ports are auto-assigned based on drone index
