@@ -165,52 +165,7 @@ COLLISION_RADIUS=$(get_global_val_in_moosDistance $CONFIG_FILE "missionParams.co
 if [ $? -ne 0 ]; then exit 1; fi
 
 
-SENSOR_DETECT_PD=$(get_global_val $CONFIG_FILE "missionParams.sensor_detect_pd")
-if [ $? -ne 0 ]; then exit 1; fi
-SENSOR_RADIUS_MAX=$(get_global_val_in_moosDistance $CONFIG_FILE "missionParams.sensor_radius_max")
-if [ $? -ne 0 ]; then exit 1; fi
-SENSOR_RADIUS_MIN=$(get_global_val_in_moosDistance $CONFIG_FILE "missionParams.sensor_radius_min")
-if [ $? -ne 0 ]; then exit 1; fi
-SENSOR_COLOR=$(get_global_val $CONFIG_FILE "missionParams.sensor_color")
-if [ $? -ne 0 ]; then exit 1; fi
-SENSOR_ALTITUDE_MAX=$(get_global_val $CONFIG_FILE "missionParams.sensor_altitude_max")
-if [ $? -ne 0 ]; then exit 1; fi
-SENSOR_RADIUS_FIXED=$(get_global_val $CONFIG_FILE "missionParams.sensor_radius_fixed")
-if [ $? -ne 0 ]; then exit 1; fi
-
-
-
 MISSION_DURATION=$(get_global_val $CONFIG_FILE "missionParams.mission_duration")
-if [ $? -ne 0 ]; then exit 1; fi
-
-
-FIRE_FILE_DEFAULT=$(get_global_val $CONFIG_FILE "missionParams.fire_file_default")
-if [ $? -ne 0 ]; then exit 1; fi
-FIRE_COLOR=$(get_global_val $CONFIG_FILE "missionParams.fire_color")
-if [ $? -ne 0 ]; then exit 1; fi
-FIRE_GENERATE=$(get_global_val $CONFIG_FILE "missionParams.fire_generate")
-if [ $? -ne 0 ]; then exit 1; fi
-FIRE_COUNT=$(get_global_val $CONFIG_FILE "missionParams.fire_count")
-if [ $? -ne 0 ]; then exit 1; fi
-FIRE_SEP_MIN=$(get_global_val_in_moosDistance $CONFIG_FILE "missionParams.fire_sep_min")
-if [ $? -ne 0 ]; then exit 1; fi
-FIRE_SPAWN_COUNT=$(get_global_val $CONFIG_FILE "missionParams.fire_spawn_count")
-if [ $? -ne 0 ]; then exit 1; fi
-FIRE_SPAWN_INTERVAL=$(get_global_val $CONFIG_FILE "missionParams.fire_spawn_interval")
-if [ $? -ne 0 ]; then exit 1; fi
-
-
-IGNORED_REGION_FILE_DEFAULT=$(get_global_val $CONFIG_FILE "missionParams.ignoredRegion_file_default")
-if [ $? -ne 0 ]; then exit 1; fi
-IGNORED_REGION_GENERATE=$(get_global_val $CONFIG_FILE "missionParams.ignoredRegion_generate")
-if [ $? -ne 0 ]; then exit 1; fi
-IGNORED_REGION_COUNT=$(get_global_val $CONFIG_FILE "missionParams.ignoredRegion_count")
-if [ $? -ne 0 ]; then exit 1; fi
-IGNORED_REGION_SEP_MIN=$(get_global_val_in_moosDistance $CONFIG_FILE "missionParams.ignoredRegion_sep_min")
-if [ $? -ne 0 ]; then exit 1; fi
-IGNORED_REGION_SPAWN_COUNT=$(get_global_val $CONFIG_FILE "missionParams.ignoredRegion_spawn_count")
-if [ $? -ne 0 ]; then exit 1; fi
-IGNORED_REGION_SPAWN_INTERVAL=$(get_global_val $CONFIG_FILE "missionParams.ignoredRegion_spawn_interval")
 if [ $? -ne 0 ]; then exit 1; fi
 
 
@@ -225,34 +180,7 @@ if [ $? -ne 0 ]; then exit 1; fi
 REGION=$(get_region_xy $CONFIG_FILE)
 if [ $? -ne 0 ]; then exit 1; fi
 
-# TMSTC* algorithm
-TMSTC_GRIDSIZESENSORRANGERATIO=$(get_global_val $CONFIG_FILE "missionParams.TMSTC_gridsizeSensorRangeRatio")
-if [ $? -ne 0 ]; then exit 1; fi
-TMSTC_CONFIG_VMAX=$(get_global_val $CONFIG_FILE "missionParams.TMSTC_config_vmax")
-if [ $? -ne 0 ]; then exit 1; fi
-TMSTC_CONFIG_PHI_MAX_RAD=$(get_global_val $CONFIG_FILE "missionParams.TMSTC_config_phi_max_rad")
-if [ $? -ne 0 ]; then exit 1; fi
-TMSTC_POINT_FILTERING=$(get_global_val $CONFIG_FILE "missionParams.TMSTC_point_filtering")
-if [ $? -ne 0 ]; then exit 1; fi
-
-voronoi_search_enabled=$(get_global_val $CONFIG_FILE "missionParams.voronoi_search_enabled")
-if [ $? -ne 0 ]; then exit 1; fi
-if [ "${voronoi_search_enabled}" = "true" ]; then
-    PLANNER_MODE="VORONOI_SEARCH"
-else
-    PLANNER_MODE="TMSTC_STAR"
-fi
-
 LOG_ENABLED=$(get_global_val $CONFIG_FILE "missionParams.log_enabled")
-if [ $? -ne 0 ]; then exit 1; fi
-
-
-
-MO_RESET_DELAY=$(get_global_val $CONFIG_FILE "missionParams.mission_operator_reset_delay")
-if [ $? -ne 0 ]; then exit 1; fi
-MO_VORONOI_MISSIONS=$(get_global_val $CONFIG_FILE "missionParams.mission_operator_voronoi_missions")
-if [ $? -ne 0 ]; then exit 1; fi
-MO_TMSTC_MISSIONS=$(get_global_val $CONFIG_FILE "missionParams.mission_operator_TMSTC_missions")
 if [ $? -ne 0 ]; then exit 1; fi
 
 
@@ -287,35 +215,6 @@ if [ "${VERBOSE}" = "yes" ]; then
     echo "NEAR_MISS_RADIUS = [${NEAR_MISS_RADIUS}]"
     echo "COLLISION_RADIUS = [${COLLISION_RADIUS}]"
     echo "----------------------------------"
-    echo "SENSOR_DETECT_PD         = [${SENSOR_DETECT_PD}]"
-    echo "SENSOR_RADIUS_MAX         = [${SENSOR_RADIUS_MAX}]"
-    echo "SENSOR_RADIUS_MIN         = [${SENSOR_RADIUS_MIN}]"
-    echo "SENSOR_COLOR          = [${SENSOR_COLOR}]"
-    echo "SENSOR_ALTITUDE_MAX   = [${SENSOR_ALTITUDE_MAX}]"
-    echo "SENSOR_RADIUS_FIXED   = [${SENSOR_RADIUS_FIXED}]"
-    echo "----------------------------------"
-    echo "TMSTC_GRIDSIZESENSORRANGERATIO = [${TMSTC_GRIDSIZESENSORRANGERATIO}]"
-    echo "TMSTC_CONFIG_VMAX = [${TMSTC_CONFIG_VMAX}]"
-    echo "TMSTC_CONFIG_PHI_MAX_RAD = [${TMSTC_CONFIG_PHI_MAX_RAD}]"
-    echo "TMSTC_POINT_FILTERING = [${TMSTC_POINT_FILTERING}]"
-    echo "----------------------------------"
-    echo "PLANNER_MODE = [${PLANNER_MODE}]"
-    echo "----------------------------------"
-    echo "FIRE_FILE_DEFAULT = [${FIRE_FILE_DEFAULT}]"
-    echo "FIRE_COLOR = [${FIRE_COLOR}]"
-    echo "FIRE_GENERATE = [${FIRE_GENERATE}]"
-    echo "FIRE_COUNT = [${FIRE_COUNT}]"
-    echo "FIRE_SEP_MIN = [${FIRE_SEP_MIN}]"
-    echo "FIRE_SPAWN_COUNT = [${FIRE_SPAWN_COUNT}]"
-    echo "FIRE_SPAWN_INTERVAL = [${FIRE_SPAWN_INTERVAL}]"
-    echo "----------------------------------"
-    echo "IGNORED_REGION_FILE_DEFAULT = [${IGNORED_REGION_FILE_DEFAULT}]"
-    echo "IGNORED_REGION_GENERATE = [${IGNORED_REGION_GENERATE}]"
-    echo "IGNORED_REGION_COUNT = [${IGNORED_REGION_COUNT}]"
-    echo "IGNORED_REGION_SEP_MIN = [${IGNORED_REGION_SEP_MIN}]"
-    echo "IGNORED_REGION_SPAWN_COUNT = [${IGNORED_REGION_SPAWN_COUNT}]"
-    echo "IGNORED_REGION_SPAWN_INTERVAL = [${IGNORED_REGION_SPAWN_INTERVAL}]"
-    echo "----------------------------------"
     echo "MISSION_DURATION = [${MISSION_DURATION}]"
     echo "----------------------------------"
     echo "GRID_CELL_SIZE        = [${GRID_CELL_SIZE}]"
@@ -325,10 +224,6 @@ if [ "${VERBOSE}" = "yes" ]; then
     echo "REGION = [${REGION}]"
     echo "----------------------------------"
     echo "LOG_ENABLED = [${LOG_ENABLED}]"
-    echo "----------------------------------"
-    echo "MO_RESET_DELAY = [${MO_RESET_DELAY}]"
-    echo "MO_VORONOI_MISSIONS = [${MO_VORONOI_MISSIONS}]"
-    echo "MO_TMSTC_MISSIONS = [${MO_TMSTC_MISSIONS}]"
     echo "=================================="
     echo -n "Hit any key to continue launch "
     read ANSWER
@@ -351,40 +246,13 @@ nsplug meta_shoreside.moos targ_shoreside.moos $NSFLAGS WARP=$TIME_WARP \
     ENCOUNTER_RADIUS=$ENCOUNTER_RADIUS                   \
     NEAR_MISS_RADIUS=$NEAR_MISS_RADIUS                   \
     COLLISION_RADIUS=$COLLISION_RADIUS                   \
-    SENSOR_DETECT_PD=$SENSOR_DETECT_PD                   \
-    SENSOR_RADIUS_MAX=$SENSOR_RADIUS_MAX                 \
-    SENSOR_RADIUS_MIN=$SENSOR_RADIUS_MIN                 \
-    SENSOR_COLOR=$SENSOR_COLOR                           \
-    SENSOR_ALTITUDE_MAX=$SENSOR_ALTITUDE_MAX             \
-    SENSOR_RADIUS_FIXED=$SENSOR_RADIUS_FIXED             \
-    TMSTC_GRIDSIZESENSORRANGERATIO=$TMSTC_GRIDSIZESENSORRANGERATIO \
-    TMSTC_CONFIG_VMAX=$TMSTC_CONFIG_VMAX                 \
-    TMSTC_CONFIG_PHI_MAX_RAD=$TMSTC_CONFIG_PHI_MAX_RAD   \
-    TMSTC_POINT_FILTERING=$TMSTC_POINT_FILTERING         \
-    FIRE_FILE_DEFAULT=$FIRE_FILE_DEFAULT                 \
-    FIRE_COLOR=$FIRE_COLOR                               \
-    FIRE_GENERATE=$FIRE_GENERATE                         \
-    FIRE_COUNT=$FIRE_COUNT                               \
-    FIRE_SEP_MIN=$FIRE_SEP_MIN                           \
-    FIRE_SPAWN_COUNT=$FIRE_SPAWN_COUNT                   \
-    FIRE_SPAWN_INTERVAL=$FIRE_SPAWN_INTERVAL             \
-    IGNORED_REGION_FILE_DEFAULT=$IGNORED_REGION_FILE_DEFAULT \
-    IGNORED_REGION_GENERATE=$IGNORED_REGION_GENERATE     \
-    IGNORED_REGION_COUNT=$IGNORED_REGION_COUNT           \
-    IGNORED_REGION_SEP_MIN=$IGNORED_REGION_SEP_MIN       \
-    IGNORED_REGION_SPAWN_COUNT=$IGNORED_REGION_SPAWN_COUNT \
-    IGNORED_REGION_SPAWN_INTERVAL=$IGNORED_REGION_SPAWN_INTERVAL \
     GRID_CELL_SIZE=$GRID_CELL_SIZE                       \
     GRID_CELL_MAX_COUNT=$GRID_CELL_MAX_COUNT              \
     GRID_CELL_DECAY_TIME=$GRID_CELL_DECAY_TIME            \
     REGION=$REGION                                        \
     MISSION_DURATION=$MISSION_DURATION                    \
     XMODE=$XMODE                                          \
-    PLANNER_MODE=$PLANNER_MODE                           \
     LOG_ENABLED=$LOG_ENABLED                             \
-    MO_RESET_DELAY=$MO_RESET_DELAY                       \
-    MO_VORONOI_MISSIONS=$MO_VORONOI_MISSIONS             \
-    MO_TMSTC_MISSIONS=$MO_TMSTC_MISSIONS                 \
 
 
 if [ ${JUST_MAKE} = "yes" ]; then

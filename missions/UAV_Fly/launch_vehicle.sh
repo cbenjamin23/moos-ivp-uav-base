@@ -89,18 +89,6 @@ REGION=$(get_region_xy $CONFIG_FILE)
 if [ $? -ne 0 ]; then exit 1; fi
 
 
-VORONOI_SETPT_METHOD=$(get_global_val $CONFIG_FILE missionParams.voronoi_setpoint_method)
-if [ $? -ne 0 ]; then exit 1; fi
-
-voronoi_search_enabled=$(get_global_val $CONFIG_FILE "missionParams.voronoi_search_enabled")
-if [ $? -ne 0 ]; then exit 1; fi
-if [ "${voronoi_search_enabled}" = "true" ]; then
-    PLANNER_MODE="VORONOI_SEARCH"
-else
-    PLANNER_MODE="TMSTC_STAR"
-fi
-
-
 LOG_ENABLED=$(get_global_val $CONFIG_FILE "missionParams.log_enabled")
 if [ $? -ne 0 ]; then exit 1; fi
 
@@ -326,9 +314,6 @@ if [ "${VERBOSE}" = "yes" ]; then
     echo "----------------------------------"
     echo "V_INDEX          =    [${VIDX}]   "
     echo "----------------------------------"
-    echo "VORONOI_SETPT_METHOD = [${VORONOI_SETPT_METHOD}]"
-    echo "PLANNER_MODE =   [${PLANNER_MODE}]"
-    echo "----------------------------------"
     echo "LOG_ENABLED =    [${LOG_ENABLED}]"
     echo "----------------------------------"
     echo -n "Hit any key to continue with launching"
@@ -354,9 +339,7 @@ nsplug meta_vehicle.moos targ_$VNAME.moos $NSFLAGS WARP=$TIME_WARP \
        AP_PROTOCOL=$ARDUPILOT_PROTOCOL      START_POS=$START_POS \
        MIN_SPEED=$MINSPD  MAX_SPEED=$MAXSPD SPEED_STEPS=$SPD_STEPS  \
        USE_MOOS_SIM_PID=$USE_MOOS_SIM_PID                      \
-       VORONOI_SETPT_METHOD=$VORONOI_SETPT_METHOD \
        REGION=$REGION                                          \
-       PLANNER_MODE=$PLANNER_MODE             \
        LOG_ENABLED=$LOG_ENABLED \
        SPEED=$SPEED \
 
@@ -366,11 +349,7 @@ nsplug meta_vehicle.bhv targ_$VNAME.bhv $NSFLAGS VNAME=$VNAME \
        XMODE=$XMODE                  COLOR=$COLOR             \
        USE_MOOS_SIM_PID=$USE_MOOS_SIM_PID                     \
        CAPTURE_RADIUS=$CAPTURE_RADIUS SLIP_RADIUS=$SLIP_RADIUS \
-       VORONOI_SETPT_METHOD=$VORONOI_SETPT_METHOD \
-       
-         
-                                                
-       
+       REGION=$REGION
 if [ ${JUST_MAKE} = "yes" ]; then
     echo "$ME: Files assembled; nothing launched; exiting per request."
     exit 0

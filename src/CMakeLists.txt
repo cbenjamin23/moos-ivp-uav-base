@@ -64,10 +64,6 @@ SET(GUI_APPS )
 #===============================================================
 SET(SHORE_APPS)
 
-IF(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/pMissionOperator)
-  LIST(APPEND SHORE_APPS pMissionOperator)
-ENDIF()
-
 
 #===============================================================
 # Build Apps

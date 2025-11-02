@@ -28,12 +28,6 @@ Processconfig = ANTLER
   // Run = uFldVoronoi         @ NewConsole = false
   Run = uFldCollisionDetect @ NewConsole = false
   Run = pRealm              @ NewConsole = false
-  Run = pGridSearchViz      @ NewConsole = false //, XConfig=HOLDSettings
-  Run = pGridSearchPlanner  @ NewConsole = false // true, XConfig=HOLDSettings
-  Run = uFldFireSim         @ NewConsole = false
-
-
-  Run = pMissionOperator    @ NewConsole = false
 
   Run = uProcessWatch       @ NewConsole = false
   // Run = uLoadWatch         @ NewConsole = false
@@ -72,31 +66,7 @@ ProcessConfig = pLogger
 
 
 
-ProcessConfig = pMissionOperator                                     
-{                                                               
-  AppTick   = 4                                                 
-  CommsTick = 4                                                 
-                                                                
-  // required
-#ifdef USE_MOOS_SIM_PID true
-  is_running_moos_pid = true // Set to true if running in MOOS-IvP
-#endif
 
-
-  op_region = $(REGION) // Operating region
-
-  // Mission operation parameters
-  mission_duration = $(MISSION_DURATION)     // Maximum mission time in seconds
-  reset_delay = $(MO_RESET_DELAY)            // Delay between mission completion and reset in (MOOS) seconds
-                                       
-  // Algorithm missions - specify how many missions to run with each algorithm
-  tmstc_missions = $(MO_TMSTC_MISSIONS)         // Run missions with TMSTC_STAR
-  voronoi_missions = $(MO_VORONOI_MISSIONS)      // Run missions with VORONOI_SEARCH
-  
-  // Initial planner mode (optional, will use first algorithm with missions if not specified)
-  // planner_mode = $(PLANNER_MODE) // VORONOI_SEARCH, TMSTC_STAR
-  
-}
 
 
 ProcessConfig = uFldVoronoi
@@ -192,20 +162,6 @@ ProcessConfig = uFldShoreBroker
 	qbridge = SURVEY_UPDATE
   // qbridge = NODE_COLOR_CHANGE
   
-  qbridge  = FIRE_ALERT
-
-  qbridge = CHANGE_PLANNER_MODE
-
-
-
-  // bridge  = src=UFFS_LEADER
-  // bridge  = src=UFFS_WINNER
-  bridge  = src=UFFS_FINISH
-  bridge  = src=DISCOVERED_FIRE
-  bridge  = src=MISSION_COMPLETE
-  bridge  = src=VIEW_GRID
-  bridge  = src=VIEW_GRID_DELTA
-
   qbridge = ARM_UAV, HELM_STATUS, MOOS_MANUAL_OVERRIDE, PROX_SETPT_METHOD, PROX_SET_VISUALIZATION
 
   qbridge = GCS_COMMAND, PROX_POLY_VIEW // Most commands from the GCS
@@ -225,137 +181,6 @@ ProcessConfig = uFldShoreBroker
   // bridge  = src=RETURN_$V,  alias=RETURN
 }
 
-
-//------------------------------------------
-// uFldFireSim config block
-
-ProcessConfig = uFldFireSim
-{
-  AppTick   = 4
-  CommsTick = 4
-
-	// app_logging = true
-
-  fire_config = generate = $(FIRE_GENERATE)
-  fire_config = file = $(FIRE_FILE_DEFAULT)
-  fire_config = count = $(FIRE_COUNT)
-  fire_config = sep_min = $(FIRE_SEP_MIN)
-  fire_config = region = {$(REGION)}
-  fire_config = spawn_count = $(FIRE_SPAWN_COUNT)
-  fire_config = spawn_interval = $(FIRE_SPAWN_INTERVAL)
-  fire_config = save_path = "missions/UAV_Fly/gen_files/" // is withing the moos-ivp-uav folder
- 
-  ignoredRegion_config = generate = $(IGNORED_REGION_GENERATE)
-  ignoredRegion_config = file = $(IGNORED_REGION_FILE_DEFAULT)
-  ignoredRegion_config = count = $(IGNORED_REGION_COUNT)
-  ignoredRegion_config = sep_min = $(IGNORED_REGION_SEP_MIN)
-  ignoredRegion_config = region = {$(REGION)}
-  ignoredRegion_config = spawn_count = $(IGNORED_REGION_SPAWN_COUNT)
-  ignoredRegion_config = spawn_interval = $(IGNORED_REGION_SPAWN_INTERVAL)
-  ignoredRegion_config = save_path = "missions/UAV_Fly/gen_files/" // is withing the moos-ivp-uav folder
-
-  
-  fire_color = $(FIRE_COLOR)  // "color, or vehicle if the fire should take the color of the vehicle"
-
-
-	detect_rng_min = $(SENSOR_RADIUS_MIN) 
-	detect_rng_max = $(SENSOR_RADIUS_MAX) 
-	detect_rng_pd  = $(SENSOR_DETECT_PD)
-  detect_alt_max    = $(SENSOR_ALTITUDE_MAX)
-  detect_rng_fixed  = $(SENSOR_RADIUS_FIXED)
-
-  
-  mission_duration = $(MISSION_DURATION)
-  impute_time = true // impute the time of the undetected fires to the mission duration time
-
-	scout_rng_transparency = 0.1
-	show_detect_rng = true
-
-  mission_score_save_path = "missions/UAV_Fly/mission_score/wIR/" // is withing the moos-ivp-uav folder
-
-
-  finish_flag = MISSION_COMPLETE=true
-
-#ifdef USE_MOOS_SIM_PID true
-  // TOWAYPT button
-  finish_flag = LOITER_ALL=false 
-  finish_flag = DO_SURVEY_ALL=false 
-  finish_flag = DEPLOY_ALL=false
-  finish_flag = RETURN_ALL=true 
-  finish_flag = MOOS_MANUAL_OVERRIDE_ALL=false
-#else
-
-  finish_flag = GCS_COMMAND_ALL=RETURN_TO_LAUNCH
-#endif
-}
-
-
-
-//--------------------------------------------------
-// pSearchGrid Configuration Block
-
-ProcessConfig = pGridSearchPlanner
-{
-  AppTick       = 2
-  CommsTick     = 2
-
-  search_region = pts={$(REGION)}
-  sensor_radius = $(SENSOR_RADIUS_MAX)
-  region_grid_size_ratio = $(TMSTC_GRIDSIZESENSORRANGERATIO)
-  visualize_planner_grids = false //Default is false
-  visualize_planner_paths = false //Default is false
-
-  map_print_version = 0 // 0=off, 1=init, 2=cover, 3=direction
-  start_point_closest = true // start point of path planned is closest to current drone location. Default is false
-  
-  path_publish_variable = SURVEY_UPDATE // Default is SURVEY_UPDATE
-
-
-  tmstc_star_config_vmax = $(TMSTC_CONFIG_VMAX)
-  tmstc_star_config_phi_max_rad = $(TMSTC_CONFIG_PHI_MAX_RAD)
-  tmstc_star_point_filtering = $(TMSTC_POINT_FILTERING)
-
-#ifdef USE_MOOS_SIM_PID true
-  is_running_moos_pid = true
-#endif
-
-
-  planner_mode = $(PLANNER_MODE) // TMSTC_STAR, VORONOI_SEARCH
-
-  
-
-} 
-
-//--------------------------------------------------
-// pSearchGrid Configuration Block
-
-ProcessConfig = pGridSearchViz
-{
-  AppTick       = 2
-  CommsTick     = 2
-
-  grid_config = pts={$(REGION)}
-  grid_config = cell_size=$(GRID_CELL_SIZE)
-  grid_config = cell_vars=x:0
-  grid_config = cell_min=x:0
-  grid_config = cell_max=x:$(GRID_CELL_MAX_COUNT)
-
-	report_deltas = true
-
-  sensor_radius         = $(SENSOR_RADIUS_MAX)
-  sensor_color          = $(SENSOR_COLOR)
-  sensor_altitude_max   = $(SENSOR_ALTITUDE_MAX)
-  sensor_radius_fixed   = $(SENSOR_RADIUS_FIXED)
-  sensor_transparency   = 0.2
-
-  grid_cell_decay_time  = $(GRID_CELL_DECAY_TIME)
-  visualize_sensor_area = false
-
-#ifdef USE_MOOS_SIM_PID true
-  is_running_moos_pid = true
-#endif
-
-} 
 
 
 //--------------------------------------------------------
@@ -448,9 +273,6 @@ ProcessConfig = pMarineViewer
   action = BLOCK_HEARTBEAT = true
 	action+ = BLOCK_HEARTBEAT = false
 
-  action+ = menu_key=Toggle_TMSTC_grid #  GSP_VISUALIZE_PLANNER_GRIDS=toggle
-  action+ = menu_key=Toggle_TMSTC_path #  GSP_VISUALIZE_PLANNER_PATHS=toggle
-  action+ = menu_key=Toggle_TMSTC_closest_start #  GSP_START_POINT_CLOSEST=toggle
   action+ = menu_key=Toggle_prox_poly_view #  PROX_POLY_VIEW_ALL=toggle
 
   action = menu_key=setpt_method_GRIDSEARCH # PROX_SETPT_METHOD_ALL=gridsearch
@@ -458,17 +280,6 @@ ProcessConfig = pMarineViewer
   action+= menu_key=setpt_method_CENTER # PROX_SETPT_METHOD_ALL=center
 
   action+= menu_key=PROX_toggle_visualization # PROX_SET_VISUALIZATION_ALL=toggle
-
-
-
-  action = menu_key=GSP_map_print_off #  GSP_MAP_PRINT=0
-  action = menu_key=GSP_map_print_init #  GSP_MAP_PRINT=1
-  action = menu_key=GSP_map_print_cover #  GSP_MAP_PRINT=2
-  action+ = menu_key=GSP_map_print_direction #  GSP_MAP_PRINT=3
-
-  action+ = menu_key=GSV_show_sensor  #  GSV_VISUALIZE_SENSOR_AREA=true
-  action+ = menu_key=UFFS_show_sensor #  GSV_VISUALIZE_SENSOR_AREA=false
-
 
   action+ = menu_key=VisualizeHome # GCS_COMMAND_ALL=VIZ_HOME
 
@@ -516,24 +327,6 @@ ProcessConfig = pMarineViewer
   // "pylon":    Format:  "format=hexagon, msg=val, x=val, y=val rad=val, pts=val, snap_val=val
   //"rectangle": Format:  "format=rectangle, msg=val, cx=val, cy=val, width=val, height=val, degs=val"
 
-  // left_context[reg_ignoredRegion_ellipse] = IGNORED_REGION  = "reg:: format=ellipse, msg=water, x=$[XPOS], y=$[YPOS], major=200, minor=100, pts=15, degs=15, snap_value=1.0"
-  // left_context[reg_ignoredRegion_circle] = IGNORED_REGION   = "reg:: format=radial, msg=building, x=$[XPOS], y=$[YPOS], radius=50, pts=16, snap=0.5"
-  // left_context[reg_ignoredRegion_oval] = IGNORED_REGION     = "reg:: format=oval, msg=oval_office, x=$[XPOS], y=$[YPOS], rad=100, len=250, draw_degs=10"  // len > 2*rad
-  // left_context[reg_ignoredRegion_hexagon] = IGNORED_REGION  = "reg:: format=hexagon, msg=wood_chop, x=$[XPOS], y=$[YPOS], rad=60, pts=8, snap_val=1.0"
-  // left_context[reg_ignoredRegion_rectangle] = IGNORED_REGION = "reg:: format=rectangle, msg=dessert, cx=$[XPOS], cy=$[YPOS], width=300, height=400, degs=10"
-
-  left_context[reg_ignoredRegion] = IGNORED_REGION = "reg:: x=$[XPOS], y=$[YPOS]"
-  right_context[unreg_ignoredRegion] = IGNORED_REGION = "unreg:: x=$[XPOS], y=$[YPOS]"
-  
-
-
-  // Fire related
-  left_context[add_fire]   = XFIRE_ALERT = x=$[XPOS],y=$[YPOS]
-
-	right_context[discover_fire]  = XDISCOVERED_FIRE = x=$[XPOS],y=$[YPOS]
- 
-
-
 
   ////////////////////////////////////////////////
   // Buttons
@@ -568,8 +361,6 @@ ProcessConfig = pMarineViewer
 
     button_6  = TOWYP_ALL # GCS_COMMAND_ALL=FLY_WAYPOINT
 
-    button_7 = DO_VORONOI_ALL # GCS_COMMAND_ALL=DO_VORONOI
-
     // button_7 = PARK_HELM_ALL # MOOS_MANUAL_OVERRIDE_ALL=true
 
 
@@ -579,8 +370,6 @@ ProcessConfig = pMarineViewer
   button_8 = PLAN_PATHS # DO_PLAN_PATHS=true
   button_9 = ENABLE_MISSION  # XENABLE_MISSION=true
   button_10 = RESET_MISSION  # XDISABLE_RESET_MISSION=true
-  button_11 = SET_MODE_TS  # CHANGE_PLANNER_MODEX=TMSTC_STAR # CHANGE_PLANNER_MODE_ALL=TMSTC_STAR
-  button_12 = SET_MODE_VC  # CHANGE_PLANNER_MODEX=VORONOI_SEARCH # CHANGE_PLANNER_MODE_ALL=VORONOI_SEARCH
 
 
   ////////////////////////////////////////////////
@@ -598,7 +387,6 @@ ProcessConfig = pMarineViewer
   cmd = label=RTL, var=GCS_COMMAND, sval=RETURN_TO_LAUNCH, receivers=all:$(VNAMES)
   cmd = label=LOITER/HOLD, var=GCS_COMMAND, sval=LOITER, receivers=all:$(VNAMES)
   cmd = label=SPEED_TO_MIN, var=GCS_COMMAND, sval=RESET_SPEED_MIN, receivers=all:$(VNAMES)
-  cmd = label=DO_VORONOI, var=GCS_COMMAND, sval=DO_VORONOI, receivers=all:$(VNAMES)
   cmd = label=SURVEY, var=GCS_COMMAND, sval=SURVEY, receivers=all:$(VNAMES)
 
   // cmd = label=ARM, var=ARM_UAV, sval=true, receivers=all:$(VNAMES)
