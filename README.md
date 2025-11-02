@@ -11,3 +11,8 @@ Key documentation:
 - [Installation and Setup](wiki/Installation_&_Setup.md)
 - [System Launch Guide](wiki/System_Launch_Guide.md)
 - [Troubleshooting](wiki/Troubleshooting.md)
+
+UAV Mission Documentation:
+- [UAV Mission Configuration](wiki/UAV_Mission_Configuration.md) - Complete guide to missionConfig.yaml
+- [UAV GCS Commands](wiki/UAV_Mission_GCS_Commands.md) - Ground Control Station commands reference
+- [UAV Launch Scripts](wiki/UAV_Mission_Launch_Scripts.md) - Launch script details and YAML integration
