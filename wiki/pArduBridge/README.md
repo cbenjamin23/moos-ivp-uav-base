@@ -120,7 +120,7 @@ pArduBridge subscribes to the following MOOS variables to receive commands:
 #### Ground Control Station Commands
 | Variable | Type | Description |
 |----------|------|-------------|
-| `GCS_COMMAND` | string | Direct commands from ground control station |
+| `ARDU_COMMAND` | string | Direct commands from ground control station |
 
 #### Survey Missions
 | Variable | Type | Description |
