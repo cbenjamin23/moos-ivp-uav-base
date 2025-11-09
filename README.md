@@ -14,5 +14,5 @@ Key documentation:
 
 UAV Mission Documentation:
 - [UAV Mission Configuration](wiki/UAV_Mission_Configuration.md) - Complete guide to missionConfig.yaml
-- [UAV GCS Commands](wiki/UAV_Mission_GCS_Commands.md) - Ground Control Station commands reference
+- [UAV ArduPilot Commands](wiki/UAV_Mission_GCS_Commands.md) - ArduPilot commands reference
 - [UAV Launch Scripts](wiki/UAV_Mission_Launch_Scripts.md) - Launch script details and YAML integration

@@ -98,7 +98,7 @@ ProcessConfig = uFldShoreBroker
 
   qbridge = ARM_UAV, HELM_STATUS, MOOS_MANUAL_OVERRIDE, PROX_SETPT_METHOD, PROX_SET_VISUALIZATION
 
-  qbridge = GCS_COMMAND, PROX_POLY_VIEW // Most commands from the GCS
+  qbridge = ARDU_COMMAND, PROX_POLY_VIEW // Most commands from the GCS
 
   qbridge = HEARTBEAT  // Heartbeat from the GCS to all vehicles
 
@@ -290,7 +290,7 @@ ProcessConfig = pMarineViewer
   action = BLOCK_HEARTBEAT = true
 	action+ = BLOCK_HEARTBEAT = false
  
-  action+ = menu_key=VisualizeHome # GCS_COMMAND_ALL=VIZ_HOME
+  action+ = menu_key=VisualizeHome # ARDU_COMMAND_ALL=VIZ_HOME
  
   action = menu_key=all_vehicles_SPD # CHANGE_SPEED_ALL=1
   action =  CHANGE_SPEED_ALL=-1
@@ -341,9 +341,9 @@ ProcessConfig = pMarineViewer
 
   #else
 
-  button_9  = TOWYP_UAV # GCS_COMMAND_ALL=FLY_WAYPOINT
+  button_9  = TOWYP_UAV # ARDU_COMMAND_ALL=FLY_WAYPOINT
 
-  button_10 = RETURN_UAV  # GCS_COMMAND_ALL=RETURN_TO_LAUNCH
+  button_10 = RETURN_UAV  # ARDU_COMMAND_ALL=RETURN_TO_LAUNCH
 
 #endif
 
@@ -358,11 +358,11 @@ ProcessConfig = pMarineViewer
   cmd = label=SURVEY, var=DO_SURVEY, sval=true, receivers=all:$(VNAMES)
  
 #else
-  cmd = label=TOWAYPOINT, var=GCS_COMMAND, sval=FLY_WAYPOINT, receivers=all:$(VNAMES)
-  cmd = label=RTL, var=GCS_COMMAND, sval=RETURN_TO_LAUNCH, receivers=all:$(VNAMES)
-  cmd = label=LOITER/HOLD, var=GCS_COMMAND, sval=LOITER, receivers=all:$(VNAMES)
-  cmd = label=SPEED_TO_MIN, var=GCS_COMMAND, sval=RESET_SPEED_MIN, receivers=all:$(VNAMES)
-  cmd = label=SURVEY, var=GCS_COMMAND, sval=SURVEY, receivers=all:$(VNAMES)
+  cmd = label=TOWAYPOINT, var=ARDU_COMMAND, sval=FLY_WAYPOINT, receivers=all:$(VNAMES)
+  cmd = label=RTL, var=ARDU_COMMAND, sval=RETURN_TO_LAUNCH, receivers=all:$(VNAMES)
+  cmd = label=LOITER/HOLD, var=ARDU_COMMAND, sval=LOITER, receivers=all:$(VNAMES)
+  cmd = label=SPEED_TO_MIN, var=ARDU_COMMAND, sval=RESET_SPEED_MIN, receivers=all:$(VNAMES)
+  cmd = label=SURVEY, var=ARDU_COMMAND, sval=SURVEY, receivers=all:$(VNAMES)
  
   cmd = label=AIRSPD+1, var=CHANGE_SPEED, dval=1, receivers=all:$(VNAMES)
   cmd = label=AIRSPD-1, var=CHANGE_SPEED, dval=-1, receivers=all:$(VNAMES)

@@ -1,10 +1,10 @@
-# UAV GCS Commands Reference
+# UAV ArduPilot Commands Reference
 
-This guide documents the Ground Control Station (GCS) commands used in UAV missions and how to implement them in MOOS configuration files.
+This guide documents the ArduPilot (ARDU) commands used in UAV missions and how to implement them in MOOS configuration files.
 
 ## Table of Contents
 - [Overview](#overview)
-- [GCS Command List](#gcs-command-list)
+- [ARDU Command List](#ardu-command-list)
 - [Using Commands in .moos Files](#using-commands-in-moos-files)
 - [Examples](#examples)
 
@@ -12,20 +12,20 @@ This guide documents the Ground Control Station (GCS) commands used in UAV missi
 
 ## Overview
 
-GCS commands are special MOOS variables that control UAV behavior during missions. They are typically:
+ARDU commands are special MOOS variables that control UAV behavior during missions. They are typically:
 - Sent from the shoreside/GCS to vehicles via `pShare` and `uFldShoreBroker`
 - Processed by behaviors defined in `.bhv` files
 - Triggered by buttons in `pMarineViewer` or through `pRealm` commands
 
 **Key MOOS Variables:**
-- `GCS_COMMAND` - Main command variable for UAV control
+- `ARDU_COMMAND` - Main command variable for UAV control
 - `DEPLOY`, `RETURN`, `DO_SURVEY`, `LOITER` - Behavior activation flags (used with MOOS simulator)
 - `ARM_UAV` - Arm/disarm the UAV
 - `AUTOPILOT_MODE` - Current mode of the autopilot
 
 ---
 
-## GCS Command List
+## ARDU Command List
 
 ### Core Flight Commands
 
@@ -86,7 +86,7 @@ In `meta_shoreside.moos`, use `uFldShoreBroker` to bridge commands:
 ProcessConfig = uFldShoreBroker
 {
   // Quick-bridge: broadcasts these variables to all vehicles
-  qbridge = GCS_COMMAND, DEPLOY, RETURN, DO_SURVEY, LOITER
+  qbridge = ARDU_COMMAND, DEPLOY, RETURN, DO_SURVEY, LOITER
   qbridge = PROX_POLY_VIEW
   
   // Individual bridges with aliases (if needed)
@@ -115,12 +115,12 @@ ProcessConfig = pMarineViewer
   button_4 = LOITER  # LOITER_ALL=true # DEPLOY_ALL=false # RETURN_ALL=false
   
   // UAV-specific buttons
-  button_1 = RTL_ALL     # GCS_COMMAND_ALL=RETURN_TO_LAUNCH 
-  button_3 = TKOFF_ALL   # ARM_UAV_ALL=true # GCS_COMMAND_ALL=DO_TAKEOFF
-  button_4 = SURVEY_ALL  # GCS_COMMAND_ALL=SURVEY  
-  button_5 = LOITER_ALL  # GCS_COMMAND_ALL=LOITER
-  button_6 = TOWYP_ALL   # GCS_COMMAND_ALL=FLY_WAYPOINT
-  button_7 = DO_VORONOI_ALL # GCS_COMMAND_ALL=DO_VORONOI
+  button_1 = RTL_ALL     # ARDU_COMMAND_ALL=RETURN_TO_LAUNCH 
+  button_3 = TKOFF_ALL   # ARM_UAV_ALL=true # ARDU_COMMAND_ALL=DO_TAKEOFF
+  button_4 = SURVEY_ALL  # ARDU_COMMAND_ALL=SURVEY  
+  button_5 = LOITER_ALL  # ARDU_COMMAND_ALL=LOITER
+  button_6 = TOWYP_ALL   # ARDU_COMMAND_ALL=FLY_WAYPOINT
+  button_7 = DO_VORONOI_ALL # ARDU_COMMAND_ALL=DO_VORONOI
 }
 ```
 
@@ -137,13 +137,13 @@ ProcessConfig = pRealm
 {
   // Command format: cmd = label=NAME, var=VARIABLE, sval=VALUE, receivers=targets
   
-  cmd = label=TAKEOFF, var=GCS_COMMAND, sval=DO_TAKEOFF, receivers=all:$(VNAMES)
-  cmd = label=TOWAYPOINT, var=GCS_COMMAND, sval=FLY_WAYPOINT, receivers=all:$(VNAMES)
-  cmd = label=RTL, var=GCS_COMMAND, sval=RETURN_TO_LAUNCH, receivers=all:$(VNAMES)
-  cmd = label=LOITER/HOLD, var=GCS_COMMAND, sval=LOITER, receivers=all:$(VNAMES)
-  cmd = label=SPEED_TO_MIN, var=GCS_COMMAND, sval=RESET_SPEED_MIN, receivers=all:$(VNAMES)
-  cmd = label=DO_VORONOI, var=GCS_COMMAND, sval=DO_VORONOI, receivers=all:$(VNAMES)
-  cmd = label=SURVEY, var=GCS_COMMAND, sval=SURVEY, receivers=all:$(VNAMES)
+  cmd = label=TAKEOFF, var=ARDU_COMMAND, sval=DO_TAKEOFF, receivers=all:$(VNAMES)
+  cmd = label=TOWAYPOINT, var=ARDU_COMMAND, sval=FLY_WAYPOINT, receivers=all:$(VNAMES)
+  cmd = label=RTL, var=ARDU_COMMAND, sval=RETURN_TO_LAUNCH, receivers=all:$(VNAMES)
+  cmd = label=LOITER/HOLD, var=ARDU_COMMAND, sval=LOITER, receivers=all:$(VNAMES)
+  cmd = label=SPEED_TO_MIN, var=ARDU_COMMAND, sval=RESET_SPEED_MIN, receivers=all:$(VNAMES)
+  cmd = label=DO_VORONOI, var=ARDU_COMMAND, sval=DO_VORONOI, receivers=all:$(VNAMES)
+  cmd = label=SURVEY, var=ARDU_COMMAND, sval=SURVEY, receivers=all:$(VNAMES)
 }
 ```
 
@@ -198,9 +198,9 @@ set BHV_MODE = RETURN {
 }
 ```
 
-### 5. GCS Command Processing (Vehicle)
+### 5. ARDU Command Processing (Vehicle)
 
-When using ArduPilot integration, behaviors can trigger GCS commands:
+When using ArduPilot integration, behaviors can trigger ARDU commands:
 
 ```moos
 //-------- Behavior: Waypoint --------
@@ -209,7 +209,7 @@ Behavior = BHV_Waypoint
   name      = waypt_survey
   pwt       = 100
   condition = BHV_MODE = SURVEY
-  endflag   = GCS_COMMAND=LOITER    // Send command when behavior completes
+  endflag   = ARDU_COMMAND=LOITER    // Send command when behavior completes
   
   // Behavior parameters...
 }
@@ -220,7 +220,7 @@ Behavior = BHV_Waypoint
   name      = waypt_return
   pwt       = 100
   condition = BHV_MODE = RETURN
-  endflag   = GCS_COMMAND=RETURN_TO_LAUNCH  // Trigger RTL in autopilot
+  endflag   = ARDU_COMMAND=RETURN_TO_LAUNCH  // Trigger RTL in autopilot
   
   speed     = 12
   radius    = 8.0
@@ -240,7 +240,7 @@ Behavior = BHV_Waypoint
 ProcessConfig = uFldShoreBroker
 {
   // Bridge commands to all vehicles
-  qbridge = GCS_COMMAND, PROX_POLY_VIEW
+  qbridge = ARDU_COMMAND, PROX_POLY_VIEW
   qbridge = DEPLOY, RETURN, DO_SURVEY, LOITER
 }
 
@@ -251,15 +251,15 @@ ProcessConfig = pMarineViewer
   button_2 = RETURN  # RETURN_ALL=true # DEPLOY_ALL=false
   
   // UAV-specific buttons
-  button_3 = TAKEOFF # ARM_UAV_ALL=true # GCS_COMMAND_ALL=DO_TAKEOFF
-  button_4 = RTL     # GCS_COMMAND_ALL=RETURN_TO_LAUNCH
-  button_5 = SURVEY  # GCS_COMMAND_ALL=SURVEY
+  button_3 = TAKEOFF # ARM_UAV_ALL=true # ARDU_COMMAND_ALL=DO_TAKEOFF
+  button_4 = RTL     # ARDU_COMMAND_ALL=RETURN_TO_LAUNCH
+  button_5 = SURVEY  # ARDU_COMMAND_ALL=SURVEY
 }
 
 ProcessConfig = pRealm
 {
-  cmd = label=RTL, var=GCS_COMMAND, sval=RETURN_TO_LAUNCH, receivers=all:$(VNAMES)
-  cmd = label=TAKEOFF, var=GCS_COMMAND, sval=DO_TAKEOFF, receivers=all:$(VNAMES)
+  cmd = label=RTL, var=ARDU_COMMAND, sval=RETURN_TO_LAUNCH, receivers=all:$(VNAMES)
+  cmd = label=TAKEOFF, var=ARDU_COMMAND, sval=DO_TAKEOFF, receivers=all:$(VNAMES)
 }
 ```
 
@@ -294,7 +294,7 @@ Behavior = BHV_Waypoint
 {
   name      = waypt_return
   condition = BHV_MODE = RETURN
-  endflag   = GCS_COMMAND=RETURN_TO_LAUNCH
+  endflag   = ARDU_COMMAND=RETURN_TO_LAUNCH
   
   speed     = 12
   radius    = 8.0
@@ -308,7 +308,7 @@ Behavior = BHV_Waypoint
 ProcessConfig = pMissionOperator
 {
   // Automatically trigger RTL at mission end
-  finish_flag = GCS_COMMAND_ALL=RETURN_TO_LAUNCH
+  finish_flag = ARDU_COMMAND_ALL=RETURN_TO_LAUNCH
   finish_flag = DEPLOY_ALL=false
   finish_flag = RETURN_ALL=true
 }
@@ -346,7 +346,7 @@ ProcessConfig = pMissionOperator
 │                          Activate Behaviors         │
 │                                  │                  │
 │                                  ▼                  │
-│                          Output GCS_COMMAND         │
+│                          Output ARDU_COMMAND         │
 │                                  │                  │
 │                                  ▼                  │
 │                          pArduBridge                │

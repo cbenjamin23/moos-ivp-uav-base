@@ -164,7 +164,7 @@ ProcessConfig = uFldShoreBroker
   
   qbridge = ARM_UAV, HELM_STATUS, MOOS_MANUAL_OVERRIDE, PROX_SETPT_METHOD, PROX_SET_VISUALIZATION
 
-  qbridge = GCS_COMMAND, PROX_POLY_VIEW // Most commands from the GCS
+  qbridge = ARDU_COMMAND, PROX_POLY_VIEW // Most commands from the GCS
 
   qbridge = HEARTBEAT  // Heartbeat from the GCS to all vehicles
 
@@ -281,7 +281,7 @@ ProcessConfig = pMarineViewer
 
   action+= menu_key=PROX_toggle_visualization # PROX_SET_VISUALIZATION_ALL=toggle
 
-  action+ = menu_key=VisualizeHome # GCS_COMMAND_ALL=VIZ_HOME
+  action+ = menu_key=VisualizeHome # ARDU_COMMAND_ALL=VIZ_HOME
 
   action = menu_key=all_vehicles_SPD # CHANGE_SPEED_ALL=1
   action =  CHANGE_SPEED_ALL=-1
@@ -344,7 +344,7 @@ ProcessConfig = pMarineViewer
 
     // button_1 = DEPLOY  # DEPLOY_ALL=true # MOOS_MANUAL_OVERRIDE_ALL=false
 
-    button_1 = RTL_ALL  # GCS_COMMAND_ALL=RETURN_TO_LAUNCH 
+    button_1 = RTL_ALL  # ARDU_COMMAND_ALL=RETURN_TO_LAUNCH 
 
     // button_one   = ARM_ALL  # ARM_UAV_ALL=true
     // button_two   = DISARM_ALL   # ARM_UAV_ALL=false 
@@ -352,14 +352,14 @@ ProcessConfig = pMarineViewer
     button_2    = HELM_TOOGLE_ALL  # HELM_STATUS_ALL=toggle
     // button_3    = HELM_OFF_ALL # HELM_STATUS_ALL=OFF
     #ifdef XMODE SIM
-      button_3 = TKOFF_ALL  # ARM_UAV_ALL=true # GCS_COMMAND_ALL=DO_TAKEOFF
+      button_3 = TKOFF_ALL  # ARM_UAV_ALL=true # ARDU_COMMAND_ALL=DO_TAKEOFF
     #endif
     
-    button_4    = SURVEY_ALL  # GCS_COMMAND_ALL=SURVEY  
+    button_4    = SURVEY_ALL  # ARDU_COMMAND_ALL=SURVEY  
     
-    button_5 = LOITER_ALL  # GCS_COMMAND_ALL=LOITER
+    button_5 = LOITER_ALL  # ARDU_COMMAND_ALL=LOITER
 
-    button_6  = TOWYP_ALL # GCS_COMMAND_ALL=FLY_WAYPOINT
+    button_6  = TOWYP_ALL # ARDU_COMMAND_ALL=FLY_WAYPOINT
 
     // button_7 = PARK_HELM_ALL # MOOS_MANUAL_OVERRIDE_ALL=true
 
@@ -382,12 +382,12 @@ ProcessConfig = pMarineViewer
   cmd = label=SURVEY, var=DO_SURVEY, sval=true, receivers=all:$(VNAMES)
 
 #else
-  cmd = label=TAKEOFF, var=GCS_COMMAND, sval=DO_TAKEOFF, receivers=all:$(VNAMES)
-  cmd = label=TOWAYPOINT, var=GCS_COMMAND, sval=FLY_WAYPOINT, receivers=all:$(VNAMES)
-  cmd = label=RTL, var=GCS_COMMAND, sval=RETURN_TO_LAUNCH, receivers=all:$(VNAMES)
-  cmd = label=LOITER/HOLD, var=GCS_COMMAND, sval=LOITER, receivers=all:$(VNAMES)
-  cmd = label=SPEED_TO_MIN, var=GCS_COMMAND, sval=RESET_SPEED_MIN, receivers=all:$(VNAMES)
-  cmd = label=SURVEY, var=GCS_COMMAND, sval=SURVEY, receivers=all:$(VNAMES)
+  cmd = label=TAKEOFF, var=ARDU_COMMAND, sval=DO_TAKEOFF, receivers=all:$(VNAMES)
+  cmd = label=TOWAYPOINT, var=ARDU_COMMAND, sval=FLY_WAYPOINT, receivers=all:$(VNAMES)
+  cmd = label=RTL, var=ARDU_COMMAND, sval=RETURN_TO_LAUNCH, receivers=all:$(VNAMES)
+  cmd = label=LOITER/HOLD, var=ARDU_COMMAND, sval=LOITER, receivers=all:$(VNAMES)
+  cmd = label=SPEED_TO_MIN, var=ARDU_COMMAND, sval=RESET_SPEED_MIN, receivers=all:$(VNAMES)
+  cmd = label=SURVEY, var=ARDU_COMMAND, sval=SURVEY, receivers=all:$(VNAMES)
 
   // cmd = label=ARM, var=ARM_UAV, sval=true, receivers=all:$(VNAMES)
   // cmd = label=DISARM, var=ARM_UAV, sval=false, receivers=all:$(VNAMES)

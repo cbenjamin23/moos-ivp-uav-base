@@ -207,10 +207,10 @@ bool ArduBridge::OnNewMail(MOOSMSG_LIST &NewMail)
       reportEvent("No heartbeats from GCS. Returning to launch");
       m_do_return_to_launch = true;
     }
-    else if (key == "GCS_COMMAND")
+    else if (key == "ARDU_COMMAND")
     {
       std::string command = msg.GetString();
-      Logger::info("OnNewMail GCS_COMMAND: " + command + " from " + msg.GetSource());
+      Logger::info("OnNewMail ARDU_COMMAND: " + command + " from " + msg.GetSource());
 
       bool handled = false;
       if (command == "VIZ_HOME")
@@ -257,8 +257,8 @@ bool ArduBridge::OnNewMail(MOOSMSG_LIST &NewMail)
 
       if (!handled)
       {
-        Logger::warning("Unhandled GCS Command: " + command);
-        m_warning_system_ptr->queue_monitorWarningForXseconds("Unhandled GCS Command: " + command, WARNING_DURATION);
+        Logger::warning("Unhandled ARDU Command: " + command);
+        m_warning_system_ptr->queue_monitorWarningForXseconds("Unhandled ARDU Command: " + command, WARNING_DURATION);
       }
     }
 
@@ -825,7 +825,7 @@ void ArduBridge::registerVariables()
   // For pMarineViewer
   Register("VIZ_HOME", 0);
 
-  Register("GCS_COMMAND", 0);
+  Register("ARDU_COMMAND", 0);
 
   Register("ARM_UAV", 0);     // on,off
   Register("HELM_STATUS", 0); // on,off
