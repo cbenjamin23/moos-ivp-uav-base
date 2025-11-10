@@ -99,7 +99,7 @@ Behavior = BHV_Waypoint
   // condition  = AUTOPILOT_MODE==HELM_SURVEYING
   condition  = BHV_MODE==SURVEY
   perpetual  = true
-  endflag    = GCS_COMMAND=RETURN_TO_LAUNCH
+  endflag    = ARDU_COMMAND=RETURN_TO_LAUNCH
 
           repeat = 0
            speed = $(SPEED)
@@ -206,7 +206,7 @@ Behavior = BHV_Waypoint
   // condition  = AUTOPILOT_MODE==HELM_TOWAYPT
   condition  = BHV_MODE==TOWAYPT
   perpetual  = true
-  endflag    = GCS_COMMAND=LOITER
+  endflag    = ARDU_COMMAND=LOITER
 
            speed = $(SPEED)
   capture_radius = 20 
@@ -228,7 +228,7 @@ Behavior = BHV_Waypoint
   // condition  = AUTOPILOT_MODE==HELM_RETURNING
   condition  = BHV_MODE==RETURN
   perpetual  = true
-  endflag    = GCS_COMMAND=LOITER
+  endflag    = ARDU_COMMAND=LOITER
 
 
            speed = $(SPEED)

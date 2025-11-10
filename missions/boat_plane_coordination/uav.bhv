@@ -144,8 +144,8 @@ Behavior = BHV_Waypoint
   updates    = TOWAYPT_UPDATE
   condition  = BHV_MODE==TOWAYPT
   perpetual  = true
-  endflag    = GCS_COMMAND=RETURN
-  //endflag    = GCS_COMMAND=LOITER
+  endflag    = ARDU_COMMAND=RETURN_TO_LAUNCH
+  //endflag    = ARDU_COMMAND=LOITER
 
            speed = $(SPEED)
   capture_radius = 20 
@@ -166,7 +166,7 @@ Behavior = BHV_Waypoint
   updates    = RETURN_UPDATE
   condition  = BHV_MODE==RETURN
   perpetual  = true
-  endflag    = GCS_COMMAND=LOITER
+  endflag    = ARDU_COMMAND=LOITER
   // Note that LOITER is a functionality built into ardupilot
   // and thus does not need its own behavior when running for real
 

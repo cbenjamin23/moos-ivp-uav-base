@@ -31,6 +31,7 @@ VNAMES=""
 
 MIN_UTIL_CPA="5"
 MAX_UTIL_CPA="40"
+XMODE="REAL"
 
 #------------------------------------------------------------ 
 #  Part 3: Check for and handle command-line arguments
@@ -44,6 +45,7 @@ for ARGI; do
 	echo "  --help, -h         Show this help message    " 
 	echo "  --just_make, -j    Only create targ files    " 
 	echo "  --verbose, -v      Verbose, confirm launch   "
+    echo "  --sim, -s          Simulation mode           "
 	echo "                                               "
         echo "  --auto, -a                                   "
         echo "    Auto-launched by a script.                 "
@@ -71,6 +73,8 @@ for ARGI; do
 	JUST_MAKE="yes"
     elif [ "${ARGI}" = "--verbose" -o "${ARGI}" = "-v" ]; then
 	VERBOSE="yes"
+    elif [ "${ARGI}" = "--sim" -o "${ARGI}" = "-s" ]; then
+        XMODE="SIM"
     elif [ "${ARGI}" = "--auto" -o "${ARGI}" = "-a" ]; then
         AUTO_LAUNCHED="yes"
     elif [ "${ARGI}" = "--nogui" -o "${ARGI}" = "-n" ]; then
@@ -121,6 +125,7 @@ if [ "${VERBOSE}" = "yes" ]; then
     echo "TIME_WARP =     [${TIME_WARP}]    "
     echo "JUST_MAKE =     [${JUST_MAKE}]    "
     echo "AUTO_LAUNCHED = [${AUTO_LAUNCHED}]"
+    echo "XMODE =         [$XMODE]         "
     echo "----------------------------------"
     echo "IP_ADDR =       [${IP_ADDR}]      "
     echo "MOOS_PORT =     [${MOOS_PORT}]    "
@@ -148,7 +153,8 @@ nsplug meta_shoreside.moos targ_shoreside.moos $NSFLAGS WARP=$TIME_WARP \
        PSHARE_PORT=$PSHARE_PORT     LAUNCH_GUI=$LAUNCH_GUI  \
        VNAMES=$VNAMES                                       \
        MIN_UTIL_CPA=$MIN_UTIL_CPA                           \
-       MAX_UTIL_CPA=$MAX_UTIL_CPA
+       MAX_UTIL_CPA=$MAX_UTIL_CPA                           \
+       XMODE=$XMODE
 
 if [ "${JUST_MAKE}" = "yes" ]; then
     echo "$ME: Targ files made; exiting without launch."

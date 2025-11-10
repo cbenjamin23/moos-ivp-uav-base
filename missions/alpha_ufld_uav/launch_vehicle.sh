@@ -31,15 +31,20 @@ SHORE_PSHARE="9200"
 
 VNAME="abe"
 COLOR="yellow"
-XMODE="M300"
+XMODE="REAL"
 START_POS="x=0,y=0,heading=0"  
-STOCK_SPD="1.4"
-MAX_SPD="2"
+STOCK_SPD="2"
+MAX_SPD="4"
 
 # Custom
 DEST_POS="50,-50"  
 MIN_UTIL_CPA="5"
 MAX_UTIL_CPA="40"
+
+# ArduPilot specific, simulation defaults, 
+ARDUPILOT_IP=0.0.0.0
+ARDUPILOT_PORT=14550
+ARDUPILOT_PROTOCOL=udp
 
 #------------------------------------------------------------
 #  Part 3: Check for and handle command-line arguments
@@ -124,17 +129,18 @@ for ARGI; do
 done
 
 #------------------------------------------------------------
-#  Part 4: If Heron hardware, set key info based on IP address
+#  Part 4: Configure vars based on XMODE
 #------------------------------------------------------------
-if [ "${XMODE}" = "M300" ]; then
-    COLOR=`get_heron_info.sh --color --hint=$COLOR`
-    IP_ADDR=`get_heron_info.sh --ip`
-    FSEAT_IP=`get_heron_info.sh --fseat`
-    VNAME=`get_heron_info.sh --name`
-    if [ $? != 0 ]; then
-	echo "$ME: Problem getting Heron Info. Exit Code 2"
-	exit 2
-    fi
+if [ "${XMODE}" = "REAL" ]; then
+    ARDUPILOT_IP=ttyACM0
+    ARDUPILOT_PORT=115200
+    ARDUPILOT_PROTOCOL=serial
+
+else # if simulation
+
+    SPEED=18 # It is 15 in simulation
+    # SPEED=${MAXSPD} # It is 15 in simulation
+
 fi
      
 #------------------------------------------------------------
@@ -170,6 +176,10 @@ if [ "${VERBOSE}" = "yes" ]; then
     echo "VDEST_POS =     [${VDEST_POS}]    "
     echo "MIN_UTIL_CPA =  [$MIN_UTIL_CPA]   "
     echo "MAX_UTIL_CPA =  [$MAX_UTIL_CPA]   "
+    echo "------------UAV-------------------"
+    echo "AP_IP =      [${ARDUPILOT_IP}]     "
+    echo "AP_PORT =    [${ARDUPILOT_PORT}]   "
+    echo "AP_PROTOCOL =[${ARDUPILOT_PROTOCOL}]"
     echo "                                  "
     echo -n "Hit any key to continue launching $VNAME "
     read ANSWER
@@ -197,11 +207,13 @@ nsplug meta_vehicle.moos targ_$VNAME.moos $NSFLAGS WARP=$TIME_WARP \
        SHORE_PSHARE=$SHORE_PSHARE   VNAME=$VNAME         \
        COLOR=$COLOR                 XMODE=$XMODE         \
        START_POS=$START_POS         MAX_SPD=$MAX_SPD     \
-       FSEAT_IP=$FSEAT_IP
+       FSEAT_IP=$FSEAT_IP           AP_IP=$ARDUPILOT_IP \
+       AP_PORT=$ARDUPILOT_PORT \
+       AP_PROTOCOL=$ARDUPILOT_PROTOCOL
 
 nsplug meta_vehicle.bhv targ_$VNAME.bhv $NSFLAGS  \
        START_POS=$START_POS         VNAME=$VNAME  \
-       STOCK_SPD=$STOCK_SPD                       \
+       STOCK_SPD=$STOCK_SPD         XMODE=$XMODE  \
        VDEST_POS=$VDEST_POS                       \
        MIN_UTIL_CPA=$MIN_UTIL_CPA                 \
        MAX_UTIL_CPA=$MAX_UTIL_CPA

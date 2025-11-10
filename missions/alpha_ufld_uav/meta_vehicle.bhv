@@ -2,6 +2,8 @@
 // Vehicle Helm config file
 // M. Benjamin, MIT
 
+#ifdef XMODE SIM
+
 initialize  DEPLOY  = false
 initialize  RETURN  = false
 initialize  TRANSIT = true
@@ -26,7 +28,46 @@ set MODE = TRANSITING {
   TRANSIT = true
 } 
 
+#else // note that AUTOPILOT_MODE is published by pArduBridge based on ARDU_COMMANDs
 
+set BHV_MODE = ACTIVE {
+    AUTOPILOT_MODE != HELM_INACTIVE  
+    AUTOPILOT_MODE != HELM_INACTIVE_LOITERING
+    AUTOPILOT_MODE != HELM_PARKED
+} INACTIVE
+
+set MODE = RETURNING {
+  MODE = ACTIVE
+  AUTOPILOT_MODE = HELM_RETURNING
+} 
+
+set MODE = TRANSITING {
+  MODE = ACTIVE
+  AUTOPILOT_MODE = HELM_TOWAYPT
+} 
+
+#endif
+
+
+#ifdef XMODE REAL
+//----------------------------------------------
+Behavior = BHV_ConstantAltitude{
+    name       = const_altitude
+    pwt        = 100
+    updates    = CONST_ALTITUDE_UPDATE
+
+    condition  = BHV_MODE==ACTIVE
+
+    perpetual  = true
+
+    altitude = 50
+
+    duration = -1
+  }
+
+#endif
+
+#ifdef XMODE SIM
 //----------------------------------------------
 Behavior = BHV_Waypoint
 {
@@ -34,8 +75,12 @@ Behavior = BHV_Waypoint
   pwt       = 100
   condition = MODE==TRANSITING
 
+#ifdef XMODE SIM
   endflag   = ARRIVED = true	
   endflag   = RETURN  = true	
+#else
+  endflag   = ARDU_COMMAND=RETURN_TO_LAUNCH
+#endif
 
 	wptflag   = WPT_FLAG   = $[CTR1]
   cycleflag = CYCLE_FLAG = $[CTR2]
@@ -65,8 +110,12 @@ Behavior = BHV_Waypoint
   pwt         = 100
   updates     = RETURN_UPDATES
   condition   = MODE==RETURNING
+#ifdef XMODE SIM
   endflag     = RETURNED = true
   endflag     = STATION_KEEP = true
+#else
+  endflag   = ARDU_COMMAND=LOITER
+#endif
   spawnx_flag = RETURN_UPDATES=point=$[OSX],$[OSY]	
 
       speed = 1.3

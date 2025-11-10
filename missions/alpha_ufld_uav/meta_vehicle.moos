@@ -25,8 +25,12 @@ Processconfig = ANTLER
   Run = uLoadWatch     @ NewConsole = false
   Run = uMemWatch      @ NewConsole = false
   Run = pRealm         @ NewConsole = false
-  Run = uSimMarineV22  @ NewConsole = false
-
+  #ifdef XMODE SIM
+    Run = uSimMarineV22   @NewConsole = false
+  #else
+    Run = pArduBridge     @NewConsole = false
+  #endif
+}
 #include plugs.moos <uSimMarineV22>
 #include plugs.moos <pShare>
 #include plugs.moos <pHostInfo>
@@ -57,7 +61,7 @@ ProcessConfig = pNodeReporter
   CommsTick   = 2
 
 	platform_color = $(COLOR)
-  vessel_type    = $(VTYPE=kayak)
+  platform_type = GLIDER
   //terse_reports  = true
 
 	//coord_policy_global = true
@@ -75,6 +79,9 @@ ProcessConfig = uFldNodeBroker
 
 	//shadow_shore = ip=192.168.7.22, name=henry, dur=45000
 	
+  bridge = src=COLREGS_AVOID_MODE
+  bridge = src=AVDCOL_MODE
+
   bridge = src=VIEW_POLYGON
   bridge = src=VIEW_CIRCLE
   bridge = src=VIEW_POINT
@@ -188,3 +195,41 @@ ProcessConfig = pLogger
   // WildCardOmitPattern = PHI_HOST*, NODE_REPORT_LOCAL
 }
 	
+//------------------------------------------
+// pArduBridge config block
+ProcessConfig = pArduBridge                              
+{                                                               
+  AppTick   = 4                                                 
+  CommsTick = 4                                                 
+
+  Logger = true
+
+  ArduPilotURL = $(AP_IP):$(AP_PORT)
+  url_protocol = $(AP_PROTOCOL)
+
+  vname = $(VNAME)
+  vcolor = $(COLOR)
+  prefix = NAV
+
+  command_groundspeed = false
+
+  #ifdef XMODE SIM
+    is_Sim = true
+  #else
+    is_Sim = false
+  #endif
+
+}
+
+//------------------------------------------
+// pRealm config block
+
+ProcessConfig = pRealm
+{
+  AppTick   = 4
+  CommsTick = 4
+
+	hist_var = AUTOPILOT_MODE
+  hist_var = MODE
+	scope_set = name=msgs, vars=AUTOPILOT_MODE:MODE
+}

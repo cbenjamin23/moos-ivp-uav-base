@@ -86,7 +86,7 @@ for ARGI; do
     elif [ "${ARGI:0:15}" = "--min_util_cpa=" ]; then
         MIN_UTIL_CPA="${ARGI#--min_util_cpa=*}"
     elif [ "${ARGI:0:15}" = "--max_util_cpa=" ]; then
-        MAX_UTIL_CPA="${ARGI#--max_util_cpa=*}"
+        MAX_UTIL_CPA="${ARGI#--max_util_cpa=*}"             
 
     else 
 	echo "$ME: Bad arg:" $ARGI "Exit Code 1."
@@ -170,7 +170,7 @@ done
 #------------------------------------------------------------
 #  Part 7: Launch the Shoreside mission file
 #------------------------------------------------------------
-SARGS=" --auto --mport=9000 --pshare=9200 $NOGUI --vnames=$ALL_VNAMES "
+SARGS=" --sim --auto --mport=9000 --pshare=9200 $NOGUI --vnames=$ALL_VNAMES "
 SARGS+=" $TIME_WARP $JUST_MAKE $VERBOSE "
 SARGS+=" --min_util_cpa=$MIN_UTIL_CPA "
 SARGS+=" --max_util_cpa=$MAX_UTIL_CPA "

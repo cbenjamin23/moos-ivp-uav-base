@@ -12,7 +12,7 @@ ProcessConfig = pHostInfo
   AppTick 	= 1
   CommsTick = 1
 
-  default_hostip_force = $(IP_ADDR=localhost)
+  DEFAULT_HOSTIP = $(IP_ADDR)
 }
 
 <tag><pShare>
@@ -24,7 +24,7 @@ ProcessConfig = pShare
   AppTick    = 2
   CommsTick  = 2
 
-  input = route =  localhost:$(PSHARE_PORT), white_list=DEPLOY & MOOS_MANUAL_OVERRIDE & NODE_BROKER_ACK & APPCAST_REQ 
+  input = route = $(IP_ADDR):$(PSHARE_PORT), white_list=DEPLOY & MOOS_MANUAL_OVERRIDE & NODE_BROKER_ACK & APPCAST_REQ 
 }
 
 <tag><uProcessWatch>

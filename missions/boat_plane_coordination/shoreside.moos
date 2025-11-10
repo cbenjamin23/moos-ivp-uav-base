@@ -98,9 +98,9 @@ ProcessConfig = uFldShoreBroker
 
   qbridge = ARM_UAV, HELM_STATUS, MOOS_MANUAL_OVERRIDE, PROX_SETPT_METHOD, PROX_SET_VISUALIZATION
 
-  qbridge = ARDU_COMMAND, PROX_POLY_VIEW // Most commands from the GCS
+  qbridge = ARDU_COMMAND, PROX_POLY_VIEW // ARDU Commands
 
-  qbridge = HEARTBEAT  // Heartbeat from the GCS to all vehicles
+  qbridge = HEARTBEAT  // Heartbeat from the ARDU_COMMAND to all vehicles
 
 
   bridge  = src=NEXT_WAYPOINT
@@ -335,11 +335,11 @@ ProcessConfig = pMarineViewer
   
   //UAV
 
-  #ifdef USE_MOOS_SIM_PID true
+#ifdef USE_MOOS_SIM_PID true
     button_9 = TOWAYPOINT_UAV # DO_SURVEY=false # DEPLOY_UAV=true # RETURN_UAV=false# LOITER_ALL=false # MOOS_MANUAL_OVERRIDE_ALL=false
     button_10 = RETURN_UAV # DO_SURVEY_ALL=false # DEPLOY_UAV=true # RETURN_UAV=true # LOITER_ALL=false # MOOS_MANUAL_OVERRIDE_ALL=false
 
-  #else
+#else
 
   button_9  = TOWYP_UAV # ARDU_COMMAND_ALL=FLY_WAYPOINT
 

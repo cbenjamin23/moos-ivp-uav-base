@@ -45,6 +45,12 @@ ProcessConfig = uFldShoreBroker
 	
   qbridge  = DEPLOY, RETURN, STATION, RETURN_UPDATES
   qbridge  = MOOS_MANUAL_OVERRIDE
+  
+  // uav-specific bridges
+
+  qbridge = ARDU_COMMAND
+  qbridge = ARM_UAV
+  qbridge = HEARTBEAT
 }
 
 //--------------------------------------------------
@@ -85,6 +91,8 @@ ProcessConfig = pMarineViewer
   vehicles_name_mode   = names
 
 	content_mode         = appcast       // or realmcast
+
+  beat_flag = HEARTBEAT_ALL=true
 	
   appcast_color_scheme = indigo
 	appcast_font_size    = large
@@ -99,6 +107,7 @@ ProcessConfig = pMarineViewer
   left_context[return_point] = RETURN_$[UP_VNAME_CLOSEST] = true
   left_context[return_point] = RETURN_UPDATES_$[UP_VNAME_CLOSEST] = points=$[XPOS],$[YPOS]
 
+#ifdef XMODE SIM
   button_one = DEPLOY  # DEPLOY_ALL=true 
   button_one = MOOS_MANUAL_OVERRIDE_ALL=false 
   button_one = AVOID_ALL=true
@@ -106,6 +115,12 @@ ProcessConfig = pMarineViewer
 
   button_two = RETURN  # RETURN_ALL=true
   button_two = RETURN  # STATION_KEEP_ALL=false
+#else
+  button_one = DEPLOY  # ARDU_COMMAND_ALL=FLY_WAYPOINT
+
+  button_two = RETURN  # ARDU_COMMAND_ALL=RETURN_TO_LAUNCH
+#endif
+
   button_3   = STATION:true # STATION_ALL=true
   button_4   = STATION:false # STATION_ALL=false
 }
