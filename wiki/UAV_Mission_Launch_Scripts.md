@@ -449,5 +449,5 @@ User can now interact with the mission via pMarineViewer or uMAC commands.
 ## Related Documentation
 
 - [UAV Mission Configuration Guide](UAV_Mission_Configuration.md) - Detailed YAML reference
-- [GCS Commands Reference](UAV_Mission_GCS_Commands.md) - Command definitions and usage
+- [ARDU Commands Reference](UAV_Mission_ARDU_Commands.md) - Command definitions and usage
 - [System Launch Guide](System_Launch_Guide.md) - Step-by-step procedures
