@@ -166,6 +166,6 @@ drones:
 
 ## Related Documentation
 
-- [GCS Commands Reference](UAV_Mission_GCS_Commands.md) - Complete list of Ground Control Station commands
+- [ARDU Commands Reference](UAV_Mission_ARDU_Commands.md) - Complete list of Ground Control Station commands
 - [Launch Scripts Guide](UAV_Mission_Launch_Scripts.md) - Explanation of launch script parameters and usage
 - [System Launch Guide](System_Launch_Guide.md) - Step-by-step launch procedures
