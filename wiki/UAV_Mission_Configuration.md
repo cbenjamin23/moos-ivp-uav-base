@@ -4,8 +4,6 @@ This guide provides a comprehensive breakdown of the UAV mission configuration s
 
 ## Table of Contents
 - [Mission Configuration YAML File](#mission-configuration-yaml-file)
-- [GCS Commands Reference](#gcs-commands-reference)
-- [Launch Scripts](#launch-scripts)
 
 ---
 
