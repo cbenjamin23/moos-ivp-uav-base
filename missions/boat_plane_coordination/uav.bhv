@@ -70,7 +70,6 @@ set BHV_MODE = SURVEY {
   AUTOPILOT_MODE = HELM_SURVEYING
 } 
 
-
 //------------------------------------------------------------------
 
 #ifdef USE_MOOS_SIM_PID false

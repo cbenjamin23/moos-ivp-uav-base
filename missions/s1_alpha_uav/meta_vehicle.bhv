@@ -2,12 +2,12 @@
 // Vehicle Helm config file
 // M. Benjamin, MIT
 
-#ifdef XMODE SIM
-
 initialize  DEPLOY  = false
 initialize  RETURN  = false
 initialize  TRANSIT = true
 initialize  STATION = false
+
+#ifdef XMODE SIM
 
 set MODE = ACTIVE {
   DEPLOY = true
@@ -28,9 +28,9 @@ set MODE = TRANSITING {
   TRANSIT = true
 } 
 
-#else // note that AUTOPILOT_MODE is published by pArduBridge based on ARDU_COMMANDs
+#else // note that AUTOPILOT_MODE is published by pArduBridge based on ARDU_COMMANDs' states
 
-set BHV_MODE = ACTIVE {
+set MODE = ACTIVE {
     AUTOPILOT_MODE != HELM_INACTIVE  
     AUTOPILOT_MODE != HELM_INACTIVE_LOITERING
     AUTOPILOT_MODE != HELM_PARKED
@@ -52,22 +52,21 @@ set MODE = TRANSITING {
 #ifdef XMODE REAL
 //----------------------------------------------
 Behavior = BHV_ConstantAltitude{
-    name       = const_altitude
-    pwt        = 100
-    updates    = CONST_ALTITUDE_UPDATE
+  name       = const_altitude
+  pwt        = 100
+  updates    = CONST_ALTITUDE_UPDATE
 
-    condition  = BHV_MODE==ACTIVE
+  condition  = MODE==ACTIVE
 
-    perpetual  = true
+  perpetual  = true
 
-    altitude = 50
+  altitude = 50
 
-    duration = -1
-  }
+  duration = -1
+}
 
 #endif
 
-#ifdef XMODE SIM
 //----------------------------------------------
 Behavior = BHV_Waypoint
 {
@@ -79,7 +78,7 @@ Behavior = BHV_Waypoint
   endflag   = ARRIVED = true	
   endflag   = RETURN  = true	
 #else
-  endflag   = ARDU_COMMAND=RETURN_TO_LAUNCH
+  endflag   = ARDU_COMMAND = RETURN_TO_LAUNCH
 #endif
 
 	wptflag   = WPT_FLAG   = $[CTR1]
@@ -114,7 +113,7 @@ Behavior = BHV_Waypoint
   endflag     = RETURNED = true
   endflag     = STATION_KEEP = true
 #else
-  endflag   = ARDU_COMMAND=LOITER
+  endflag     = ARDU_COMMAND = LOITER
 #endif
   spawnx_flag = RETURN_UPDATES=point=$[OSX],$[OSY]	
 

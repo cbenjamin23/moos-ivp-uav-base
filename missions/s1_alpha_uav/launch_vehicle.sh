@@ -41,7 +41,7 @@ DEST_POS="50,-50"
 MIN_UTIL_CPA="5"
 MAX_UTIL_CPA="40"
 
-# ArduPilot specific, simulation defaults, 
+# ArduPilot specific, simulation defaults
 ARDUPILOT_IP=0.0.0.0
 ARDUPILOT_PORT=14550
 ARDUPILOT_PROTOCOL=udp
@@ -136,10 +136,7 @@ if [ "${XMODE}" = "REAL" ]; then
     ARDUPILOT_PORT=115200
     ARDUPILOT_PROTOCOL=serial
 
-else # if simulation
-
-    SPEED=18 # It is 15 in simulation
-    # SPEED=${MAXSPD} # It is 15 in simulation
+    STOCK_SPD=18 # Real vehicle speed
 
 fi
      
