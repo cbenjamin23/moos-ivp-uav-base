@@ -34,7 +34,7 @@ COLOR="yellow"
 XMODE="REAL"
 START_POS="x=0,y=0,heading=0"  
 STOCK_SPD="2"
-MAX_SPD="4"
+MAX_SPD="20"
 
 # Custom
 DEST_POS="50,-50"  

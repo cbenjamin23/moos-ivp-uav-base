@@ -24,12 +24,14 @@ Processconfig = ANTLER
   Run = uLoadWatch     @ NewConsole = false
   Run = uMemWatch      @ NewConsole = false
   Run = pRealm         @ NewConsole = false
-  #ifdef XMODE SIM
-    Run = uSimMarineV22  @ NewConsole = false
-    Run = pMarinePIDV22  @ NewConsole = false
-  #else
-    Run = pArduBridge    @ NewConsole = false
-  #endif
+  
+#ifdef XMODE SIM
+  Run = uSimMarineV22  @ NewConsole = false
+  Run = pMarinePIDV22  @ NewConsole = false
+#else
+  Run = pArduBridge    @ NewConsole = false
+#endif
+
 }
 #include plugs.moos <uSimMarineV22>
 #include plugs.moos <pShare>

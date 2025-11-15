@@ -10,9 +10,9 @@ Processconfig = ANTLER
   MSBetweenLaunches = 200
    
   Run = MOOSDB             @ NewConsole = false
-  #ifdef LOG_ENABLED true
+#ifdef LOG_ENABLED true
   Run = pLogger             @ NewConsole = false
-  #endif
+#endif
   Run = pNodeReporter      @ NewConsole = false
   Run = pDeadManPost       @ NewConsole = false
 
@@ -29,10 +29,10 @@ Processconfig = ANTLER
   Run = pProxonoi_uav      @ NewConsole = false //true , XConfig=HOLDSettings
 
 
-  #ifdef USE_MOOS_SIM_PID true
-    Run = uSimMarineV22     @ NewConsole = false
-    Run = pMarinePIDV22     @ NewConsole = false
-  #else
+#ifdef USE_MOOS_SIM_PID true
+  Run = uSimMarineV22     @ NewConsole = false
+  Run = pMarinePIDV22     @ NewConsole = false
+#else
 
     #ifdef XMODE SIM
     Run = pArduBridge        @ NewConsole = true,XConfig=DBXConsoleSettings,  \[=\=]
