@@ -25,7 +25,7 @@ LOG_CLEAN=""
 VAMT="2"
 MAX_VAMT="2"
 RAND_VPOS=""
-MAX_SPD="2"
+MAX_SPD="18"
 MMOD=""
 
 # Monte
