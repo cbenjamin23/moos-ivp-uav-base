@@ -96,7 +96,7 @@ missionParams:
 drones:
   - name: "skywalker"
     color: "orange"
-    start_orientaton_moos: # +x is east, +y is north [m] !!MOOS seems to double he distance,  so 50m east is a distance of 100 in MOOS!!
+    start_orientaton_moos: # +x is east, +y is north [m] !!MOOS seems to double the distance,  so 50m east is a distance of 100 in MOOS!!
       x: 0
       y: 0
       hdg: 46 # deg
