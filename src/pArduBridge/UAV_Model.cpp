@@ -140,7 +140,7 @@ bool UAV_Model::setUpMission(bool onlyRegisterHome)
 
   std::vector<mavsdk::MissionRaw::MissionItem> mission_plan;
 
-  if (download_result.first != mavsdk::MissionRaw::Result::Success)
+  if (download_result.first != mavsdk::MissionRaw::Result::Success || mission_plan.size() == 0)
   {
     m_warning_system_ptr->queue_monitorWarningForXseconds("Failed to download mission", WARNING_DURATION);
     std::cout << "Failed to download mission - Using default home location\n";
