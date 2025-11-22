@@ -1,23 +1,13 @@
 
-# MAVSDK Setup & Usage (Optional - For Custom MAVSDK Development)
+# MAVSDK Setup & Usage
 
-> **Note:** This guide is **optional** and only needed if you want to build your own custom MAVSDK applications to gain experience working with MAVSDK directly. The MAVSDK library is already included as a submodule in moos-ivp-uav-base and is built automatically with the main project. Most users can skip this guide and proceed directly to using the system.
-
-## When to use this guide:
-- You want to build standalone MAVSDK example applications for learning
-- You need to develop custom MAVSDK applications outside of the moos-ivp-uav-base project
-- You want to experiment with MAVSDK features independently
-
-## When to skip this guide:
-- You just want to use the moos-ivp-uav-base system (MAVSDK is already set up)
-- You're following the standard installation process
-- You don't plan to write custom MAVSDK code
+> **Note:** This guide is **necessary** for building the MAVSDK library included as a submodule in moos-ivp-uav-base. MAVSDK is not built automatically with the main project. This guide also includes build steps in case you need to develop custom MAVSDK applications outside of the moos-ivp-uav-base project.
 
 ---
 
-### Install
+### Build Options 
 
-#### Standalone install:
+#### Standalone build:
 
 Clone from fork of official MAVSDK
 
@@ -36,7 +26,7 @@ Clone from fork of official MAVSDK
 **NOTE:** MAVSDK only supports Mavlink 2 which is backwards compatible with Mavlink 1
 
 
-#### Install with moos
+#### Build with moos
 
 Read instructions [Installation_&_Setup](Installation_&_Setup.md)
 
