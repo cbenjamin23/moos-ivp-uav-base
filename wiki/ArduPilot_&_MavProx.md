@@ -4,7 +4,7 @@
 
 ## Version Compatibility
 
-This project was tested with **ArduPilot Plane version 4.5.7**, but it can be utilized with newer versions as well. The specific parameter list for Plane-4.5.7 can be found [here](https://ardupilot.org/plane/docs/parameters-Plane-stable-V4.5.7.html) (web) or [here](https://autotest.ardupilot.org/Parameters/ArduPlane/apm.pdef.xml) (xml).
+This project was tested with **ArduPilot Plane version 4.6.3**, but should be forward-compatible. The specific parameter list for Plane-4.6.3 can be found [here](https://ardupilot.org/plane/docs/parameters-Plane-stable-V4.6.3.html) (web) or [here](https://autotest.ardupilot.org/Parameters/ArduPlane/apm.pdef.xml) (xml).
 
 **Important Note:** Some parameter names can and have changed from version to version. Before using a different plane version, verify that the following required parameters are available and have the same names:
 
