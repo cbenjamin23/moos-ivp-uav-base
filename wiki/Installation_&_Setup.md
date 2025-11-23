@@ -188,7 +188,7 @@ Location: `~/MAVSDK/`
 
 This step is necessary.
 
-Follow MAVSDK setup instructions or use the `mavsdk_build_install` alias in `scripts/setup_bash_aliases_moos.sh`. See: MAVSDK_Setup_&_Usage.md
+Follow MAVSDK setup instructions or use the `mavsdk_build_install` alias in `scripts/setup_bash_aliases_moos.sh`. See: **[MAVSDK Setup & Usage.md](MAVSDK_Setup_&_Usage.md)**
 
 ---
 
