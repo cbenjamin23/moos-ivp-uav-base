@@ -1,113 +1,102 @@
+# Installation & Setup
 
-# moos-ivp-uav-base
+This repository contains a submodule for MAVSDK and helper scripts to set up a MOOS/IVP UAV development environment.
 
+## Getting started
 
-This repository consist of a submodule for MAVSDK 
-
-
-Clone the [repo](https://github.com/cbenjamin23/moos-ivp-uav-base.git) (with ssh) and the submodules:
+Clone the repository (using SSH) and initialize submodules:
 
 ```bash
-git clone git@github.com:cbenjamin23/moos-ivp-uav-base.git;
-cd moos-ivp-uav-base;
+git clone git@github.com:cbenjamin23/moos-ivp-uav-base.git
+cd moos-ivp-uav-base
 git submodule update --init --recursive
 ```
 
+## Setup bash aliases
 
-### Setup bash aliases
-
-The file `moos-ivp-uav-base/scripts/setup_bash_aliases_moos.sh` defines and sets up some useful aliases. 
-Make the file executable
+The file `scripts/setup_bash_aliases_moos.sh` defines useful aliases. Make it executable and source it from your shell startup file:
 
 ```bash
 chmod +x ~/moos-ivp-uav-base/scripts/setup_bash_aliases_moos.sh
+# then add to ~/.bashrc or source it directly
+source ~/moos-ivp-uav-base/scripts/setup_bash_aliases_moos.sh
 ```
 
-and source it from your bashrc. 
+## Install MOOS‑IVP (GitHub)
 
-## Install MOOS-IVP (Github)
-
-This was moved from svn trunk found [here](https://oceanai.mit.edu/ivpman/pmwiki/pmwiki.php?n=Lab.ClassSetup#sec_course_software)
-
-
-Download using`git`:
+MOOS/IVP was migrated from SVN. Clone the upstream repository and build:
 
 ```bash
 git clone https://github.com/moos-ivp/moos-ivp.git
-```
-
-Checkout and pull:
-
-```bash
-cd moos-ivp;
+cd moos-ivp
 git pull
+./build.sh
 ```
 
-
-Then build moos:
+Note: use the `-m` flag when building on a vehicle to only build non-GUI apps:
 
 ```bash
-./build.sh 
+./build.sh -m
 ```
-**PS**: Build with flag `-m` if building on vehicle
 
-Verify that it is properly installed with:
+### Verify installation
+
+Check that the main binaries are on your PATH:
 
 ```bash
 which MOOSDB
-which pHelmIvP 
+which pHelmIvP
 ```
 
-It should produce:
+Example expected output:
 
-	$ which MOOSDB
-	/Users/you/moos-ivp/bin/MOOSDB
-	$ which pHelmIvP 
-	/Users/you/moos-ivp/bin/pHelmIvP
+    $ which MOOSDB
+    /Users/you/moos-ivp/bin/MOOSDB
+    $ which pHelmIvP
+    /Users/you/moos-ivp/bin/pHelmIvP
 
-AND/OR run an example mission:
-```
-cd ./ivp/missions/s1_alpha;
+You can also run an example mission:
+
+```bash
+cd ivp/missions/s1_alpha
 pAntler --MOOSTimeWarp=10 alpha.moos
 ```
 
-Add path to bin folder in moos-ivp-uav-base to bashrc: `PATH=$PATH:~/moos-ivp-uav-base/bin`
+Add the moos-ivp-uav-base bin folder to your PATH in `~/.bashrc`:
 
-**NOTE**: When building moos-ivp, remember to use the `-m` flag to only build nongui apps: `.build.sh -m`
+```bash
+PATH=$PATH:~/moos-ivp-uav-base/bin
+export PATH
+```
 
+## MOOS/IVP Editor for VS Code
 
-### MOOS IVP Editor for vscode
-Installed the moos-ivp editor extension for vscode by following this [guide](https://msis.github.io/2680notes/editors/vscode/10%20-%20Setting%20things%20up/#install-recommended-extensions):
+Install the MOOS/IVP editor extension for VS Code. One option is the provided VSIX file:
 
-Install the file [moos-ivp-editor-0.2.0.vsix](https://github.com/msis/2680notes/blob/main/pages/editors/moos-ivp-editor-0.2.0.vsix) and run command:
-
-```bash 
+```bash
 code --install-extension moos-ivp-editor-0.2.0.vsix
 ```
 
-in your folder where you have the project.
+Guide: https://msis.github.io/2680notes/editors/vscode/10%20-%20Setting%20things%20up/#install-recommended-extensions
 
+## Install MOOS/IVP SWARM Toolbox
 
-## Install MOOS IVP SWARM Toolbox
+This codebase is private (owned by pavlab-MIT) and requires access to clone. Contact `scnomeny@mit.edu` for access. If you do not hear back, try `mail@scnomeny.com`.
 
+After cloning, build the library:
 
-The codebase is private on github own by pavlab-MIT and needs access to use or clone.
-
-Contact `scnomeny@mit.edu` for access.
-
-**Note:** If you don't hear back with a reasonable time, email `mail@scnomeny.com`
-
-After the code is downloaded, checkout and build the library:
-```shell
+```bash
 cd moos-ivp-swarm
 ./build.sh
 ```
-**PS**: Build with flag `-m` if building on vehicle
 
-*Note:* If bugs appear during the build process, fix them in the code base before retrying the build. More info in [Troubleshooting](Troubleshooting.md)
+Note: use `./build.sh -m` when building on a vehicle.
 
-Update your environmental variables, `PATH` and `IVP_BEHAVIOR_DIRS`, in your `.bashrc` file.
-```shell
+If build errors occur, fix them before retrying. See Troubleshooting.md for more info.
+
+Update your environment variables (`PATH` and `IVP_BEHAVIOR_DIRS`) in `~/.bashrc`:
+
+```bash
 IVP_BEHAVIOR_DIRS=$IVP_BEHAVIOR_DIRS:~/moos-ivp-swarm/lib
 export IVP_BEHAVIOR_DIRS
 
@@ -115,68 +104,92 @@ PATH=$PATH:~/moos-ivp-swarm/bin
 export PATH
 ```
 
-
-Verify that it is properly installed with:
+Verify the swarm tools are installed:
 
 ```bash
 which pMediator
 ```
 
-**Output:** /Users/you/moos-ivp-swarm/bin/pMediator
+Expected output example:
 
+    /Users/you/moos-ivp-swarm/bin/pMediator
 
 ---
 
+## Other installed repositories
 
+Necessary for Shoreside computer if running gazebo
 
+### ArduPilot (to run arduplane) with MavProxy
 
-# Other installed Repositories:
+Location: `~/ardupilot/`
 
-## ArduPilot (to run arduplane) with MavProxy
-- ~/ardupilot/
-- [Install guide](https://ardupilot.org/dev/docs/building-setup-linux.html#building-setup-linux)
-	- Run `git submodule update --init --recursive`
-	- Run `install-prereqs-ubuntu.sh` before switching branch! More in [Troubleshooting](Troubleshooting.md)
-	- **CHECKOUT** version `Plane-4.5.7` (branch)
-- [More info](ArduPilot%20&%20MavProx.md)
-## ardupilot_gazebo (*gazebo Ionic*)
-- Install the [Gazebo Ionic](https://gazebosim.org/docs/ionic/install_ubuntu/) simulator binary:
-	- Test that it runs `gz sim -v4 -r shapes.sdf`
-- In folder: ~/gz_ws/ardupilot_gazebo/
-- Modified installation to match with Ionic version can be found in [Gazebo Plugin Configuration](Gazebo%20Plugin%20Configuration.md)
-- Install the SITL_Models from cloning repo into home
-```bash 
+Install guide: https://ardupilot.org/dev/docs/building-setup-linux.html#building-setup-linux
+
+- Run `git submodule update --init --recursive`
+- Run `install-prereqs-ubuntu.sh` before switching branch
+- CHECKOUT branch: `Plane-4.6.3`
+- More info: ArduPilot & MavProx (link in repo)
+
+### ardupilot_gazebo (Gazebo Sim / Ionic)
+
+Install the Gazebo Sim (Ionic) simulator binary: https://gazebosim.org/docs/ionic/install_ubuntu/
+
+Test it with:
+
+```bash
+gz sim -v4 -r shapes.sdf
+```
+
+Repository location: `~/gz_ws/ardupilot_gazebo/`
+
+Clone:
+
+```bash
 git clone git@github.com:ArduPilot/ardupilot_gazebo.git
 ```
-And add to bashrc:
+
+Add SITL models and Gazebo paths to your `~/.bashrc`:
+
 ```bash
-export GZ_SIM_RESOURCE_PATH=$GZ_SIM_RESOURCE_PATH:\
-$HOME/SITL_Models/Gazebo/models:\
-$HOME/SITL_Models/Gazebo/worlds:\
-$HOME/moos-ivp-uav-base/GazeboSim/models:\
-$HOME/moos-ivp-uav-base/GazeboSim/worlds:
+export GZ_SIM_RESOURCE_PATH=$GZ_SIM_RESOURCE_PATH: \
+  $HOME/SITL_Models/Gazebo/models: \
+  $HOME/SITL_Models/Gazebo/worlds: \
+  $HOME/moos-ivp-uav-base/GazeboSim/models: \
+  $HOME/moos-ivp-uav-base/GazeboSim/worlds:
 ```
 
-**IMPORTANT:** Before using the plugin, remember to build it by calling cmake in the build folder and then make. 
+Important: build the Gazebo plugin with CMake in the plugin's build folder and run `make` before using it.
 
-### Gazebo Version Information
-
-This project uses the newer **Gazebo Sim 8** (Ionic version, often referred to as Gazebo 11 or later versions) rather than Gazebo Classic (usually referring to earlier versions like Gazebo 9 and 10).
-
-For more information on Gazebo environmental variables, see: https://answers.gazebosim.org//question/29153/some-questions-about-uri-in-sdf-files/ 
-
-## MissionPLanner
-- ~/Mission_Planner/
-- [Install guide](https://ardupilot.org/planner/docs/mission-planner-installation.html)
-- Configuration details can be found in [ArduPilot & MavProx](ArduPilot_&_MavProx.md)
-
-## MAVSDK 
-
-**Follow the instructions below for building it or directly use the mavsdk_build_install alias from the [alias file](https://github.com/cbenjamin23/moos-ivp-uav-base/blob/main/scripts/setup_bash_aliases_moos.sh)**
-- ~/MAVSDK/
-- [MAVSDK Setup and Usage](MAVSDK_Setup_&_Usage.md) - **(Optional guide)** - Only needed if you want to build custom MAVSDK applications for learning purposes
-
-
+Gazebo version: this project uses Gazebo Sim 8 (Ionic). For more info on environment variables see:
+https://answers.gazebosim.org//question/29153/some-questions-about-uri-in-sdf-files/
 
 ---
-Relevant topics: [Troubleshooting](Troubleshooting.md)
+
+### Mission Planner / QGroundControl
+
+Two software options for interfacing with the flight controller parameters and tuning the plane physically. QGroundControl has Mac/Windows installation support and Mission Planner solely has Windows.
+
+QGround_Control
+
+Install guide: https://qgroundcontrol.com/
+
+Mission_Planner
+
+Install guide: https://ardupilot.org/planner/docs/mission-planner-installation.html
+
+Configuration details in ArduPilot & MavProx.
+
+---
+
+### MAVSDK
+
+Location: `~/MAVSDK/`
+
+This step is necessary.
+
+Follow MAVSDK setup instructions or use the `mavsdk_build_install` alias in `scripts/setup_bash_aliases_moos.sh`. See: MAVSDK_Setup_&_Usage.md
+
+---
+
+Relevant topics: Troubleshooting.md
