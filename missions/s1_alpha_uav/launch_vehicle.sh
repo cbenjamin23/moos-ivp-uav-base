@@ -29,7 +29,7 @@ PSHARE_PORT="9201"
 SHORE_IP="localhost"
 SHORE_PSHARE="9200"
 
-VNAME="abe"
+VNAME="skywalker1"
 COLOR="yellow"
 XMODE="REAL"
 START_POS="x=0,y=0,heading=0"  

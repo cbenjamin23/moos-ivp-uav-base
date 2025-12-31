@@ -71,7 +71,7 @@ if [ "${RAND_VPOS}" = "yes" -o  ! -f "vspeeds.txt" ]; then
     pickpos --amt=$VEHICLE_AMT --spd=1:2 > vspeeds.txt
 fi
 
-pickpos --amt=$VEHICLE_AMT --vnames  > vnames.txt
+pickpos --amt=$VEHICLE_AMT --vnames=skywalker1  > vnames.txt
 pickpos --amt=$VEHICLE_AMT --colors  > vcolors.txt
 
 

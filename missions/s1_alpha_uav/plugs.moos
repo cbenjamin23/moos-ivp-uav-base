@@ -1,7 +1,7 @@
 <tag><origin_warp>
 MOOSTimeWarp = $(WARP)
-LatOrigin  = 43.825300 
-LongOrigin = -70.330400 
+LatOrigin  = 45.375053
+LongOrigin = -73.903229 
 
 <tag><pHostInfo>
 //--------------------------------------------------
