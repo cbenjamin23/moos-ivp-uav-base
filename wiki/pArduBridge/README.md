@@ -1,5 +1,7 @@
 # pArduBridge - ArduPilot to MOOS-IVP Interface
 
+> **Note:** pArduBridge is used to interface between MOOS-IVP and ArduPilot (`useMoosSimPid: false`). This is required when working with physical hardware or ArduPilot SITL. Gazebo is optional - ArduPilot SITL can run with or without Gazebo. If you're using the lightweight MOOS-IvP Simulator (`useMoosSimPid: true`), you don't need pArduBridge. See [Installation & Setup](../Installation_&_Setup.md) for more information.
+
 ## Overview
 
 `pArduBridge` is a MOOS application that interfaces between the MOOS-IVP autonomy system and ArduPilot autopilot software running on UAVs (Unmanned Aerial Vehicles). It acts as a bridge, translating MOOS commands into MAVLink commands for the autopilot and publishing telemetry data from the UAV back to the MOOS community.

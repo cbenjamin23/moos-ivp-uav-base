@@ -1,5 +1,7 @@
 # ArduPilot Gazebo Plugin Setup
 
+> **Note:** Gazebo is **completely optional**. This documentation is only relevant if you want to use Gazebo with ArduPilot SITL for enhanced physics simulation and 3D visualization. You can run ArduPilot SITL without Gazebo, or use the lightweight MOOS-IvP Simulator instead. See [Installation & Setup](Installation_&_Setup.md) for more information.
+
 ## About Gazebo
 
 This project uses the newer **Gazebo Sim 8** (Ionic version, often referred to as Gazebo 11 or later versions) rather than Gazebo Classic (usually referring to earlier versions like Gazebo 9 and 10).

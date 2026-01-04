@@ -1,6 +1,7 @@
 
+# ArduPilot & MavProxy
 
-# ArduPilot
+> **Note:** This documentation is relevant only if you're using **pArduBridge** (`useMoosSimPid: false`) to connect to physical hardware or ArduPilot SITL. Gazebo is optional even when using ArduPilot SITL - it only adds enhanced physics and 3D visualization. If you're using the lightweight MOOS-IvP Simulator approach (`useMoosSimPid: true`), you don't need any of this. See [Installation & Setup](Installation_&_Setup.md) for more information.
 
 ## Version Compatibility
 
