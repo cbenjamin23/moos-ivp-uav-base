@@ -2,6 +2,25 @@
 
 This repository contains a submodule for MAVSDK and helper scripts to set up a MOOS/IVP UAV development environment.
 
+## Understanding Simulation Approaches
+
+This project supports **two different simulation approaches**:
+
+1. **MOOS-IvP Simulator (Lightweight)** - Uses the built-in MOOS-IvP vehicle simulator with pMarineViewer for visualization
+   - ✅ Faster setup - no ArduPilot or Gazebo required
+   - ✅ Works for basic autonomy testing and waypoint navigation
+   - ✅ Suitable for mission planning and MOOS-IvP behavior development
+   - ⚙️ Set `useMoosSimPid: true` in `missionConfig.yaml`
+
+2. **ArduPilot SITL + Gazebo (Full Simulation)** - Uses ArduPilot's Software-In-The-Loop with Gazebo for 3D visualization and physics
+   - ✅ Full flight dynamics and physics simulation
+   - ✅ 3D visualization with Gazebo
+   - ✅ Closer to real hardware behavior
+   - ⚠️ Requires additional installation steps (ArduPilot, Gazebo, and plugins)
+   - ⚙️ Set `useMoosSimPid: false` in `missionConfig.yaml`
+
+**For beginners:** Start with the MOOS-IvP Simulator approach. Only install ArduPilot and Gazebo if you need full flight dynamics simulation.
+
 ## Getting started
 
 Clone the repository (using SSH) and initialize submodules:
@@ -116,9 +135,11 @@ Expected output example:
 
 ---
 
-## Other installed repositories
+## Optional: ArduPilot and Gazebo Installation
 
-Necessary for Shoreside computer if running gazebo
+**⚠️ Only required if using ArduPilot SITL + Gazebo simulation (`useMoosSimPid: false`)**
+
+Skip this section if you're using the MOOS-IvP Simulator approach for your missions.
 
 ### ArduPilot (to run arduplane) with MavProxy
 
@@ -132,6 +153,8 @@ Install guide: https://ardupilot.org/dev/docs/building-setup-linux.html#building
 - More info: ArduPilot & MavProx (link in repo)
 
 ### ardupilot_gazebo (Gazebo Sim / Ionic)
+
+**Note:** This is required for Gazebo-based simulation only.
 
 Install the Gazebo Sim (Ionic) simulator binary: https://gazebosim.org/docs/ionic/install_ubuntu/
 
@@ -166,7 +189,9 @@ https://answers.gazebosim.org//question/29153/some-questions-about-uri-in-sdf-fi
 
 ---
 
-### Mission Planner / QGroundControl
+### Optional: Mission Planner / QGroundControl
+
+**⚠️ Only required for physical hardware or advanced ArduPilot parameter tuning**
 
 Two software options for interfacing with the flight controller parameters and tuning the plane physically. QGroundControl has Mac/Windows installation support and Mission Planner solely has Windows.
 
@@ -182,11 +207,11 @@ Configuration details in ArduPilot & MavProx.
 
 ---
 
-### MAVSDK
+## MAVSDK Installation
 
 Location: `~/MAVSDK/`
 
-This step is necessary.
+**This step is required for both simulation approaches** when interfacing with ArduPilot (either in simulation or on hardware).
 
 Follow MAVSDK setup instructions or use the `mavsdk_build_install` alias in `scripts/setup_bash_aliases_moos.sh`. See: **[MAVSDK Setup & Usage.md](MAVSDK_Setup_&_Usage.md)**
 

@@ -39,18 +39,35 @@ cd moos-ivp-uav-base
 git submodule update --init --recursive
 ```
 
-### 2. Install Dependencies
-Follow the installation instructions in [Installation & Setup.md](Installation_&_Setup.md) to install:
-- MOOS-IVP core
-- MOOS IVP SWARM Toolbox (if needed)
-- ArduPilot
-- Gazebo Ionic simulator
-- MAVSDK (included as submodule)
+### 2. Choose Your Simulation Approach
 
-### 3. Configure Environment
+This project supports two simulation approaches:
+
+- **MOOS-IvP Simulator (Lightweight)**: Uses built-in MOOS-IvP vehicle simulator with pMarineViewer
+  - Recommended for beginners and basic autonomy testing
+  - Faster setup, no ArduPilot or Gazebo required
+  - Good for mission planning and behavior development
+  
+- **ArduPilot SITL + Gazebo (Full Simulation)**: Uses ArduPilot's Software-In-The-Loop with Gazebo
+  - Full flight dynamics and 3D visualization
+  - Closer to real hardware behavior
+  - Requires additional installation (ArduPilot, Gazebo, plugins)
+
+See [Installation & Setup.md](Installation_&_Setup.md) for details on both approaches.
+
+### 3. Install Dependencies
+Follow the installation instructions in [Installation & Setup.md](Installation_&_Setup.md) to install:
+- MOOS-IVP core (required)
+- MOOS IVP SWARM Toolbox (if needed)
+- **Optional (for ArduPilot SITL + Gazebo approach only):**
+  - ArduPilot
+  - Gazebo Ionic simulator
+- MAVSDK (included as submodule, required for ArduPilot integration)
+
+### 4. Configure Environment
 Set up bash aliases and environment variables as described in the main documentation.
 
-### 4. Run Your First Mission
+### 5. Run Your First Mission
 Refer to [System Launch Guide.md](System_Launch_Guide.md) for commands to launch vehicles and ground stations.
 
 ## Need Help?
