@@ -46,6 +46,7 @@ This project supports two primary modes:
 - **MOOS-IvP Simulator** (`useMoosSimPid: true`): 
   - Lightweight simulation with pMarineViewer
   - Recommended for beginners and basic autonomy testing
+  - Good for mission planning and MOOS-IvP behavior development
   - No ArduPilot or Gazebo required
   
 - **pArduBridge Integration** (`useMoosSimPid: false`):
