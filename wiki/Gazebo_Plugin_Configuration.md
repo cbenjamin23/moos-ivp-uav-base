@@ -1,5 +1,7 @@
 # ArduPilot Gazebo Plugin Setup
 
+> **Note:** This documentation is only relevant if you're using the **ArduPilot SITL + Gazebo** simulation approach (`useMoosSimPid: false`). If you're using the lightweight MOOS-IvP Simulator approach with pMarineViewer, you don't need Gazebo. See [Installation & Setup](Installation_&_Setup.md) for more information.
+
 ## About Gazebo
 
 This project uses the newer **Gazebo Sim 8** (Ionic version, often referred to as Gazebo 11 or later versions) rather than Gazebo Classic (usually referring to earlier versions like Gazebo 9 and 10).

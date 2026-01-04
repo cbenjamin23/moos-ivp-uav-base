@@ -1,4 +1,7 @@
 
+# ArduPilot & MavProxy
+
+> **Note:** This documentation is relevant only if you're using the **ArduPilot SITL + Gazebo** simulation approach (`useMoosSimPid: false`) or working with physical hardware. If you're using the lightweight MOOS-IvP Simulator approach (`useMoosSimPid: true`), you don't need ArduPilot or Gazebo. See [Installation & Setup](Installation_&_Setup.md) for more information about the two simulation approaches.
 
 # ArduPilot
 

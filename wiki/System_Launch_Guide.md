@@ -79,6 +79,16 @@ Adapt the wifi interfaces to your specific interface.
 
 # Launching System
 
+## Simulation Approaches
+
+This system supports two simulation approaches (configured via `useMoosSimPid` in `missionConfig.yaml`):
+
+- **MOOS-IvP Simulator** (`useMoosSimPid: true`): Lightweight simulation using pMarineViewer. No ArduPilot or Gazebo needed.
+- **ArduPilot SITL + Gazebo** (`useMoosSimPid: false`): Full flight dynamics simulation. Requires ArduPilot and Gazebo installation.
+
+See [Installation & Setup](Installation_&_Setup.md) for details on both approaches.
+
+## Basic Launch Commands
 
 Given the configuration file in the `missionConfig.yaml` we can start a mission by calling the commands
 
