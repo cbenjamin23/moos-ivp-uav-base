@@ -1,6 +1,6 @@
 # pArduBridge - ArduPilot to MOOS-IVP Interface
 
-> **Note:** pArduBridge is used to interface between MOOS-IVP and ArduPilot. This is **only required** when using the ArduPilot SITL + Gazebo simulation approach (`useMoosSimPid: false`) or when working with physical hardware. If you're using the lightweight MOOS-IvP Simulator approach, you don't need pArduBridge. See [Installation & Setup](../Installation_&_Setup.md) for more information about simulation approaches.
+> **Note:** pArduBridge is used to interface between MOOS-IVP and ArduPilot (`useMoosSimPid: false`). This is required when working with physical hardware or ArduPilot SITL. Gazebo is optional - ArduPilot SITL can run with or without Gazebo. If you're using the lightweight MOOS-IvP Simulator (`useMoosSimPid: true`), you don't need pArduBridge. See [Installation & Setup](../Installation_&_Setup.md) for more information.
 
 ## Overview
 

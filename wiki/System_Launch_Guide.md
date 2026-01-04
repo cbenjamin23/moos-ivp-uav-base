@@ -81,10 +81,16 @@ Adapt the wifi interfaces to your specific interface.
 
 ## Simulation Approaches
 
-This system supports two simulation approaches (configured via `useMoosSimPid` in `missionConfig.yaml`):
+This system supports two modes (configured via `useMoosSimPid` in `missionConfig.yaml`):
 
-- **MOOS-IvP Simulator** (`useMoosSimPid: true`): Lightweight simulation using pMarineViewer. No ArduPilot or Gazebo needed.
-- **ArduPilot SITL + Gazebo** (`useMoosSimPid: false`): Full flight dynamics simulation. Requires ArduPilot and Gazebo installation.
+- **MOOS-IvP Simulator** (`useMoosSimPid: true`): 
+  - Lightweight simulation using pMarineViewer
+  - No pArduBridge, ArduPilot, or Gazebo needed
+  
+- **pArduBridge Integration** (`useMoosSimPid: false`): 
+  - Connects to physical hardware OR ArduPilot SITL
+  - ArduPilot SITL can run with or without Gazebo
+  - Gazebo is optional for enhanced physics simulation
 
 See [Installation & Setup](Installation_&_Setup.md) for details on both approaches.
 

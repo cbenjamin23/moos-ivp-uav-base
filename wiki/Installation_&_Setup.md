@@ -4,22 +4,30 @@ This repository contains a submodule for MAVSDK and helper scripts to set up a M
 
 ## Understanding Simulation Approaches
 
-This project supports **two different simulation approaches**:
+This project supports **two primary modes** controlled by the `useMoosSimPid` parameter in `missionConfig.yaml`:
 
-1. **MOOS-IvP Simulator (Lightweight)** - Uses the built-in MOOS-IvP vehicle simulator with pMarineViewer for visualization
-   - ✅ Faster setup - no ArduPilot or Gazebo required
-   - ✅ Works for basic autonomy testing and waypoint navigation
-   - ✅ Suitable for mission planning and MOOS-IvP behavior development
-   - ⚙️ Set `useMoosSimPid: true` in `missionConfig.yaml`
+### Mode 1: MOOS-IvP Simulator (`useMoosSimPid: true`)
+   - ✅ Lightweight simulation using built-in MOOS-IvP vehicle simulator
+   - ✅ Visualization with pMarineViewer
+   - ✅ No pArduBridge, ArduPilot, or Gazebo required
+   - ✅ Good for mission planning and MOOS-IvP behavior development
+   - **Recommended for beginners**
 
-2. **ArduPilot SITL + Gazebo (Full Simulation)** - Uses ArduPilot's Software-In-The-Loop with Gazebo for 3D visualization and physics
-   - ✅ Full flight dynamics and physics simulation
-   - ✅ 3D visualization with Gazebo
-   - ✅ Closer to real hardware behavior
-   - ⚠️ Requires additional installation steps (ArduPilot, Gazebo, and plugins)
-   - ⚙️ Set `useMoosSimPid: false` in `missionConfig.yaml`
+### Mode 2: pArduBridge Integration (`useMoosSimPid: false`)
+When using pArduBridge (`useMoosSimPid: false`), you can connect to:
 
-**For beginners:** Start with the MOOS-IvP Simulator approach. Only install ArduPilot and Gazebo if you need full flight dynamics simulation.
+**Option A: Physical Hardware**
+   - Connect to a real drone with ArduPilot flight controller
+   - Requires MAVSDK and pArduBridge
+   - No simulation software needed
+
+**Option B: ArduPilot SITL (Software Simulation)**
+   - ✅ ArduPilot Software-In-The-Loop simulation
+   - ✅ Requires ArduPilot installation and MAVSDK
+   - ⚠️ **Gazebo is optional** - adds realistic physics and 3D visualization
+   - Use Gazebo only if you need enhanced flight dynamics modeling
+
+**For beginners:** Start with Mode 1 (MOOS-IvP Simulator). Only use Mode 2 with ArduPilot when testing with physical hardware or when you need ArduPilot-specific flight dynamics.
 
 ## Getting started
 
@@ -135,11 +143,15 @@ Expected output example:
 
 ---
 
-## Optional: ArduPilot and Gazebo Installation
+## Optional: ArduPilot Installation
 
-**⚠️ Only required if using ArduPilot SITL + Gazebo simulation (`useMoosSimPid: false`)**
+**⚠️ Only required if using pArduBridge (`useMoosSimPid: false`)**
 
-Skip this section if you're using the MOOS-IvP Simulator approach for your missions.
+This is needed when:
+- Working with physical hardware (real drone)
+- Using ArduPilot SITL for software simulation
+
+Skip this section if you're using the MOOS-IvP Simulator (`useMoosSimPid: true`).
 
 ### ArduPilot (to run arduplane) with MavProxy
 
@@ -154,7 +166,7 @@ Install guide: https://ardupilot.org/dev/docs/building-setup-linux.html#building
 
 ### ardupilot_gazebo (Gazebo Sim / Ionic)
 
-**Note:** This is required for Gazebo-based simulation only.
+**Note:** Gazebo is **completely optional** even when using ArduPilot SITL. Install only if you want enhanced physics simulation and 3D visualization.
 
 Install the Gazebo Sim (Ionic) simulator binary: https://gazebosim.org/docs/ionic/install_ubuntu/
 

@@ -41,17 +41,18 @@ git submodule update --init --recursive
 
 ### 2. Choose Your Simulation Approach
 
-This project supports two simulation approaches:
+This project supports two primary modes:
 
-- **MOOS-IvP Simulator (Lightweight)**: Uses built-in MOOS-IvP vehicle simulator with pMarineViewer
+- **MOOS-IvP Simulator** (`useMoosSimPid: true`): 
+  - Lightweight simulation with pMarineViewer
   - Recommended for beginners and basic autonomy testing
-  - Faster setup, no ArduPilot or Gazebo required
-  - Good for mission planning and behavior development
+  - No ArduPilot or Gazebo required
   
-- **ArduPilot SITL + Gazebo (Full Simulation)**: Uses ArduPilot's Software-In-The-Loop with Gazebo
-  - Full flight dynamics and 3D visualization
-  - Closer to real hardware behavior
-  - Requires additional installation (ArduPilot, Gazebo, plugins)
+- **pArduBridge Integration** (`useMoosSimPid: false`):
+  - Connect to physical hardware (real drone) OR ArduPilot SITL
+  - ArduPilot SITL can run with or without Gazebo
+  - Gazebo is optional - adds enhanced physics and 3D visualization
+  - Requires ArduPilot and MAVSDK installation
 
 See [Installation & Setup.md](Installation_&_Setup.md) for details on both approaches.
 
@@ -59,10 +60,10 @@ See [Installation & Setup.md](Installation_&_Setup.md) for details on both appro
 Follow the installation instructions in [Installation & Setup.md](Installation_&_Setup.md) to install:
 - MOOS-IVP core (required)
 - MOOS IVP SWARM Toolbox (if needed)
-- **Optional (for ArduPilot SITL + Gazebo approach only):**
-  - ArduPilot
-  - Gazebo Ionic simulator
-- MAVSDK (included as submodule, required for ArduPilot integration)
+- **Optional (for pArduBridge mode only):**
+  - ArduPilot (required for physical hardware or SITL)
+  - Gazebo (optional - only if you want enhanced physics for SITL)
+- MAVSDK (included as submodule, required for pArduBridge/ArduPilot integration)
 
 ### 4. Configure Environment
 Set up bash aliases and environment variables as described in the main documentation.
