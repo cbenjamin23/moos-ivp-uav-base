@@ -25,9 +25,9 @@ When using pArduBridge (`useMoosSimPid: false`), you can connect to:
    - ✅ ArduPilot Software-In-The-Loop simulation
    - ✅ Requires ArduPilot installation and MAVSDK
    - ⚠️ **Gazebo is optional** - adds realistic physics and 3D visualization
-   - Use Gazebo only if you need enhanced flight dynamics modeling
+   - Use Gazebo only if you want enhanced flight dynamics modeling
 
-**For beginners:** Start with Mode 1 (MOOS-IvP Simulator). Only use Mode 2 with ArduPilot when testing with physical hardware or when you need ArduPilot-specific flight dynamics.
+**For beginners:** Start with Mode 1 (MOOS-IvP Simulator). Use Mode 2 with ArduPilot when testing with physical hardware or when you need ArduPilot-specific flight dynamics.
 
 ## Getting started
 
