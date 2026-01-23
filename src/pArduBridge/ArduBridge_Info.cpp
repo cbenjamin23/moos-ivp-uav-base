@@ -108,6 +108,7 @@ void showInterfaceAndExit()
   blk("  ARM_UAV                                                              ");
   blk("  RESET_SPEED_MIN                                                              ");
   blk("  RETURN_TO_LAUNCH                                                              ");
+  blk("  AUTOLAND                                                              ");
   blk("  LOITER                                                              ");
   blk("  NEXT_WAYPOINT                                                              ");
   blk("                                                                ");

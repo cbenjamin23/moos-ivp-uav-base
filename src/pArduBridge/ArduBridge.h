@@ -198,6 +198,9 @@ protected: // async
   void rtl_async();
   PromiseFuture<ResultPair> m_rtl_promfut;
 
+  void autoland_async();
+  PromiseFuture<ResultPair> m_autoland_promfut;
+
 private: // State variables
   // For UAV
 
@@ -215,6 +218,7 @@ private: // State variables
   std::pair<bool, double> m_do_change_altitude_pair;
   bool m_do_reset_speed;
   bool m_do_return_to_launch;
+  bool m_do_autoland;
   bool m_do_arm;
   bool m_do_takeoff;
   bool m_do_fly_to_waypoint;

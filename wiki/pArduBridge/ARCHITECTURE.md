@@ -410,7 +410,8 @@ class WarningSystem
 ┌─────────────────────────────────────────────────┐
 │  ArduBridge::OnNewMail()                        │
 │  - Sets command flags (m_do_fly_to_waypoint,    │
-│    m_do_loiter_pair, m_do_return_to_launch)     │
+│    m_do_loiter_pair, m_do_return_to_launch,    │
+│    m_do_autoland)                                │
 └──────┬──────────────────────────────────────────┘
        │
        ▼
@@ -426,6 +427,7 @@ class WarningSystem
 │  - flyToWaypoint_async()                        │
 │  - loiterAtPos_async()                          │
 │  - rtl_async()                                  │
+│  - autoland_async()                             │
 └──────┬──────────────────────────────────────────┘
        │
        ▼
@@ -439,8 +441,25 @@ class WarningSystem
 ┌─────────────────────────────────────────────────┐
 │  UAV_Model::runCommandsender() [Thread]         │
 │  - Dequeues command                             │
-│  - Executes command                             │
+│  - Executes command (e.g., commandAutoland)    │
+│  - Calls MAVSDK Action plugin                  │
 │  - Sets promise result                          │
+└──────┬──────────────────────────────────────────┘
+       │
+       ▼
+┌─────────────────────────────────────────────────┐
+│  MAVSDK Action Plugin                           │
+│  - set_flight_mode_autoland()                    │
+│  - Converts FlightMode::Land → PlaneMode::Autoland│
+│  - Constructs MAV_CMD_DO_SET_MODE (mode=26)     │
+└──────┬──────────────────────────────────────────┘
+       │
+       ▼
+┌─────────────────────────────────────────────────┐
+│  ArduPilot                                       │
+│  - Receives mode change command                  │
+│  - Enters ModeAutoLand (mode 26)                │
+│  - Executes automatic landing sequence          │
 └──────┬──────────────────────────────────────────┘
        │
        ▼
@@ -686,6 +705,82 @@ GCS/User  MOOS  ArduBridge  UAV_Model  UAV_Thread  ArduPilot
    │        │        │          │           │           │
    │        │        │goToHelmMode          │           │
    │        │        │(TOWAYPT) │           │           │
+```
+
+### AUTOLAND Command Sequence
+
+```
+GCS/User  MOOS  ArduBridge  UAV_Model  UAV_Thread  MAVSDK  ArduPilot
+   │        │        │          │           │         │         │
+   │AUTOLAND│        │          │           │         │         │
+   │ button │        │          │           │         │         │
+   ├───────►│        │          │           │         │         │
+   │        │ARDU_   │          │           │         │         │
+   │        │COMMAND │          │           │         │         │
+   │        │=AUTOLAND          │           │         │         │
+   │        ├───────►│          │           │         │         │
+   │        │OnNewMail          │           │         │         │
+   │        │        │m_do_     │           │         │         │
+   │        │        │autoland= │           │         │         │
+   │        │        │true      │           │         │         │
+   │        │        │          │           │         │         │
+   │        │Iterate │          │           │         │         │
+   │        ├───────►│          │           │         │         │
+   │        │        │autoland_ │           │         │         │
+   │        │        │async()   │           │         │         │
+   │        │        │          │           │         │         │
+   │        │        │pushCommand           │         │         │
+   │        │        │(commandAutoland)     │         │         │
+   │        │        ├─────────►│           │         │         │
+   │        │        │          │ [Enqueue] │         │         │
+   │        │        │          │           │         │         │
+   │        │        │          │  [Wakeup] │         │         │
+   │        │        │          │◄──────────┤         │         │
+   │        │        │          │ Dequeue & │         │         │
+   │        │        │          │ Execute   │         │         │
+   │        │        │          │           │         │         │
+   │        │        │          │commandAutoland()     │         │
+   │        │        │          │           │         │         │
+   │        │        │          │set_flight_mode_     │         │
+   │        │        │          │autoland() │         │         │
+   │        │        │          ├───────────┼────────►│         │
+   │        │        │          │           │         │         │
+   │        │        │          │           │set_flight_mode    │
+   │        │        │          │           │(FlightMode::Land) │
+   │        │        │          │           ├─────────┼────────►│
+   │        │        │          │           │         │         │
+   │        │        │          │           │         │make_command│
+   │        │        │          │           │         │(Land→Autoland)│
+   │        │        │          │           │         │         │
+   │        │        │          │           │         │MAV_CMD_  │
+   │        │        │          │           │         │DO_SET_MODE│
+   │        │        │          │           │         │(mode=26) │
+   │        │        │          │           │         ├─────────►│
+   │        │        │          │           │         │         │
+   │        │        │          │           │         │         │ModeAutoLand│
+   │        │        │          │           │         │         │(enter)    │
+   │        │        │          │           │         │         │           │
+   │        │        │          │           │         │         │Setup landing│
+   │        │        │          │           │         │         │waypoints   │
+   │        │        │          │           │         │         │           │
+   │        │        │          │           │         │◄────────┼───────────┤
+   │        │        │          │           │         │ACK      │           │
+   │        │        │          │           │◄────────┼─────────┤           │
+   │        │        │          │set promise│         │         │           │
+   │        │        │          │result     │         │         │           │
+   │        │        │          │           │         │         │           │
+   │        │Iterate │          │           │         │         │           │
+   │        ├───────►│ poll     │           │         │         │           │
+   │        │        │ future   │           │         │         │           │
+   │        │        │ [result  │           │         │         │           │
+   │        │        │  ready]  │           │         │         │           │
+   │        │        │          │           │         │         │           │
+   │        │        │goToHelmMode          │         │         │           │
+   │        │        │(INACTIVE)│           │         │         │           │
+   │        │        │          │           │         │         │           │
+   │        │        │          │           │         │         │Automatic  │
+   │        │        │          │           │         │         │Landing    │
+   │        │        │          │           │         │         │Sequence   │
    │        │        │          │           │           │
 ```
 
@@ -787,12 +882,47 @@ m_thread_cv.wait(lock, [this]() {
 
 ---
 
+## AUTOLAND Implementation
+
+### Overview
+
+AUTOLAND is an ArduPilot Plane flight mode (mode 26) that provides fully automatic fixed-wing landing. The implementation integrates AUTOLAND into the MAVSDK flight mode system and provides seamless command flow from MOOS to ArduPilot.
+
+### Technical Implementation
+
+**Mode Mapping:**
+- `FlightMode::Land` (MAVSDK) → `ardupilot::PlaneMode::Autoland` (mode 26)
+- This mapping allows reuse of the existing `Land` flight mode enum while supporting ArduPilot's AUTOLAND functionality
+
+**Command Flow:**
+1. User triggers AUTOLAND via pMarineViewer button or pRealm command
+2. `ARDU_COMMAND=AUTOLAND` published to MOOS DB
+3. `ArduBridge::OnNewMail()` receives command and sets `m_do_autoland = true`
+4. `ArduBridge::Iterate()` processes flag and calls `autoland_async()`
+5. `UAV_Model::commandAutoland()` validates and calls MAVSDK Action plugin
+6. `ActionImpl::set_flight_mode_autoland()` converts to `FlightMode::Land`
+7. `SystemImpl::set_flight_mode()` converts `FlightMode::Land` → `PlaneMode::Autoland`
+8. MAVLink `MAV_CMD_DO_SET_MODE` command sent with mode 26
+9. ArduPilot enters `ModeAutoLand` and executes automatic landing
+
+**Key Files:**
+- `src/pArduBridge/ArduBridge.cpp`: Command reception and async processing
+- `src/pArduBridge/UAV_Model.cpp`: Command execution via MAVSDK
+- `MAVSDK/src/mavsdk/plugins/action/action_impl.cpp`: Action plugin interface
+- `MAVSDK/src/mavsdk/core/system_impl.cpp`: Flight mode conversion
+- `MAVSDK/src/mavsdk/core/flight_mode.cpp`: Mode conversion functions
+
+**Requirements:**
+- **ArduPilot Plane master branch** (as of end of January 2026, AUTOLAND is only available in the master branch, not in stable releases like 4.6.x or 4.7.x)
+- Takeoff direction must be captured (automatic in supported takeoff modes)
+- UAV must be in air
+- Not available for QuadPlanes
+
 ## Future Enhancements
 
 Potential areas for evolution:
 
-1. **Extended Functionality**: Adding compatibility with autoland and other advanced ArduPilot features
-2. **Platform Compatibility**: Support for VTOL aircraft and other ArduPilot variants
+1. **Platform Compatibility**: Support for VTOL aircraft and other ArduPilot variants
 3. **Enhanced Telemetry**: Additional sensor streams (camera, rangefinder)
 4. **Mission Planning**: Dynamic mission upload and modification
 5. **Geofencing**: Safety boundaries and return-to-safe-area

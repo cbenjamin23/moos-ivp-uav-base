@@ -30,6 +30,7 @@ ArduBridge::ArduBridge()
       m_do_change_altitude_pair{std::make_pair(false, 0)},
       m_do_reset_speed{false},
       m_do_return_to_launch{false},
+      m_do_autoland{false},
       m_do_loiter_pair{false, "default"},
       m_do_arm{false},
       m_do_helm_survey{false},
@@ -252,6 +253,11 @@ bool ArduBridge::OnNewMail(MOOSMSG_LIST &NewMail)
       else if (command == "DO_VORONOI")
       {
         m_do_helm_voronoi = true;
+        handled = true;
+      }
+      else if (command == "AUTOLAND")
+      {
+        m_do_autoland = true;
         handled = true;
       }
 
@@ -495,6 +501,42 @@ bool ArduBridge::Iterate()
       running_rtl = false;
       m_do_return_to_launch = false;
       m_rtl_promfut.reset();
+    }
+  }
+
+  //////////////////////////////////////////////////////////////
+  //////  Autoland          - Async w/polling
+  //////////////////////////////////////////////////////////////
+  if (m_do_autoland)
+  {
+    Logger::info("Iterate: Autoland");
+    static bool running_autoland = false;
+    if (!running_autoland)
+    {
+      autoland_async();
+      running_autoland = true;
+    }
+
+    auto result = future_poll_result(m_autoland_promfut.fut);
+    if (result.has_value())
+    {
+      Logger::info("Iterate: Autoland command sent with result: " + result.value().message + " success: " + boolToString(result.value().success));
+
+      auto goToMode = AutopilotHelmMode::HELM_INACTIVE;
+      if (result.value().success)
+      {
+        goToMode = AutopilotHelmMode::HELM_INACTIVE;
+      }
+      else
+      {
+        m_warning_system_ptr->queue_monitorWarningForXseconds("FAIL: " + result.value().message, WARNING_DURATION);
+      }
+
+      goToHelmMode(goToMode);
+
+      running_autoland = false;
+      m_do_autoland = false;
+      m_autoland_promfut.reset();
     }
   }
 
@@ -819,6 +861,7 @@ void ArduBridge::registerVariables()
   Register("FLY_WAYPOINT", 0);
   Register("DO_TAKEOFF", 0);
   Register("RETURN_TO_LAUNCH", 0);
+  Register("AUTOLAND", 0);
   Register("LOITER", 0);
   Register("SURVEY", 0);
   Register("RESET_SPEED_MIN", 0);
@@ -1372,6 +1415,20 @@ void ArduBridge::rtl_async()
       m_rtl_promfut.prom.set_value(ResultPair{true, ""}); });
 
   return;
+}
+
+void ArduBridge::autoland_async()
+{
+  m_uav_model.pushCommand([this](UAV_Model &uav)
+                          {
+      // Send autoland command directly to the UAV
+      bool success = uav.commandAutoland();
+      
+      m_autoland_promfut.prom.set_value(
+          ResultPair{success, success ? "" : "Failed sending AUTOLAND command"}
+      );
+      
+      return; });
 }
 
 bool ArduBridge::tryloiterAtPos(const XYPoint &loiter_coord, bool holdCurrentAltitude)

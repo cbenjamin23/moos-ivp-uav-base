@@ -99,7 +99,7 @@ Behavior = BHV_Waypoint
   // condition  = AUTOPILOT_MODE==HELM_SURVEYING
   condition  = BHV_MODE==SURVEY
   perpetual  = true
-  endflag    = ARDU_COMMAND=RETURN_TO_LAUNCH
+  endflag    = ARDU_COMMAND=AUTOLAND
 
           repeat = 0
            speed = $(SPEED)
@@ -206,7 +206,7 @@ Behavior = BHV_Waypoint
   // condition  = AUTOPILOT_MODE==HELM_TOWAYPT
   condition  = BHV_MODE==TOWAYPT
   perpetual  = true
-  endflag    = ARDU_COMMAND=LOITER
+  endflag    = ARDU_COMMAND=AUTOLAND
 
            speed = $(SPEED)
   capture_radius = 20 
@@ -228,7 +228,7 @@ Behavior = BHV_Waypoint
   // condition  = AUTOPILOT_MODE==HELM_RETURNING
   condition  = BHV_MODE==RETURN
   perpetual  = true
-  endflag    = ARDU_COMMAND=LOITER
+  endflag    = ARDU_COMMAND=AUTOLAND
 
 
            speed = $(SPEED)
@@ -335,7 +335,7 @@ Behavior = BHV_Voronoi_uav
   stale_poly_thresh = 10
 
   stale_searchcenter_thresh = 10
-       setpt_method = $(VORONOI_SETPT_METHOD)
+       setpt_method = gridsearch // "gridsearch", "center" or "centroid"
 
     capture_radius = $(CAPTURE_RADIUS) 
  
