@@ -105,6 +105,7 @@ pArduBridge subscribes to the following MOOS variables to receive commands:
 | `DO_TAKEOFF` | string | Command to initiate takeoff sequence |
 | `ARM_UAV` | string | Arm/disarm the UAV (`on` or `off`) |
 | `RETURN_TO_LAUNCH` | string | Command UAV to return to launch location |
+| `AUTOLAND` | string | Command UAV to enter AUTOLAND mode for automatic landing (ArduPilot Plane mode 26). **Requires ArduPilot Plane master branch** (not available in stable releases as of end of January 2026). |
 | `LOITER` | string | Command UAV to loiter at position (`here` or `default`) |
 | `CHANGE_SPEED` | double | Increment/decrement speed by value |
 | `CHANGE_COURSE` | double | Increment/decrement course by value (degrees) |
@@ -122,7 +123,7 @@ pArduBridge subscribes to the following MOOS variables to receive commands:
 #### Ground Control Station Commands
 | Variable | Type | Description |
 |----------|------|-------------|
-| `ARDU_COMMAND` | string | Direct commands from ground control station |
+| `ARDU_COMMAND` | string | Direct commands from ground control station. Supported values: `DO_TAKEOFF`, `RETURN_TO_LAUNCH`, `AUTOLAND`, `LOITER`, `FLY_WAYPOINT`, `SURVEY`, `DO_VORONOI`, `RESET_SPEED_MIN`, `VIZ_HOME` |
 
 #### Survey Missions
 | Variable | Type | Description |
@@ -235,6 +236,20 @@ Notify("LOITER", "here");
 ```
 Notify("RETURN_TO_LAUNCH", "true");
 ```
+
+#### Automatic Landing (AUTOLAND)
+```
+Notify("ARDU_COMMAND", "AUTOLAND");
+// Or via pMarineViewer button or pRealm command
+```
+
+**Note:** AUTOLAND requires:
+- UAV must be in air
+- Takeoff direction must have been captured (automatic in supported takeoff modes)
+- **ArduPilot Plane master branch** (as of end of January 2026, AUTOLAND is only available in the master branch, not in stable releases)
+- Not available for QuadPlanes
+
+AUTOLAND automatically creates landing approach waypoints based on the takeoff direction and executes a fully automatic landing sequence.
 
 #### Adjusting Speed
 ```
