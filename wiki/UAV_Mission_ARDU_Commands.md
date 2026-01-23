@@ -33,7 +33,6 @@ ARDU commands are special MOOS variables that control UAV behavior during missio
 |---------|-------------|--------|
 | `DO_TAKEOFF` | Initiate takeoff sequence | UAV arms and takes off to mission altitude (currently only works in simulation) |
 | `RETURN_TO_LAUNCH` | Return to home position | UAV flies back to starting location and lands |
-| `AUTOLAND` | Automatic landing | UAV enters AUTOLAND mode (ArduPilot mode 26) and performs automatic landing based on takeoff direction. Creates landing approach waypoints automatically. **Requires ArduPilot Plane master branch** (not available in stable releases as of end of January 2026). |
 | `LOITER` | Hold current position | UAV enters loiter mode at current location |
 | `FLY_WAYPOINT` | Fly to specified waypoint | UAV navigates to a target waypoint or resumes waypoint mission |
 
@@ -74,8 +73,6 @@ The `AUTOPILOT_MODE` variable indicates the current flight mode:
 - `HELM_RETURNING` - Returning to launch
 - `HELM_SURVEYING` - Executing survey pattern
 - `HELM_LOITERING` - Holding position
-
-**Note:** When AUTOLAND is active, the autopilot is in ArduPilot's AUTOLAND mode (mode 26), but the helm state remains `HELM_INACTIVE` since the landing is handled entirely by ArduPilot.
 
 ---
 
@@ -123,8 +120,7 @@ ProcessConfig = pMarineViewer
   button_4 = SURVEY_ALL  # ARDU_COMMAND_ALL=SURVEY  
   button_5 = LOITER_ALL  # ARDU_COMMAND_ALL=LOITER
   button_6 = TOWYP_ALL   # ARDU_COMMAND_ALL=FLY_WAYPOINT
-  button_7 = AUTOLAND_ALL # ARDU_COMMAND_ALL=AUTOLAND
-  button_8 = DO_VORONOI_ALL # ARDU_COMMAND_ALL=DO_VORONOI
+  button_7 = DO_VORONOI_ALL # ARDU_COMMAND_ALL=DO_VORONOI
 }
 ```
 
@@ -145,7 +141,6 @@ ProcessConfig = pRealm
   cmd = label=TOWAYPOINT, var=ARDU_COMMAND, sval=FLY_WAYPOINT, receivers=all:$(VNAMES)
   cmd = label=RTL, var=ARDU_COMMAND, sval=RETURN_TO_LAUNCH, receivers=all:$(VNAMES)
   cmd = label=LOITER/HOLD, var=ARDU_COMMAND, sval=LOITER, receivers=all:$(VNAMES)
-  cmd = label=AUTOLAND, var=ARDU_COMMAND, sval=AUTOLAND, receivers=all:$(VNAMES)
   cmd = label=SPEED_TO_MIN, var=ARDU_COMMAND, sval=RESET_SPEED_MIN, receivers=all:$(VNAMES)
   cmd = label=DO_VORONOI, var=ARDU_COMMAND, sval=DO_VORONOI, receivers=all:$(VNAMES)
   cmd = label=SURVEY, var=ARDU_COMMAND, sval=SURVEY, receivers=all:$(VNAMES)
@@ -231,19 +226,6 @@ Behavior = BHV_Waypoint
   radius    = 8.0
   points    = $(START_POS)
 }
-
-//-------- Behavior: Survey Mission (with AUTOLAND on completion) --------
-Behavior = BHV_Waypoint
-{
-  name      = waypt_survey
-  pwt       = 100
-  condition = BHV_MODE = SURVEY
-  endflag   = ARDU_COMMAND=AUTOLAND  // Trigger AUTOLAND when survey completes
-  
-  speed     = 12
-  radius    = 8.0
-  points    = $(SURVEY_POINTS)
-}
 ```
 
 ---
@@ -312,7 +294,7 @@ Behavior = BHV_Waypoint
 {
   name      = waypt_return
   condition = BHV_MODE = RETURN
-  endflag   = ARDU_COMMAND=AUTOLAND  // Use AUTOLAND instead of RTL for automatic landing
+  endflag   = ARDU_COMMAND=RETURN_TO_LAUNCH
   
   speed     = 12
   radius    = 8.0
@@ -325,14 +307,12 @@ Behavior = BHV_Waypoint
 ```moos
 ProcessConfig = pMissionOperator
 {
-  // Automatically trigger AUTOLAND at mission end
-  finish_flag = ARDU_COMMAND_ALL=AUTOLAND
+  // Automatically trigger RTL at mission end
+  finish_flag = ARDU_COMMAND_ALL=RETURN_TO_LAUNCH
   finish_flag = DEPLOY_ALL=false
-  finish_flag = RETURN_ALL=false
+  finish_flag = RETURN_ALL=true
 }
 ```
-
-**Note:** AUTOLAND is now the default landing mode for mission completion. It provides automatic landing based on takeoff direction, eliminating the need for pre-programmed landing sequences.
 
 ---
 
@@ -364,126 +344,17 @@ ProcessConfig = pMissionOperator
 │                                  │                  │
 │                                  ▼                  │
 │                          Activate Behaviors         │
-│                          (endflag triggers)         │
 │                                  │                  │
 │                                  ▼                  │
 │                          Output ARDU_COMMAND         │
-│                          (e.g., ARDU_COMMAND=AUTOLAND)│
 │                                  │                  │
 │                                  ▼                  │
 │                          pArduBridge                │
-│                          (ArduBridge::OnNewMail)    │
 │                                  │                  │
 │                                  ▼                  │
-│                          UAV_Model                  │
-│                          (commandAutoland)           │
-│                                  │                  │
-│                                  ▼                  │
-│                          MAVSDK Action Plugin        │
-│                          (set_flight_mode_autoland) │
-│                                  │                  │
-│                                  ▼                  │
-│                          SystemImpl                 │
-│                          (FlightMode::Land →        │
-│                           PlaneMode::Autoland)      │
-│                                  │                  │
-│                                  ▼                  │
-│                          MAVLink Command            │
-│                          (MAV_CMD_DO_SET_MODE,       │
-│                           mode=26)                   │
-│                                  │                  │
-│                                  ▼                  │
-│                          ArduPilot                  │
-│                          (ModeAutoLand execution)   │
+│                          ArduPilot (Flight Control) │
 └─────────────────────────────────────────────────────┘
 ```
-
-## AUTOLAND Command Flow
-
-The AUTOLAND command follows this specific flow:
-
-1. **User Interface**: Button click in pMarineViewer or pRealm command
-   - Publishes `ARDU_COMMAND_ALL=AUTOLAND` to MOOS DB
-
-2. **Command Reception**: ArduBridge receives command
-   - `ArduBridge::OnNewMail()` processes `ARDU_COMMAND=AUTOLAND`
-   - Sets flag `m_do_autoland = true`
-
-3. **Command Processing**: ArduBridge iterate loop
-   - `ArduBridge::Iterate()` checks `m_do_autoland` flag
-   - Calls `autoland_async()` which queues command in UAV_Model thread
-
-4. **UAV Model Execution**: Command sent to ArduPilot
-   - `UAV_Model::commandAutoland()` validates authority and in-air status
-   - Calls `m_action_ptr->set_flight_mode_autoland()`
-
-5. **MAVSDK Action Plugin**: Mode conversion
-   - `ActionImpl::set_flight_mode_autoland()` converts to `FlightMode::Land`
-   - Calls `SystemImpl::set_flight_mode(FlightMode::Land)`
-
-6. **System Implementation**: ArduPilot mode mapping
-   - `SystemImpl::make_command_ardupilot_mode()` converts `FlightMode::Land` → `ardupilot::PlaneMode::Autoland` (mode 26)
-   - Constructs MAVLink `MAV_CMD_DO_SET_MODE` command with param2 = 26
-
-7. **ArduPilot Execution**: Automatic landing
-   - ArduPilot receives mode change command
-   - Enters `ModeAutoLand` (mode 26)
-   - Sets up landing waypoints based on captured takeoff direction
-   - Executes automatic landing sequence
-
-### AUTOLAND Requirements
-
-- **Takeoff Direction**: AUTOLAND requires that takeoff direction was captured. This happens automatically when taking off in:
-  - TAKEOFF, FBWA, MANUAL, TRAINING, ACRO, STABILIZE modes
-  - During NAV_TAKEOFF in AUTO mode
-- **In Air**: UAV must be flying (not on ground)
-- **ArduPilot Version**: **Requires ArduPilot Plane master branch** (as of end of January 2026, AUTOLAND is only available in the master branch, not in stable releases like 4.6.x or 4.7.x)
-- **Not for QuadPlanes**: AUTOLAND is not available for QuadPlanes
-
----
-
-## Technical Details: AUTOLAND Implementation
-
-### How AUTOLAND Works
-
-AUTOLAND is implemented using the MAVSDK flight mode system with automatic mode conversion:
-
-1. **Command Reception**: `ARDU_COMMAND=AUTOLAND` is received by `ArduBridge::OnNewMail()` (line 258 in `ArduBridge.cpp`)
-
-2. **Async Processing**: `ArduBridge::Iterate()` processes the command asynchronously (line 510), calling `autoland_async()` (line 1420)
-
-3. **UAV Model Execution**: `UAV_Model::commandAutoland()` (line 491) validates the command and calls the MAVSDK Action plugin
-
-4. **MAVSDK Action Plugin**: `ActionImpl::set_flight_mode_autoland()` (line 568 in `action_impl.cpp`) converts to `FlightMode::Land`
-
-5. **Mode Conversion**: `SystemImpl::flight_mode_to_ardupilot_plane_mode()` (line 928 in `system_impl.cpp`) maps `FlightMode::Land` → `ardupilot::PlaneMode::Autoland` (mode 26)
-
-6. **MAVLink Command**: `MAV_CMD_DO_SET_MODE` is constructed with:
-   - `param1` = mode flags (CUSTOM_MODE_ENABLED | SAFETY_ARMED if armed)
-   - `param2` = 26 (AUTOLAND mode number)
-
-7. **ArduPilot Execution**: ArduPilot receives the command and enters `ModeAutoLand`, which:
-   - Validates takeoff direction is captured
-   - Creates landing approach waypoints based on takeoff direction
-   - Executes automatic landing sequence
-
-### Mode Mapping
-
-The implementation uses a smart mapping strategy:
-- **MAVSDK Level**: `FlightMode::Land` (generic landing mode)
-- **ArduPilot Level**: `ardupilot::PlaneMode::Autoland` (mode 26)
-
-This allows the same `Land` flight mode to work for:
-- Multicopters: Uses standard Land mode
-- Fixed-wing (Plane): Uses AUTOLAND mode (26)
-
-### Key Implementation Files
-
-- **Command Handling**: `src/pArduBridge/ArduBridge.cpp` (lines 258-262, 510-541, 1420-1432)
-- **UAV Interface**: `src/pArduBridge/UAV_Model.cpp` (lines 491-522)
-- **MAVSDK Action**: `MAVSDK/src/mavsdk/plugins/action/action_impl.cpp` (lines 568-575)
-- **Mode Conversion**: `MAVSDK/src/mavsdk/core/system_impl.cpp` (lines 754-765, 793-865, 928-955)
-- **Mode Definitions**: `MAVSDK/src/mavsdk/core/ardupilot_custom_mode.h` (line 79: `Autoland = 26`)
 
 ---
 
@@ -492,4 +363,3 @@ This allows the same `Land` flight mode to work for:
 - [UAV Mission Configuration Guide](UAV_Mission_Configuration.md) - YAML configuration details
 - [Launch Scripts Guide](UAV_Mission_Launch_Scripts.md) - Launch script usage
 - [System Launch Guide](System_Launch_Guide.md) - Complete launch procedures
-- [pArduBridge Architecture](pArduBridge/ARCHITECTURE.md) - Detailed architecture and command flow

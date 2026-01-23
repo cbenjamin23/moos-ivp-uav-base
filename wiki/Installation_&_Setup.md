@@ -161,8 +161,7 @@ Install guide: https://ardupilot.org/dev/docs/building-setup-linux.html#building
 
 - Run `git submodule update --init --recursive`
 - Run `install-prereqs-ubuntu.sh` before switching branch
-- **For AUTOLAND support**: CHECKOUT branch: `master` (as of end of January 2026, AUTOLAND is only available in master branch)
-- **For stable release**: CHECKOUT branch: `Plane-4.6.3` (AUTOLAND not available)
+- CHECKOUT branch: `Plane-4.6.3`
 - More info: ArduPilot & MavProx (link in repo)
 
 ### ardupilot_gazebo (Gazebo Sim / Ionic)

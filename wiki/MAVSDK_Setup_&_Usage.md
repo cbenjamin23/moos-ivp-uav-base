@@ -22,7 +22,7 @@ Clone from fork of official MAVSDK
 	git submodule update --init --recursive
 
 
-**CHECKOUT** the branch `mavsdk-ardupilot`
+**CHECKOUT** the version `v2.12.6-Ardupilot`
 **NOTE:** MAVSDK only supports Mavlink 2 which is backwards compatible with Mavlink 1
 
 

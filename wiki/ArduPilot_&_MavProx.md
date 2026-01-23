@@ -7,8 +7,6 @@
 
 This project was tested with **ArduPilot Plane version 4.6.3**, but should be forward-compatible. The specific parameter list for Plane-4.6.3 can be found [here](https://ardupilot.org/plane/docs/parameters-Plane-stable-V4.6.3.html) (web) or [here](https://autotest.ardupilot.org/Parameters/ArduPlane/apm.pdef.xml) (xml).
 
-**Important Note for AUTOLAND:** The AUTOLAND feature requires the **ArduPilot Plane master branch** (as of end of January 2026). AUTOLAND is not available in stable releases like 4.6.x or 4.7.x. If you need AUTOLAND functionality, you must use the master branch of ArduPilot.
-
 **Important Note:** Some parameter names can and have changed from version to version. Before using a different plane version, verify that the following required parameters are available and have the same names:
 
 - `AIRSPEED_CRUISE`

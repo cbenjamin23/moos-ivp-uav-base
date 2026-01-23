@@ -488,40 +488,6 @@ bool UAV_Model::commandReturnToLaunchAsync() const
   return true;
 }
 
-bool UAV_Model::commandAutoland() const
-{
-  if (!haveAutorythyToChangeMode())
-  {
-    std::stringstream ss;
-    ss << "Cannot change mode. Do not have autorithy. Flight mode in " << mts_flight_mode;
-    m_warning_system_ptr->queue_monitorWarningForXseconds(ss.str(), WARNING_DURATION);
-    return false;
-  }
-
-  if (!m_in_air)
-  {
-    m_warning_system_ptr->queue_monitorWarningForXseconds("UAV is not in air! Cannot send AUTOLAND command", WARNING_DURATION);
-    return false;
-  }
-
-  // AUTOLAND mode for ArduPilot Plane (mode 26)
-  // Use the MAVSDK Action plugin interface which handles mode conversion automatically
-  mavsdk::Action::Result result = m_action_ptr->set_flight_mode_autoland();
-
-  if (result != mavsdk::Action::Result::Success)
-  {
-    std::stringstream ss;
-    ss << "AUTOLAND command error: " << result;
-    m_warning_system_ptr->queue_monitorWarningForXseconds(ss.str(), WARNING_DURATION);
-    return false;
-  }
-
-  MOOSTraceFromCallback("AUTOLAND command succeeded\n");
-  reportEventFromCallback("AUTOLAND command sent to UAV");
-
-  return true;
-}
-
 bool UAV_Model::commandLoiterAtPos(XYPoint pos, bool holdCurrentAltitude)
 {
 

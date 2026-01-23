@@ -361,9 +361,7 @@ ProcessConfig = pMarineViewer
 
     button_6  = TOWYP_ALL # ARDU_COMMAND_ALL=FLY_WAYPOINT
 
-    button_7 = AUTOLAND_ALL  # ARDU_COMMAND_ALL=AUTOLAND
-
-    // button_8 = PARK_HELM_ALL # MOOS_MANUAL_OVERRIDE_ALL=true
+    // button_7 = PARK_HELM_ALL # MOOS_MANUAL_OVERRIDE_ALL=true
 
 
     
@@ -388,7 +386,6 @@ ProcessConfig = pMarineViewer
   cmd = label=TOWAYPOINT, var=ARDU_COMMAND, sval=FLY_WAYPOINT, receivers=all:$(VNAMES)
   cmd = label=RTL, var=ARDU_COMMAND, sval=RETURN_TO_LAUNCH, receivers=all:$(VNAMES)
   cmd = label=LOITER/HOLD, var=ARDU_COMMAND, sval=LOITER, receivers=all:$(VNAMES)
-  cmd = label=AUTOLAND, var=ARDU_COMMAND, sval=AUTOLAND, receivers=all:$(VNAMES)
   cmd = label=SPEED_TO_MIN, var=ARDU_COMMAND, sval=RESET_SPEED_MIN, receivers=all:$(VNAMES)
   cmd = label=SURVEY, var=ARDU_COMMAND, sval=SURVEY, receivers=all:$(VNAMES)
 

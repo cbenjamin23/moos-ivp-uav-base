@@ -74,7 +74,6 @@ public:
   // void commandGoToLocation_async(const mavsdk::Telemetry::Position &position, std::function<void(bool)> callback = nullptr);
 
   bool commandReturnToLaunchAsync() const;
-  bool commandAutoland() const;
   bool commandLoiterAtPos(XYPoint pos, bool holdCurrentAltitude = true);
   bool commandAndSetCourse(double heading, bool isAllowed = true); // command COG if in guided mode
 

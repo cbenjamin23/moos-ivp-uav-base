@@ -2,4 +2,4 @@
 	path = MAVSDK
 	url = https://github.com/Scarter668/MAVSDK.git
 	# url = git@github.com:Scarter668/MAVSDK.git
-	branch = mavsdk-ardupilot
+	branch = v2.12.6-Ardupilot
