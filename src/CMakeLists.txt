@@ -1,8 +1,7 @@
 ##############################################################################
-# FILE:        moos-ivp-extend/src/CMakeLists.txt
-# DATE:        2010/09/07
-#              2020/05/09 minor mods
-# DESCRIPTION: CMakeLists.txt file for the moos-ivp-extend source directory
+# FILE:        moos-ivp-uav-base/src/CMakeLists.txt
+# DATE:        Jan 31st, 2026
+# DESCRIPTION: CMakeLists.txt file for the moos-ivp-uav-base source directory
 ##############################################################################
 
 
@@ -34,6 +33,10 @@ SET(ROBOT_APPS)
 
 IF( EXISTS ${CMAKE_SOURCE_DIR}/src/lib_behaviors )
   LIST(APPEND ROBOT_APPS lib_behaviors)
+ENDIF()
+
+IF( EXISTS ${CMAKE_SOURCE_DIR}/src/lib_bhv_task_refuel_replace )
+  LIST(APPEND ROBOT_APPS lib_bhv_task_refuel_replace)
 ENDIF()
 
 IF( EXISTS ${CMAKE_SOURCE_DIR}/src/pRefuelReplace )

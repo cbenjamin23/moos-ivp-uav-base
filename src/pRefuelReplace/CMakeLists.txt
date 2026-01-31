@@ -1,6 +1,6 @@
 #--------------------------------------------------------
-# The CMakeLists.txt for:                       pRefuelReplace
-# Author(s):                              
+# The CMakeLists.txt for:                  pRefuelReplace
+# Author(s):                             Charles Benjamin
 #--------------------------------------------------------
 
 SET(SRC
