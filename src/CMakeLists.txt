@@ -36,6 +36,14 @@ IF( EXISTS ${CMAKE_SOURCE_DIR}/src/lib_behaviors )
   LIST(APPEND ROBOT_APPS lib_behaviors)
 ENDIF()
 
+IF( EXISTS ${CMAKE_SOURCE_DIR}/src/pRefuelReplace )
+  LIST(APPEND ROBOT_APPS pRefuelReplace)
+ENDIF()
+
+IF( EXISTS ${CMAKE_SOURCE_DIR}/src/pOdometry )
+  LIST(APPEND ROBOT_APPS pOdometry)
+ENDIF()
+
 IF( EXISTS ${CMAKE_SOURCE_DIR}/src/pArduBridge )
   LIST(APPEND ROBOT_APPS pArduBridge)
 ENDIF()

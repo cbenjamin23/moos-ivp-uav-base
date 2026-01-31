@@ -26,6 +26,7 @@ Processconfig = ANTLER
   Run = uMemWatch      @ NewConsole = false
   Run = pRealm         @ NewConsole = false
   Run = uSimMarineV22  @ NewConsole = false
+	Run = pOdometry      @ NewConsole = false
 
 #include plugs.moos <uSimMarineV22>
 #include plugs.moos <pShare>
@@ -188,3 +189,11 @@ ProcessConfig = pLogger
   // WildCardOmitPattern = PHI_HOST*, NODE_REPORT_LOCAL
 }
 	
+//--------------------------------------------------
+// pLogger Config Block
+
+ProcessConfig = pOdometry
+{
+	AppTick 	= 5
+  CommsTick = 5
+}
