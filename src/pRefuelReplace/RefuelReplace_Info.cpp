@@ -20,10 +20,9 @@ void showSynopsis()
 {
   blk("SYNOPSIS:                                                       ");
   blk("------------------------------------                            ");
-  blk("  The pRefuelReplace application is used for               ");
-  blk("                                                                ");
-  blk("                                                                ");
-  blk("                                                                ");
+  blk("  The pRefuelReplace application monitors vehicle odometry      ");
+  blk("  and posts a refuel-replacement MISSION_TASK when the          ");
+  blk("  traveled distance exceeds a configured threshold.            ");
   blk("                                                                ");
 }
 

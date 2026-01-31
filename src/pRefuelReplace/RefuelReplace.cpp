@@ -2,47 +2,51 @@
 /*    NAME: Charlie Benjamin                                */
 /*    ORGN: MIT, Cambridge MA                               */
 /*    FILE: RefuelReplace.cpp                               */
-/*    DATE: January 29th, 2026                              */
+/*    DATE: January 31st, 2026                              */
 /************************************************************/
 
-#include <iterator>
+#include "RefuelReplace.h"
+
+#include <sstream>
 #include "MBUtils.h"
 #include "ACTable.h"
-#include "RefuelReplace.h"
-#include <math.h>
-#include <iostream>
 
 using namespace std;
+
+// For improvment:
+// 1. The x and y waypoint pulished to MISSION_TASK should probably be
+// the loiter point not the current x and y,
+// 2. Return to home logic when the next plane arrives. Handoff logic
 
 //---------------------------------------------------------
 // Constructor()
 
 RefuelReplace::RefuelReplace()
 {
-  // NOTE: These are member variables (declared in Odometry.h).
-  // Initialize them here (do NOT redeclare as locals).
-  m_first_reading        = true;
-  m_current_x            = 0.0;
-  m_current_y            = 0.0;
-  m_previous_x           = 0.0;
-  m_previous_y           = 0.0;
-  m_total_distance       = 0.0;
-  m_lastMailTime         = 0.0;
-  m_warning_issued       = false;
-  m_staleness_threshold  = 0.0;
+  // Inputs
+  m_nav_x = 0.0;
+  m_nav_y = 0.0;
+  m_odometry_dist = 0.0;
 
-  // Distance (meters) at which we trigger a fuel-replacement task.
-  // Disabled if <= 0.
-  m_replacement_fuel_level = 0.0;
-  m_task_refuel_replace    = false;
+  m_got_nav_x = false;
+  m_got_nav_y = false;
+  m_got_odom  = false;
+
+  // Config
+  m_refuel_threshold = 0.0;   // meters; disabled if <= 0
+
+  // State
+  m_task_sent = false;
+  m_task_id_counter = 0;
+
+  // Task Helper
+  m_host_community = "vehicle";
 }
 
 //---------------------------------------------------------
 // Destructor
 
-RefuelReplace::~RefuelReplace()
-{
-}
+RefuelReplace::~RefuelReplace() {}
 
 //---------------------------------------------------------
 // Procedure: OnNewMail()
@@ -51,46 +55,27 @@ bool RefuelReplace::OnNewMail(MOOSMSG_LIST &NewMail)
 {
   AppCastingMOOSApp::OnNewMail(NewMail);
 
-  MOOSMSG_LIST::iterator p;
-  for(p=NewMail.begin(); p!=NewMail.end(); p++) {
-    CMOOSMsg &msg = *p;
-    string key    = msg.GetKey();
-    
-    if(key == "NAV_X"){
-      m_current_x = msg.GetDouble();
-      m_lastMailTime = MOOSTime();
-      if(m_first_reading) {
-        m_previous_x = m_current_x;
-      }
+  for (auto &msg : NewMail) {
+    const string &key = msg.GetKey();
+
+    if (key == "NAV_X") {
+      m_nav_x = msg.GetDouble();
+      m_got_nav_x = true;
     }
-    else if(key == "NAV_Y"){
-      m_current_y = msg.GetDouble();
-      m_lastMailTime = MOOSTime();
-      if(m_first_reading) {
-        m_previous_y = m_current_y;
-      }
+    else if (key == "NAV_Y") {
+      m_nav_y = msg.GetDouble();
+      m_got_nav_y = true;
     }
-    else if(key == "STALEVAR") {
-      m_staleness_threshold = msg.GetDouble();
+    else if (key == "ODOMETRY_DIST") {
+      m_odometry_dist = msg.GetDouble();
+      m_got_odom = true;
     }
-    else if(key != "APPCAST_REQ") // handled by AppCastingMOOSApp
+    else if (key != "APPCAST_REQ") {
       reportRunWarning("Unhandled Mail: " + key);
-
-    // Set false after first reading
-    m_first_reading = false;
-
-#if 0 // Keep these around just for template
-    string comm  = msg.GetCommunity();
-    double dval  = msg.GetDouble();
-    string sval  = msg.GetString(); 
-    string msrc  = msg.GetSource();
-    double mtime = msg.GetTime();
-    bool   mdbl  = msg.IsDouble();
-    bool   mstr  = msg.IsString();
-#endif
+    }
   }
-  
-  return(true);
+
+  return true;
 }
 
 //---------------------------------------------------------
@@ -98,62 +83,62 @@ bool RefuelReplace::OnNewMail(MOOSMSG_LIST &NewMail)
 
 bool RefuelReplace::OnConnectToServer()
 {
-   registerVariables();
-   return(true);
+  registerVariables();
+  return true;
 }
 
 //---------------------------------------------------------
 // Procedure: Iterate()
-//            happens AppTick times per second
 
 bool RefuelReplace::Iterate()
 {
   AppCastingMOOSApp::Iterate();
-  // --- Integrate distance ---
-  const double added_distance = hypot(m_current_x - m_previous_x,
-                                      m_current_y - m_previous_y);
-  m_total_distance += added_distance;
 
-  //----------------------------------------------------------
-  // --- Staleness watchdog ---
-  double timeSinceLastMail = 0.0;
-  if(m_lastMailTime > 0)
-    timeSinceLastMail = MOOSTime() - m_lastMailTime;
+  // Only act once we have the needed inputs at least once.
+  const bool have_nav  = (m_got_nav_x && m_got_nav_y);
+  const bool have_odom = m_got_odom;
 
-  // If staleness threshold is <= 0, treat the watchdog as disabled.
-  if(m_staleness_threshold > 0.0 && timeSinceLastMail > m_staleness_threshold) {
-    if(!m_warning_issued) {
-      reportRunWarning("No NAV_X/NAV_Y mail for > " + doubleToStringX(m_staleness_threshold, 2) + "s");
-      m_warning_issued = true;
-    }
-  } else if(m_warning_issued) {
-    retractRunWarning("No NAV_X/NAV_Y mail for > " + doubleToStringX(m_staleness_threshold, 2) + "s");
-    m_warning_issued = false;
+  // Trigger once when odometry reaches threshold.
+  if (!m_task_sent &&
+      (m_refuel_threshold > 0.0) &&
+      have_nav && have_odom &&
+      (m_odometry_dist >= m_refuel_threshold))
+  {
+    // Build an incrementing id like rr0, rr1, ...
+    string id = m_host_community + "_rr" + intToString(m_task_id_counter++);
+
+    // Use current time as utc (MOOSTime is epoch seconds in typical MOOS-IvP builds)
+    double utc = MOOSTime();
+
+    // Simple unique hash
+    long utc_int  = (long)(MOOSTime() * 100); // centiseconds
+    long utc_tail = utc_int % 100000; // wraps every 16 minutes
+    string hash = "rr_" + id + "_" + intToString((int)utc_tail);
+
+    // Build MISSION_TASK string (modeled after TaskManager docs)
+    // type, id, utc, hash, waypt_x, waypt_y
+    ostringstream os;
+    os << "type=refuelreplace,"
+       << "id=" << id << ","
+       << "utc=" << doubleToStringX(utc, 2) << ","
+       << "hash=" << hash << ","
+       << "waypt_x=" << doubleToStringX(m_nav_x, 2) << ","
+       << "waypt_y=" << doubleToStringX(m_nav_y, 2);
+
+    Notify("MISSION_TASK", os.str());
+
+    // Optional: also publish a simple boolean flag for debugging/compatibility
+    Notify("TASK_REFUEL_REPLACE", "true");
+
+    m_task_sent = true;
   }
-  //----------------------------------------------------------
-
-  // --- Trigger TASK_REFUEL_REPLACE by distance ---
-  // replacement_fuel_level is configured in OnStartUp.
-  if(!m_task_refuel_replace && (m_replacement_fuel_level > 0.0) &&
-     (m_total_distance >= m_replacement_fuel_level)) {
-    m_task_refuel_replace = true;
-  }
-
-  // --- Publish outputs ---
-  m_previous_x = m_current_x;
-  m_previous_y = m_current_y;
-  Notify("ODOMETRY_DIST", m_total_distance);
-
-  // Publish as a boolean-like MOOS variable: "true" / "false".
-  Notify("TASK_REFUEL_REPLACE", m_task_refuel_replace ? "true" : "false");
-
+ 
   AppCastingMOOSApp::PostReport();
-  return(true);
+  return true;
 }
 
 //---------------------------------------------------------
 // Procedure: OnStartUp()
-//            happens before connection is open
 
 bool RefuelReplace::OnStartUp()
 {
@@ -169,23 +154,24 @@ bool RefuelReplace::OnStartUp()
     string orig  = *p;
     string line  = *p;
     string param = tolower(biteStringX(line, '='));
-    string value = line;
+    string value = stripBlankEnds(line);
 
     bool handled = false;
-    if(param == "stalenessthreshold") {
-      handled = setDoubleOnString(m_staleness_threshold, value);
+
+    // Example:
+    // refuel_threshold = 150.0
+    if (param == "refuel_threshold") {
+      handled = setDoubleOnString(m_refuel_threshold, value);
     }
-    else if(param == "replacement_fuel_level") {
-      handled = setDoubleOnString(m_replacement_fuel_level, value);
+    else if (param == "vname") {
+      handled = setNonWhiteVarOnString(m_host_community, value);
     }
 
     if(!handled)
       reportUnhandledConfigWarning(orig);
-	
-
   }
-  
-  registerVariables();	
+
+  registerVariables();
   return(true);
 }
 
@@ -197,25 +183,28 @@ void RefuelReplace::registerVariables()
   AppCastingMOOSApp::RegisterVariables();
   Register("NAV_X", 0);
   Register("NAV_Y", 0);
-  Register("STALEVAR", 0);
+  Register("ODOMETRY_DIST", 0);
 }
 
-
-//------------------------------------------------------------
+//---------------------------------------------------------
 // Procedure: buildReport()
 
-bool RefuelReplace::buildReport() 
+bool RefuelReplace::buildReport()
 {
-  m_msgs << "============================================" << endl;
-  m_msgs << "dist: "  <<  m_total_distance  << endl;
-  m_msgs << "============================================" << endl;
-  m_msgs << "replacement_fuel_level: " << m_replacement_fuel_level << endl;
-  m_msgs << "TASK_REFUEL_REPLACE: " << (m_task_refuel_replace ? "true" : "false") << endl;
-  m_msgs << "============================================" << endl;
+  ACTable table(2);
+  table << "Field" << "Value";
+  table.addHeaderLines();
 
-  return(true);
+  table << "refuel_threshold"     << doubleToStringX(m_refuel_threshold, 2);
+  table << "ODOMETRY_DIST"        << doubleToStringX(m_odometry_dist, 2);
+  table << "NAV_X"                << doubleToStringX(m_nav_x, 2);
+  table << "NAV_Y"                << doubleToStringX(m_nav_y, 2);
+  table << "got_odom"             << (m_got_odom  ? "true" : "false");
+  table << "got_nav_x"            << (m_got_nav_x ? "true" : "false");
+  table << "got_nav_y"            << (m_got_nav_y ? "true" : "false");
+  table << "task_sent"            << (m_task_sent ? "true" : "false");
+  table << "next_task_id_counter" << intToString(m_task_id_counter);
+
+  m_msgs << table.getFormattedString();
+  return true;
 }
-
-
-
-

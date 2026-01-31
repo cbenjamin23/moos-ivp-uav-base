@@ -1,8 +1,8 @@
 /************************************************************/
-/*    NAME:                                               */
+/*    NAME: Charlie Benjamin                                */
 /*    ORGN: MIT, Cambridge MA                               */
-/*    FILE: RefuelReplace.h                                          */
-/*    DATE: December 29th, 1963                             */
+/*    FILE: RefuelReplace.h                                 */
+/*    DATE: January 31st, 2026                              */
 /************************************************************/
 
 #ifndef RefuelReplace_HEADER
@@ -23,26 +23,29 @@ class RefuelReplace : public AppCastingMOOSApp
    bool OnStartUp();
 
  protected: // Standard AppCastingMOOSApp function to overload 
-   bool buildReport();
+  bool buildReport();
 
  protected:
-   void registerVariables();
+  void registerVariables();
 
  private: // Configuration variables
 
-  bool   m_first_reading;
-  double m_current_x;
-  double m_current_y;
-  double m_previous_x;
-  double m_previous_y;
-  double m_total_distance;
-  double m_lastMailTime;
-  bool   m_warning_issued;
-  double m_staleness_threshold;
-  double m_replacement_fuel_level; // meters; disabled if <= 0
-  bool   m_task_refuel_replace;    // latched true once threshold reached
+  double m_refuel_threshold;     // meters; trigger when odom >= threshold
 
+  std::string m_host_community;
+  
  private: // State variables
+  
+  double m_nav_x;
+  double m_nav_y;
+  double m_odometry_dist;
+
+  bool m_got_nav_x;
+  bool m_got_nav_y;
+  bool m_got_odom;
+
+  bool m_task_sent;              // latch so we only post once
+  int  m_task_id_counter;        // rr0, rr1, rr2, ...
 };
 
 #endif 

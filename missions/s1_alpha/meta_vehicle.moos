@@ -27,6 +27,7 @@ Processconfig = ANTLER
   Run = pRealm         @ NewConsole = false
   Run = uSimMarineV22  @ NewConsole = false
 	Run = pOdometry      @ NewConsole = false
+	Run = pRefuelReplace @ NewConsole = false
 
 #include plugs.moos <uSimMarineV22>
 #include plugs.moos <pShare>
@@ -190,10 +191,22 @@ ProcessConfig = pLogger
 }
 	
 //--------------------------------------------------
-// pLogger Config Block
+// pOdometry Config Block
 
 ProcessConfig = pOdometry
 {
 	AppTick 	= 5
   CommsTick = 5
+}
+
+//--------------------------------------------------
+// pRefuelReplace Config Block
+
+ProcessConfig = pRefuelReplace
+{
+	AppTick 	= 5
+  CommsTick = 5
+
+	refuel_threshold = 100
+	vname = $(VNAME)
 }
