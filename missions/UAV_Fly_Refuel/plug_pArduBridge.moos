@@ -1,0 +1,25 @@
+//------------------------------------------
+// pArduBridge config block
+ProcessConfig = pArduBridge                              
+{                                                               
+  AppTick   = 4                                                 
+  CommsTick = 4                                                 
+
+  ArduPilotURL = $(AP_IP):$(AP_PORT)
+  url_protocol = $(AP_PROTOCOL)
+
+  vname = $(VNAME)
+  vcolor = $(COLOR)
+  prefix = NAV
+
+  cmd_GS = false
+  
+  Logger = true
+
+#ifdef XMODE SIM
+  is_Sim = true
+#else
+  is_Sim = false
+#endif
+
+}

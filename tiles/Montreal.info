@@ -1,0 +1,16 @@
+// Generated with Anaxi Tile Downloader
+lat_north = 45.51789504294005
+lat_south = 45.48324350868221
+lon_east = -73.55621337890625
+lon_west = -73.619384765625
+datum_lat = 45.505556
+datum_lat = -73.586674
+
+tileStartX = 38732
+tileStartY = 46882
+tileEndX = 38754
+tileEndY = 46899
+zoom = 17
+numTiles = 414
+mapFile = Map_17_38732-38754_46882-46899.jpg
+cmd = /Users/charlesbenjamin/.local/bin/anaxi 45.516533 -73.559595 45.486343 -73.617702 17 https://mt.google.com/vt/lyrs=s&x=%xTile%&y=%yTile%&z=%zoom%

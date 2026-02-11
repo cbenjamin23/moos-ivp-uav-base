@@ -181,6 +181,7 @@ vector<VarDataPair> BHV_TaskRefuelReplace::applyFlagMacros(vector<VarDataPair> f
   string rx_str = doubleToStringX(m_region_x, 2);
   string ry_str = doubleToStringX(m_region_y, 2);
 
+  // This is so our .bhv config can use REGION_X and REGION_Y 
   for(unsigned int i=0; i<flags.size(); i++) {
     if(flags[i].is_string()) {
       string sdata = flags[i].get_sdata();

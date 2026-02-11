@@ -1,0 +1,6 @@
+// ignoredRegion = name=ig1, format = format|ellipse; msg|water; x|-200; y|400; major|200; minor|100; pts|15;degs|15; snap_value|1.0
+// ignoredRegion = name=ig2, format = format|radial; msg|building; x|250; y|-350; radius|50; pts|16; snap|0.5
+// ignoredRegion = name=ig3, format = format|oval; msg|oval_office; x|250; y|150; rad|100; len|250; draw_degs|10
+// ignoredRegion = name=ig4, format = format|hexagon; msg|wood_chop; x|400; y|300; rad|60; pts|8; snap_val|1.0
+// ignoredRegion = name=ig5, format = format|rectangle; msg|dessert; cx|-200; cy|-200; width|300; height|400; degs|10
+// ignoredRegion = name=ig6, format = format|rectangle; msg|dessert; cx|400; cy|-300; width|300; height|400; degs|10

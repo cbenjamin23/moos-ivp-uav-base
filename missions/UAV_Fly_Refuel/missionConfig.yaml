@@ -1,0 +1,167 @@
+# Config file for drone simulation and field deployment
+
+# Global simulation parameters
+simulation:
+  useMoosSimPid: true # Use MOOS-IvP Vechicle simulator
+  time_warp: 10
+  number_of_drones: 1
+
+  ardupilot_ip: "0.0.0.0"
+  ardupilot_protocol: "udp"
+  fdm_port_in_default: 9002
+  ardupilot_port_default: 14550
+
+# Field deployment parameters
+field:
+  home_altitude: 106.1
+  ardupilot_ip: "ttySAC0" # serial port
+  ardupilot_port: "115200" # baudrate
+  ardupilot_protocol: "serial"
+  speed:
+    max: 19 # m/s
+    min: 11 # m/s
+
+moos:
+  datum:
+    lat: 63.3975168
+    lon: 10.1435321
+
+  # shoreside / Ground Station parameters
+  shore_ip: 10.0.60.1
+  defaultPorts:
+    DB: 9000
+    PSHARE: 9200
+
+missionParams:
+  log_enabled: false # If true, the mission will be logged to a file
+  mission_duration: 600 # s - The duration of the mission (20min)
+
+  # Region parameters: The region in which the mission is to be conducted
+  # TOOL: https://www.keene.edu/campus/maps/tool/
+  use_moos_region: false
+  region_XY: 100,460:-700,-200:-700,-920:620,-920:700,-222 # Directly in moos format for tesing
+  # region_lonlat: |
+  #   10.1354027, 63.4005544
+  #   10.1202106, 63.3930786
+  #   10.1268196, 63.3852164
+  #   10.1547146, 63.3869467
+  #   10.1695633, 63.3984791
+  #   10.1502943, 63.4049352
+
+  # region_lonlat: |             # Stretched octagon
+  #   10.1187944, 63.3949045
+  #   10.1129580, 63.3923098
+  #   10.1120996, 63.3864276
+  #   10.1217127, 63.3841782
+  #   10.1499081, 63.3840052
+  #   10.1596069, 63.3867929
+  #   10.1602077, 63.3924059
+  #   10.1540709, 63.3949622
+
+  region_lonlat: | # Larger region
+    10.1356602, 63.4006697
+    10.1259184, 63.3971146
+    10.1233006, 63.3922521
+    10.1484919, 63.3894265
+    10.1663446, 63.3964228
+    10.1657867, 63.4000164
+    10.1519251, 63.4015728
+
+  # region_lonlat: |  #  Testing Master_v2.0
+  #   10.1402199, 63.3989018
+  #   10.1470220, 63.4002037
+  #   10.1508093, 63.3985463
+  #   10.1488352, 63.3973356
+  #   10.1472044, 63.3964516
+  #   10.1456809, 63.3956348
+  #   10.1426983, 63.3940492
+  #   10.1379776, 63.3942126
+  #   10.1344800, 63.3968936
+
+  # Waypoint parameters
+  # capture_radius: 50 # m  - The distance from the waypoint that the drone must be within to consider it captured
+  capture_radius: 30 # works better in simulation
+  slip_radius: 75 # m   (both currently modify sim parameters)
+
+  # Grid parameters
+  grid_cell_size: 10 # m - The distance between each waypoint in the grid
+  grid_cell_max_count: 20 # Max number og visit before it is fully coloured
+  grid_cell_decay_time: 5 # s - The decay rate of the grid cell value. Every x seconds it is decreased by 1 // 0 means no decay
+
+  # Collision avoidance parameters
+  encounter_radius: 100 # m - The distance from the drone that the other drone must be within to consider it encountered
+  near_miss_radius: 50 # m - The distance from the drone that the other drone must be within to consider it near missed
+  collision_radius: 10 # m - The distance from the drone that the other drone must be within to consider it collided
+
+drones:
+  - name: "skywalker"
+    color: "orange"
+    start_orientaton_moos: # +x is east, +y is north [m] !!MOOS seems to double the distance,  so 50m east is a distance of 100 in MOOS!!
+      x: 0
+      y: 0
+      hdg: 46 # deg
+    # simulation: # Can be automated away (for now it is hardcoded)
+    #   ardupilot_port: 14550
+    #   fdm_port_in: 9002
+
+  - name: "skyfollower"
+    color: "hotpink"
+    start_orientaton_moos: # +x is east, +y is north [m]
+      x: -100
+      y: -5
+      hdg: 36 # deg
+    # simulation:
+    #   ardupilot_port: 14560
+    #   fdm_port_in: 9012
+
+  - name: "skytrailer"
+    color: "purple"
+    start_orientaton_moos: # +x is east, +y is north [m]
+      x: 100
+      y: -5
+      hdg: 56 # deg
+    # simulation:
+    #   ardupilot_port: 14570
+    #   fdm_port_in: 9022
+
+  - name: "sky4"
+    color: "blue"
+    start_orientaton_moos: # +x is east, +y is north [m]
+      x: 100
+      y: -200
+      hdg: 56 # deg
+
+  - name: "sky5"
+    color: "red"
+    start_orientaton_moos: # +x is east, +y is north [m]
+      x: -15
+      y: 85
+      hdg: 56 # deg
+
+  - name: "sky6"
+    color: "green"
+    start_orientaton_moos: # +x is east, +y is north [m]
+      x: 16
+      y: -96
+      hdg: 56 # deg
+
+  - name: "sky7"
+    color: "brown"
+    start_orientaton_moos: # +x is east, +y is north [m]
+      x: 95
+      y: -100
+      hdg: 56 # deg
+
+  - name: "sky8"
+    color: "magenta"
+    start_orientaton_moos: # +x is east, +y is north [m]
+      x: 75
+      y: 110
+      hdg: 56 # deg
+
+  - name: "sky9"
+    color: "cyan"
+    start_orientaton_moos: # +x is east, +y is north [m]
+      x: -78
+      y: -150
+      hdg: 56 # deg
