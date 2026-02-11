@@ -79,6 +79,14 @@ bool RefuelReplace::OnNewMail(MOOSMSG_LIST &NewMail)
     else if (key == "OWN_REGION_WEIGHT") {
       m_priority_weight = msg.GetDouble();
     }
+    else if (key == "OWN_REGION_X") {
+      m_region_x = msg.GetDouble();
+      m_region_set = true;
+    }
+    else if (key == "OWN_REGION_Y") {
+      m_region_y = msg.GetDouble();
+      m_region_set = true;
+    }
     else if (key != "APPCAST_REQ") {
       reportRunWarning("Unhandled Mail: " + key);
     }
