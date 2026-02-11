@@ -22,36 +22,45 @@ public:
   BHV_TaskRefuelReplace(IvPDomain);
   ~BHV_TaskRefuelReplace() {}
 
-  // virtuals defined
+  // IvPTaskBehavior virtuals
   void   onHelmStart();
   double getTaskBid();
+  bool   isTaskFeasible();
   bool   setParam(std::string, std::string);
 
-  vector<VarDataPair>  applyFlagMacros(std::vector<VarDataPair>);
+  std::vector<VarDataPair> applyFlagMacros(std::vector<VarDataPair>);
 
   void         onIdleState();
   IvPFunction* onRunState();
 
  protected:
-  bool  updatePlatformInfo();
+  bool updatePlatformInfo();
 
-  
- protected:  // Configuration Parameters
+ protected:  // Config params
 
-  double m_ptx;   
-  double m_pty;   
+  // Region being bid on (from MISSION_TASK details)
+  double m_region_x;
+  double m_region_y;
+  bool   m_region_x_set;
+  bool   m_region_y_set;
 
-  bool m_ptx_set;
-  bool m_pty_set;
+  // Priority weight of the task region (from MISSION_TASK details)
+  double m_priority_weight;
 
-  bool m_consider_contacts;
-  
- protected:  // State Variables
+  // Bid formula tuning (from .bhv config)
+  double m_planning_horizon;    // H  (seconds)
+  double m_opw;                 // opportunity-cost weight
 
+ protected:  // State vars (read from MOOSDB)
+
+  double m_fuel_dist_remaining;
+  bool   m_got_fuel;
+
+  double m_own_region_weight;   // 0 if not loitering an AOI
+  bool   m_got_own_region_weight;
 };
 
 #ifdef WIN32
-   // Windows needs to explicitly specify functions to export from a dll
    #define IVP_EXPORT_FUNCTION __declspec(dllexport) 
 #else
    #define IVP_EXPORT_FUNCTION
@@ -62,8 +71,3 @@ extern "C" {
   {return new BHV_TaskRefuelReplace(domain);}
 }
 #endif
-
-
-
-
-

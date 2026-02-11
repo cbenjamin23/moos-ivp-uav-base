@@ -31,14 +31,13 @@ class RefuelReplace : public AppCastingMOOSApp
  private: // Configuration variables
 
   double m_refuel_threshold;     // meters; trigger when odom >= threshold
+  double m_total_range;          // total distance this UAV can fly on full fuel
 
-  // The loiter region this vehicle is currently covering
+  // The loiter region this vehicle covers
   double m_region_x;
   double m_region_y;
   bool   m_region_set;
 
-  // Region priority weight (sent in the MISSION_TASK so bidders
-  // know how important this region is)
   double m_priority_weight;
 
   std::string m_host_community;
@@ -48,6 +47,7 @@ class RefuelReplace : public AppCastingMOOSApp
   double m_nav_x;
   double m_nav_y;
   double m_odometry_dist;
+  double m_fuel_distance_remaining;
 
   bool m_got_nav_x;
   bool m_got_nav_y;

@@ -29,6 +29,7 @@ RefuelReplace::RefuelReplace()
 
   // Config
   m_refuel_threshold = 0.0;   // meters; disabled if <= 0
+  m_total_range      = 0.0;   // meters; total range on full fuel
 
   // Region this vehicle covers
   m_region_x = 0;
@@ -41,7 +42,11 @@ RefuelReplace::RefuelReplace()
   m_task_id_counter = 0;
 
   // Task Helper
+  // This should be set to vname by param
   m_host_community = "vehicle";
+
+  // fuel dist
+  m_fuel_distance_remaining = 0.0;
 }
 
 //---------------------------------------------------------
@@ -71,7 +76,7 @@ bool RefuelReplace::OnNewMail(MOOSMSG_LIST &NewMail)
       m_odometry_dist = msg.GetDouble();
       m_got_odom = true;
     }
-    else if (key == OWN_REGION_WEIGHT) {
+    else if (key == "OWN_REGION_WEIGHT") {
       m_priority_weight = msg.GetDouble();
     }
     else if (key != "APPCAST_REQ") {
@@ -94,11 +99,11 @@ bool RefuelReplace::OnConnectToServer()
 //---------------------------------------------------------
 // Procedure: Iterate()
 //
-// When odometry reaches the refuel threshold, post a
-// MISSION_TASK of type=refuelreplace.  The task carries:
-//   - region_x, region_y : the loiter point that needs coverage
-//   - priority_weight    : how important this region is
-//   - exempt             : this vehicle's name (don't bid on own task)
+// Every tick: publish FUEL_DISTANCE_REMAINING so that all
+// vehicles (including this one) can read it via the info buffer.
+//
+// When odometry hits the refuel threshold: post a MISSION_TASK
+// of type=refuelreplace carrying the region that needs coverage.
 
 bool RefuelReplace::Iterate()
 {
@@ -107,6 +112,14 @@ bool RefuelReplace::Iterate()
   const bool have_nav  = (m_got_nav_x && m_got_nav_y);
   const bool have_odom = m_got_odom;
 
+  // Publish fuel distance remaining every tick
+  if(have_odom && (m_total_range > 0)) {
+    m_fuel_distance_remaining = m_total_range - m_odometry_dist;
+    if(m_fuel_distance_remaining < 0) m_fuel_distance_remaining = 0;
+    Notify("FUEL_DISTANCE_REMAINING", m_fuel_distance_remaining);
+  }
+
+  // Trigger task once when odometry reaches threshold
   if (!m_task_sent &&
       (m_refuel_threshold > 0.0) &&
       have_nav && have_odom &&
@@ -121,7 +134,6 @@ bool RefuelReplace::Iterate()
     string hash = "rr_" + id + "_" + intToString((int)utc_tail);
 
     // Use configured region point; fall back to current position
-    // if no region was configured (matches your TODO note #1).
     double rx = m_region_set ? m_region_x : m_nav_x;
     double ry = m_region_set ? m_region_y : m_nav_y;
 
@@ -136,8 +148,6 @@ bool RefuelReplace::Iterate()
        << "priority_weight=" << doubleToStringX(m_priority_weight, 2);
 
     Notify("MISSION_TASK", os.str());
-
-    Notify("TASK_REFUEL_REPLACE", "true");
 
     m_task_sent = true;
   }
@@ -170,9 +180,14 @@ bool RefuelReplace::OnStartUp()
     if (param == "refuel_threshold") {
       handled = setDoubleOnString(m_refuel_threshold, value);
     }
+    else if (param == "total_range") {
+      handled = setDoubleOnString(m_total_range, value);
+    }
     else if (param == "vname") {
       handled = setNonWhiteVarOnString(m_host_community, value);
     }
+    // The region x/y and priority will probably be set in some other logic about
+    // the region this vehicle covers, but can set in config for now for testing
     else if (param == "region_x") {
       handled = setDoubleOnString(m_region_x, value);
       if(handled) m_region_set = true;
@@ -213,8 +228,12 @@ bool RefuelReplace::buildReport()
   table << "Field" << "Value";
   table.addHeaderLines();
 
-  table << "refuel_threshold"     << doubleToStringX(m_refuel_threshold, 2);
-  table << "ODOMETRY_DIST"        << doubleToStringX(m_odometry_dist, 2);
+  table << "refuel_threshold"       << doubleToStringX(m_refuel_threshold, 2);
+  table << "total_range"            << doubleToStringX(m_total_range, 2);
+  table << "ODOMETRY_DIST"          << doubleToStringX(m_odometry_dist, 2);
+
+  table << "FUEL_DISTANCE_REMAINING" << doubleToStringX(m_fuel_distance_remaining, 2);
+
   table << "NAV_X"                << doubleToStringX(m_nav_x, 2);
   table << "NAV_Y"                << doubleToStringX(m_nav_y, 2);
   table << "region_x"            << doubleToStringX(m_region_x, 2);
@@ -222,8 +241,6 @@ bool RefuelReplace::buildReport()
   table << "priority_weight"     << doubleToStringX(m_priority_weight, 2);
   table << "region_set"          << (m_region_set ? "true" : "false");
   table << "got_odom"             << (m_got_odom  ? "true" : "false");
-  table << "got_nav_x"            << (m_got_nav_x ? "true" : "false");
-  table << "got_nav_y"            << (m_got_nav_y ? "true" : "false");
   table << "task_sent"            << (m_task_sent ? "true" : "false");
   table << "next_task_id_counter" << intToString(m_task_id_counter);
 
