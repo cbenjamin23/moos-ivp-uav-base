@@ -13,11 +13,6 @@
 
 using namespace std;
 
-// For improvment:
-// 1. The x and y waypoint pulished to MISSION_TASK should probably be
-// the loiter point not the current x and y,
-// 2. Return to home logic when the next plane arrives. Handoff logic
-
 //---------------------------------------------------------
 // Constructor()
 
@@ -34,6 +29,12 @@ RefuelReplace::RefuelReplace()
 
   // Config
   m_refuel_threshold = 0.0;   // meters; disabled if <= 0
+
+  // Region this vehicle covers
+  m_region_x = 0;
+  m_region_y = 0;
+  m_region_set = false;
+  m_priority_weight = 1.0;
 
   // State
   m_task_sent = false;
@@ -70,6 +71,9 @@ bool RefuelReplace::OnNewMail(MOOSMSG_LIST &NewMail)
       m_odometry_dist = msg.GetDouble();
       m_got_odom = true;
     }
+    else if (key == OWN_REGION_WEIGHT) {
+      m_priority_weight = msg.GetDouble();
+    }
     else if (key != "APPCAST_REQ") {
       reportRunWarning("Unhandled Mail: " + key);
     }
@@ -89,46 +93,50 @@ bool RefuelReplace::OnConnectToServer()
 
 //---------------------------------------------------------
 // Procedure: Iterate()
+//
+// When odometry reaches the refuel threshold, post a
+// MISSION_TASK of type=refuelreplace.  The task carries:
+//   - region_x, region_y : the loiter point that needs coverage
+//   - priority_weight    : how important this region is
+//   - exempt             : this vehicle's name (don't bid on own task)
 
 bool RefuelReplace::Iterate()
 {
   AppCastingMOOSApp::Iterate();
 
-  // Only act once we have the needed inputs at least once.
   const bool have_nav  = (m_got_nav_x && m_got_nav_y);
   const bool have_odom = m_got_odom;
 
-  // Trigger once when odometry reaches threshold.
   if (!m_task_sent &&
       (m_refuel_threshold > 0.0) &&
       have_nav && have_odom &&
       (m_odometry_dist >= m_refuel_threshold))
   {
-    // Build an incrementing id like rr0, rr1, ...
     string id = m_host_community + "_rr" + intToString(m_task_id_counter++);
 
-    // Use current time as utc (MOOSTime is epoch seconds in typical MOOS-IvP builds)
     double utc = MOOSTime();
 
-    // Simple unique hash
-    long utc_int  = (long)(MOOSTime() * 100); // centiseconds
-    long utc_tail = utc_int % 100000; // wraps every 16 minutes
+    long utc_int  = (long)(MOOSTime() * 100);
+    long utc_tail = utc_int % 100000;
     string hash = "rr_" + id + "_" + intToString((int)utc_tail);
 
-    // Build MISSION_TASK string (modeled after TaskManager docs)
-    // type, id, utc, hash, waypt_x, waypt_y
+    // Use configured region point; fall back to current position
+    // if no region was configured (matches your TODO note #1).
+    double rx = m_region_set ? m_region_x : m_nav_x;
+    double ry = m_region_set ? m_region_y : m_nav_y;
+
     ostringstream os;
     os << "type=refuelreplace,"
        << "id=" << id << ","
        << "utc=" << doubleToStringX(utc, 2) << ","
        << "hash=" << hash << ","
        << "exempt=" << m_host_community << ","
-       << "waypt_x=" << doubleToStringX(m_nav_x, 2) << ","
-       << "waypt_y=" << doubleToStringX(m_nav_y, 2);
+       << "region_x=" << doubleToStringX(rx, 2) << ","
+       << "region_y=" << doubleToStringX(ry, 2) << ","
+       << "priority_weight=" << doubleToStringX(m_priority_weight, 2);
 
     Notify("MISSION_TASK", os.str());
 
-    // Optional: also publish a simple boolean flag for debugging/compatibility
     Notify("TASK_REFUEL_REPLACE", "true");
 
     m_task_sent = true;
@@ -159,13 +167,22 @@ bool RefuelReplace::OnStartUp()
 
     bool handled = false;
 
-    // Example:
-    // refuel_threshold = 150.0
     if (param == "refuel_threshold") {
       handled = setDoubleOnString(m_refuel_threshold, value);
     }
     else if (param == "vname") {
       handled = setNonWhiteVarOnString(m_host_community, value);
+    }
+    else if (param == "region_x") {
+      handled = setDoubleOnString(m_region_x, value);
+      if(handled) m_region_set = true;
+    }
+    else if (param == "region_y") {
+      handled = setDoubleOnString(m_region_y, value);
+      if(handled) m_region_set = true;
+    }
+    else if (param == "priority_weight") {
+      handled = setNonNegDoubleOnString(m_priority_weight, value);
     }
 
     if(!handled)
@@ -200,6 +217,10 @@ bool RefuelReplace::buildReport()
   table << "ODOMETRY_DIST"        << doubleToStringX(m_odometry_dist, 2);
   table << "NAV_X"                << doubleToStringX(m_nav_x, 2);
   table << "NAV_Y"                << doubleToStringX(m_nav_y, 2);
+  table << "region_x"            << doubleToStringX(m_region_x, 2);
+  table << "region_y"            << doubleToStringX(m_region_y, 2);
+  table << "priority_weight"     << doubleToStringX(m_priority_weight, 2);
+  table << "region_set"          << (m_region_set ? "true" : "false");
   table << "got_odom"             << (m_got_odom  ? "true" : "false");
   table << "got_nav_x"            << (m_got_nav_x ? "true" : "false");
   table << "got_nav_y"            << (m_got_nav_y ? "true" : "false");

@@ -32,6 +32,15 @@ class RefuelReplace : public AppCastingMOOSApp
 
   double m_refuel_threshold;     // meters; trigger when odom >= threshold
 
+  // The loiter region this vehicle is currently covering
+  double m_region_x;
+  double m_region_y;
+  bool   m_region_set;
+
+  // Region priority weight (sent in the MISSION_TASK so bidders
+  // know how important this region is)
+  double m_priority_weight;
+
   std::string m_host_community;
   
  private: // State variables
