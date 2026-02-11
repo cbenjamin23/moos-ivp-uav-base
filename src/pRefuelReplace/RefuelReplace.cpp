@@ -122,6 +122,7 @@ bool RefuelReplace::Iterate()
        << "id=" << id << ","
        << "utc=" << doubleToStringX(utc, 2) << ","
        << "hash=" << hash << ","
+       << "exempt=" << m_host_community << ","
        << "waypt_x=" << doubleToStringX(m_nav_x, 2) << ","
        << "waypt_y=" << doubleToStringX(m_nav_y, 2);
 
