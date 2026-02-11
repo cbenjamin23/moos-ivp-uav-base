@@ -80,6 +80,11 @@ ProcessConfig = pProxonoi_uav
   vcolor = $(COLOR)
   vehicle_stale_treshold = 10
 
+  setpt_method = centroid   // ("gridsearch", "center", or "centroid")
+  // Can also add the following lines to the missionConfig.yaml
+  // voronoi_search_enabled: true
+  // voronoi_setpoint_method: gridsearch
+
   post_poly = true
   // post_region = true
 
