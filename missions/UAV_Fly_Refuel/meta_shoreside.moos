@@ -199,6 +199,8 @@ ProcessConfig = pGridSearchViz
   grid_cell_decay_time  = $(GRID_CELL_DECAY_TIME)
   visualize_sensor_area = false
 
+  mission_enabled = true
+
 #ifdef USE_MOOS_SIM_PID true
   is_running_moos_pid = true
 #endif
