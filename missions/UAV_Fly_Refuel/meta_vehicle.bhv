@@ -88,7 +88,27 @@ set BHV_MODE = VORONOI {
 } 
 
 
+//----------------------------------------------
+Behavior = BHV_TaskRefuelReplace
+{
+       name = task_refuel_
+    updates = TASK_REFUEL
+ templating = spawn
+  condition = BHV_MODE==ACTIVE
 
+         type = refuelreplace
+ max_bid_wins = true
+
+   // Bid formula tuning
+   planning_horizon = 600
+   opw              = 0.3
+
+   // When this vehicle wins the bid:
+   bidwonflag = DEPLOY = true
+   bidwonflag = LOITER = false
+   bidwonflag = RETURN = false
+   bidwonflag = DO_SURVEY = false
+}
 
 //----------------------------------------------
 Behavior = BHV_Waypoint
@@ -149,12 +169,13 @@ Behavior = BHV_ConstantAltitude{
 #else 
 
 //----------------------------------------------
-// Behavior = BHV_Loiter
+Behavior = BHV_Loiter
 {
   name      = loiter
   pwt       = 100
   condition = BHV_MODE==LOITER
   updates   = LOITER_UPDATE
+  perpetual = true
 
    post_suffix = A
          speed = $(SPEED)
@@ -162,8 +183,8 @@ Behavior = BHV_ConstantAltitude{
         radius = 8.0
      nm_radius = 15.0
 
-     center_activate = true
-     
+     center_activate = false
+
        polygon = radial:: x=0, y=0, radius=20, pts=8, snap=1, label=$(VNAME)_LOITER
   visual_hints = nextpt_color=white, nextpt_lcolor=khaki
   visual_hints = edge_color=orange, vertex_color=white

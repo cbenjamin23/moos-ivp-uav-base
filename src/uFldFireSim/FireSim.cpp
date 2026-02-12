@@ -1056,26 +1056,6 @@ void FireSim::declareDiscoveredIgnoredRegion(std::string vname, std::string rnam
     }
   }
 
-  // Send the fire's position and weight to the discoverer as their "own region"
-  double fire_x = fire.getCurrX();
-  double fire_y = fire.getCurrY();
-  
-  // Send OWN_REGION_X to discoverer
-  std::string nmsg_x = "src_node=shoreside,dest_node=" + vname;
-  nmsg_x += ",var_name=OWN_REGION_X,string_val=" + doubleToStringX(fire_x, 2);
-  Notify("NODE_MESSAGE_LOCAL", nmsg_x);
-  
-  // Send OWN_REGION_Y to discoverer
-  std::string nmsg_y = "src_node=shoreside,dest_node=" + vname;
-  nmsg_y += ",var_name=OWN_REGION_Y,string_val=" + doubleToStringX(fire_y, 2);
-  Notify("NODE_MESSAGE_LOCAL", nmsg_y);
-  
-  // Send OWN_REGION_WEIGHT to discoverer
-  // For now, use 1.0 as default weight. Later you can add per-fire weights.
-  std::string nmsg_w = "src_node=shoreside,dest_node=" + vname;
-  nmsg_w += ",var_name=OWN_REGION_WEIGHT,string_val=1.0";
-  Notify("NODE_MESSAGE_LOCAL", nmsg_w);
-
   
 }
 
@@ -1121,6 +1101,42 @@ void FireSim::declareDiscoveredFire(std::string vname, std::string fname)
   idstr = findReplace(idstr, "id", "");
   std::string msg = "id=" + idstr + ", finder=" + vname;
   Notify("DISCOVERED_FIRE", msg);
+
+    // ---- NEW: Send fire position to discoverer for pRefuelReplace ----
+  double fire_x = fire.getCurrX();
+  double fire_y = fire.getCurrY();
+
+  // Send OWN_REGION_X to discoverer
+  std::string nmsg_x = "src_node=shoreside,dest_node=" + vname;
+  nmsg_x += ",var_name=OWN_REGION_X,string_val=" + doubleToStringX(fire_x, 2);
+  Notify("NODE_MESSAGE_LOCAL", nmsg_x);
+
+  // Send OWN_REGION_Y to discoverer
+  std::string nmsg_y = "src_node=shoreside,dest_node=" + vname;
+  nmsg_y += ",var_name=OWN_REGION_Y,string_val=" + doubleToStringX(fire_y, 2);
+  Notify("NODE_MESSAGE_LOCAL", nmsg_y);
+
+  // Send OWN_REGION_WEIGHT to discoverer (default 1.0 for now)
+  std::string nmsg_w = "src_node=shoreside,dest_node=" + vname;
+  nmsg_w += ",var_name=OWN_REGION_WEIGHT,string_val=1.0";
+  Notify("NODE_MESSAGE_LOCAL", nmsg_w);
+
+  // ---- NEW: Command discoverer to loiter at fire position ----
+  // Step 1: Update the loiter center to fire position
+  std::string nmsg_loiter = "src_node=shoreside,dest_node=" + vname;
+  nmsg_loiter += ",var_name=LOITER_UPDATE,string_val=center_assign=";
+  nmsg_loiter += doubleToStringX(fire_x, 2) + ":" + doubleToStringX(fire_y, 2);
+  Notify("NODE_MESSAGE_LOCAL", nmsg_loiter);
+
+  // Step 2: Activate LOITER mode (set mode flags)
+  std::string nmsg_loiter_on = "src_node=shoreside,dest_node=" + vname;
+  nmsg_loiter_on += ",var_name=LOITER,string_val=true";
+  Notify("NODE_MESSAGE_LOCAL", nmsg_loiter_on);
+
+  // Step 3: Deactivate DEPLOY (Voronoi) so we don't conflict
+  std::string nmsg_deploy_off = "src_node=shoreside,dest_node=" + vname;
+  nmsg_deploy_off += ",var_name=DEPLOY,string_val=false";
+  Notify("NODE_MESSAGE_LOCAL", nmsg_deploy_off);
 }
 
 //------------------------------------------------------------
