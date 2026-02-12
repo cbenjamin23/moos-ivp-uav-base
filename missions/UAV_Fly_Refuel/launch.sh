@@ -122,6 +122,7 @@ if [ "$START_FROM_CONFIG" == "yes" ]; then
     vecho "All other arguments will be ignored"
 
     NUM_VEHICLES=$(yq eval '.simulation.number_of_drones' "$CONFIG_FILE")
+    NUM_SCOUT_DRONES=$(yq eval '.simulation.num_scout_drones' "$CONFIG_FILE")
     ARDUPILOT_IP=$(yq eval ".simulation.ardupilot_ip" "$CONFIG_FILE")
     ARDUPILOT_PROTOCOL=$(yq eval ".simulation.ardupilot_protocol" "$CONFIG_FILE")
 
@@ -152,6 +153,13 @@ fi
 #-------------------------------------------------------------
 
 for ((i = 0; i < $NUM_VEHICLES; i++)); do
+
+    # Mark scouts as first NUM_SCOUT_DRONES indices
+    if (( i < NUM_SCOUT_DRONES )); then
+        DEPLOY_AT_START="true"
+    else
+        DEPLOY_AT_START="false"
+    fi
     
     if [ "$START_FROM_CONFIG" == "yes" ]; then
         VNAME=$(yq eval ".drones[$i].name" "$CONFIG_FILE")

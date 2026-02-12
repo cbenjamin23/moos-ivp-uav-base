@@ -133,7 +133,7 @@ bool FireSet::handleFireConfig(std::string str, double curr_time, std::string &w
     std::string file_name = "fires_c" + count_str + "_sep" + doubleToStringX(sep_min_meters, 0) + ".txt";
     // find absolute path to moos-ivp-uav folder
     m_fire_config_save_path = getenv("HOME");
-    m_fire_config_save_path += "/moos-ivp-uav/" + save_path;
+    m_fire_config_save_path += "/moos-ivp-uav-base/" + save_path;
 
     std::string file_path = m_fire_config_save_path + file_name;
     // save result to file name

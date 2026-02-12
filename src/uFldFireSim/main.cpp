@@ -58,7 +58,7 @@ int main(int argc, char *argv[])
     std::cerr << "Error: Could not get the home directory." << std::endl;
     return 1;
   }
-  std::string save_path = std::string(home_dir) + "/moos-ivp-uav/missions/uFldFireSim.log";
+  std::string save_path = std::string(home_dir) + "/moos-ivp-uav-base/missions/uFldFireSim.log";
   Logger::configure(save_path);
 
 

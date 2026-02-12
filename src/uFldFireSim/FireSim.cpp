@@ -517,7 +517,7 @@ bool FireSim::handleMissionScoreSavePath(std::string path)
     return false;
 
   m_mission_score_save_path = getenv("HOME");
-  m_mission_score_save_path += "/moos-ivp-uav/" + path;
+  m_mission_score_save_path += "/moos-ivp-uav-base/" + path;
   
   // ensure directory exists
   if (!std::filesystem::exists(m_mission_score_save_path))
@@ -1055,6 +1055,26 @@ void FireSim::declareDiscoveredIgnoredRegion(std::string vname, std::string rnam
       declareDiscoveredFire(vname, fname);
     }
   }
+
+  // Send the fire's position and weight to the discoverer as their "own region"
+  double fire_x = fire.getCurrX();
+  double fire_y = fire.getCurrY();
+  
+  // Send OWN_REGION_X to discoverer
+  std::string nmsg_x = "src_node=shoreside,dest_node=" + vname;
+  nmsg_x += ",var_name=OWN_REGION_X,string_val=" + doubleToStringX(fire_x, 2);
+  Notify("NODE_MESSAGE_LOCAL", nmsg_x);
+  
+  // Send OWN_REGION_Y to discoverer
+  std::string nmsg_y = "src_node=shoreside,dest_node=" + vname;
+  nmsg_y += ",var_name=OWN_REGION_Y,string_val=" + doubleToStringX(fire_y, 2);
+  Notify("NODE_MESSAGE_LOCAL", nmsg_y);
+  
+  // Send OWN_REGION_WEIGHT to discoverer
+  // For now, use 1.0 as default weight. Later you can add per-fire weights.
+  std::string nmsg_w = "src_node=shoreside,dest_node=" + vname;
+  nmsg_w += ",var_name=OWN_REGION_WEIGHT,string_val=1.0";
+  Notify("NODE_MESSAGE_LOCAL", nmsg_w);
 
   
 }

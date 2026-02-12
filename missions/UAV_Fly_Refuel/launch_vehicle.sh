@@ -107,6 +107,11 @@ if [ $? -ne 0 ]; then exit 1; fi
 LON_ORIGIN=$(get_global_val $CONFIG_FILE moos.datum.lon)
 if [ $? -ne 0 ]; then exit 1; fi
 
+REFUEL_TOTAL_RANGE=$(get_global_val_in_moosDistance $CONFIG_FILE "missionParams.refuel_total_range")
+if [ $? -ne 0 ]; then exit 1; fi
+REFUEL_THRESHOLD=$(get_global_val_in_moosDistance $CONFIG_FILE "missionParams.refuel_threshold")
+if [ $? -ne 0 ]; then exit 1; fi
+
 #-------------------------------------------------------
 #  Part 2: Check for and handle command-line arguments
 #-------------------------------------------------------
@@ -362,6 +367,8 @@ nsplug meta_vehicle.moos targ_$VNAME.moos $NSFLAGS WARP=$TIME_WARP \
        PLANNER_MODE=$PLANNER_MODE             \
        LOG_ENABLED=$LOG_ENABLED \
        SPEED=$SPEED \
+       REFUEL_TOTAL_RANGE=$REFUEL_TOTAL_RANGE \
+       REFUEL_THRESHOLD=$REFUEL_THRESHOLD \
 
 nsplug meta_vehicle.bhv targ_$VNAME.bhv $NSFLAGS VNAME=$VNAME \
        SPEED=$SPEED                  START_POS=$START_POS     \
@@ -370,6 +377,7 @@ nsplug meta_vehicle.bhv targ_$VNAME.bhv $NSFLAGS VNAME=$VNAME \
        USE_MOOS_SIM_PID=$USE_MOOS_SIM_PID                     \
        CAPTURE_RADIUS=$CAPTURE_RADIUS SLIP_RADIUS=$SLIP_RADIUS \
        VORONOI_SETPT_METHOD=$VORONOI_SETPT_METHOD \
+       RETURN_POS=$RETURN_POS \
        
        
 if [ ${JUST_MAKE} = "yes" ]; then

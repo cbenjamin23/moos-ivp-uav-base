@@ -2,7 +2,7 @@
 
 
 #ifdef USE_MOOS_SIM_PID true
-  initialize   DEPLOY = false
+  initialize   DEPLOY = $(DEPLOY_AT_START)
   initialize   RETURN = false
   initialize   DO_SURVEY = false
   initialize   LOITER = false

@@ -225,6 +225,9 @@ void RefuelReplace::registerVariables()
   Register("NAV_X", 0);
   Register("NAV_Y", 0);
   Register("ODOMETRY_DIST", 0);
+  Register("OWN_REGION_X", 0);      
+  Register("OWN_REGION_Y", 0);      
+  Register("OWN_REGION_WEIGHT", 0); 
 }
 
 //---------------------------------------------------------

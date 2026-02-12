@@ -129,7 +129,7 @@ bool IgnoredRegionSet::handleIgnoredRegionConfig(std::string str, double curr_ti
     std::string file_name = "regions_c" + count_str + "_sep" + doubleToStringX(sep_min_meters, 0) + ".txt";
     // find absolute path to moos-ivp-uav folder
     m_region_config_save_path = getenv("HOME");
-    m_region_config_save_path += "/moos-ivp-uav/" + save_path;
+    m_region_config_save_path += "/moos-ivp-uav-base/" + save_path;
 
     std::string file_path = m_region_config_save_path + file_name;
     // save result to file name
@@ -150,7 +150,7 @@ bool IgnoredRegionSet::handleRegionFile(std::string file_name, std::string save_
     
     if(lines.size() == 0){
         std::string file_location = getenv("HOME");
-        file_location += "/moos-ivp-uav/" + save_path + file_name;
+        file_location += "/moos-ivp-uav-base/" + save_path + file_name;
         lines = fileBuffer(file_location);
         if (lines.size() == 0)
         {

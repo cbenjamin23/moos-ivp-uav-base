@@ -4,7 +4,7 @@
 simulation:
   useMoosSimPid: true # Use MOOS-IvP Vechicle simulator
   time_warp: 10
-  number_of_drones: 4
+  number_of_drones: 3
 
   ardupilot_ip: "0.0.0.0"
   ardupilot_protocol: "udp"
@@ -53,17 +53,17 @@ missionParams:
   fire_file_default: "fires_03.txt" # The file containing the fire data if generate not set
   # fire_file_default: "fires_01.txt" # The file containing the fire data if generate not set
   fire_generate: false # If true, the fires will be generated randomly, otherwise they will be read from a file
-  fire_count: 1 # The number of fires to be placed in the region at launch
-  fire_sep_min: 10 # m - The minimum separation between fires
+  fire_count: 3 # The number of fires to be placed in the region at launch
+  fire_sep_min: 50 # m - The minimum separation between fires
   fire_color: red # The color of the fire, or "vehicle" if the fire should take the color of the vehicle as well
-  fire_spawn_count: 1 # The number of fires to spawn after the mission has started
+  fire_spawn_count: 0 # The number of fires to spawn after the mission has started
   fire_spawn_interval: 300:500 # s - The time interval for which the delayed fires will be spawned (randomly) ( 0 <= [tmin,tmax] <= mission_duration)
 
   # Ignored region parameters
   ignoredRegion_file_default: "ignoredRegions.txt" # The file containing the ignored region data if generate not set
   # ignoredRegion_file_default   : "regions_c8_sep150.txt" # The file containing the ignored region data if generate not set
   ignoredRegion_generate: true # If true, the ignored regions will be generated randomly, otherwise they will be read from a file
-  ignoredRegion_count: 0 # The number of ignored regions to be placed in the region at launch
+  ignoredRegion_count: 1 # The number of ignored regions to be placed in the region at launch
   ignoredRegion_sep_min: 150 # m - The minimum separation between ignored regions
   ignoredRegion_spawn_count: 0 # The number of ignored regions to spawn after the mission has started
   ignoredRegion_spawn_interval: 300:500 # s - The time interval for which the delayed ignored regions will be spawned (randomly) ( 0 <= [tmin,tmax] <= mission_duration)
@@ -74,27 +74,20 @@ missionParams:
   mission_operator_TMSTC_missions: 2 # The number of TMSTC* missions to be run
   mission_operator_voronoi_missions: 0 # The number of VORONOI_SEARCH missions to be run
 
+  # Refuel/Replace parameters
+  refuel_total_range: 6000       # meters total distance on full "tank"
+  refuel_threshold: 2000         # meters odometry at which to request replacement
+  
+  # Vehicle roles
+  num_scout_drones: 4            # first N drones are scouts (deployed immediately)
+  num_refuel_drones: 2           # next N drones are refuel-replacements (held in reserve)
+
+  # Fire weights (importance levels)
+  fire_default_weight: 1.0       # default priority weight for a discovered fire
+
   # Region parameters: The region in which the mission is to be conducted
   # TOOL: https://www.keene.edu/campus/maps/tool/
   use_moos_region: false
-  #region_XY: 100,460:-700,-200:-700,-920:620,-920:700,-222 # Directly in moos format for tesing
-  # region_lonlat: |
-  #   10.1354027, 63.4005544
-  #   10.1202106, 63.3930786
-  #   10.1268196, 63.3852164
-  #   10.1547146, 63.3869467
-  #   10.1695633, 63.3984791
-  #   10.1502943, 63.4049352
-
-  # region_lonlat: |             # Stretched octagon
-  #   10.1187944, 63.3949045
-  #   10.1129580, 63.3923098
-  #   10.1120996, 63.3864276
-  #   10.1217127, 63.3841782
-  #   10.1499081, 63.3840052
-  #   10.1596069, 63.3867929
-  #   10.1602077, 63.3924059
-  #   10.1540709, 63.3949622
 
   # region_lonlat: | # Larger region
   #   10.1356602, 63.4006697
@@ -109,17 +102,6 @@ missionParams:
     -73.61611, 45.508965
     -73.592568, 45.487191
     -73.570411, 45.506101
-
-  # region_lonlat: |  #  Testing Master_v2.0
-  #   10.1402199, 63.3989018
-  #   10.1470220, 63.4002037
-  #   10.1508093, 63.3985463
-  #   10.1488352, 63.3973356
-  #   10.1472044, 63.3964516
-  #   10.1456809, 63.3956348
-  #   10.1426983, 63.3940492
-  #   10.1379776, 63.3942126
-  #   10.1344800, 63.3968936
 
   # Waypoint parameters
   # capture_radius: 50 # m  - The distance from the waypoint that the drone must be within to consider it captured

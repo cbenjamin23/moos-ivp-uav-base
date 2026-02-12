@@ -28,6 +28,9 @@ Processconfig = ANTLER
   Run = pRealm             @ NewConsole = false
   Run = pProxonoi_uav      @ NewConsole = false //true , XConfig=HOLDSettings
 
+  Run = pOdometry            @ NewConsole = false
+  Run = pRefuelReplace       @ NewConsole = false
+
 
 #ifdef USE_MOOS_SIM_PID true
   Run = uSimMarineV22     @ NewConsole = false
@@ -111,7 +114,7 @@ ProcessConfig = pHelmIvP
   #endif
 
 
-  hold_on_app  = pContactMgrV20
+  hold_on_app  = pContactMgrV20, pTaskManager
 
   // app_logging  = true
 }
@@ -166,6 +169,8 @@ ProcessConfig = uFldNodeBroker
   bridge = src=NODE_REPORT_LOCAL,  alias=NODE_REPORT
   bridge = src=NODE_MESSAGE_LOCAL, alias=NODE_MESSAGE
 	bridge = src=VIEW_COMMS_PULSE
+  bridge = src=MISSION_TASK
+  bridge = src=FUEL_DISTANCE_REMAINING
 
   bridge = src=REALMCAST
   bridge = src=REALMCAST_CHANNELS
@@ -262,6 +267,31 @@ ProcessConfig = uTimerScript
 	reset_time = end
   event      = var=SCOUT_REQUEST, val= "vname=$(VNAME)" , time=1
 }
+
+
+//--------------------------------------------------
+// pOdometry config block
+
+ProcessConfig = pOdometry
+{
+  AppTick   = 4
+  CommsTick = 4
+}
+
+//--------------------------------------------------
+// pRefuelReplace config block
+
+ProcessConfig = pRefuelReplace
+{
+  AppTick   = 4
+  CommsTick = 4
+
+  vname             = $(VNAME)
+  total_range       = $(REFUEL_TOTAL_RANGE)
+  refuel_threshold  = $(REFUEL_THRESHOLD)
+}
+
+
 
 
 #ifdef USE_MOOS_SIM_PID true

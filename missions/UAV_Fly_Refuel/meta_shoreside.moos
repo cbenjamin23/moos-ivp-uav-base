@@ -295,7 +295,7 @@ ProcessConfig = uFldShoreBroker
   qbridge = NODE_REPORT, NODE_MESSAGE
   qbridge = APPCAST_REQ
 	qbridge = SURVEY_UPDATE
-  qbridge  = FIRE_ALERT
+  qbridge = FIRE_ALERT
   qbridge = CHANGE_PLANNER_MODE
   // qbridge = NODE_COLOR_CHANGE
   
@@ -305,6 +305,9 @@ ProcessConfig = uFldShoreBroker
 
   qbridge = HEARTBEAT  // Heartbeat from the GCS to all vehicles
 
+  qbridge = MISSION_TASK
+
+  bridge  = src=FUEL_DISTANCE_REMAINING
 
   bridge  = src=NEXT_WAYPOINT
   bridge  = src=REGION_INFO
