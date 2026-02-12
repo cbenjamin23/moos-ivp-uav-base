@@ -81,6 +81,8 @@ ProcessConfig = pMissionOperator
   is_running_moos_pid = true
 #endif
 
+  mission_operator_enable = true
+
   op_region = $(REGION)
   mission_duration = $(MISSION_DURATION)
   reset_delay = $(MO_RESET_DELAY)
@@ -488,9 +490,12 @@ ProcessConfig = pMarineViewer
   // Buttons
   ////////////////////////////////////////////////
 
+  // Note, I took # DEPLOY_ALL=true out of buttons 1 and 2 to fit the scout/refueler plane logic
+  // Where only some planes are deployed upon start while some sit idle
+
   #ifdef USE_MOOS_SIM_PID true
-    button_1 = DEPLOY  # DO_SURVEY_ALL=false # DEPLOY_ALL=true # RETURN_ALL=false # LOITER_ALL=false # MOOS_MANUAL_OVERRIDE_ALL=false
-    button_2 = TOWAYPT # DO_SURVEY_ALL=false # DEPLOY_ALL=false # RETURN_ALL=true # LOITER_ALL=false # MOOS_MANUAL_OVERRIDE_ALL=false
+    button_1 = DEPLOY  # DO_SURVEY_ALL=false # RETURN_ALL=false # LOITER_ALL=false # MOOS_MANUAL_OVERRIDE_ALL=false
+    button_2 = TOWAYPT # DO_SURVEY_ALL=false # RETURN_ALL=true # LOITER_ALL=false # MOOS_MANUAL_OVERRIDE_ALL=false
     button_3 = SURVEY # DO_SURVEY_ALL=true # DEPLOY_ALL=false # RETURN_ALL=false # LOITER_ALL=false # MOOS_MANUAL_OVERRIDE_ALL=false
     button_4 = LOITER # DO_SURVEY_ALL=false # DEPLOY_ALL=false # RETURN_ALL=false # LOITER_ALL=true # MOOS_MANUAL_OVERRIDE_ALL=false
     

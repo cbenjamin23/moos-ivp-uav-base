@@ -42,7 +42,7 @@ initialize BHV_MODE = INACTIVE
 
   set BHV_MODE = TOWAYPT {
     BHV_MODE = ACTIVE
-    RETURN !å= true
+    RETURN != true
     DEPLOY != true
     DO_SURVEY != true
     LOITER != true
@@ -191,7 +191,7 @@ Behavior = BHV_Loiter
         radius = 8.0
      nm_radius = 15.0
 
-     center_activate = false
+     center_activate = true
 
        polygon = radial:: x=0, y=0, radius=20, pts=8, snap=1, label=$(VNAME)_LOITER
   visual_hints = nextpt_color=white, nextpt_lcolor=khaki
@@ -259,6 +259,10 @@ Behavior = BHV_Waypoint
   perpetual  = true
   #ifdef USE_MOOS_SIM_PID true
     endflag    = ODOMETRY_RESET = true
+    endflag    = RETURN = false
+    endflag    = DEPLOY = false
+    endflag    = LOITER = false
+    endflag    = DO_SURVEY = false
   #else 
     endflag    = ARDU_COMMAND=AUTOLAND
   #endif

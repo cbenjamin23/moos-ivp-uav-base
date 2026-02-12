@@ -164,8 +164,6 @@ for ARGI; do
 	echo "    The speed use for transiting/loitering       "
 	echo "  --maxspd=meters/sec                            " 
 	echo "    Max speed of vehicle (for sim and in-field)  "
-    echo "  --return=<X,Y>     (default is 0,0)            "
-    echo "    Return position chosen by script launching   "
     echo "  --deploy_at_start=<true/false>                 "
 	echo "                                                 "
 	echo "  --sim,   -s  : This is simultion not robot     "
