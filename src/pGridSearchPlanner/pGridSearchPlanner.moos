@@ -1,0 +1,16 @@
+=============================================================== 
+pGridSearchPlanner Example MOOS Configuration                          
+=============================================================== 
+                                                                
+ProcessConfig = pGridSearchPlanner                                     
+{                                                               
+  AppTick   = 4                                                 
+  CommsTick = 4                                                 
+                                                                
+  search_region = pts={-50,-40: -10,0: 180,0: 180,-150: -50,-150} 
+
+  sensor_radius = 10        
+  visualize_planner_grids = true
+  visualize_planner_paths = true
+
+}

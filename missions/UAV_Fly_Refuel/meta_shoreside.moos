@@ -192,10 +192,10 @@ ProcessConfig = pMarineViewer
   CommsTick  = 4
 
 
-  tiff_file            = ../../tile/Montreal.tif
-  zoom                 = 2
-  set_pan_x            = -1922 // To get over the airport
-  set_pan_y            = -1369 // To get over the airport
+  tiff_file            = ../../tiles/Montreal.tif
+  zoom                 = 0.5
+  //set_pan_x            = -1922 // To get over the airport
+  //set_pan_y            = -1369 // To get over the airport
   log_the_image = true
 
   beat_flag = HEARTBEAT_ALL=true
@@ -250,15 +250,12 @@ ProcessConfig = pMarineViewer
   stale_report_thresh = 2
   stale_remove_thresh = 120
 
-
   vehicles_shape_scale = 5.0
   vehicles_name_mode   = names
   vehicles_active_color = skyblue // (87,ce,eb)
   vehicles_inactive_color = gray // (80,80,80)
 
   vehicles_name_color = white
-
-
 
 
   ////////////////////////////////////////////////

@@ -4,7 +4,7 @@
 simulation:
   useMoosSimPid: true # Use MOOS-IvP Vechicle simulator
   time_warp: 10
-  number_of_drones: 1
+  number_of_drones: 4
 
   ardupilot_ip: "0.0.0.0"
   ardupilot_protocol: "udp"
@@ -39,7 +39,7 @@ missionParams:
   # Region parameters: The region in which the mission is to be conducted
   # TOOL: https://www.keene.edu/campus/maps/tool/
   use_moos_region: false
-  region_XY: 100,460:-700,-200:-700,-920:620,-920:700,-222 # Directly in moos format for tesing
+  #region_XY: 100,460:-700,-200:-700,-920:620,-920:700,-222 # Directly in moos format for tesing
   # region_lonlat: |
   #   10.1354027, 63.4005544
   #   10.1202106, 63.3930786
@@ -68,9 +68,9 @@ missionParams:
   #   10.1519251, 63.4015728
 
   region_lonlat: |  # Montreal DT Triangle
-    45.508965, -73.61611
-    45.487191, -73.592568
-    45.506101, -73.570411
+    -73.61611, 45.508965
+    -73.592568, 45.487191
+    -73.570411, 45.506101
 
   # region_lonlat: |  #  Testing Master_v2.0
   #   10.1402199, 63.3989018

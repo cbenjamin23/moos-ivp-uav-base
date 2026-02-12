@@ -69,12 +69,43 @@ SET(APPS_TO_BUILD ${ROBOT_APPS})
 #===============================================================
 SET(GUI_APPS )
 
+IF(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/app_voiview)
+  LIST(APPEND GUI_APPS app_voiview)
+ENDIF()
 
 #===============================================================
 # Set the Shoreside Apps
 #===============================================================
 SET(SHORE_APPS)
 
+
+IF(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/lib_tmstc_star)
+  LIST(APPEND SHORE_APPS lib_tmstc_star)
+ENDIF()
+
+IF(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/lib_fires)
+  LIST(APPEND SHORE_APPS lib_fires)
+ENDIF()
+
+IF(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/lib_ignoredRegions)
+  LIST(APPEND SHORE_APPS lib_ignoredRegions)
+ENDIF()
+
+IF(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/pGridSearchViz)
+  LIST(APPEND SHORE_APPS pGridSearchViz)
+ENDIF()
+
+IF(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/pGridSearchPlanner)
+  LIST(APPEND SHORE_APPS pGridSearchPlanner)
+ENDIF()
+
+IF(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/uFldFireSim)
+  LIST(APPEND SHORE_APPS uFldFireSim)
+ENDIF()
+
+IF(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/pMissionOperator)
+  LIST(APPEND SHORE_APPS pMissionOperator)
+ENDIF()
 
 #===============================================================
 # Build Apps
