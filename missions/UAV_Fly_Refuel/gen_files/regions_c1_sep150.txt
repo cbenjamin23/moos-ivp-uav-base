@@ -1,3 +1,3 @@
 // Lowest dist between center of regions: -0.50m
 poly = pts={-2296.5,379.5:-459.8,-2044.4:1268.8,60.7}
-ignoredRegion = format=format|ellipse; msg|bay; x|759; y|-299; major|426.01; minor|204.08; pts|13; degs|122.66; snap_value|0.7, name=region01
+ignoredRegion = format=format|ellipse; msg|lagoon; x|-306; y|-1565; major|270.53; minor|221.21; pts|12; degs|1.05; snap_value|1, name=region01

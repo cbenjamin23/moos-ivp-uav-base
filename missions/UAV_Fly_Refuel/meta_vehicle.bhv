@@ -6,6 +6,7 @@
   initialize   RETURN = false
   initialize   DO_SURVEY = false
   initialize   LOITER = false
+  initialize   MOOS_MANUAL_OVERRIDE = true
 #endif
 
 initialize   AVOID  = true

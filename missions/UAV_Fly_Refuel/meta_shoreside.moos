@@ -36,7 +36,7 @@ Processconfig = ANTLER
   Run = pGridSearchViz      @ NewConsole = false
   Run = pGridSearchPlanner  @ NewConsole = false
   Run = uFldFireSim         @ NewConsole = false
-  Run = pMissionOperator    @ NewConsole = false
+  //Run = pMissionOperator    @ NewConsole = false
 
   HOLDSettings = -hold
 }
@@ -81,7 +81,7 @@ ProcessConfig = pMissionOperator
   is_running_moos_pid = true
 #endif
 
-  mission_operator_enable = true
+  //mission_operator_enable = true
 
   op_region = $(REGION)
   mission_duration = $(MISSION_DURATION)
@@ -135,11 +135,11 @@ ProcessConfig = uFldFireSim
   finish_flag = MISSION_COMPLETE=true
 
 #ifdef USE_MOOS_SIM_PID true
-  finish_flag = LOITER_ALL=false 
-  finish_flag = DO_SURVEY_ALL=false 
-  finish_flag = DEPLOY_ALL=false
-  finish_flag = RETURN_ALL=true 
-  finish_flag = MOOS_MANUAL_OVERRIDE_ALL=false
+  // finish_flag = LOITER_ALL=false 
+  // finish_flag = DO_SURVEY_ALL=false 
+  // finish_flag = DEPLOY_ALL=false
+  // finish_flag = RETURN_ALL=true 
+  // finish_flag = MOOS_MANUAL_OVERRIDE_ALL=false
 #else
   finish_flag = GCS_COMMAND_ALL=RETURN_TO_LAUNCH
 #endif
@@ -494,7 +494,7 @@ ProcessConfig = pMarineViewer
   // Where only some planes are deployed upon start while some sit idle
 
   #ifdef USE_MOOS_SIM_PID true
-    button_1 = DEPLOY  # DO_SURVEY_ALL=false # RETURN_ALL=false # LOITER_ALL=false # MOOS_MANUAL_OVERRIDE_ALL=false
+    button_1 = DEPLOY # DO_SURVEY_ALL=false # RETURN_ALL=false # LOITER_ALL=false # MOOS_MANUAL_OVERRIDE_ALL=false //# XENABLE_MISSION=true
     button_2 = TOWAYPT # DO_SURVEY_ALL=false # RETURN_ALL=true # LOITER_ALL=false # MOOS_MANUAL_OVERRIDE_ALL=false
     button_3 = SURVEY # DO_SURVEY_ALL=true # DEPLOY_ALL=false # RETURN_ALL=false # LOITER_ALL=false # MOOS_MANUAL_OVERRIDE_ALL=false
     button_4 = LOITER # DO_SURVEY_ALL=false # DEPLOY_ALL=false # RETURN_ALL=false # LOITER_ALL=true # MOOS_MANUAL_OVERRIDE_ALL=false

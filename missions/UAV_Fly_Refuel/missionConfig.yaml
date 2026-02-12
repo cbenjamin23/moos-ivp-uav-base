@@ -81,7 +81,7 @@ missionParams:
   mission_operator_reset_delay: 2 # s - Delay between mission completion and reset in (actual) seconds
 
   mission_operator_TMSTC_missions: 0 # The number of TMSTC* missions to be run
-  mission_operator_voronoi_missions: 1 # The number of VORONOI_SEARCH missions to be run
+  mission_operator_voronoi_missions: 2 # The number of VORONOI_SEARCH missions to be run
 
   # Region parameters: The region in which the mission is to be conducted
   # TOOL: https://www.keene.edu/campus/maps/tool/
