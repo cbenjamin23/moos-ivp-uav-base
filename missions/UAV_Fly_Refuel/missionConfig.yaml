@@ -36,6 +36,44 @@ missionParams:
   log_enabled: false # If true, the mission will be logged to a file
   mission_duration: 600 # s - The duration of the mission (20min)
 
+  # Path planning parameters
+  voronoi_search_enabled: true # If true, the Voronoi algorithm will be used to set the path for the drone, else TMSTC* will be used
+    # else, the TMSTC* algorithm will be used to set the path for the drone
+  voronoi_setpoint_method: gridsearch # The method used to set the path for the voronoi algorithm. Can be "gridsearch", "center" or "centroid"
+
+  # The ratio between the region grid cell distance in the TMSTC* algorithm and the sensor range. The sensor range is the maximum distance from the drone that the sensor can detect fires
+  # TMSTC_gridsizeSensorRangeRatio: 0.5
+  TMSTC_gridsizeSensorRangeRatio: 0.4 # might work better in simulation
+  TMSTC_config_vmax: 18 # [m/s] The maximum speed of the drone (to be used in the TMSTC* algorithm when calculating the grid travel time)
+  TMSTC_config_phi_max_rad: 45 # [degrees] The maximum bank angle of the drone (to be used in the TMSTC* algorithm when calculating the grid travel time)
+  TMSTC_point_filtering: true # If true, the TMSTC* algorithm will filter out the grid cells that are already visited when replanning
+  # points not outside the search Area and in ignored region will always be removed.
+
+  # Fire parameters:
+  fire_file_default: "fires_03.txt" # The file containing the fire data if generate not set
+  # fire_file_default: "fires_01.txt" # The file containing the fire data if generate not set
+  fire_generate: false # If true, the fires will be generated randomly, otherwise they will be read from a file
+  fire_count: 1 # The number of fires to be placed in the region at launch
+  fire_sep_min: 10 # m - The minimum separation between fires
+  fire_color: red # The color of the fire, or "vehicle" if the fire should take the color of the vehicle as well
+  fire_spawn_count: 1 # The number of fires to spawn after the mission has started
+  fire_spawn_interval: 300:500 # s - The time interval for which the delayed fires will be spawned (randomly) ( 0 <= [tmin,tmax] <= mission_duration)
+
+  # Ignored region parameters
+  ignoredRegion_file_default: "ignoredRegions.txt" # The file containing the ignored region data if generate not set
+  # ignoredRegion_file_default   : "regions_c8_sep150.txt" # The file containing the ignored region data if generate not set
+  ignoredRegion_generate: true # If true, the ignored regions will be generated randomly, otherwise they will be read from a file
+  ignoredRegion_count: 0 # The number of ignored regions to be placed in the region at launch
+  ignoredRegion_sep_min: 150 # m - The minimum separation between ignored regions
+  ignoredRegion_spawn_count: 0 # The number of ignored regions to spawn after the mission has started
+  ignoredRegion_spawn_interval: 300:500 # s - The time interval for which the delayed ignored regions will be spawned (randomly) ( 0 <= [tmin,tmax] <= mission_duration)
+
+  # Mission operator parameters - For simulating many missions
+  mission_operator_reset_delay: 2 # s - Delay between mission completion and reset in (actual) seconds
+
+  mission_operator_TMSTC_missions: 2 # The number of TMSTC* missions to be run
+  mission_operator_voronoi_missions: 0 # The number of VORONOI_SEARCH missions to be run
+
   # Region parameters: The region in which the mission is to be conducted
   # TOOL: https://www.keene.edu/campus/maps/tool/
   use_moos_region: false
@@ -87,6 +125,14 @@ missionParams:
   # capture_radius: 50 # m  - The distance from the waypoint that the drone must be within to consider it captured
   capture_radius: 30 # works better in simulation
   slip_radius: 75 # m   (both currently modify sim parameters)
+
+  # Sensor model parameters
+  sensor_detect_pd: 1.0 # Probability of detection at full strength
+  sensor_radius_min: 20 # Inner radius with full detection probability (meters)
+  sensor_radius_max: 30 # Outer radius where detection begins to drop (meters)
+  sensor_color: white # Visualization color for the sensor footprint
+  sensor_altitude_max: 130 # Altitude at which the sensor achieves max range (meters)
+  sensor_radius_fixed: true # Keep radius constant regardless of altitude
 
   # Grid parameters
   grid_cell_size: 10 # m - The distance between each waypoint in the grid
