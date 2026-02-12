@@ -205,6 +205,7 @@ for ((i = 0; i < $NUM_VEHICLES; i++)); do
     IX_VLAUNCH_ARGS+=" --color=$COLOR"
     IX_VLAUNCH_ARGS+=" --start=$START_POS --return=$START_POS "
     IX_VLAUNCH_ARGS+=" --ap_ip=$ARDUPILOT_IP --ap_port=$ARDUPILOT_PORT --ap_protocol=$ARDUPILOT_PROTOCOL"
+    IX_VLAUNCH_ARGS+=" --deploy_at_start=$DEPLOY_AT_START"
 
     vecho "Launching: $VNAME"
     vecho "IX_VLAUNCH_ARGS: [$IX_VLAUNCH_ARGS]"

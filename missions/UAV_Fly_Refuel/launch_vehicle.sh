@@ -14,6 +14,7 @@ VERBOSE="no"
 AUTO_LAUNCHED="no"
 CMD_ARGS=""
 
+DEPLOY_AT_START="false"
 
 IP_ADDR="localhost"
 MOOS_PORT="9001"
@@ -28,7 +29,6 @@ XMODE="REAL"
 
 START_POS="50,50"  
 SPEED="18"
-RETURN_POS="0,0"
 MAXSPD="30"
 
 
@@ -107,9 +107,9 @@ if [ $? -ne 0 ]; then exit 1; fi
 LON_ORIGIN=$(get_global_val $CONFIG_FILE moos.datum.lon)
 if [ $? -ne 0 ]; then exit 1; fi
 
-REFUEL_TOTAL_RANGE=$(get_global_val_in_moosDistance $CONFIG_FILE "missionParams.refuel_total_range")
+REFUEL_TOTAL_RANGE=$(get_global_val_in_moosDistance $CONFIG_FILE "simulation.refuel_total_range")
 if [ $? -ne 0 ]; then exit 1; fi
-REFUEL_THRESHOLD=$(get_global_val_in_moosDistance $CONFIG_FILE "missionParams.refuel_threshold")
+REFUEL_THRESHOLD=$(get_global_val_in_moosDistance $CONFIG_FILE "simulation.refuel_threshold")
 if [ $? -ne 0 ]; then exit 1; fi
 
 #-------------------------------------------------------
@@ -166,6 +166,7 @@ for ARGI; do
 	echo "    Max speed of vehicle (for sim and in-field)  "
     echo "  --return=<X,Y>     (default is 0,0)            "
     echo "    Return position chosen by script launching   "
+    echo "  --deploy_at_start=<true/false>                 "
 	echo "                                                 "
 	echo "  --sim,   -s  : This is simultion not robot     "
     echo "  --id=<0>     : Index of the vehicle      "
@@ -197,8 +198,6 @@ for ARGI; do
         echo "Simulation mode ON."
     elif [[ "${ARGI}" == --start=* ]]; then
         START_POS="${ARGI#--start=}"
-    elif [[ "${ARGI}" == --return=* ]]; then
-        RETURN_POS="${ARGI#--return=}"
     elif [[ "${ARGI}" == --speed=* ]]; then
         SPEED="${ARGI#--speed=}"
     elif [[ "${ARGI}" == --maxspd=* ]]; then
@@ -212,6 +211,8 @@ for ARGI; do
     elif [[ "${ARGI}" == --id=* ]]; then
         VIDX="${ARGI#--id=}"
         echo "Vehicle ID set to: ${VIDX}"
+    elif [[ "${ARGI}" == --deploy_at_start=* ]]; then
+        DEPLOY_AT_START="${ARGI#--deploy_at_start=}"
     else
         echo "$ME: Bad Arg:[$ARGI]. Exit Code 1."
         exit 1
@@ -319,6 +320,7 @@ if [ "${VERBOSE}" = "yes" ]; then
     echo "MAXSPD =        [${MAXSPD}]       "
     echo "MINSPD =        [${MINSPD}]       "
     echo "SPD_STEPS =     [${SPD_STEPS}]    "
+    echo "DEPLOY_AT_START = [${DEPLOY_AT_START}]"
     echo "----------------------------------"
     echo "LatOrigin =     [${LAT_ORIGIN}]    "
     echo "LonOrogin =     [${LON_ORIGIN}]    "
@@ -377,7 +379,7 @@ nsplug meta_vehicle.bhv targ_$VNAME.bhv $NSFLAGS VNAME=$VNAME \
        USE_MOOS_SIM_PID=$USE_MOOS_SIM_PID                     \
        CAPTURE_RADIUS=$CAPTURE_RADIUS SLIP_RADIUS=$SLIP_RADIUS \
        VORONOI_SETPT_METHOD=$VORONOI_SETPT_METHOD \
-       RETURN_POS=$RETURN_POS \
+       DEPLOY_AT_START=$DEPLOY_AT_START \
        
        
 if [ ${JUST_MAKE} = "yes" ]; then

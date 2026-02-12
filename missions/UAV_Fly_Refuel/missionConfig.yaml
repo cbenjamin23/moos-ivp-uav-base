@@ -6,6 +6,15 @@ simulation:
   time_warp: 10
   number_of_drones: 3
 
+  # Refuel/Replace parameters
+  refuel_total_range: 3000       # meters total distance on full "tank"
+  refuel_threshold: 1000         # meters odometry at which to request replacement
+  # Vehicle roles
+  num_scout_drones: 1            # first N drones are scouts (deployed immediately)
+  num_refuel_drones: 2           # next N drones are refuel-replacements (held in reserve)
+  # Fire weights (importance levels)
+  fire_default_weight: 1.0       # default priority weight for a discovered fire
+
   ardupilot_ip: "0.0.0.0"
   ardupilot_protocol: "udp"
   fdm_port_in_default: 9002
@@ -73,17 +82,6 @@ missionParams:
 
   mission_operator_TMSTC_missions: 2 # The number of TMSTC* missions to be run
   mission_operator_voronoi_missions: 0 # The number of VORONOI_SEARCH missions to be run
-
-  # Refuel/Replace parameters
-  refuel_total_range: 6000       # meters total distance on full "tank"
-  refuel_threshold: 2000         # meters odometry at which to request replacement
-  
-  # Vehicle roles
-  num_scout_drones: 4            # first N drones are scouts (deployed immediately)
-  num_refuel_drones: 2           # next N drones are refuel-replacements (held in reserve)
-
-  # Fire weights (importance levels)
-  fire_default_weight: 1.0       # default priority weight for a discovered fire
 
   # Region parameters: The region in which the mission is to be conducted
   # TOOL: https://www.keene.edu/campus/maps/tool/

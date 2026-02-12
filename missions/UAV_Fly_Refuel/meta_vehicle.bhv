@@ -42,7 +42,7 @@ initialize BHV_MODE = INACTIVE
 
   set BHV_MODE = TOWAYPT {
     BHV_MODE = ACTIVE
-    RETURN = true
+    RETURN !å= true
     DEPLOY != true
     DO_SURVEY != true
     LOITER != true
@@ -54,6 +54,14 @@ initialize BHV_MODE = INACTIVE
     DEPLOY != true
     RETURN != true
     DO_SURVEY != true
+  }
+
+  set BHV_MODE = RETURN {
+    BHV_MODE = ACTIVE
+    RETURN = true
+    DEPLOY != true
+    DO_SURVEY != true
+    LOITER != true
   }
 
 #else
@@ -249,7 +257,11 @@ Behavior = BHV_Waypoint
   // condition  = AUTOPILOT_MODE==HELM_RETURNING
   condition  = BHV_MODE==RETURN
   perpetual  = true
-  endflag    = ARDU_COMMAND=AUTOLAND
+  #ifdef USE_MOOS_SIM_PID true
+    endflag    = ODOMETRY_RESET = true
+  #else 
+    endflag    = ARDU_COMMAND=AUTOLAND
+  #endif
 
 
            speed = $(SPEED)
