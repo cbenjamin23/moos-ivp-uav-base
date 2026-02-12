@@ -24,8 +24,8 @@ VNAMES="all"
 USE_MOOS_SIM_PID="no"
 
 
-LAT_ORIGIN=63.3975168 #-35.3632621
-LON_ORIGIN=10.1435321 #149.1652374
+LAT_ORIGIN=45.505556 
+LON_ORIGIN=-73.586674
 
 CONFIG_FILE="./missionConfig.yaml"
 
@@ -183,6 +183,10 @@ if [ $? -ne 0 ]; then exit 1; fi
 LOG_ENABLED=$(get_global_val $CONFIG_FILE "missionParams.log_enabled")
 if [ $? -ne 0 ]; then exit 1; fi
 
+LAT_ORIGIN=$(get_global_val $CONFIG_FILE moos.datum.lat)
+if [ $? -ne 0 ]; then exit 1; fi
+LON_ORIGIN=$(get_global_val $CONFIG_FILE moos.datum.lon)
+if [ $? -ne 0 ]; then exit 1; fi
 
 
 #---------------------------------------------------------------

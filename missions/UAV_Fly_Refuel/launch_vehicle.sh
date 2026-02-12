@@ -92,6 +92,11 @@ if [ $? -ne 0 ]; then exit 1; fi
 LOG_ENABLED=$(get_global_val $CONFIG_FILE "missionParams.log_enabled")
 if [ $? -ne 0 ]; then exit 1; fi
 
+LAT_ORIGIN=$(get_global_val $CONFIG_FILE moos.datum.lat)
+if [ $? -ne 0 ]; then exit 1; fi
+LON_ORIGIN=$(get_global_val $CONFIG_FILE moos.datum.lon)
+if [ $? -ne 0 ]; then exit 1; fi
+
 #-------------------------------------------------------
 #  Part 2: Check for and handle command-line arguments
 #-------------------------------------------------------

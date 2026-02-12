@@ -192,8 +192,10 @@ ProcessConfig = pMarineViewer
   CommsTick  = 4
 
 
-  tiff_file            = Montreal.tif
+  tiff_file            = ../../tile/Montreal.tif
   zoom                 = 2
+  set_pan_x            = -1922 // To get over the airport
+  set_pan_y            = -1369 // To get over the airport
   log_the_image = true
 
   beat_flag = HEARTBEAT_ALL=true
