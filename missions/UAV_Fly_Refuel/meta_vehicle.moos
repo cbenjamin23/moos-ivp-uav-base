@@ -119,7 +119,6 @@ ProcessConfig = uFldMessageHandler
 
   strict_addressing = false
 
-
 }
 
 //--------------------------------------------------
