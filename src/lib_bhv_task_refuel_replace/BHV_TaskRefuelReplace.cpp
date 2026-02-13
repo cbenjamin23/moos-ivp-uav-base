@@ -30,6 +30,7 @@ BHV_TaskRefuelReplace::BHV_TaskRefuelReplace(IvPDomain domain) :
   m_region_y_set = false;
 
   m_priority_weight   = 1.0;
+  m_requester         = "";
 
   m_planning_horizon  = 600;    // 10 min
   m_opw               = 0.3;    // opportunity cost weight
@@ -80,6 +81,10 @@ bool BHV_TaskRefuelReplace::setParam(string param, string value)
   // Priority weight (from MISSION_TASK spawn details)
   else if(param == "priority_weight")
     return(setNonNegDoubleOnString(m_priority_weight, value));
+  else if(param == "requester") {
+    m_requester = value;
+    return(true);
+  }
 
   // Bid formula tuning (from .bhv config)
   else if(param == "planning_horizon")

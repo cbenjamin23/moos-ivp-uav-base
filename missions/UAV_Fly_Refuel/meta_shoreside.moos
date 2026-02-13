@@ -311,8 +311,6 @@ ProcessConfig = uFldShoreBroker
 
   qbridge = MISSION_TASK
 
-  bridge  = src=FUEL_DISTANCE_REMAINING
-
   bridge  = src=NEXT_WAYPOINT
   bridge  = src=REGION_INFO
 
@@ -589,4 +587,3 @@ ProcessConfig = pMarineViewer
 
 
 } 
-

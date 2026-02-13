@@ -7,7 +7,7 @@ simulation:
   number_of_drones: 3
 
   # Refuel/Replace parameters
-  refuel_total_range: 3000       # meters total distance on full "tank"
+  refuel_total_range: 2000       # meters total distance on full "tank"
   refuel_threshold: 1000         # meters odometry at which to request replacement
   # Vehicle roles
   num_scout_drones: 1            # first N drones are scouts (deployed immediately)
@@ -129,7 +129,7 @@ drones:
     color: "orange"
     start_orientaton_moos: # +x is east, +y is north [m] !!MOOS seems to double the distance,  so 50m east is a distance of 100 in MOOS!!
       x: 0
-      y: 0
+      y: 200
       hdg: 46 # deg
     # simulation: # Can be automated away (for now it is hardcoded)
     #   ardupilot_port: 14550
@@ -139,7 +139,7 @@ drones:
     color: "hotpink"
     start_orientaton_moos: # +x is east, +y is north [m]
       x: -100
-      y: -5
+      y: 200
       hdg: 36 # deg
     # simulation:
     #   ardupilot_port: 14560
@@ -149,7 +149,7 @@ drones:
     color: "purple"
     start_orientaton_moos: # +x is east, +y is north [m]
       x: 100
-      y: -5
+      y: 200
       hdg: 56 # deg
     # simulation:
     #   ardupilot_port: 14570

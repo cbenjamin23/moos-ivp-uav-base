@@ -144,8 +144,7 @@ ProcessConfig = uFldNodeBroker
   bridge = src=NODE_REPORT_LOCAL,  alias=NODE_REPORT
   bridge = src=NODE_MESSAGE_LOCAL, alias=NODE_MESSAGE
 	bridge = src=VIEW_COMMS_PULSE
-  bridge = src=MISSION_TASK
-  bridge = src=FUEL_DISTANCE_REMAINING
+  bridge = src=MISSION_TASK_ALL
 
   bridge = src=REALMCAST
   bridge = src=REALMCAST_CHANNELS
@@ -178,7 +177,7 @@ ProcessConfig = pContactMgrV20
   decay = 30,60  // Policy for linear extrapolation of stale contacts. Last for 30 seconds (then decay speed to 0m/s at 60 seconds - Not possible)
   contact_local_coords = force_lat_lon
   contact_max_age = 35
-  reject_range   = 2000      // default is 2000 (meter)                               
+  reject_range   = 5500      // match shoreside uFldNodeComms comms_range                               
   recap_interval = 1         // default in 1 (second)    
 
   contact_max_age  = 600             // 600 default in secs.       
@@ -264,6 +263,7 @@ ProcessConfig = pRefuelReplace
   vname             = $(VNAME)
   total_range       = $(REFUEL_TOTAL_RANGE)
   refuel_threshold  = $(REFUEL_THRESHOLD)
+  handoff_radius    = 50
 }
 
 //--------------------------------------------------
@@ -333,4 +333,3 @@ ProcessConfig = pArduBridge
 }
 
 #endif
-
