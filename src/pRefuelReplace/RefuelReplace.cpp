@@ -65,6 +65,21 @@ bool RefuelReplace::OnNewMail(MOOSMSG_LIST &NewMail)
 {
   AppCastingMOOSApp::OnNewMail(NewMail);
 
+  auto readNumeric = [&](const CMOOSMsg& msg, double& out) -> bool {
+    if(msg.IsDouble()) {
+      out = msg.GetDouble();
+      return(true);
+    }
+    if(msg.IsString()) {
+      string sval = stripBlankEnds(msg.GetString());
+      if(isNumber(sval)) {
+        out = atof(sval.c_str());
+        return(true);
+      }
+    }
+    return(false);
+  };
+
   for (auto &msg : NewMail) {
     const string &key = msg.GetKey();
 
@@ -80,16 +95,29 @@ bool RefuelReplace::OnNewMail(MOOSMSG_LIST &NewMail)
       m_odometry_dist = msg.GetDouble();
       m_got_odom = true;
     }
+    else if (key == "ODOMETRY_RESET") {
+      // Reset task sent latch if odometry resets (e.g. after refuel)
+      m_task_sent = false;
+      m_region_set = false;
+    }
     else if (key == "OWN_REGION_WEIGHT") {
-      m_priority_weight = msg.GetDouble();
+      double val = 0;
+      if(readNumeric(msg, val))
+        m_priority_weight = val;
     }
     else if (key == "OWN_REGION_X") {
-      m_region_x = msg.GetDouble();
-      m_region_set = true;
+      double val = 0;
+      if(readNumeric(msg, val)) {
+        m_region_x = val;
+        m_region_set = true;
+      }
     }
     else if (key == "OWN_REGION_Y") {
-      m_region_y = msg.GetDouble();
-      m_region_set = true;
+      double val = 0;
+      if(readNumeric(msg, val)) {
+        m_region_y = val;
+        m_region_set = true;
+      }
     }
     else if (key == "TASK_REFUEL") {
       processTaskRefuel(msg.GetString());
@@ -154,6 +182,10 @@ bool RefuelReplace::Iterate()
     // Use configured region point; fall back to current position
     double rx = m_region_set ? m_region_x : m_nav_x;
     double ry = m_region_set ? m_region_y : m_nav_y;
+    // add a warning flag if m_region_set is false and we're using current position as region center?
+    if(!m_region_set) {
+      reportRunWarning("Region not set, using current position as region center for task: " + id);
+    }
 
     ostringstream os;
     os << "type=refuelreplace,"
@@ -176,7 +208,7 @@ bool RefuelReplace::Iterate()
 
     // 3) Explicit team broadcast via NodeComms -> MessageHandler path.
     //    This delivers MISSION_TASK directly into each teammate MOOSDB.
-    // May need to improve on this message sending approach
+    // May need to improve on this message sending approach to use pShare soon 
     NodeMessage nmsg;
     nmsg.setSourceNode(m_host_community);
     nmsg.setSourceApp("pRefuelReplace");
@@ -191,6 +223,7 @@ bool RefuelReplace::Iterate()
     m_task_sent = true;
   }
 
+  // Check if we need to send return handoff messages for any tasks we've won but not yet sent a handoff for.
   if(have_nav) {
     for(auto& entry : m_task_records) {
       const string task_hash = entry.first;
@@ -281,6 +314,7 @@ void RefuelReplace::registerVariables()
   Register("OWN_REGION_WEIGHT", 0); 
   Register("TASK_REFUEL", 0);
   Register("TASK_STATE", 0);
+  Register("ODOMETRY_RESET", 0);
 }
 
 //---------------------------------------------------------

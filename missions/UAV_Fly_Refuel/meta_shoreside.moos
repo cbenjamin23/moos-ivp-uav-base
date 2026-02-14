@@ -342,8 +342,8 @@ ProcessConfig = pMarineViewer
 
   tiff_file            = ../../tiles/Montreal.tif
   zoom                 = 0.5
-  //set_pan_x            = -1922 // To get over the airport
-  //set_pan_y            = -1369 // To get over the airport
+  set_pan_x            = 100 // To get over the airport
+  set_pan_y            = -1000 // To get over the airport
   log_the_image = true
 
   beat_flag = HEARTBEAT_ALL=true
@@ -391,7 +391,7 @@ ProcessConfig = pMarineViewer
   ////////////////////////////////////////////////
 
   bearing_lines_viewable  = true
-  center_view             = average
+  //center_view             = average
   trails_color            = white
   trails_point_size       = 5.0
 

@@ -192,6 +192,8 @@ vector<VarDataPair> BHV_TaskRefuelReplace::applyFlagMacros(vector<VarDataPair> f
       string sdata = flags[i].get_sdata();
       sdata = macroExpand(sdata, "REGION_X", rx_str);
       sdata = macroExpand(sdata, "REGION_Y", ry_str);
+      sdata = macroExpand(sdata, "PRIORITY_WEIGHT",
+                          doubleToStringX(m_priority_weight, 2));
       flags[i].set_sdata(sdata, true);
     }
   }

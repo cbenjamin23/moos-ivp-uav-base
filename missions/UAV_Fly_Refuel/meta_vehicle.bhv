@@ -76,6 +76,7 @@ initialize BHV_MODE = INACTIVE
 
 
 
+#ifdef USE_MOOS_SIM_PID false
 set BHV_MODE = TOWAYPT {
   BHV_MODE = ACTIVE
   AUTOPILOT_MODE = HELM_TOWAYPT
@@ -95,6 +96,7 @@ set BHV_MODE = VORONOI {
   BHV_MODE = ACTIVE
   AUTOPILOT_MODE = HELM_VORONOI
 } 
+#endif
 
 
 //----------------------------------------------
@@ -122,6 +124,7 @@ team_by_group = true // e.g. all planes defined by something like platform_group
    bidwonflag = LOITER_UPDATE = center_assign=$[REGION_X],$[REGION_Y]
    bidwonflag = OWN_REGION_X = $[REGION_X]
    bidwonflag = OWN_REGION_Y = $[REGION_Y]
+   bidwonflag = OWN_REGION_WEIGHT = $[PRIORITY_WEIGHT]
 }
 
 //----------------------------------------------
@@ -197,7 +200,7 @@ Behavior = BHV_Loiter
         radius = 8.0
      nm_radius = 15.0
 
-     center_activate = true
+     center_activate = false
 
        polygon = radial:: x=0, y=0, radius=40, pts=8, snap=1, label=$(VNAME)_LOITER
   visual_hints = nextpt_color=white, nextpt_lcolor=khaki
