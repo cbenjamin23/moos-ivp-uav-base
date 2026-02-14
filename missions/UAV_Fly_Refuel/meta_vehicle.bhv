@@ -120,6 +120,8 @@ team_by_group = true // e.g. all planes defined by something like platform_group
    bidwonflag = RETURN = false
    bidwonflag = DO_SURVEY = false
    bidwonflag = LOITER_UPDATE = center_assign=$[REGION_X],$[REGION_Y]
+   bidwonflag = OWN_REGION_X = $[REGION_X]
+   bidwonflag = OWN_REGION_Y = $[REGION_Y]
 }
 
 //----------------------------------------------
@@ -274,8 +276,8 @@ Behavior = BHV_Waypoint
 
 
            speed = $(SPEED)
-  capture_radius = 150
-     slip_radius = 170
+  capture_radius = 80
+     slip_radius = 100
 
 	         point = $(START_POS)
 

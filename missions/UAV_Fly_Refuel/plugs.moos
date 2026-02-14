@@ -156,7 +156,7 @@ ProcessConfig = uSimMarineV22
 	thrust_map = 100:$(SPEED)
   thrust_reflect = true
 
-
+  max_deceleration = 4
 
 	//turn_rate = 5 // when max_speed is 5 this is good
 	

@@ -3,12 +3,12 @@
 # Global simulation parameters
 simulation:
   useMoosSimPid: true # Use MOOS-IvP Vechicle simulator
-  time_warp: 5
+  time_warp: 8
   number_of_drones: 3
 
   # Refuel/Replace parameters
   refuel_total_range: 2000       # meters total distance on full "tank"
-  refuel_threshold: 1000         # meters odometry at which to request replacement
+  refuel_threshold: 1225         # meters odometry at which to request replacement
   # Vehicle roles
   num_scout_drones: 1            # first N drones are scouts (deployed immediately)
   num_refuel_drones: 2           # next N drones are refuel-replacements (held in reserve)
