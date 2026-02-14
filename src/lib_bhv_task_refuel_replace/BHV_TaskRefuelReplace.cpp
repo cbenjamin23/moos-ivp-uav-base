@@ -130,8 +130,18 @@ void BHV_TaskRefuelReplace::onIdleState()
 
 IvPFunction *BHV_TaskRefuelReplace::onRunState()
 {
+  const bool was_bidwon = (m_task_state == "bidwon");
   updatePlatformInfo();
   IvPTaskBehavior::onGeneralRunState();
+
+  // Ensure region ownership vars are posted when this behavior wins.
+  // This avoids relying solely on bidwonflag macro handling.
+  if(!was_bidwon && (m_task_state == "bidwon")) {
+    postRepeatableMessage("OWN_REGION_X", m_region_x);
+    postRepeatableMessage("OWN_REGION_Y", m_region_y);
+    postRepeatableMessage("OWN_REGION_WEIGHT", m_priority_weight);
+  }
+
   return(0);
 }
 

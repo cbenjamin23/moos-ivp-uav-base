@@ -42,6 +42,7 @@ RefuelReplace::RefuelReplace()
   m_priority_weight = 1.0;
 
   // State
+  m_waiting_for_odom_reset = false;
   m_task_sent = false;
   m_task_id_counter = 0;
 
@@ -96,9 +97,19 @@ bool RefuelReplace::OnNewMail(MOOSMSG_LIST &NewMail)
       m_got_odom = true;
     }
     else if (key == "ODOMETRY_RESET") {
-      // Reset task sent latch if odometry resets (e.g. after refuel)
-      m_task_sent = false;
-      m_region_set = false;
+      bool do_reset = false;
+      if(msg.IsDouble()) {
+        do_reset = (msg.GetDouble() != 0.0);
+      }
+      else if(msg.IsString()) {
+        string sval = tolower(stripBlankEnds(msg.GetString()));
+        do_reset = (sval == "true") || (sval == "1") || (sval == "reset");
+      }
+
+      // Arm re-latching logic; clear m_task_sent only after odometry
+      // has actually dropped to a low value on a subsequent update.
+      if(do_reset)
+        m_waiting_for_odom_reset = true;
     }
     else if (key == "OWN_REGION_WEIGHT") {
       double val = 0;
@@ -165,8 +176,19 @@ bool RefuelReplace::Iterate()
     Notify("FUEL_DISTANCE_REMAINING", m_fuel_distance_remaining);
   }
 
+  // After a reset command, wait for odometry to actually drop low
+  // before allowing the next threshold-triggered task.
+  if(m_waiting_for_odom_reset && have_odom) {
+    const double odom_reset_clear_thresh = 50.0;
+    if(m_odometry_dist <= odom_reset_clear_thresh) {
+      m_task_sent = false;
+      m_waiting_for_odom_reset = false;
+    }
+  }
+
   // Trigger task once when odometry reaches threshold
   if (!m_task_sent &&
+      !m_waiting_for_odom_reset &&
       (m_refuel_threshold > 0.0) &&
       have_nav && have_odom &&
       (m_odometry_dist >= m_refuel_threshold))
@@ -468,6 +490,7 @@ bool RefuelReplace::buildReport()
   table << "priority_weight"     << doubleToStringX(m_priority_weight, 2);
   table << "region_set"          << (m_region_set ? "true" : "false");
   table << "got_odom"             << (m_got_odom  ? "true" : "false");
+  table << "waiting_odom_reset"   << (m_waiting_for_odom_reset ? "true" : "false");
   table << "task_sent"            << (m_task_sent ? "true" : "false");
   table << "next_task_id_counter" << intToString(m_task_id_counter);
   table << "tracked_tasks"         << uintToString((unsigned int)m_task_records.size());

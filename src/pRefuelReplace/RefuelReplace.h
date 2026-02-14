@@ -77,6 +77,7 @@ class RefuelReplace : public AppCastingMOOSApp
   bool m_got_nav_y;
   bool m_got_odom;
 
+  bool m_waiting_for_odom_reset;
   bool m_task_sent;              // latch so we only post once
   int  m_task_id_counter;        // rr0, rr1, rr2, ...
 };
