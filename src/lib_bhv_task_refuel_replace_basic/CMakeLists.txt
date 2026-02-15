@@ -1,6 +1,6 @@
 #--------------------------------------------------------
-# The CMakeLists.txt for:     lib_bhv_task_refuel_replace
-# Author(s):                             Charles Benjamin     
+# The CMakeLists.txt for:     lib_bhv_task_refuel_replace_basic
+# Author(s):                             Charles Benjamin
 #--------------------------------------------------------
 
 # Set System Specific Libraries
@@ -15,25 +15,24 @@ else (${WIN32})
 endif (${WIN32})
 
 #--------------------------------------------------------
-#                                   BHV_TaskRefuelReplace
+#                                   BHV_TaskRefuelReplaceBasic
 #--------------------------------------------------------
-ADD_LIBRARY(BHV_TaskRefuelReplace SHARED 
-   BHV_TaskRefuelReplace.cpp )
+ADD_LIBRARY(BHV_TaskRefuelReplaceBasic SHARED
+   BHV_TaskRefuelReplaceBasic.cpp )
 
-TARGET_INCLUDE_DIRECTORIES(BHV_TaskRefuelReplace PUBLIC
+TARGET_INCLUDE_DIRECTORIES(BHV_TaskRefuelReplaceBasic PUBLIC
   ${MOOSIVP_SWARM_TREE_BASE}/src/lib_helmtask
 )
-TARGET_LINK_LIBRARIES(BHV_TaskRefuelReplace
+TARGET_LINK_LIBRARIES(BHV_TaskRefuelReplaceBasic
    helmtask
    ufield
    helmivp
    contacts
-   behaviors 
-   ivpbuild 
-   logic 
-   ivpcore 
-   bhvutil 
-   mbutil 
-   geometry 
+   behaviors
+   ivpbuild
+   logic
+   ivpcore
+   bhvutil
+   mbutil
+   geometry
    ${SYSTEM_LIBS} )
-

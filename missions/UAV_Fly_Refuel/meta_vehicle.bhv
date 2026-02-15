@@ -100,14 +100,14 @@ set BHV_MODE = VORONOI {
 
 
 //----------------------------------------------
-Behavior = BHV_TaskRefuelReplace
+Behavior = BHV_TaskRefuelReplaceTarget
 {
-       name = task_refuel_
-    updates = TASK_REFUEL
+       name = task_refuel_target_
+    updates = TASK_REFUEL_TARGET
  templating = spawn
   //condition = DEPLOY!=true
 
-         type = refuelreplace
+         type = refuelreplace_target
  max_bid_wins = true
    team_range = 5500 // default is 250 way too limiting
 team_by_group = true // e.g. all planes defined by something like platform_group = drone
@@ -116,15 +116,39 @@ team_by_group = true // e.g. all planes defined by something like platform_group
    planning_horizon = 600
    opw              = 0.3
 
+   fuel_abstain_threshold = 0
    // When this vehicle wins the bid:
    bidwonflag = DEPLOY = false
    bidwonflag = LOITER = true
    bidwonflag = RETURN = false
    bidwonflag = DO_SURVEY = false
-   bidwonflag = LOITER_UPDATE = center_assign=$[REGION_X],$[REGION_Y]
-   bidwonflag = OWN_REGION_X = $[REGION_X]
-   bidwonflag = OWN_REGION_Y = $[REGION_Y]
-   bidwonflag = OWN_REGION_WEIGHT = $[PRIORITY_WEIGHT]
+   bidwonflag = LOITER_UPDATE = center_assign=$[TARGET_X],$[TARGET_Y]
+   bidwonflag = OWN_TARGET_X = $[TARGET_X]
+   bidwonflag = OWN_TARGET_Y = $[TARGET_Y]
+   bidwonflag = OWN_TARGET_WEIGHT = $[PRIORITY_WEIGHT]
+}
+
+//----------------------------------------------
+Behavior = BHV_TaskRefuelReplaceBasic
+{
+       name = task_refuel_basic_
+    updates = TASK_REFUEL_BASIC
+ templating = spawn
+
+         type = refuelreplace_basic
+ max_bid_wins = true
+   team_range = 5500 // default is 250 way too limiting
+team_by_group = true // e.g. all planes defined by something like platform_group = drone
+
+   fuel_abstain_threshold = 0
+   distance_tiebreak_weight = 0.001
+
+   // When this vehicle wins the bid, put it in VORONOI mode
+   // (DEPLOY=true with non-return/non-loiter/non-survey flags).
+   bidwonflag = DEPLOY = true
+   bidwonflag = RETURN = false
+   bidwonflag = DO_SURVEY = false
+   bidwonflag = LOITER = false
 }
 
 //----------------------------------------------
@@ -336,7 +360,7 @@ Behavior = BHV_AvoidCollision
 
 
 // //----------------------------------------------
-// Behavior = BHV_OpRegionRecover
+// Behavior = BHV_OpTargetRecover
 // {
 //   name         = recover
 //   pwt          = 300
@@ -350,8 +374,8 @@ Behavior = BHV_AvoidCollision
 // 	// pav90 explicitly
 //   // polygon = pts={60,10:-75.54,-54.256:-36.987,-135.58:98.554,-71.324}
 
-// 	// Prefer to get the rescue region from uFldRescuMgr
-// 	dynamic_region_var = RESCUE_REGION
+// 	// Prefer to get the rescue target from uFldRescuMgr
+// 	dynamic_target_var = RESCUE_TARGET
 	
 // 	buffer_dist = 10
 	

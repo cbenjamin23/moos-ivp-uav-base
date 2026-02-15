@@ -262,7 +262,7 @@ ProcessConfig = pRefuelReplace
   vname             = $(VNAME)
   total_range       = $(REFUEL_TOTAL_RANGE)
   refuel_threshold  = $(REFUEL_THRESHOLD)
-  handoff_radius    = 60
+  handoff_radius    = 80
 }
 
 //--------------------------------------------------

@@ -1,26 +1,26 @@
 /*****************************************************************/
 /*    NAME: Charles Benjamin                                     */
 /*    ORGN: Dept of Mechanical Engineering, MIT, Cambridge MA    */
-/*    FILE: BHV_TaskRefuelReplace.h                              */
-/*    DATE: Jan 31st 2026                                        */
+/*    FILE: BHV_TaskRefuelReplaceBasic.h                         */
+/*    DATE: Feb 15th 2026                                        */
 /*                                                               */
 /* This is unreleased BETA code. No permission is granted or     */
 /* implied to use, copy, modify, and distribute this software    */
 /* except by the author(s), or those designated by the author.   */
 /*****************************************************************/
- 
-#ifndef BHV_TASK_REFUEL_REPLACE_HEADER
-#define BHV_TASK_REFUEL_REPLACE_HEADER
+
+#ifndef BHV_TASK_REFUEL_REPLACE_BASIC_HEADER
+#define BHV_TASK_REFUEL_REPLACE_BASIC_HEADER
 
 #include <string>
 #include <vector>
 #include "IvPTaskBehavior.h"
 
 class IvPDomain;
-class BHV_TaskRefuelReplace : public IvPTaskBehavior {
+class BHV_TaskRefuelReplaceBasic : public IvPTaskBehavior {
 public:
-  BHV_TaskRefuelReplace(IvPDomain);
-  ~BHV_TaskRefuelReplace() {}
+  BHV_TaskRefuelReplaceBasic(IvPDomain);
+  ~BHV_TaskRefuelReplaceBasic() {}
 
   // IvPTaskBehavior virtuals
   void   onHelmStart();
@@ -38,37 +38,26 @@ public:
 
  protected:  // Config params
 
-  // Region being bid on (from MISSION_TASK details)
-  double m_region_x;
-  double m_region_y;
-  bool   m_region_x_set;
-  bool   m_region_y_set;
-
-  // Priority weight of the task region (from MISSION_TASK details)
-  double m_priority_weight;
-  std::string m_requester;      // requester vehicle (optional passthrough)
-
-  // Bid formula tuning (from .bhv config)
-  double m_planning_horizon;    // H  (seconds)
-  double m_opw;                 // opportunity-cost weight
+  // A very small distance penalty used only as a bid tie-breaker.
+  double m_distance_tiebreak_weight;
+  double m_fuel_abstain_threshold;
 
  protected:  // State vars (read from MOOSDB)
 
   double m_fuel_dist_remaining;
-  bool   m_got_fuel;
-
-  double m_own_region_weight;   // 0 if not loitering an AOI
-  bool   m_got_own_region_weight;
+  bool   m_got_fuel_input;
+  bool   m_returning_mode;
+  bool   m_refuel_transit_busy;
 };
 
 #ifdef WIN32
-   #define IVP_EXPORT_FUNCTION __declspec(dllexport) 
+   #define IVP_EXPORT_FUNCTION __declspec(dllexport)
 #else
    #define IVP_EXPORT_FUNCTION
 #endif
 
 extern "C" {
-  IVP_EXPORT_FUNCTION IvPBehavior * createBehavior(std::string name, IvPDomain domain) 
-  {return new BHV_TaskRefuelReplace(domain);}
+  IVP_EXPORT_FUNCTION IvPBehavior * createBehavior(std::string name, IvPDomain domain)
+  {return new BHV_TaskRefuelReplaceBasic(domain);}
 }
 #endif

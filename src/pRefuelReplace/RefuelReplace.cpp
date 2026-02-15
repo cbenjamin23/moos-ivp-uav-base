@@ -16,6 +16,17 @@
 
 using namespace std;
 
+// pRefuelReplace overview:
+// 1) Publishes FUEL_DISTANCE_REMAINING each iterate from total_range - odometry.
+// 2) Posts replacement tasks when either:
+//    - refuel threshold is crossed (one-shot per reset cycle), or
+//    - a REFUEL_DISCOVERY_REQUEST arrives (fire-id deduped + age-limited).
+//    Posting checks require nav/odom readiness and no active replacement lock.
+// 3) Tracks TASK_STATE for spawned tasks and infers winner identity from payload
+//    (or source metadata fallback), then enforces a single active replacement lock.
+// 4) For target tasks, sends return handoff when within handoff_radius; lock is
+//    released on handoff completion, basic-return completion, or timeout fallback.
+
 //---------------------------------------------------------
 // Constructor()
 
@@ -29,22 +40,36 @@ RefuelReplace::RefuelReplace()
   m_got_nav_x = false;
   m_got_nav_y = false;
   m_got_odom  = false;
+  m_returning_mode = false;
 
   // Config
   m_refuel_threshold = 0.0;   // meters; disabled if <= 0
   m_total_range      = 0.0;   // meters; total range on full fuel
   m_handoff_radius   = 50.0;  // meters
+  // Lock timeout protects against wedged transit-busy state.
+  m_replacement_lock_timeout = 600.0; // seconds
+  // Discovery queue guards: stale-request drop + fire-id cooldown dedupe.
+  m_discovery_request_timeout = 30.0; // seconds
+  m_discovery_repost_cooldown = 60.0; // seconds
 
-  // Region this vehicle covers
-  m_region_x = 0;
-  m_region_y = 0;
-  m_region_set = false;
+  // Target this vehicle covers
+  m_target_x = 0;
+  m_target_y = 0;
+  m_target_set = false;
   m_priority_weight = 1.0;
 
   // State
   m_waiting_for_odom_reset = false;
   m_task_sent = false;
   m_task_id_counter = 0;
+  // Empty hash means this vehicle is not committed to any replacement task.
+  m_active_replacement_hash = "";
+  m_active_replacement_type = "";
+  m_active_replacement_time = 0.0;
+  m_active_replacement_return_started = false;
+  // Discovery-triggered posting is queued to keep mail handling lightweight.
+  m_pending_discovery_fire_id = "";
+  m_pending_discovery_utc = 0.0;
 
   // Task Helper
   // This should be set to vname by param
@@ -96,6 +121,19 @@ bool RefuelReplace::OnNewMail(MOOSMSG_LIST &NewMail)
       m_odometry_dist = msg.GetDouble();
       m_got_odom = true;
     }
+    else if (key == "RETURN") {
+      // Used by lock-release logic for basic replacement tasks.
+      if(msg.IsDouble()) {
+        m_returning_mode = (msg.GetDouble() != 0.0);
+      }
+      else if(msg.IsString()) {
+        string sval = tolower(stripBlankEnds(msg.GetString()));
+        if((sval == "true") || (sval == "1") || (sval == "on"))
+          m_returning_mode = true;
+        else if((sval == "false") || (sval == "0") || (sval == "off"))
+          m_returning_mode = false;
+      }
+    }
     else if (key == "ODOMETRY_RESET") {
       bool do_reset = false;
       if(msg.IsDouble()) {
@@ -111,30 +149,77 @@ bool RefuelReplace::OnNewMail(MOOSMSG_LIST &NewMail)
       if(do_reset)
         m_waiting_for_odom_reset = true;
     }
-    else if (key == "OWN_REGION_WEIGHT") {
+    else if (key == "TASK_RESET") {
+      // Legacy reset path (still supported): explicitly unlatch threshold posting.
+      bool do_reset = false;
+      if(msg.IsDouble()) {
+        do_reset = (msg.GetDouble() != 0.0);
+      }
+      else if(msg.IsString()) {
+        string sval = tolower(stripBlankEnds(msg.GetString()));
+        do_reset = (sval == "true") || (sval == "1") || (sval == "reset");
+      }
+
+      if(do_reset) {
+        m_task_sent = false;
+      }
+    }
+    else if (key == "TARGET_RESET") {
+      bool do_reset = false;
+      if(msg.IsDouble()) {
+        do_reset = (msg.GetDouble() != 0.0);
+      }
+      else if(msg.IsString()) {
+        string sval = tolower(stripBlankEnds(msg.GetString()));
+        do_reset = (sval == "true") || (sval == "1") || (sval == "reset");
+      }
+
+      if(do_reset) {
+        m_target_set = false;
+      }
+    }
+    else if (key == "REFUEL_DISCOVERY_REQUEST") {
+      // Discovery-driven replacement requests are queued and processed in Iterate()
+      // so posting decisions can use up-to-date nav/odom/lock state together.
+      string spec = normalizeTaskSpec(msg.GetString());
+      string fire_id = stripBlankEnds(tokStringParse(spec, "fire_id"));
+      if(fire_id == "")
+        fire_id = stripBlankEnds(msg.GetString());
+      if(fire_id == "")
+        fire_id = "unknown";
+
+      m_pending_discovery_fire_id = fire_id;
+      m_pending_discovery_utc = MOOSTime();
+      reportEvent("Queued discovery replacement request: fire_id=" + fire_id);
+    }
+    else if (key == "OWN_TARGET_WEIGHT") {
       double val = 0;
       if(readNumeric(msg, val))
         m_priority_weight = val;
     }
-    else if (key == "OWN_REGION_X") {
+    else if (key == "OWN_TARGET_X") {
       double val = 0;
       if(readNumeric(msg, val)) {
-        m_region_x = val;
-        m_region_set = true;
+        m_target_x = val;
+        m_target_set = true;
       }
     }
-    else if (key == "OWN_REGION_Y") {
+    else if (key == "OWN_TARGET_Y") {
       double val = 0;
       if(readNumeric(msg, val)) {
-        m_region_y = val;
-        m_region_set = true;
+        m_target_y = val;
+        m_target_set = true;
       }
     }
-    else if (key == "TASK_REFUEL") {
-      processTaskRefuel(msg.GetString());
+    else if (key == "TASK_REFUEL_TARGET") {
+      processTaskRefuelTarget(msg.GetString());
+    }
+    else if (key == "TASK_REFUEL_BASIC") {
+      processTaskRefuelTarget(msg.GetString());
     }
     else if (key == "TASK_STATE") {
-      processTaskState(msg.GetString());
+      // Include source metadata; older TASK_STATE payloads may omit explicit winner.
+      processTaskState(msg.GetString(), msg.GetSource(), msg.GetCommunity());
     }
     else if (key != "APPCAST_REQ") {
       reportRunWarning("Unhandled Mail: " + key);
@@ -159,8 +244,9 @@ bool RefuelReplace::OnConnectToServer()
 // Every tick: publish local FUEL_DISTANCE_REMAINING so this
 // vehicle's task behavior can evaluate its own feasibility.
 //
-// When odometry hits the refuel threshold: post a MISSION_TASK
-// of type=refuelreplace carrying the region that needs coverage.
+// When odometry hits the refuel threshold: post a MISSION_TASK.
+// If target is set, request target-based replacement. Otherwise request
+// basic replacement.
 
 bool RefuelReplace::Iterate()
 {
@@ -186,6 +272,54 @@ bool RefuelReplace::Iterate()
     }
   }
 
+  // Handle fire-discovery-triggered replacement request. This path is
+  // independent of the threshold latch and intentionally one-shot per fire
+  // within a cooldown window.
+  if(m_pending_discovery_fire_id != "") {
+    double now = MOOSTime();
+    double age = now - m_pending_discovery_utc;
+    if((m_discovery_request_timeout > 0.0) && (age > m_discovery_request_timeout)) {
+      reportRunWarning("Dropping stale discovery request: fire_id=" +
+                       m_pending_discovery_fire_id);
+      m_pending_discovery_fire_id = "";
+      m_pending_discovery_utc = 0.0;
+    }
+    else {
+      const string fire_id = m_pending_discovery_fire_id;
+      bool recently_posted = false;
+      if(m_last_discovery_post_utc.count(fire_id) > 0) {
+        double dt = now - m_last_discovery_post_utc[fire_id];
+        recently_posted =
+          (m_discovery_repost_cooldown > 0.0) && (dt < m_discovery_repost_cooldown);
+      }
+
+      if(recently_posted) {
+        // Same fire can re-notify rapidly; suppress duplicate team auctions.
+        reportEvent("Skipping duplicate discovery-triggered replacement: fire_id=" +
+                    fire_id);
+        m_pending_discovery_fire_id = "";
+        m_pending_discovery_utc = 0.0;
+      }
+      else if(have_odom &&
+              ((m_refuel_threshold <= 0.0) ||
+               (m_odometry_dist < m_refuel_threshold))) {
+        // Discovery-triggered replacement is only intended once this vehicle
+        // is in replacement-needed territory (same threshold semantics).
+        reportEvent("Ignoring discovery-triggered replacement below threshold: fire_id=" +
+                    fire_id);
+        m_pending_discovery_fire_id = "";
+        m_pending_discovery_utc = 0.0;
+      }
+      else if((m_active_replacement_hash == "") && have_nav && have_odom) {
+        // Post only if this vehicle is not already committed to another replacement.
+        if(postReplacementTask("discovery_fire_" + fire_id, true))
+          m_last_discovery_post_utc[fire_id] = now;
+        m_pending_discovery_fire_id = "";
+        m_pending_discovery_utc = 0.0;
+      }
+    }
+  }
+
   // Trigger task once when odometry reaches threshold
   if (!m_task_sent &&
       !m_waiting_for_odom_reset &&
@@ -193,56 +327,8 @@ bool RefuelReplace::Iterate()
       have_nav && have_odom &&
       (m_odometry_dist >= m_refuel_threshold))
   {
-    string id = m_host_community + "_rr" + intToString(m_task_id_counter++);
-
-    double utc = MOOSTime();
-
-    long utc_int  = (long)(MOOSTime() * 100);
-    long utc_tail = utc_int % 100000;
-    string hash = "rr_" + id + "_" + intToString((int)utc_tail);
-
-    // Use configured region point; fall back to current position
-    double rx = m_region_set ? m_region_x : m_nav_x;
-    double ry = m_region_set ? m_region_y : m_nav_y;
-    // add a warning flag if m_region_set is false and we're using current position as region center?
-    if(!m_region_set) {
-      reportRunWarning("Region not set, using current position as region center for task: " + id);
-    }
-
-    ostringstream os;
-    os << "type=refuelreplace,"
-       << "id=" << id << ","
-       << "utc=" << doubleToStringX(utc, 2) << ","
-       << "hash=" << hash << ","
-       << "exempt=" << m_host_community << ","
-       << "requester=" << m_host_community << ","
-       << "region_x=" << doubleToStringX(rx, 2) << ","
-       << "region_y=" << doubleToStringX(ry, 2) << ","
-       << "priority_weight=" << doubleToStringX(m_priority_weight, 2);
-
-    string task_spec = os.str();
-
-    // 1) Local consume by this vehicle's task manager.
-    Notify("MISSION_TASK", task_spec);
-
-    // 2) Keep shore qbridge path for compatibility.
-    //Notify("MISSION_TASK_ALL", task_spec);
-
-    // 3) Explicit team broadcast via NodeComms -> MessageHandler path.
-    //    This delivers MISSION_TASK directly into each teammate MOOSDB.
-    // May need to improve on this message sending approach to use pShare soon 
-    NodeMessage nmsg;
-    nmsg.setSourceNode(m_host_community);
-    nmsg.setSourceApp("pRefuelReplace");
-    nmsg.setDestNode("all");
-    nmsg.setVarName("MISSION_TASK");
-    nmsg.setStringVal(task_spec);
-    Notify("NODE_MESSAGE_LOCAL", nmsg.getSpec());
-
-    // Seed local task cache from the exact task payload we posted.
-    processTaskRefuel(task_spec);
-
-    m_task_sent = true;
+    // Standard threshold path remains one-shot per odometry-reset cycle.
+    postReplacementTask("threshold_refuel", false);
   }
 
   // Check if we need to send return handoff messages for any tasks we've won but not yet sent a handoff for.
@@ -250,18 +336,70 @@ bool RefuelReplace::Iterate()
     for(auto& entry : m_task_records) {
       const string task_hash = entry.first;
       TaskRecord& task = entry.second;
-      if(!task.bidwon_by_me || task.handoff_sent || !task.region_set)
+
+      // Enforce single active replacement: only service the currently locked task.
+      if((m_active_replacement_hash != "") && (task_hash != m_active_replacement_hash))
+        continue;
+
+      if(!task.bidwon_by_me || task.handoff_sent || !task.target_set)
         continue;
       if((task.requester == "") || (task.requester == m_host_community))
         continue;
 
-      double dist = hypot(m_nav_x - task.region_x, m_nav_y - task.region_y);
+      double dist = hypot(m_nav_x - task.target_x, m_nav_y - task.target_y);
       if(dist <= m_handoff_radius) {
+        // Handoff completion signal for target tasks: requester is told to return.
         notifyRequesterReturn(task.requester, task_hash);
         task.handoff_sent = true;
       }
     }
   }
+
+  // Maintain and release explicit active replacement lock.
+  if(m_active_replacement_hash != "") {
+    // Optional timeout guard against stale lock.
+    if((m_replacement_lock_timeout > 0.0) &&
+       ((MOOSTime() - m_active_replacement_time) > m_replacement_lock_timeout)) {
+      clearActiveReplacementLock("timeout");
+    }
+    // Active task disappeared from cache.
+    else if(m_task_records.count(m_active_replacement_hash) == 0) {
+      clearActiveReplacementLock("task_record_missing");
+    }
+    else {
+      TaskRecord& active = m_task_records[m_active_replacement_hash];
+      if((m_active_replacement_type == "") && (active.task_type != ""))
+        // Task type may arrive after bidwon in asynchronous mail order.
+        m_active_replacement_type = active.task_type;
+
+      // Identify "basic-like" tasks that have no handoff target. For these tasks
+      // we hold lock for the entire return leg rather than clearing on RETURN=true.
+      const bool basic_like_task =
+        (m_active_replacement_type == "refuelreplace_basic") ||
+        ((m_active_replacement_type == "") && !active.target_set);
+
+      // Mark that the active basic-like winner has started its return leg.
+      if(basic_like_task && m_returning_mode)
+        m_active_replacement_return_started = true;
+
+      // Any task with a completed handoff can release immediately.
+      if(active.handoff_sent) {
+        clearActiveReplacementLock("handoff_complete");
+      }
+      // Basic-like tasks only release once return completes (ODOMETRY_RESET path).
+      // This keeps REFUEL_TRANSIT_BUSY asserted while actively returning.
+      else if(basic_like_task &&
+              m_active_replacement_return_started &&
+              m_waiting_for_odom_reset) {
+        if(m_active_replacement_type == "refuelreplace_basic")
+          clearActiveReplacementLock("basic_return_complete");
+        else
+          clearActiveReplacementLock("unknown_basic_return_complete");
+      }
+    }
+  }
+  bool transit_busy = (m_active_replacement_hash != "");
+  Notify("REFUEL_TRANSIT_BUSY", transit_busy ? "true" : "false");
  
   AppCastingMOOSApp::PostReport();
   return true;
@@ -297,21 +435,30 @@ bool RefuelReplace::OnStartUp()
     else if (param == "vname") {
       handled = setNonWhiteVarOnString(m_host_community, value);
     }
-    // The region x/y and priority will probably be set in some other logic about
-    // the region this vehicle covers, but can set in config for now for testing
-    else if (param == "region_x") {
-      handled = setDoubleOnString(m_region_x, value);
-      if(handled) m_region_set = true;
+    // The target x/y and priority will probably be set in some other logic about
+    // the target this vehicle covers, but can set in config for now for testing
+    else if (param == "target_x") {
+      handled = setDoubleOnString(m_target_x, value);
+      if(handled) m_target_set = true;
     }
-    else if (param == "region_y") {
-      handled = setDoubleOnString(m_region_y, value);
-      if(handled) m_region_set = true;
+    else if (param == "target_y") {
+      handled = setDoubleOnString(m_target_y, value);
+      if(handled) m_target_set = true;
     }
     else if (param == "priority_weight") {
       handled = setNonNegDoubleOnString(m_priority_weight, value);
     }
     else if (param == "handoff_radius") {
       handled = setNonNegDoubleOnString(m_handoff_radius, value);
+    }
+    else if (param == "replacement_lock_timeout") {
+      handled = setNonNegDoubleOnString(m_replacement_lock_timeout, value);
+    }
+    else if (param == "discovery_request_timeout") {
+      handled = setNonNegDoubleOnString(m_discovery_request_timeout, value);
+    }
+    else if (param == "discovery_repost_cooldown") {
+      handled = setNonNegDoubleOnString(m_discovery_repost_cooldown, value);
     }
 
     if(!handled)
@@ -331,12 +478,118 @@ void RefuelReplace::registerVariables()
   Register("NAV_X", 0);
   Register("NAV_Y", 0);
   Register("ODOMETRY_DIST", 0);
-  Register("OWN_REGION_X", 0);      
-  Register("OWN_REGION_Y", 0);      
-  Register("OWN_REGION_WEIGHT", 0); 
-  Register("TASK_REFUEL", 0);
+  Register("OWN_TARGET_X", 0);      
+  Register("OWN_TARGET_Y", 0);      
+  Register("OWN_TARGET_WEIGHT", 0); 
+  Register("TASK_REFUEL_TARGET", 0);
+  Register("TASK_REFUEL_BASIC", 0);
+  // TASK_STATE arrives from spawned helm task behaviors on this platform.
   Register("TASK_STATE", 0);
   Register("ODOMETRY_RESET", 0);
+  Register("TASK_RESET", 0);
+  Register("TARGET_RESET", 0);
+  Register("REFUEL_DISCOVERY_REQUEST", 0);
+  Register("RETURN", 0);
+}
+
+//---------------------------------------------------------
+// Procedure: postReplacementTask()
+
+bool RefuelReplace::postReplacementTask(const string& trigger_reason,
+                                        bool bypass_task_latch)
+{
+  if(!bypass_task_latch && m_task_sent)
+    return(false);
+  if(!m_got_odom || !m_got_nav_x || !m_got_nav_y)
+    return(false);
+  if((!bypass_task_latch) && (m_odometry_dist < m_refuel_threshold))
+    return(false);
+
+  string id = m_host_community + "_rr" + intToString(m_task_id_counter++);
+  bool basic_task = false;
+
+  double utc = MOOSTime();
+
+  long utc_int  = (long)(utc * 100);
+  long utc_tail = utc_int % 100000;
+  string hash = "rr_" + id + "_" + intToString((int)utc_tail);
+
+  ostringstream os;
+  if(m_target_set) {
+    os << "type=refuelreplace_target,"
+       << "id=" << id << ","
+       << "utc=" << doubleToStringX(utc, 2) << ","
+       << "hash=" << hash << ","
+       << "exempt=" << m_host_community << ","
+       << "requester=" << m_host_community << ","
+       << "target_x=" << doubleToStringX(m_target_x, 2) << ","
+       << "target_y=" << doubleToStringX(m_target_y, 2) << ","
+       << "priority_weight=" << doubleToStringX(m_priority_weight, 2) << ","
+       << "fuel_abstain_threshold=" << doubleToStringX(m_refuel_threshold, 2);
+  }
+  else {
+    basic_task = true;
+    os << "type=refuelreplace_basic,"
+       << "id=" << id << ","
+       << "utc=" << doubleToStringX(utc, 2) << ","
+       << "hash=" << hash << ","
+       << "exempt=" << m_host_community << ","
+       << "fuel_abstain_threshold=" << doubleToStringX(m_refuel_threshold, 2);
+    reportEvent("Target not set, posting basic refuel task: " + id);
+  }
+
+  string task_spec = os.str();
+  // Publish locally and through NODE_MESSAGE so all teammates receive
+  // identical task payloads.
+  Notify("MISSION_TASK", task_spec);
+
+  NodeMessage nmsg;
+  nmsg.setSourceNode(m_host_community);
+  nmsg.setSourceApp("pRefuelReplace");
+  nmsg.setDestNode("all");
+  nmsg.setVarName("MISSION_TASK");
+  nmsg.setStringVal(task_spec);
+  Notify("NODE_MESSAGE_LOCAL", nmsg.getSpec());
+
+  processTaskRefuelTarget(task_spec);
+
+  if(basic_task) {
+    // Basic replacement requests immediately put requester on return leg.
+    Notify("DEPLOY", "false");
+    Notify("DO_SURVEY", "false");
+    Notify("LOITER", "false");
+    Notify("RETURN", "true");
+    reportEvent("Basic replacement posted, commanding return home: " + id);
+  }
+
+  m_task_sent = true;
+  reportEvent("Posted replacement task id=" + id + ", reason=" + trigger_reason);
+  return(true);
+}
+
+//---------------------------------------------------------
+// Procedure: parseTaskStateWinner()
+
+string RefuelReplace::parseTaskStateWinner(const string& spec) const
+{
+  // Support multiple field spellings across task-manager variants.
+  static const char* winner_keys[] = {
+    "winner",
+    "bid_winner",
+    "bidwinner",
+    "winner_vname",
+    "winning_vname",
+    "awarded_to",
+    "assigned_to"
+  };
+
+  for(unsigned int i=0; i<sizeof(winner_keys)/sizeof(winner_keys[0]); i++) {
+    string val = stripBlankEnds(tokStringParse(spec, winner_keys[i]));
+    if(val != "")
+      return(val);
+  }
+
+  return("");
 }
 
 //---------------------------------------------------------
@@ -357,7 +610,7 @@ string RefuelReplace::normalizeTaskSpec(const string& msg) const
 // Procedure: inferRequesterFromId()
 
 // Infer requester plane from task id by stripping off "_rr" suffix and anything after it.
-// We do this if requester field is missing but id is present in processTaskRefuel()
+// We do this if requester field is missing but id is present in processTaskRefuelTarget()
 string RefuelReplace::inferRequesterFromId(const string& id) const
 {
   if(id == "")
@@ -372,10 +625,11 @@ string RefuelReplace::inferRequesterFromId(const string& id) const
 }
 
 //---------------------------------------------------------
-// Procedure: processTaskRefuel()
+// Procedure: processTaskRefuelTarget()
 
-// Parse a TASK_REFUEL message and update the corresponding task record in m_task_records.
-void RefuelReplace::processTaskRefuel(const string& task_msg)
+// Parse a TASK_REFUEL_TARGET or TASK_REFUEL_BASIC message and update
+// the corresponding task record in m_task_records.
+void RefuelReplace::processTaskRefuelTarget(const string& task_msg)
 {
   string spec = normalizeTaskSpec(task_msg);
 
@@ -392,25 +646,31 @@ void RefuelReplace::processTaskRefuel(const string& task_msg)
   if(id != "")
     rec.id = id;
 
+  string task_type = stripBlankEnds(tokStringParse(spec, "type"));
+  if(task_type != "")
+    rec.task_type = task_type;
+
   string requester = stripBlankEnds(tokStringParse(spec, "requester"));
   if((requester == "") && (rec.id != ""))
     requester = inferRequesterFromId(rec.id);
   if(requester != "")
     rec.requester = requester;
 
-  string sx = stripBlankEnds(tokStringParse(spec, "region_x"));
-  string sy = stripBlankEnds(tokStringParse(spec, "region_y"));
+  string sx = stripBlankEnds(tokStringParse(spec, "target_x"));
+  string sy = stripBlankEnds(tokStringParse(spec, "target_y"));
   if(isNumber(sx) && isNumber(sy)) {
-    rec.region_x = atof(sx.c_str());
-    rec.region_y = atof(sy.c_str());
-    rec.region_set = true;
+    rec.target_x = atof(sx.c_str());
+    rec.target_y = atof(sy.c_str());
+    rec.target_set = true;
   }
 }
 
 //---------------------------------------------------------
 // Procedure: processTaskState()
 
-void RefuelReplace::processTaskState(const string& state_msg)
+void RefuelReplace::processTaskState(const string& state_msg,
+                                     const string& msg_source_app,
+                                     const string& msg_source_community)
 {
   string spec  = normalizeTaskSpec(state_msg);
   string hash  = stripBlankEnds(tokStringParse(spec, "hash"));
@@ -426,13 +686,79 @@ void RefuelReplace::processTaskState(const string& state_msg)
   if(rec.requester == "")
     rec.requester = inferRequesterFromId(rec.id);
 
+  string winner = parseTaskStateWinner(spec);
+  // Fallback path for TASK_STATE payloads that only include id/hash/state.
+  // In these cases source community corresponds to the local helm node.
+  if((winner == "") && (msg_source_community != ""))
+    winner = msg_source_community;
+  if((winner == "") && (tolower(stripBlankEnds(msg_source_app)) == "ptaskmanager"))
+    winner = m_host_community;
+
   if(state == "bidwon") {
-    if((rec.requester != "") && (rec.requester != m_host_community))
-      rec.bidwon_by_me = true;
+    if(winner == "") {
+      // Without a winner identity we cannot safely claim this bid as ours.
+      rec.bidwon_by_me = false;
+      return;
+    }
+
+    string winner_lc = tolower(stripBlankEnds(winner));
+    string host_lc = tolower(stripBlankEnds(m_host_community));
+    if((winner != "") && (winner_lc == host_lc)) {
+      if(m_active_replacement_hash == "") {
+        // First accepted win acquires the replacement lock.
+        rec.bidwon_by_me = true;
+        m_active_replacement_hash = hash;
+        m_active_replacement_type = rec.task_type;
+        // Fallback inference if task type arrives late.
+        if((m_active_replacement_type == "") && rec.target_set)
+          m_active_replacement_type = "refuelreplace_target";
+        m_active_replacement_time = MOOSTime();
+        m_active_replacement_return_started = false;
+      }
+      else if(m_active_replacement_hash == hash) {
+        // Repeated status update for same task: refresh lock freshness.
+        rec.bidwon_by_me = true;
+        m_active_replacement_type = rec.task_type;
+        if((m_active_replacement_type == "") && rec.target_set)
+          m_active_replacement_type = "refuelreplace_target";
+        m_active_replacement_time = MOOSTime();
+      }
+      else {
+        // Ignore additional wins while already committed to another task.
+        rec.bidwon_by_me = false;
+        reportRunWarning("Concurrent bidwon while lock held. held_hash=" +
+                         m_active_replacement_hash + ", new_hash=" + hash);
+      }
+    }
+    else {
+      rec.bidwon_by_me = false;
+      if(m_active_replacement_hash == hash)
+        clearActiveReplacementLock("task_state_bidwon_other_winner");
+    }
   }
   else if((state == "bidlost") || (state == "abstain")) {
+    // If the active task transitions out of bidwon, release commitment.
     rec.bidwon_by_me = false;
+    if(m_active_replacement_hash == hash)
+      clearActiveReplacementLock("task_state_" + state);
   }
+}
+
+//---------------------------------------------------------
+// Procedure: clearActiveReplacementLock()
+
+void RefuelReplace::clearActiveReplacementLock(const string& reason)
+{
+  if(m_active_replacement_hash == "")
+    return;
+
+  // Keep reason in event log for post-run debugging of lock lifecycle.
+  reportEvent("Clearing replacement lock hash=" + m_active_replacement_hash +
+              ", reason=" + reason);
+  m_active_replacement_hash = "";
+  m_active_replacement_type = "";
+  m_active_replacement_time = 0.0;
+  m_active_replacement_return_started = false;
 }
 
 //---------------------------------------------------------
@@ -461,6 +787,7 @@ void RefuelReplace::notifyRequesterReturn(const string& requester,
   sendNodeMessage(requester, "DO_SURVEY", "false");
   sendNodeMessage(requester, "LOITER", "false");
   sendNodeMessage(requester, "RETURN", "true");
+  sendNodeMessage(requester, "TARGET_RESET", "true");
 
   string info = "requester=" + requester + ",hash=" + task_hash;
   Notify("REFUEL_HANDOFF", info);
@@ -485,15 +812,29 @@ bool RefuelReplace::buildReport()
 
   table << "NAV_X"                << doubleToStringX(m_nav_x, 2);
   table << "NAV_Y"                << doubleToStringX(m_nav_y, 2);
-  table << "region_x"            << doubleToStringX(m_region_x, 2);
-  table << "region_y"            << doubleToStringX(m_region_y, 2);
+  table << "target_x"            << doubleToStringX(m_target_x, 2);
+  table << "target_y"            << doubleToStringX(m_target_y, 2);
   table << "priority_weight"     << doubleToStringX(m_priority_weight, 2);
-  table << "region_set"          << (m_region_set ? "true" : "false");
+  table << "target_set"          << (m_target_set ? "true" : "false");
   table << "got_odom"             << (m_got_odom  ? "true" : "false");
   table << "waiting_odom_reset"   << (m_waiting_for_odom_reset ? "true" : "false");
   table << "task_sent"            << (m_task_sent ? "true" : "false");
   table << "next_task_id_counter" << intToString(m_task_id_counter);
   table << "tracked_tasks"         << uintToString((unsigned int)m_task_records.size());
+  bool transit_busy = (m_active_replacement_hash != "");
+  table << "refuel_transit_busy"   << (transit_busy ? "true" : "false");
+  table << "returning_mode"        << (m_returning_mode ? "true" : "false");
+  table << "lock_hash"             << (m_active_replacement_hash == "" ?
+                                        "(none)" : m_active_replacement_hash);
+  table << "lock_type"             << (m_active_replacement_type == "" ?
+                                        "(none)" : m_active_replacement_type);
+  table << "lock_return_started"   <<
+             (m_active_replacement_return_started ? "true" : "false");
+  table << "lock_timeout_s"        << doubleToStringX(m_replacement_lock_timeout, 2);
+  table << "pending_discovery_fire" << (m_pending_discovery_fire_id == "" ?
+                                          "(none)" : m_pending_discovery_fire_id);
+  table << "discovery_timeout_s"    << doubleToStringX(m_discovery_request_timeout, 2);
+  table << "discovery_cooldown_s"   << doubleToStringX(m_discovery_repost_cooldown, 2);
 
   m_msgs << table.getFormattedString();
   return true;

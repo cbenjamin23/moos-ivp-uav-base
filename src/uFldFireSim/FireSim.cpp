@@ -1123,10 +1123,10 @@ void FireSim::declareDiscoveredFire(std::string vname, std::string fname)
     Notify(node_msg_var, msg.getSpec());
   };
 
-  // Send region target to discoverer
-  post_node_double("OWN_REGION_X", fire_x);
-  post_node_double("OWN_REGION_Y", fire_y);
-  post_node_double("OWN_REGION_WEIGHT", 1.0);
+  // Send target point to discoverer
+  post_node_double("OWN_TARGET_X", fire_x);
+  post_node_double("OWN_TARGET_Y", fire_y);
+  post_node_double("OWN_TARGET_WEIGHT", 1.0);
 
   // Command discoverer to loiter on the discovered fire
   post_node_string("LOITER_UPDATE",
@@ -1139,6 +1139,11 @@ void FireSim::declareDiscoveredFire(std::string vname, std::string fname)
   post_node_string("RETURN", "false");
   post_node_string("DEPLOY", "false");
   post_node_string("LOITER", "true");
+
+  // Ask discoverer to trigger a dedicated one-shot replacement request.
+  // This replaces the old TASK_RESET approach that could retrigger
+  // threshold auctions repeatedly while odometry was still above threshold.
+  post_node_string("REFUEL_DISCOVERY_REQUEST", "fire_id=" + idstr);
 }
 
 //------------------------------------------------------------

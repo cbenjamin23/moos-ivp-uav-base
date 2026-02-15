@@ -39,7 +39,7 @@ GridSearchViz::GridSearchViz()
   m_grid_cell_decay_time = 0; // 0 means no decay
   m_sensor_radius_fixed = true;
   m_sensor_altitude_max = 25;
-  m_visualize_sensor_area = true;
+  m_visualize_sensor_area = false;
 
   m_isRunningMoosPid = false;
 }
