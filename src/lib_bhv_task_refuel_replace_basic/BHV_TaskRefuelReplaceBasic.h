@@ -41,6 +41,10 @@ public:
   // A very small distance penalty used only as a bid tie-breaker.
   double m_distance_tiebreak_weight;
   double m_fuel_abstain_threshold;
+  double m_requester_x;
+  double m_requester_y;
+  bool   m_requester_x_set;
+  bool   m_requester_y_set;
 
  protected:  // State vars (read from MOOSDB)
 

@@ -31,6 +31,10 @@ BHV_TaskRefuelReplaceTarget::BHV_TaskRefuelReplaceTarget(IvPDomain domain) :
 
   m_priority_weight   = 1.0;
   m_requester         = "";
+  m_requester_x       = 0;
+  m_requester_y       = 0;
+  m_requester_x_set   = false;
+  m_requester_y_set   = false;
 
   m_planning_horizon  = 600;    // 10 min
   m_opw               = 0.3;    // opportunity cost weight
@@ -88,6 +92,16 @@ bool BHV_TaskRefuelReplaceTarget::setParam(string param, string value)
     return(setNonNegDoubleOnString(m_priority_weight, value));
   else if(param == "requester") {
     m_requester = value;
+    return(true);
+  }
+  else if((param == "requester_x") && isNumber(value)) {
+    m_requester_x = atof(value.c_str());
+    m_requester_x_set = true;
+    return(true);
+  }
+  else if((param == "requester_y") && isNumber(value)) {
+    m_requester_y = atof(value.c_str());
+    m_requester_y_set = true;
     return(true);
   }
 
@@ -233,8 +247,10 @@ double BHV_TaskRefuelReplaceTarget::getTaskBid()
 {
   // TEMPORARY SIMPLIFIED BIDDING:
   // Match the basic behavior style while keeping this behavior path intact.
-  const double distance_tiebreak_weight = 0.001;
+  const double distance_tiebreak_weight = 0.1;
   double tie_dist = hypot(m_osx, m_osy);
+  if(m_requester_x_set && m_requester_y_set)
+    tie_dist = hypot(m_osx - m_requester_x, m_osy - m_requester_y);
   double score = m_fuel_dist_remaining - (distance_tiebreak_weight * tie_dist);
 
   /*

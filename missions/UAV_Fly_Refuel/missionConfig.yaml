@@ -42,7 +42,7 @@ moos:
     PSHARE: 9200
 
 missionParams:
-  log_enabled: false # If true, the mission will be logged to a file
+  log_enabled: true # Enable pLogger logging for shoreside replay with alog
   mission_duration: 600 # s - The duration of the mission (20min)
 
   # Path planning parameters

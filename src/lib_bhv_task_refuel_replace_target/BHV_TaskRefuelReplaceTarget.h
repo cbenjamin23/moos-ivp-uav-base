@@ -47,6 +47,10 @@ public:
   // Priority weight of the task target (from MISSION_TASK details)
   double m_priority_weight;
   std::string m_requester;      // requester vehicle (optional passthrough)
+  double m_requester_x;
+  double m_requester_y;
+  bool   m_requester_x_set;
+  bool   m_requester_y_set;
 
   // Bid formula tuning (from .bhv config)
   double m_planning_horizon;    // H  (seconds)

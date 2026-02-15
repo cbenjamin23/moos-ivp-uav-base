@@ -33,6 +33,10 @@ BHV_TaskRefuelReplaceBasic::BHV_TaskRefuelReplaceBasic(IvPDomain domain) :
 {
   m_distance_tiebreak_weight = 0.001;
   m_fuel_abstain_threshold   = 0;
+  m_requester_x              = 0;
+  m_requester_y              = 0;
+  m_requester_x_set          = false;
+  m_requester_y_set          = false;
 
   m_fuel_dist_remaining = 0;
   m_got_fuel_input      = false;
@@ -68,6 +72,16 @@ bool BHV_TaskRefuelReplaceBasic::setParam(string param, string value)
     return(setNonNegDoubleOnString(m_distance_tiebreak_weight, value));
   else if(param == "fuel_abstain_threshold")
     return(setNonNegDoubleOnString(m_fuel_abstain_threshold, value));
+  else if((param == "requester_x") && isNumber(value)) {
+    m_requester_x = atof(value.c_str());
+    m_requester_x_set = true;
+    return(true);
+  }
+  else if((param == "requester_y") && isNumber(value)) {
+    m_requester_y = atof(value.c_str());
+    m_requester_y_set = true;
+    return(true);
+  }
 
   return(false);
 }
@@ -192,11 +206,13 @@ bool BHV_TaskRefuelReplaceBasic::isTaskFeasible()
 // Procedure: getTaskBid()
 //
 // Primary factor: larger remaining fuel wins.
-// Tie-breaker: very small penalty for farther current position.
+// Tie-breaker: very small penalty for farther distance to requester.
 
 double BHV_TaskRefuelReplaceBasic::getTaskBid()
 {
   double tie_dist = hypot(m_osx, m_osy);
+  if(m_requester_x_set && m_requester_y_set)
+    tie_dist = hypot(m_osx - m_requester_x, m_osy - m_requester_y);
   double score = m_fuel_dist_remaining - (m_distance_tiebreak_weight * tie_dist);
   return(max(0.0, score));
 }

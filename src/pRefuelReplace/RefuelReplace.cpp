@@ -522,6 +522,8 @@ bool RefuelReplace::postReplacementTask(const string& trigger_reason,
        << "hash=" << hash << ","
        << "exempt=" << m_host_community << ","
        << "requester=" << m_host_community << ","
+       << "requester_x=" << doubleToStringX(m_nav_x, 2) << ","
+       << "requester_y=" << doubleToStringX(m_nav_y, 2) << ","
        << "target_x=" << doubleToStringX(m_target_x, 2) << ","
        << "target_y=" << doubleToStringX(m_target_y, 2) << ","
        << "priority_weight=" << doubleToStringX(m_priority_weight, 2) << ","
@@ -534,6 +536,9 @@ bool RefuelReplace::postReplacementTask(const string& trigger_reason,
        << "utc=" << doubleToStringX(utc, 2) << ","
        << "hash=" << hash << ","
        << "exempt=" << m_host_community << ","
+       //<< "requester=" << m_host_community << ","
+       << "requester_x=" << doubleToStringX(m_nav_x, 2) << ","
+       << "requester_y=" << doubleToStringX(m_nav_y, 2) << ","
        << "fuel_abstain_threshold=" << doubleToStringX(m_refuel_threshold, 2);
     reportEvent("Target not set, posting basic refuel task: " + id);
   }
