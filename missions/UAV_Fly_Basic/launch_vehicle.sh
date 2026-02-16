@@ -32,8 +32,8 @@ RETURN_POS="0,0"
 MAXSPD="30"
 
 
-LAT_ORIGIN=63.3975168 #-35.3632621 
-LON_ORIGIN=10.1435321 #149.1652374 
+LAT_ORIGIN=45.505556 
+LON_ORIGIN=-73.586674
 
 # Ardupilot SITL
 ARDUPILOT_IP=0.0.0.0
@@ -88,8 +88,23 @@ if [ $? -ne 0 ]; then exit 1; fi
 REGION=$(get_region_xy $CONFIG_FILE)
 if [ $? -ne 0 ]; then exit 1; fi
 
+VORONOI_SETPT_METHOD=$(get_global_val $CONFIG_FILE missionParams.voronoi_setpoint_method)
+if [ $? -ne 0 ]; then exit 1; fi
+
+voronoi_search_enabled=$(get_global_val $CONFIG_FILE "missionParams.voronoi_search_enabled")
+if [ $? -ne 0 ]; then exit 1; fi
+if [ "${voronoi_search_enabled}" = "true" ]; then
+    PLANNER_MODE="VORONOI_SEARCH"
+else
+    PLANNER_MODE="TMSTC_STAR"
+fi
 
 LOG_ENABLED=$(get_global_val $CONFIG_FILE "missionParams.log_enabled")
+if [ $? -ne 0 ]; then exit 1; fi
+
+LAT_ORIGIN=$(get_global_val $CONFIG_FILE moos.datum.lat)
+if [ $? -ne 0 ]; then exit 1; fi
+LON_ORIGIN=$(get_global_val $CONFIG_FILE moos.datum.lon)
 if [ $? -ne 0 ]; then exit 1; fi
 
 #-------------------------------------------------------
@@ -314,6 +329,9 @@ if [ "${VERBOSE}" = "yes" ]; then
     echo "----------------------------------"
     echo "V_INDEX          =    [${VIDX}]   "
     echo "----------------------------------"
+    echo "VORONOI_SETPT_METHOD = [${VORONOI_SETPT_METHOD}]"
+    echo "PLANNER_MODE =   [${PLANNER_MODE}]"
+    echo "----------------------------------"
     echo "LOG_ENABLED =    [${LOG_ENABLED}]"
     echo "----------------------------------"
     echo -n "Hit any key to continue with launching"
@@ -339,7 +357,9 @@ nsplug meta_vehicle.moos targ_$VNAME.moos $NSFLAGS WARP=$TIME_WARP \
        AP_PROTOCOL=$ARDUPILOT_PROTOCOL      START_POS=$START_POS \
        MIN_SPEED=$MINSPD  MAX_SPEED=$MAXSPD SPEED_STEPS=$SPD_STEPS  \
        USE_MOOS_SIM_PID=$USE_MOOS_SIM_PID                      \
+       VORONOI_SETPT_METHOD=$VORONOI_SETPT_METHOD \
        REGION=$REGION                                          \
+       PLANNER_MODE=$PLANNER_MODE             \
        LOG_ENABLED=$LOG_ENABLED \
        SPEED=$SPEED \
 
@@ -349,7 +369,9 @@ nsplug meta_vehicle.bhv targ_$VNAME.bhv $NSFLAGS VNAME=$VNAME \
        XMODE=$XMODE                  COLOR=$COLOR             \
        USE_MOOS_SIM_PID=$USE_MOOS_SIM_PID                     \
        CAPTURE_RADIUS=$CAPTURE_RADIUS SLIP_RADIUS=$SLIP_RADIUS \
-       REGION=$REGION
+       VORONOI_SETPT_METHOD=$VORONOI_SETPT_METHOD \
+       
+       
 if [ ${JUST_MAKE} = "yes" ]; then
     echo "$ME: Files assembled; nothing launched; exiting per request."
     exit 0
