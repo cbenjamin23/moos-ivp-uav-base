@@ -279,6 +279,8 @@ ProcessConfig = pProxonoi_uav
 
   setpt_method = $(VORONOI_SETPT_METHOD)
   planner_mode = $(PLANNER_MODE)
+  exclude_loitering_contacts = $(EXCLUDE_LOITERING_CONTACTS)
+  exclude_returning_contacts = $(EXCLUDE_RETURNING_CONTACTS)
 
   post_poly = true
   // post_region = true

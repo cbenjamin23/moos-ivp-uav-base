@@ -20,6 +20,7 @@
 #include "NodeMessage.h"
 
 #include <cmath>
+#include <vector>
 #include "AngleUtils.h"
 #include "GeomUtils.h"
 
@@ -60,6 +61,12 @@ Proxonoi::Proxonoi()
   m_node_record_stale_treshold = 10;
 
   m_planner_mode = Planner::PlannerMode::VORONOI_SEARCH;
+  m_exclude_loitering_contacts = false;
+  m_exclude_returning_contacts = false;
+
+  m_mode = "";
+  m_bhv_mode = "";
+  m_autopilot_mode = "";
 }
 
 //---------------------------------------------------------
@@ -101,6 +108,21 @@ bool Proxonoi::OnNewMail(MOOSMSG_LIST &NewMail)
     else if (key == "NAV_HEADING")
     {
       m_course = dval;
+      handled = true;
+    }
+    else if (key == "MODE")
+    {
+      m_mode = sval;
+      handled = true;
+    }
+    else if (key == "BHV_MODE")
+    {
+      m_bhv_mode = sval;
+      handled = true;
+    }
+    else if (key == "AUTOPILOT_MODE")
+    {
+      m_autopilot_mode = sval;
       handled = true;
     }
     else if (key == "PROX_CLEAR")
@@ -173,6 +195,14 @@ bool Proxonoi::OnConnectToServer()
 bool Proxonoi::Iterate()
 {
   AppCastingMOOSApp::Iterate();
+
+  if (isOwnshipExcludedFromVoronoi())
+  {
+    checkRemoveVehicleStaleness();
+    postInactiveVoronoiPoly();
+    AppCastingMOOSApp::PostReport();
+    return (true);
+  }
 
   //===========================================================
   // Part 1: Update the split line based on the information of
@@ -385,6 +415,10 @@ bool Proxonoi::OnStartUp()
     }
     else if (param == "do_visualize")
       handled = setBooleanOnString(m_do_visualize, value);
+    else if (param == "exclude_loitering_contacts")
+      handled = setBooleanOnString(m_exclude_loitering_contacts, value);
+    else if (param == "exclude_returning_contacts")
+      handled = setBooleanOnString(m_exclude_returning_contacts, value);
 
     if (!handled)
       reportUnhandledConfigWarning(orig);
@@ -406,6 +440,9 @@ void Proxonoi::registerVariables()
   Register("NAV_X", 0);
   Register("NAV_Y", 0);
   Register("NAV_HEADING", 0);
+  Register("MODE", 0);
+  Register("BHV_MODE", 0);
+  Register("AUTOPILOT_MODE", 0);
   Register(m_ignore_list_up_var, 0);
   Register(m_region_up_var, 0);
 
@@ -547,6 +584,140 @@ void Proxonoi::handleMailNodeReport(std::string report)
 
   m_map_node_records[vname] = new_node_record;
   m_map_ranges[vname] = range;
+  m_map_contact_modes[vname] = extractModeFromNodeReport(report);
+}
+
+//---------------------------------------------------------
+// Procedure: extractModeFromNodeReport
+
+std::string Proxonoi::extractModeFromNodeReport(const std::string &report) const
+{
+  std::vector<std::string> mode_keys;
+  mode_keys.push_back("MODE");
+  mode_keys.push_back("BHV_MODE");
+  mode_keys.push_back("AUTOPILOT_MODE");
+  mode_keys.push_back("mode");
+  mode_keys.push_back("bhv_mode");
+  mode_keys.push_back("autopilot_mode");
+
+  for (unsigned int i = 0; i < mode_keys.size(); i++)
+  {
+    std::string mode = stripBlankEnds(tokStringParse(report, mode_keys[i]));
+    if (mode != "")
+      return (mode);
+  }
+
+  return ("");
+}
+
+//---------------------------------------------------------
+// Procedure: isModeLoitering
+
+bool Proxonoi::isModeLoitering(const std::string &mode) const
+{
+  std::string mode_upper = toupper(stripBlankEnds(mode));
+  return (mode_upper.find("LOITER") != std::string::npos);
+}
+
+//---------------------------------------------------------
+// Procedure: isModeReturning
+
+bool Proxonoi::isModeReturning(const std::string &mode) const
+{
+  std::string mode_upper = toupper(stripBlankEnds(mode));
+  return (mode_upper.find("RETURN") != std::string::npos);
+}
+
+//---------------------------------------------------------
+// Procedure: isOwnshipLoitering
+
+bool Proxonoi::isOwnshipLoitering() const
+{
+  return (isModeLoitering(m_mode) || isModeLoitering(m_bhv_mode) ||
+          isModeLoitering(m_autopilot_mode));
+}
+
+//---------------------------------------------------------
+// Procedure: isOwnshipReturning
+
+bool Proxonoi::isOwnshipReturning() const
+{
+  return (isModeReturning(m_mode) || isModeReturning(m_bhv_mode) ||
+          isModeReturning(m_autopilot_mode));
+}
+
+//---------------------------------------------------------
+// Procedure: isOwnshipExcludedFromVoronoi
+
+bool Proxonoi::isOwnshipExcludedFromVoronoi() const
+{
+  if (m_exclude_loitering_contacts && isOwnshipLoitering())
+    return (true);
+
+  if (m_exclude_returning_contacts && isOwnshipReturning())
+    return (true);
+
+  return (false);
+}
+
+//---------------------------------------------------------
+// Procedure: isContactLoitering
+
+bool Proxonoi::isContactLoitering(const std::string &vname) const
+{
+  std::map<std::string, std::string>::const_iterator p = m_map_contact_modes.find(vname);
+  if (p == m_map_contact_modes.end())
+    return (false);
+
+  return (isModeLoitering(p->second));
+}
+
+//---------------------------------------------------------
+// Procedure: isContactReturning
+
+bool Proxonoi::isContactReturning(const std::string &vname) const
+{
+  std::map<std::string, std::string>::const_iterator p = m_map_contact_modes.find(vname);
+  if (p == m_map_contact_modes.end())
+    return (false);
+
+  return (isModeReturning(p->second));
+}
+
+//---------------------------------------------------------
+// Procedure: isContactExcludedFromVoronoi
+
+bool Proxonoi::isContactExcludedFromVoronoi(const std::string &vname) const
+{
+  if (m_exclude_loitering_contacts && isContactLoitering(vname))
+    return (true);
+
+  if (m_exclude_returning_contacts && isContactReturning(vname))
+    return (true);
+
+  return (false);
+}
+
+//---------------------------------------------------------
+// Procedure: postInactiveVoronoiPoly
+
+void Proxonoi::postInactiveVoronoiPoly()
+{
+  m_prox_poly = XYPolygon();
+  m_prox_poly.set_label("vpoly_" + m_ownship);
+  m_prox_poly.set_active(false);
+
+  std::string spec = m_prox_poly.get_spec();
+  bool new_spec = (spec != m_last_posted_spec);
+
+  if (m_post_poly && new_spec)
+  {
+    Notify("VIEW_POLYGON", spec);
+    m_last_posted_spec = spec;
+  }
+
+  Notify("PROXONOI_POLY", spec);
+  m_poly_erase_pending = false;
 }
 
 //---------------------------------------------------------
@@ -592,6 +763,7 @@ bool Proxonoi::handleMailProxClear()
   m_map_node_records.clear();
   m_map_split_lines.clear();
   m_map_ranges.clear();
+  m_map_contact_modes.clear();
 
   // ========================================================
   // Part 3: Mark the prox poly as needing to be erased
@@ -606,10 +778,15 @@ bool Proxonoi::handleMailProxClear()
 
 bool Proxonoi::updateSplitLines()
 {
+  std::map<std::string, XYSegList> next_split_lines;
   std::map<std::string, NodeRecord>::iterator p;
   for (p = m_map_node_records.begin(); p != m_map_node_records.end(); p++)
   {
     std::string vname = p->first;
+
+    if (isContactExcludedFromVoronoi(vname))
+      continue;
+
     NodeRecord record = p->second;
     double cnx = record.getX();
     double cny = record.getY();
@@ -624,8 +801,10 @@ bool Proxonoi::updateSplitLines()
       segl.add_vertex(sx1, sy1);
       segl.add_vertex(sx2, sy2);
     }
-    m_map_split_lines[vname] = segl;
+    next_split_lines[vname] = segl;
   }
+
+  m_map_split_lines.swap(next_split_lines);
   return (true);
 }
 
@@ -776,6 +955,10 @@ bool Proxonoi::buildReport()
   m_msgs << "Erase Pending:  " << erase_pending << std::endl;
   m_msgs << "Vehicle Treshold: " << m_node_record_stale_treshold << std::endl;
   m_msgs << "Planner Mode:   " << Planner::modeToString(m_planner_mode) << std::endl;
+  m_msgs << "Exclude Loitering Contacts: " << boolToString(m_exclude_loitering_contacts) << std::endl;
+  m_msgs << "Exclude Returning Contacts: " << boolToString(m_exclude_returning_contacts) << std::endl;
+  m_msgs << "Ownship Loitering: " << boolToString(isOwnshipLoitering()) << std::endl;
+  m_msgs << "Ownship Returning: " << boolToString(isOwnshipReturning()) << std::endl;
   m_msgs << "\n";
 
   double area = m_prox_poly.area();
@@ -793,10 +976,10 @@ bool Proxonoi::buildReport()
   m_msgs << "Contact Status Summary:" << std::endl;
   m_msgs << "-----------------------" << std::endl;
 
-  ACTable actab(3, 2);
+  ACTable actab(5, 2);
   actab.setColumnJustify(1, "right");
   actab.setColumnJustify(2, "right");
-  actab << "Contact | Range | TimeSinceRec";
+  actab << "Contact | Range | TimeSinceRec | Mode | Voronoi";
   actab.addHeaderLines();
 
   std::map<std::string, NodeRecord>::iterator q;
@@ -813,7 +996,18 @@ bool Proxonoi::buildReport()
     else
       time_str = doubleToStringX(time_to_treshold, 1);
 
-    actab << vname << range << time_str;
+    std::string mode = "-";
+    std::map<std::string, std::string>::const_iterator mode_it = m_map_contact_modes.find(vname);
+    if ((mode_it != m_map_contact_modes.end()) && (mode_it->second != ""))
+      mode = mode_it->second;
+
+    std::string voronoi_status = "used";
+    if (m_exclude_loitering_contacts && isContactLoitering(vname))
+      voronoi_status = "excluded(loiter)";
+    else if (m_exclude_returning_contacts && isContactReturning(vname))
+      voronoi_status = "excluded(return)";
+
+    actab << vname << range << time_str << mode << voronoi_status;
   }
   m_msgs << actab.getFormattedString();
 
@@ -910,7 +1104,8 @@ void Proxonoi::checkRemoveVehicleStaleness()
     }
 
     m_map_ranges.erase(vname);
-    m_map_split_lines.erase(vname);    
+    m_map_split_lines.erase(vname);
+    m_map_contact_modes.erase(vname);
     p = m_map_node_records.erase(p);
     
     Logger::info("Checking Poly Staleness: Erased " + vname + " time: " + doubleToStringX(time_received, 2) + " curr_time: " + doubleToStringX(curr_time, 2) +

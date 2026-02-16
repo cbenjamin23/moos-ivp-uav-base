@@ -91,6 +91,12 @@ if [ $? -ne 0 ]; then exit 1; fi
 VORONOI_SETPT_METHOD=$(get_global_val $CONFIG_FILE missionParams.voronoi_setpoint_method)
 if [ $? -ne 0 ]; then exit 1; fi
 
+EXCLUDE_LOITERING_CONTACTS=$(get_global_val $CONFIG_FILE missionParams.voronoi_exclude_loitering_contacts)
+if [ $? -ne 0 ]; then exit 1; fi
+
+EXCLUDE_RETURNING_CONTACTS=$(get_global_val $CONFIG_FILE missionParams.voronoi_exclude_returning_contacts)
+if [ $? -ne 0 ]; then exit 1; fi
+
 voronoi_search_enabled=$(get_global_val $CONFIG_FILE "missionParams.voronoi_search_enabled")
 if [ $? -ne 0 ]; then exit 1; fi
 if [ "${voronoi_search_enabled}" = "true" ]; then
@@ -335,6 +341,8 @@ if [ "${VERBOSE}" = "yes" ]; then
     echo "V_INDEX          =    [${VIDX}]   "
     echo "----------------------------------"
     echo "VORONOI_SETPT_METHOD = [${VORONOI_SETPT_METHOD}]"
+    echo "EXCLUDE_LOITERING_CONTACTS = [${EXCLUDE_LOITERING_CONTACTS}]"
+    echo "EXCLUDE_RETURNING_CONTACTS = [${EXCLUDE_RETURNING_CONTACTS}]"
     echo "PLANNER_MODE =   [${PLANNER_MODE}]"
     echo "----------------------------------"
     echo "LOG_ENABLED =    [${LOG_ENABLED}]"
@@ -363,6 +371,8 @@ nsplug meta_vehicle.moos targ_$VNAME.moos $NSFLAGS WARP=$TIME_WARP \
        MIN_SPEED=$MINSPD  MAX_SPEED=$MAXSPD SPEED_STEPS=$SPD_STEPS  \
        USE_MOOS_SIM_PID=$USE_MOOS_SIM_PID                      \
        VORONOI_SETPT_METHOD=$VORONOI_SETPT_METHOD \
+       EXCLUDE_LOITERING_CONTACTS=$EXCLUDE_LOITERING_CONTACTS \
+       EXCLUDE_RETURNING_CONTACTS=$EXCLUDE_RETURNING_CONTACTS \
        REGION=$REGION                                          \
        PLANNER_MODE=$PLANNER_MODE             \
        LOG_ENABLED=$LOG_ENABLED \

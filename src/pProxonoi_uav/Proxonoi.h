@@ -12,6 +12,8 @@
 #ifndef PROXONOI_HEADER
 #define PROXONOI_HEADER
 
+#include <map>
+#include <set>
 #include <string>
 #include "MOOS/libMOOS/Thirdparty/AppCasting/AppCastingMOOSApp.h"
 #include "MOOS/libMOOSGeodesy/MOOSGeodesy.h"
@@ -69,6 +71,16 @@ protected:
 
   void shareProxPolyArea();
   void shareProxPoly();
+  std::string extractModeFromNodeReport(const std::string &report) const;
+  bool isModeLoitering(const std::string &mode) const;
+  bool isModeReturning(const std::string &mode) const;
+  bool isOwnshipLoitering() const;
+  bool isOwnshipReturning() const;
+  bool isOwnshipExcludedFromVoronoi() const;
+  bool isContactLoitering(const std::string &vname) const;
+  bool isContactReturning(const std::string &vname) const;
+  bool isContactExcludedFromVoronoi(const std::string &vname) const;
+  void postInactiveVoronoiPoly();
 
 private: // Configuration variables
   std::string m_ownship;
@@ -89,6 +101,8 @@ private: // Configuration variables
   double m_node_record_stale_treshold;
 
   Planner::PlannerMode m_planner_mode;
+  bool m_exclude_loitering_contacts;
+  bool m_exclude_returning_contacts;
 
 private: // State variables
   double m_course;
@@ -102,6 +116,9 @@ private: // State variables
   int m_skip_count;
 
   bool m_do_visualize;
+  std::string m_mode;
+  std::string m_bhv_mode;
+  std::string m_autopilot_mode;
 
   bool m_os_in_prox_region;
   XYPolygon m_prox_region;
@@ -114,6 +131,7 @@ private: // State variables
   std::map<std::string, NodeRecord> m_map_node_records;
   std::map<std::string, XYSegList> m_map_split_lines;
   std::map<std::string, double> m_map_ranges;
+  std::map<std::string, std::string> m_map_contact_modes;
 };
 
 double signedAngleDiff(double angle1, double angle2);

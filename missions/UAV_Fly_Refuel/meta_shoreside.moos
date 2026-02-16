@@ -494,13 +494,18 @@ ProcessConfig = pMarineViewer
   // Where only some planes are deployed upon start while some sit idle
 
   #ifdef USE_MOOS_SIM_PID true
-    button_1 = DEPLOY # DO_SURVEY_ALL=false # RETURN_ALL=false # LOITER_ALL=false # MOOS_MANUAL_OVERRIDE_ALL=false //# XENABLE_MISSION=true
-    button_2 = TOWAYPT # DO_SURVEY_ALL=false # RETURN_ALL=true # LOITER_ALL=false # MOOS_MANUAL_OVERRIDE_ALL=false
-    button_3 = SURVEY # DO_SURVEY_ALL=true # DEPLOY_ALL=false # RETURN_ALL=false # LOITER_ALL=false # MOOS_MANUAL_OVERRIDE_ALL=false
-    button_4 = LOITER # DO_SURVEY_ALL=false # DEPLOY_ALL=false # RETURN_ALL=false # LOITER_ALL=true # MOOS_MANUAL_OVERRIDE_ALL=false
+    button_1 = DEPLOY # DO_SURVEY_ALL=false # RETURN_ALL=false # LOITER_ALL=false # MOOS_MANUAL_OVERRIDE_ALL=false 
+
+    // Note that you can't deploy again after surveying
+    button_2 = RETURN # DO_SURVEY_ALL=false # DEPLOY_ALL=false # RETURN_ALL=true # LOITER_ALL=false # MOOS_MANUAL_OVERRIDE_ALL=false
+
+    // button_3 = TOWAYPT # DO_SURVEY_ALL=false # RETURN_ALL=true # LOITER_ALL=false # MOOS_MANUAL_OVERRIDE_ALL=false
     
-    button_5 = ENABLE_MO # XMISSION_OPERATOR_ENABLE=true
-    button_6 = DISABLE_MO # XMISSION_OPERATOR_ENABLE=false 
+    // button_3 = SURVEY # DO_SURVEY_ALL=true # DEPLOY_ALL=false # RETURN_ALL=false # LOITER_ALL=false # MOOS_MANUAL_OVERRIDE_ALL=false
+    // button_4 = LOITER # DO_SURVEY_ALL=false # DEPLOY_ALL=false # RETURN_ALL=false # LOITER_ALL=true # MOOS_MANUAL_OVERRIDE_ALL=false
+    
+    // button_5 = ENABLE_MO # XMISSION_OPERATOR_ENABLE=true
+    // button_6 = DISABLE_MO # XMISSION_OPERATOR_ENABLE=false 
   #else
 
     // button_1 = DEPLOY  # DEPLOY_ALL=true # MOOS_MANUAL_OVERRIDE_ALL=false
@@ -532,11 +537,11 @@ ProcessConfig = pMarineViewer
     
   #endif
 
-  button_8 = PLAN_PATHS # DO_PLAN_PATHS=true
-  button_9 = ENABLE_MISSION  # XENABLE_MISSION=true
-  button_10 = RESET_MISSION  # XDISABLE_RESET_MISSION=true
-  button_11 = SET_MODE_TS  # CHANGE_PLANNER_MODEX=TMSTC_STAR # CHANGE_PLANNER_MODE_ALL=TMSTC_STAR
-  button_12 = SET_MODE_VC  # CHANGE_PLANNER_MODEX=VORONOI_SEARCH # CHANGE_PLANNER_MODE_ALL=VORONOI_SEARCH
+  // button_8 = PLAN_PATHS # DO_PLAN_PATHS=true
+  // button_9 = ENABLE_MISSION  # XENABLE_MISSION=true
+  // button_10 = RESET_MISSION  # XDISABLE_RESET_MISSION=true
+  // button_11 = SET_MODE_TS  # CHANGE_PLANNER_MODEX=TMSTC_STAR # CHANGE_PLANNER_MODE_ALL=TMSTC_STAR
+  // button_12 = SET_MODE_VC  # CHANGE_PLANNER_MODEX=VORONOI_SEARCH # CHANGE_PLANNER_MODE_ALL=VORONOI_SEARCH
 
   ////////////////////////////////////////////////
   // Commands
