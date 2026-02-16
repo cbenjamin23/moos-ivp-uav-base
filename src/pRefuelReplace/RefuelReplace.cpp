@@ -67,6 +67,7 @@ RefuelReplace::RefuelReplace()
   m_active_replacement_type = "";
   m_active_replacement_time = 0.0;
   m_active_replacement_return_started = false;
+  m_active_replacement_odom_reset_seen = false;
   // Discovery-triggered posting is queued to keep mail handling lightweight.
   m_pending_discovery_fire_id = "";
   m_pending_discovery_utc = 0.0;
@@ -144,10 +145,14 @@ bool RefuelReplace::OnNewMail(MOOSMSG_LIST &NewMail)
         do_reset = (sval == "true") || (sval == "1") || (sval == "reset");
       }
 
-      // Arm re-latching logic; clear m_task_sent only after odometry
-      // has actually dropped to a low value on a subsequent update.
-      if(do_reset)
+      // Arm threshold re-latching logic; clear m_task_sent only after
+      // odometry has actually dropped to a low value on a subsequent update.
+      if(do_reset) {
         m_waiting_for_odom_reset = true;
+        // Track reset separately for active-lock completion logic.
+        if(m_active_replacement_hash != "")
+          m_active_replacement_odom_reset_seen = true;
+      }
     }
     else if (key == "TASK_RESET") {
       // Legacy reset path (still supported): explicitly unlatch threshold posting.
@@ -390,7 +395,7 @@ bool RefuelReplace::Iterate()
       // This keeps REFUEL_TRANSIT_BUSY asserted while actively returning.
       else if(basic_like_task &&
               m_active_replacement_return_started &&
-              m_waiting_for_odom_reset) {
+              m_active_replacement_odom_reset_seen) {
         if(m_active_replacement_type == "refuelreplace_basic")
           clearActiveReplacementLock("basic_return_complete");
         else
@@ -719,6 +724,7 @@ void RefuelReplace::processTaskState(const string& state_msg,
           m_active_replacement_type = "refuelreplace_target";
         m_active_replacement_time = MOOSTime();
         m_active_replacement_return_started = false;
+        m_active_replacement_odom_reset_seen = false;
       }
       else if(m_active_replacement_hash == hash) {
         // Repeated status update for same task: refresh lock freshness.
@@ -764,6 +770,7 @@ void RefuelReplace::clearActiveReplacementLock(const string& reason)
   m_active_replacement_type = "";
   m_active_replacement_time = 0.0;
   m_active_replacement_return_started = false;
+  m_active_replacement_odom_reset_seen = false;
 }
 
 //---------------------------------------------------------
@@ -835,6 +842,8 @@ bool RefuelReplace::buildReport()
                                         "(none)" : m_active_replacement_type);
   table << "lock_return_started"   <<
              (m_active_replacement_return_started ? "true" : "false");
+  table << "lock_odom_reset_seen"  <<
+             (m_active_replacement_odom_reset_seen ? "true" : "false");
   table << "lock_timeout_s"        << doubleToStringX(m_replacement_lock_timeout, 2);
   table << "pending_discovery_fire" << (m_pending_discovery_fire_id == "" ?
                                           "(none)" : m_pending_discovery_fire_id);

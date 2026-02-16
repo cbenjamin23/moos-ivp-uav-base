@@ -24,6 +24,7 @@ TARGET_INCLUDE_DIRECTORIES(BHV_TaskRefuelReplaceBasic PUBLIC
   ${MOOSIVP_SWARM_TREE_BASE}/src/lib_helmtask
 )
 TARGET_LINK_LIBRARIES(BHV_TaskRefuelReplaceBasic
+   refuel_bid_reservation
    helmtask
    ufield
    helmivp

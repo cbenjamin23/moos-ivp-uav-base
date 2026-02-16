@@ -99,7 +99,7 @@ bool IgnoredRegionSet::handleIgnoredRegionConfig(std::string str, double curr_ti
     if (!warning.empty())
         return false;
 
-    if (!m_generator.setSpawnInterval(spawn_interval_str))
+    if ((spawn_count > 0) && !m_generator.setSpawnInterval(spawn_interval_str))
         warning = "Bad RegionConfig Line (bad spawn_interval): " + str;
     else if (!m_generator.setRegionAmt(count_str))
         warning = "Bad RegionConfig Line (bad count): " + str;

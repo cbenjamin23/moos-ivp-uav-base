@@ -816,13 +816,19 @@ bool GridSearchPlanner::handleMailIgnoredRegionAlert(std::string str)
   if (strContains(str, "unreg::"))
   {
     unregisterIgnoredRegion(str.substr(7));
-    raisePlannerFlag();
+    // Ignored regions are a TMSTC planning constraint. In Voronoi mode,
+    // avoid raising planner flags that broadcast global mode toggles.
+    if (m_planner_mode == Planner::PlannerMode::TMSTC_STAR)
+      raisePlannerFlag();
     return true;
   }
   else if (strContains(str, "reg::"))
   {
     registerIgnoredRegion(str.substr(5));
-    raisePlannerFlag();
+    // Ignored regions are a TMSTC planning constraint. In Voronoi mode,
+    // avoid raising planner flags that broadcast global mode toggles.
+    if (m_planner_mode == Planner::PlannerMode::TMSTC_STAR)
+      raisePlannerFlag();
     return true;
   }
 

@@ -226,7 +226,7 @@ Behavior = BHV_Loiter
 
      center_activate = false
 
-       polygon = radial:: x=0, y=0, radius=40, pts=8, snap=1, label=$(VNAME)_LOITER
+       polygon = radial:: x=0, y=0, radius=50, pts=8, snap=1, label=$(VNAME)_LOITER
   visual_hints = nextpt_color=white, nextpt_lcolor=khaki
   visual_hints = edge_color=orange, vertex_color=white
   visual_hints = edge_size=1, vertex_size=2

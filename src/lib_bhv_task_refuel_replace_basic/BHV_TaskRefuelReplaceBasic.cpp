@@ -13,17 +13,10 @@
 #include <cmath>
 #include <algorithm>
 #include "BHV_TaskRefuelReplaceBasic.h"
+#include "RefuelBidReservation.h"
 #include "MBUtils.h"
 
 using namespace std;
-
-namespace {
-// In-process reservation to prevent one vehicle from engaging multiple
-// basic replacement auctions at once when tasks spawn in the same helm cycle.
-string g_basic_reservation_hash = "";
-double g_basic_reservation_time = 0.0;
-const double g_basic_reservation_timeout = 20.0; // seconds
-}
 
 //-----------------------------------------------------------
 // Constructor
@@ -146,30 +139,9 @@ IvPFunction *BHV_TaskRefuelReplaceBasic::onRunState()
   updatePlatformInfo();
   IvPTaskBehavior::onGeneralRunState();
 
-  // Reservation lifecycle:
-  // - claim when this task is bidding/bidwon
-  // - release on bidlost/abstain
-  // - timeout stale reservations if no further updates arrive
-  double now = getBufferCurrTime();
-  if((g_basic_reservation_hash != "") &&
-     ((now - g_basic_reservation_time) > g_basic_reservation_timeout)) {
-    g_basic_reservation_hash = "";
-    g_basic_reservation_time = 0.0;
-  }
-
-  if((m_task_state == "bidding") || (m_task_state == "bidwon")) {
-    if((g_basic_reservation_hash == "") ||
-       (g_basic_reservation_hash == m_task_hash)) {
-      g_basic_reservation_hash = m_task_hash;
-      g_basic_reservation_time = now;
-    }
-  }
-  else if((m_task_state == "bidlost") || (m_task_state == "abstain")) {
-    if(g_basic_reservation_hash == m_task_hash) {
-      g_basic_reservation_hash = "";
-      g_basic_reservation_time = 0.0;
-    }
-  }
+  // Shared in-process reservation lifecycle across basic + target behaviors.
+  const double now = getBufferCurrTime();
+  RefuelBidReservation::maintainForState(m_task_hash, m_task_state, now);
 
   return(0);
 }
@@ -180,11 +152,11 @@ IvPFunction *BHV_TaskRefuelReplaceBasic::onRunState()
 bool BHV_TaskRefuelReplaceBasic::isTaskFeasible()
 {
   bool feasible = true;
+  const double now = getBufferCurrTime();
 
-  // If another basic task on this same vehicle is already bidding/won,
-  // abstain this task to avoid double-award race conditions.
-  if((g_basic_reservation_hash != "") &&
-     (g_basic_reservation_hash != m_task_hash))
+  // If another replacement task (basic or target) on this same vehicle is
+  // already bidding/won, abstain this task to avoid double-award races.
+  if(RefuelBidReservation::heldByOther(m_task_hash, now))
     feasible = false;
 
   if(m_returning_mode)
@@ -198,6 +170,12 @@ bool BHV_TaskRefuelReplaceBasic::isTaskFeasible()
 
   if(m_fuel_dist_remaining < m_fuel_abstain_threshold)
     feasible = false;
+
+  // Claim early when feasible so sibling task behaviors in the same helm cycle
+  // see this reservation before also placing bids.
+  const std::string state = tolower(stripBlankEnds(m_task_state));
+  if(feasible && ((state == "bidding") || (state == "bidwon")))
+    RefuelBidReservation::claim(m_task_hash, now);
 
   return(feasible);
 }

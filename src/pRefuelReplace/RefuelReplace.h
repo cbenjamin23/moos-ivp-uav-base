@@ -101,6 +101,8 @@ class RefuelReplace : public AppCastingMOOSApp
   bool m_got_odom;
   bool m_returning_mode;
 
+  // Threshold relatch gate: after ODOMETRY_RESET, wait for odom to drop low
+  // before allowing the next threshold-triggered task post.
   bool m_waiting_for_odom_reset;
   bool m_task_sent;              // latch so we only post once
   int  m_task_id_counter;        // rr0, rr1, rr2, ...
@@ -114,6 +116,10 @@ class RefuelReplace : public AppCastingMOOSApp
   // This flips true once RETURN=true is observed for the active basic task
   // and is cleared only when the lock itself is cleared.
   bool        m_active_replacement_return_started;
+  // Separate from threshold relatch: captures ODOMETRY_RESET while an active
+  // replacement lock is held so basic lock release cannot be skipped by
+  // relatch flag timing.
+  bool        m_active_replacement_odom_reset_seen;
 
   // One pending discovery-triggered request at a time.
   std::string m_pending_discovery_fire_id;

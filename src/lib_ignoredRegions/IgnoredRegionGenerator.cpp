@@ -301,7 +301,7 @@ bool IgnoredRegionGenerator::generate(std::stringstream &out, const std::vector<
     if (total_regions == 0)
     {
         out << "No regions requested. No regions generated." << endl;
-        return (false);
+        return (true);
     }
     if (m_generator.size() == 0)
     {

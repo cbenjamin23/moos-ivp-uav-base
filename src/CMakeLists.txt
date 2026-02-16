@@ -35,6 +35,10 @@ IF( EXISTS ${CMAKE_SOURCE_DIR}/src/lib_behaviors )
   LIST(APPEND ROBOT_APPS lib_behaviors)
 ENDIF()
 
+IF( EXISTS ${CMAKE_SOURCE_DIR}/src/lib_refuel_bid_reservation )
+  LIST(APPEND ROBOT_APPS lib_refuel_bid_reservation)
+ENDIF()
+
 IF( EXISTS ${CMAKE_SOURCE_DIR}/src/lib_bhv_task_refuel_replace_target )
   LIST(APPEND ROBOT_APPS lib_bhv_task_refuel_replace_target)
 ENDIF()
@@ -133,4 +137,3 @@ ENDFOREACH(A)
 ##############################################################################
 #                           END of CMakeLists.txt
 ##############################################################################
-

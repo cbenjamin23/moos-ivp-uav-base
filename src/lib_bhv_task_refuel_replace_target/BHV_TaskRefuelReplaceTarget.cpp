@@ -13,6 +13,7 @@
 #include <cmath>
 #include <algorithm>
 #include "BHV_TaskRefuelReplaceTarget.h"
+#include "RefuelBidReservation.h"
 #include "MBUtils.h"
 #include "MacroUtils.h"
 
@@ -187,6 +188,10 @@ IvPFunction *BHV_TaskRefuelReplaceTarget::onRunState()
   updatePlatformInfo();
   IvPTaskBehavior::onGeneralRunState();
 
+  // Shared in-process reservation lifecycle across basic + target behaviors.
+  const double now = getBufferCurrTime();
+  RefuelBidReservation::maintainForState(m_task_hash, m_task_state, now);
+
   // Ensure target ownership vars are posted when this behavior wins.
   // This avoids relying solely on bidwonflag macro handling.
   if(!was_bidwon && (m_task_state == "bidwon")) {
@@ -206,6 +211,12 @@ IvPFunction *BHV_TaskRefuelReplaceTarget::onRunState()
 bool BHV_TaskRefuelReplaceTarget::isTaskFeasible()
 {
   bool feasible = true;
+  const double now = getBufferCurrTime();
+
+  // If another replacement task (basic or target) on this same vehicle is
+  // already bidding/won, abstain this task to avoid double-award races.
+  if(RefuelBidReservation::heldByOther(m_task_hash, now))
+    feasible = false;
 
   // If we're already in returning mode, we shouldn't be bidding on targets
   if(m_returning_mode)
@@ -229,6 +240,12 @@ bool BHV_TaskRefuelReplaceTarget::isTaskFeasible()
     double dist = hypot(m_osx - m_target_x, m_osy - m_target_y);
     feasible = (m_fuel_dist_remaining > dist);
   }
+
+  // Claim early when feasible so sibling task behaviors in the same helm cycle
+  // see this reservation before also placing bids.
+  const std::string state = tolower(stripBlankEnds(m_task_state));
+  if(feasible && ((state == "bidding") || (state == "bidwon")))
+    RefuelBidReservation::claim(m_task_hash, now);
 
   return(feasible);
 }
