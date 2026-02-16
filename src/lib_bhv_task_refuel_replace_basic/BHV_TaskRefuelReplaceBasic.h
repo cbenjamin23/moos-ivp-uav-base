@@ -17,6 +17,10 @@
 #include "IvPTaskBehavior.h"
 
 class IvPDomain;
+// Basic replacement task behavior:
+// - no target handoff geometry, bid is fuel-centric with distance tie-break.
+// - feasibility is gated by local RETURN and REFUEL_TRANSIT_BUSY state posted
+//   by pRefuelReplace.
 class BHV_TaskRefuelReplaceBasic : public IvPTaskBehavior {
 public:
   BHV_TaskRefuelReplaceBasic(IvPDomain);

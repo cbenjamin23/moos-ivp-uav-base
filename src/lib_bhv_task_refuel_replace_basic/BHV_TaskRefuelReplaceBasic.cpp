@@ -18,6 +18,12 @@
 
 using namespace std;
 
+// Behavior summary:
+// - Participates in basic refuel replacement auctions (no explicit handoff target).
+// - Reads local fuel/return/transit-busy state from pRefuelReplace.
+// - Uses RefuelBidReservation to avoid sibling basic/target double-claims on
+//   the same helm cycle.
+
 //-----------------------------------------------------------
 // Constructor
 
@@ -172,7 +178,7 @@ bool BHV_TaskRefuelReplaceBasic::isTaskFeasible()
     feasible = false;
 
   // Claim early when feasible so sibling task behaviors in the same helm cycle
-  // see this reservation before also placing bids.
+  // see this reservation before also placing bids for a competing replacement.
   const std::string state = tolower(stripBlankEnds(m_task_state));
   if(feasible && ((state == "bidding") || (state == "bidwon")))
     RefuelBidReservation::claim(m_task_hash, now);

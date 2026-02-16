@@ -19,6 +19,14 @@
 
 using namespace std;
 
+// Behavior summary:
+// - Subscribes to local fuel/return/transit-busy state from pRefuelReplace.
+// - Participates in target-task auctions when feasible.
+// - Uses RefuelBidReservation to avoid sibling basic/target double-claims on
+//   the same helm cycle.
+// - On bidwon transition, republishes OWN_TARGET_* so requester-side logic has
+//   consistent target ownership data even if bidwon flags race.
+
 //-----------------------------------------------------------
 // Constructor
 
@@ -253,12 +261,15 @@ bool BHV_TaskRefuelReplaceTarget::isTaskFeasible()
 //-----------------------------------------------------------
 // Procedure: getTaskBid()
 //
-//  BidScore = w_k * max(0, min(H, T_loiter) - tau_k)
-//             - opw * OWN_TARGET_WEIGHT
+// Current scoring path (temporary simplification):
+//   score = fuel_remaining - w_dist * distance_to_requester
+// where w_dist is a fixed tie-break weight.
 //
-//  Treating distance and time interchangeably (speed = 1 m/s
-//  equivalent): tau_k = dist, T_loiter = fuel_remaining - dist.
-//  Only called after isTaskFeasible() returned true.
+// NOTE:
+//   planning_horizon/opw parameters are still parsed and retained, but the
+//   original target-aware formula is currently parked in the commented block
+//   below for quick restore. This function is only called after
+//   isTaskFeasible() returned true.
 
 double BHV_TaskRefuelReplaceTarget::getTaskBid()
 {

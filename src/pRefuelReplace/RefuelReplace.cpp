@@ -18,14 +18,16 @@ using namespace std;
 
 // pRefuelReplace overview:
 // 1) Publishes FUEL_DISTANCE_REMAINING each iterate from total_range - odometry.
-// 2) Posts replacement tasks when either:
-//    - refuel threshold is crossed (one-shot per reset cycle), or
-//    - a REFUEL_DISCOVERY_REQUEST arrives (fire-id deduped + age-limited).
-//    Posting checks require nav/odom readiness and no active replacement lock.
-// 3) Tracks TASK_STATE for spawned tasks and infers winner identity from payload
-//    (or source metadata fallback), then enforces a single active replacement lock.
-// 4) For target tasks, sends return handoff when within handoff_radius; lock is
-//    released on handoff completion, basic-return completion, or timeout fallback.
+// 2) Posts replacement tasks from two trigger paths:
+//    - threshold path (one-shot per odometry-reset cycle via m_task_sent), and
+//    - discovery path (queued; fire-id deduped and age-limited).
+// 3) Caches task metadata from MISSION_TASK/TASK_* mail and tracks TASK_STATE
+//    to infer local winner identity robustly across payload variants.
+// 4) Maintains a single-active replacement lock:
+//    - lock acquisition on accepted bidwon,
+//    - lock release on handoff completion, basic return completion, or timeout.
+// 5) Publishes REFUEL_TRANSIT_BUSY while lock is held so task behaviors abstain
+//    from concurrent replacement bids on the same vehicle.
 
 //---------------------------------------------------------
 // Constructor()
@@ -249,9 +251,11 @@ bool RefuelReplace::OnConnectToServer()
 // Every tick: publish local FUEL_DISTANCE_REMAINING so this
 // vehicle's task behavior can evaluate its own feasibility.
 //
-// When odometry hits the refuel threshold: post a MISSION_TASK.
-// If target is set, request target-based replacement. Otherwise request
-// basic replacement.
+// Trigger processing order:
+// 1) threshold relatch handling (ODOMETRY_RESET + low-odom clear),
+// 2) queued discovery-triggered request handling (age + cooldown + threshold),
+// 3) threshold-triggered posting,
+// 4) target handoff detection and lock release.
 
 bool RefuelReplace::Iterate()
 {
@@ -310,6 +314,8 @@ bool RefuelReplace::Iterate()
                (m_odometry_dist < m_refuel_threshold))) {
         // Discovery-triggered replacement is only intended once this vehicle
         // is in replacement-needed territory (same threshold semantics).
+        // postReplacementTask(..., bypass=true) skips the internal threshold
+        // gate, so this explicit check remains the policy gate.
         reportEvent("Ignoring discovery-triggered replacement below threshold: fire_id=" +
                     fire_id);
         m_pending_discovery_fire_id = "";
@@ -499,6 +505,10 @@ void RefuelReplace::registerVariables()
 
 //---------------------------------------------------------
 // Procedure: postReplacementTask()
+//   bypass_task_latch semantics:
+//   - false: enforce one-shot threshold latch and threshold gate.
+//   - true: skip latch/threshold gate for discovery path; caller is responsible
+//           for policy checks (freshness/cooldown/threshold/lock readiness).
 
 bool RefuelReplace::postReplacementTask(const string& trigger_reason,
                                         bool bypass_task_latch)
@@ -677,6 +687,9 @@ void RefuelReplace::processTaskRefuelTarget(const string& task_msg)
 
 //---------------------------------------------------------
 // Procedure: processTaskState()
+//   Interprets bid outcomes for local commitment tracking.
+//   Winner identity is inferred from payload keys first, then mail metadata.
+//   This method is the sole owner of active-lock acquisition/release transitions.
 
 void RefuelReplace::processTaskState(const string& state_msg,
                                      const string& msg_source_app,
@@ -791,6 +804,9 @@ void RefuelReplace::sendNodeMessage(const string& dest_node,
 
 //---------------------------------------------------------
 // Procedure: notifyRequesterReturn()
+//   Emits requester-directed control messages that complete a target-task
+//   handoff. This is only called for locally won target tasks after winner
+//   enters the configured handoff radius.
 
 void RefuelReplace::notifyRequesterReturn(const string& requester,
                                           const string& task_hash)

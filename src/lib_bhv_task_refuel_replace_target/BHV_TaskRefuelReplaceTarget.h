@@ -17,6 +17,10 @@
 #include "IvPTaskBehavior.h"
 
 class IvPDomain;
+// Targeted replacement task behavior:
+// - task includes requester and target geometry for handoff-style replacement.
+// - feasibility is gated by local fuel plus RETURN/REFUEL_TRANSIT_BUSY state
+//   posted by pRefuelReplace.
 class BHV_TaskRefuelReplaceTarget : public IvPTaskBehavior {
 public:
   BHV_TaskRefuelReplaceTarget(IvPDomain);
@@ -52,8 +56,10 @@ public:
   bool   m_requester_x_set;
   bool   m_requester_y_set;
 
-  // Bid formula tuning (from .bhv config)
-  double m_planning_horizon;    // H  (seconds)
+  // Bid formula tuning (from .bhv config).
+  // Currently retained for the original target-aware formula path; active
+  // scoring is temporarily simplified in getTaskBid().
+  double m_planning_horizon;    // H (seconds)
   double m_opw;                 // opportunity-cost weight
   double m_fuel_abstain_threshold; // abstain if fuel remaining is below this
 

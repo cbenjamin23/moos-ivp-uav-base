@@ -300,6 +300,9 @@ bool IgnoredRegionGenerator::generate(std::stringstream &out, const std::vector<
     unsigned int total_regions = m_region_amt + m_spawnable_region_amt;
     if (total_regions == 0)
     {
+        // Zero requested regions is a valid mission configuration (ignored
+        // regions intentionally disabled). Treat this as success so callers do
+        // not surface a configuration warning.
         out << "No regions requested. No regions generated." << endl;
         return (true);
     }

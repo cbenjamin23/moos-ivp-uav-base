@@ -12,6 +12,14 @@
 #include <string>
 #include "MOOS/libMOOS/Thirdparty/AppCasting/AppCastingMOOSApp.h"
 
+// pRefuelReplace coordinates replacement-task posting and local commitment state.
+// It supports two trigger paths:
+// 1) Threshold-triggered: one-shot per odometry-reset cycle (m_task_sent latch).
+// 2) Discovery-triggered: queued, deduped by fire_id, and age-limited.
+//
+// The app also enforces a single active replacement commitment per vehicle via
+// m_active_replacement_hash. While this lock is held, REFUEL_TRANSIT_BUSY is true,
+// and sibling task behaviors on the same helm should abstain from new auctions.
 class RefuelReplace : public AppCastingMOOSApp
 {
  public:
@@ -104,7 +112,8 @@ class RefuelReplace : public AppCastingMOOSApp
   // Threshold relatch gate: after ODOMETRY_RESET, wait for odom to drop low
   // before allowing the next threshold-triggered task post.
   bool m_waiting_for_odom_reset;
-  bool m_task_sent;              // latch so we only post once
+  // Threshold-latch only. Discovery-triggered posts may bypass this latch.
+  bool m_task_sent;
   int  m_task_id_counter;        // rr0, rr1, rr2, ...
 
   // Single-active-replacement lock. Core concurrency guard:
@@ -121,7 +130,8 @@ class RefuelReplace : public AppCastingMOOSApp
   // relatch flag timing.
   bool        m_active_replacement_odom_reset_seen;
 
-  // One pending discovery-triggered request at a time.
+  // One pending discovery-triggered request at a time. New requests overwrite
+  // older pending ones to keep a bounded queue model.
   std::string m_pending_discovery_fire_id;
   double      m_pending_discovery_utc;
   // Last post times keyed by fire_id for cooldown/dedupe.

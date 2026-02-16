@@ -805,10 +805,17 @@ bool GridSearchPlanner::handleMailViewGridUpdate(std::string str)
 //------------------------------------------------------------
 // Procedure: handleMailIgnoredRegion()
 
-/// @brief Handles alerts for ignored regions
-/// @param str The input string containing region information\
-///            Format: "reg:: name" \
-///                    "unreg:: ignored_region_str"
+/// @brief Handles incremental ignored-region updates from FireSim.
+/// @param str The input string containing region information.
+///            Format: "reg:: ignored_region_spec"
+///                    "unreg:: ignored_region_name"
+///
+/// Registration/unregistration always updates local ignored-region state.
+/// Replanning is intentionally mode-gated:
+/// - TMSTC_STAR: raise planner flag to recompute paths with updated constraints.
+/// - VORONOI_SEARCH: do not raise planner flag here, since that code path issues
+///   global mode toggles (DO_SURVEY/DEPLOY/LOITER/RETURN) that can disrupt
+///   currently active vehicle behaviors.
 bool GridSearchPlanner::handleMailIgnoredRegionAlert(std::string str)
 {
   str = stripBlankEnds(str);
@@ -1332,6 +1339,10 @@ XYSegList GridSearchPlanner::pruneDiscoveredWaypoints(const XYSegList &original_
 
 bool GridSearchPlanner::raisePlannerFlag()
 {
+  // NOTE:
+  // In VORONOI_SEARCH this function schedules notifyVoronoiSearching(), which
+  // publishes global mode commands. Callers should therefore avoid invoking
+  // this for non-mode-change events unless that global side effect is intended.
 
   switch (m_planner_mode)
   {

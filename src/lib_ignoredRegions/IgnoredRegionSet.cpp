@@ -99,6 +99,9 @@ bool IgnoredRegionSet::handleIgnoredRegionConfig(std::string str, double curr_ti
     if (!warning.empty())
         return false;
 
+    // Spawn interval is only meaningful when delayed spawn regions are enabled.
+    // Keep this optional for spawn_count==0 so "no ignored regions" config does
+    // not emit false warning paths.
     if ((spawn_count > 0) && !m_generator.setSpawnInterval(spawn_interval_str))
         warning = "Bad RegionConfig Line (bad spawn_interval): " + str;
     else if (!m_generator.setRegionAmt(count_str))
