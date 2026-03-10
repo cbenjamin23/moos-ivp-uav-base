@@ -15,7 +15,8 @@
 // pRefuelReplace coordinates replacement-task posting and local commitment state.
 // It supports two trigger paths:
 // 1) Threshold-triggered: one-shot per odometry-reset cycle (m_task_sent latch).
-// 2) Discovery-triggered: queued, deduped by fire_id, and age-limited.
+// 2) Discovery override: queued, deduped by fire_id, and only posts
+//    immediately if the vehicle is already at/above threshold.
 //
 // The app also enforces a single active replacement commitment per vehicle via
 // m_active_lock. While this lock is held, REFUEL_TRANSIT_BUSY is true,
@@ -27,7 +28,7 @@ class RefuelReplace : public AppCastingMOOSApp
    ~RefuelReplace();
 
  protected:
-   struct ReplacementTaskInfo;
+   struct PendingTaskInfo;
    struct ActiveReplacementLock;
 
  protected: // Standard MOOSApp functions to overload  
@@ -41,13 +42,14 @@ class RefuelReplace : public AppCastingMOOSApp
 
  protected:
    void registerVariables();
-   // Caches task metadata (requester/target/type) for both target/basic tasks.
+   // Upserts pre-win task metadata keyed by hash for later win handling.
    void upsertTaskInfo(const std::string& task_msg);
    // Tracks task state transitions. Source app/community are used as fallback
    // winner hints when TASK_STATE payloads omit an explicit winner key.
    void processTaskState(const std::string& state_msg,
                          const std::string& msg_source_app,
                          const std::string& msg_source_community);
+   // Clears the one active replacement commitment and records why it ended.
    void clearActiveReplacementLock(const std::string& reason);
    // Centralized task posting path used by both threshold and discovery triggers.
    // bypass_task_latch=true allows discovery-driven requests without unlatching
@@ -56,37 +58,57 @@ class RefuelReplace : public AppCastingMOOSApp
                             bool bypass_task_latch);
    // TASK_STATE format varies by task manager version; probe known winner keys.
    std::string parseTaskStateWinner(const std::string& spec) const;
+   // Normalizes task strings so comma- and hash-delimited specs parse the same way.
    std::string normalizeTaskSpec(const std::string& msg) const;
+   // Infers the requester vehicle name from the generated task id when absent.
    std::string inferRequesterFromId(const std::string& id) const;
+   // Returns true when this vehicle is currently committed to one replacement.
    bool activeLockEngaged() const;
+   // Classifies tasks that should release on return-reset instead of handoff.
    bool activeTaskUsesReturnReset(const std::string& task_type,
                                   bool target_set) const;
-   ReplacementTaskInfo* findActiveTaskInfo();
-   const ReplacementTaskInfo* findActiveTaskInfo() const;
+   // Publishes the local remaining range estimate from total range minus odometry.
+   void updateFuelDistanceRemaining();
+   // Re-arms threshold posting after odometry has genuinely reset low again.
+   void maybeRelatchAfterOdometryReset();
+   // Handles the queued discovery override that can post immediate relief only
+   // when the vehicle is already in replacement-needed territory.
+   void maybeHandleImmediateDiscoveryReplacement(bool have_nav, bool have_odom);
+   // Posts the standard threshold-triggered replacement task once per cycle.
+   void maybePostThresholdReplacement(bool have_nav, bool have_odom);
+   // Sends return handoff once the active target-task winner reaches handoff range.
+   void maybeSendActiveHandoff(bool have_nav);
+   // Advances timeout and completion rules for the one active replacement lock.
+   void maybeMaintainActiveLock();
+   // Ages out stale non-active pending task metadata from the passive map.
+   void prunePendingTasks(double now);
+   // Sends a string-valued NODE_MESSAGE_LOCAL to one destination vehicle.
    void sendNodeMessage(const std::string& dest_node,
                         const std::string& var_name,
                         const std::string& value);
+   // Sends the requester the control messages that complete a target handoff.
    void notifyRequesterReturn(const std::string& requester,
                               const std::string& task_hash);
 
-  struct ReplacementTaskInfo {
-    std::string hash;
+  struct PendingTaskInfo {
     std::string id;
     std::string requester;
     std::string task_type;
     double target_x = 0;
     double target_y = 0;
     bool   target_set = false;
-    // Latest TASK_STATE snapshot seen by this app. These are informational and
-    // intentionally separate from the active lock, which owns execution state.
-    std::string last_task_state;
-    std::string last_winner;
-    double last_update_utc = 0.0;
+    // Pending-task freshness is used only to age out stale non-active entries.
+    double last_seen_utc = 0.0;
   };
 
   struct ActiveReplacementLock {
     std::string task_hash;
+    std::string requester;
     std::string task_type;
+    double      target_x = 0.0;
+    double      target_y = 0.0;
+    bool        target_set = false;
+    double      acquired_utc = 0.0;
     double      last_refresh_utc = 0.0;
     // Set after this replacement has notified requester to return.
     bool        handoff_sent = false;
@@ -100,7 +122,12 @@ class RefuelReplace : public AppCastingMOOSApp
     void clear()
     {
       task_hash = "";
+      requester = "";
       task_type = "";
+      target_x = 0.0;
+      target_y = 0.0;
+      target_set = false;
+      acquired_utc = 0.0;
       last_refresh_utc = 0.0;
       handoff_sent = false;
       return_started = false;
@@ -130,8 +157,9 @@ class RefuelReplace : public AppCastingMOOSApp
 
   std::string m_host_community;
 
-  // Passive metadata cache keyed by task hash.
-  std::map<std::string, ReplacementTaskInfo> m_task_cache;
+  // Passive pre-win task metadata keyed by task hash. This exists so the app
+  // can resolve thin hash-based TASK_STATE mail into actionable metadata later.
+  std::map<std::string, PendingTaskInfo> m_pending_tasks;
   
  private: // State variables
   
@@ -148,7 +176,7 @@ class RefuelReplace : public AppCastingMOOSApp
   // Threshold relatch gate: after ODOMETRY_RESET, wait for odom to drop low
   // before allowing the next threshold-triggered task post.
   bool m_waiting_for_odom_reset;
-  // Threshold-latch only. Discovery-triggered posts may bypass this latch.
+  // Threshold-latch only. Discovery override posts may bypass this latch.
   bool m_task_sent;
   int  m_task_id_counter;        // rr0, rr1, rr2, ...
 
@@ -156,7 +184,7 @@ class RefuelReplace : public AppCastingMOOSApp
   // while engaged, additional wins are ignored for execution.
   ActiveReplacementLock m_active_lock;
 
-  // One pending discovery-triggered request at a time. New requests overwrite
+  // One pending discovery override request at a time. New requests overwrite
   // older pending ones to keep a bounded queue model.
   std::string m_pending_discovery_fire_id;
   double      m_pending_discovery_utc;

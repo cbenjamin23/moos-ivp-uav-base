@@ -20,8 +20,9 @@ using namespace std;
 // 1) Publishes FUEL_DISTANCE_REMAINING each iterate from total_range - odometry.
 // 2) Posts replacement tasks from two trigger paths:
 //    - threshold path (one-shot per odometry-reset cycle via m_task_sent), and
-//    - discovery path (queued; fire-id deduped and age-limited).
-// 3) Caches task metadata from MISSION_TASK/TASK_* mail and tracks TASK_STATE
+//    - discovery override path (queued; fire-id deduped; only posts
+//      immediately if the vehicle is already at/above threshold).
+// 3) Tracks thin pre-win task metadata keyed by hash and uses TASK_STATE
 //    to infer local winner identity robustly across payload variants.
 // 4) Maintains a single-active replacement lock:
 //    - lock acquisition on accepted bidwon,
@@ -65,7 +66,7 @@ RefuelReplace::RefuelReplace()
   m_task_sent = false;
   m_task_id_counter = 0;
   m_active_lock.clear();
-  // Discovery-triggered posting is queued to keep mail handling lightweight.
+  // Discovery override requests are queued to keep mail handling lightweight.
   m_pending_discovery_fire_id = "";
   m_pending_discovery_utc = 0.0;
 
@@ -181,8 +182,8 @@ bool RefuelReplace::OnNewMail(MOOSMSG_LIST &NewMail)
       }
     }
     else if (key == "REFUEL_DISCOVERY_REQUEST") {
-      // Discovery-driven replacement requests are queued and processed in Iterate()
-      // so posting decisions can use up-to-date nav/odom/lock state together.
+      // Discovery override requests are queued and processed in Iterate() so
+      // posting decisions can use up-to-date nav/odom/lock state together.
       string spec = normalizeTaskSpec(msg.GetString());
       string fire_id = stripBlankEnds(tokStringParse(spec, "fire_id"));
       if(fire_id == "")
@@ -248,7 +249,7 @@ bool RefuelReplace::OnConnectToServer()
 //
 // Trigger processing order:
 // 1) threshold relatch handling (ODOMETRY_RESET + low-odom clear),
-// 2) queued discovery-triggered request handling (age + cooldown + threshold),
+// 2) queued discovery-override handling (age + cooldown + threshold),
 // 3) threshold-triggered posting,
 // 4) target handoff detection and lock release.
 
@@ -259,144 +260,14 @@ bool RefuelReplace::Iterate()
   const bool have_nav  = (m_got_nav_x && m_got_nav_y);
   const bool have_odom = m_got_odom;
 
-  // Publish fuel distance remaining every tick
-  if(have_odom && (m_total_range > 0)) {
-    m_fuel_distance_remaining = m_total_range - m_odometry_dist;
-    if(m_fuel_distance_remaining < 0) m_fuel_distance_remaining = 0;
-    Notify("FUEL_DISTANCE_REMAINING", m_fuel_distance_remaining);
-  }
+  updateFuelDistanceRemaining();
+  maybeRelatchAfterOdometryReset();
+  maybeHandleImmediateDiscoveryReplacement(have_nav, have_odom);
+  maybePostThresholdReplacement(have_nav, have_odom);
+  maybeSendActiveHandoff(have_nav);
+  maybeMaintainActiveLock();
+  prunePendingTasks(MOOSTime());
 
-  // After a reset command, wait for odometry to actually drop low
-  // before allowing the next threshold-triggered task.
-  if(m_waiting_for_odom_reset && have_odom) {
-    const double odom_reset_clear_thresh = 50.0;
-    if(m_odometry_dist <= odom_reset_clear_thresh) {
-      m_task_sent = false;
-      m_waiting_for_odom_reset = false;
-    }
-  }
-
-  // Handle fire-discovery-triggered replacement request. This path is
-  // independent of the threshold latch and intentionally one-shot per fire
-  // within a cooldown window.
-  if(m_pending_discovery_fire_id != "") {
-    double now = MOOSTime();
-    double age = now - m_pending_discovery_utc;
-    if((m_discovery_request_timeout > 0.0) && (age > m_discovery_request_timeout)) {
-      reportRunWarning("Dropping stale discovery request: fire_id=" +
-                       m_pending_discovery_fire_id);
-      m_pending_discovery_fire_id = "";
-      m_pending_discovery_utc = 0.0;
-    }
-    else {
-      const string fire_id = m_pending_discovery_fire_id;
-      bool recently_posted = false;
-      if(m_last_discovery_post_utc.count(fire_id) > 0) {
-        double dt = now - m_last_discovery_post_utc[fire_id];
-        recently_posted =
-          (m_discovery_repost_cooldown > 0.0) && (dt < m_discovery_repost_cooldown);
-      }
-
-      if(recently_posted) {
-        // Same fire can re-notify rapidly; suppress duplicate team auctions.
-        reportEvent("Skipping duplicate discovery-triggered replacement: fire_id=" +
-                    fire_id);
-        m_pending_discovery_fire_id = "";
-        m_pending_discovery_utc = 0.0;
-      }
-      else if(have_odom &&
-              ((m_refuel_threshold <= 0.0) ||
-               (m_odometry_dist < m_refuel_threshold))) {
-        // Discovery-triggered replacement is only intended once this vehicle
-        // is in replacement-needed territory (same threshold semantics).
-        // postReplacementTask(..., bypass=true) skips the internal threshold
-        // gate, so this explicit check remains the policy gate.
-        reportEvent("Ignoring discovery-triggered replacement below threshold: fire_id=" +
-                    fire_id);
-        m_pending_discovery_fire_id = "";
-        m_pending_discovery_utc = 0.0;
-      }
-      else if(!activeLockEngaged() && have_nav && have_odom) {
-        // Post only if this vehicle is not already committed to another replacement.
-        if(postReplacementTask("discovery_fire_" + fire_id, true))
-          m_last_discovery_post_utc[fire_id] = now;
-        m_pending_discovery_fire_id = "";
-        m_pending_discovery_utc = 0.0;
-      }
-    }
-  }
-
-  // Trigger task once when odometry reaches threshold
-  if (!m_task_sent &&
-      !m_waiting_for_odom_reset &&
-      (m_refuel_threshold > 0.0) &&
-      have_nav && have_odom &&
-      (m_odometry_dist >= m_refuel_threshold))
-  {
-    // Standard threshold path remains one-shot per odometry-reset cycle.
-    postReplacementTask("threshold_refuel", false);
-  }
-
-  // Check if the active target task needs a requester return handoff.
-  if(have_nav && activeLockEngaged()) {
-    ReplacementTaskInfo* active_task = findActiveTaskInfo();
-    if(active_task != nullptr &&
-       !m_active_lock.handoff_sent &&
-       active_task->target_set &&
-       (active_task->requester != "") &&
-       (active_task->requester != m_host_community)) {
-      double dist = hypot(m_nav_x - active_task->target_x,
-                          m_nav_y - active_task->target_y);
-      if(dist <= m_handoff_radius) {
-        // Handoff completion signal for target tasks: requester is told to return.
-        notifyRequesterReturn(active_task->requester, active_task->hash);
-        m_active_lock.handoff_sent = true;
-      }
-    }
-  }
-
-  // Maintain and release explicit active replacement lock.
-  if(activeLockEngaged()) {
-    ReplacementTaskInfo* active = findActiveTaskInfo();
-    // Optional timeout guard against stale lock.
-    if((m_replacement_lock_timeout > 0.0) &&
-       ((MOOSTime() - m_active_lock.last_refresh_utc) > m_replacement_lock_timeout)) {
-      clearActiveReplacementLock("timeout");
-    }
-    // Active task disappeared from cache.
-    else if(active == nullptr) {
-      clearActiveReplacementLock("task_record_missing");
-    }
-    else {
-      if((m_active_lock.task_type == "") && (active->task_type != ""))
-        // Task type may arrive after bidwon in asynchronous mail order.
-        m_active_lock.task_type = active->task_type;
-
-      // Identify "basic-like" tasks that have no handoff target. For these tasks
-      // we hold lock for the entire return leg rather than clearing on RETURN=true.
-      const bool basic_like_task =
-        activeTaskUsesReturnReset(m_active_lock.task_type, active->target_set);
-
-      // Mark that the active basic-like winner has started its return leg.
-      if(basic_like_task && m_returning_mode)
-        m_active_lock.return_started = true;
-
-      // Any task with a completed handoff can release immediately.
-      if(m_active_lock.handoff_sent) {
-        clearActiveReplacementLock("handoff_complete");
-      }
-      // Basic-like tasks only release once return completes (ODOMETRY_RESET path).
-      // This keeps REFUEL_TRANSIT_BUSY asserted while actively returning.
-      else if(basic_like_task &&
-              m_active_lock.return_started &&
-              m_active_lock.odom_reset_seen) {
-        if(m_active_lock.task_type == "refuelreplace_basic")
-          clearActiveReplacementLock("basic_return_complete");
-        else
-          clearActiveReplacementLock("unknown_basic_return_complete");
-      }
-    }
-  }
   bool transit_busy = activeLockEngaged();
   Notify("REFUEL_TRANSIT_BUSY", transit_busy ? "true" : "false");
  
@@ -577,6 +448,7 @@ bool RefuelReplace::postReplacementTask(const string& trigger_reason,
 
 //---------------------------------------------------------
 // Procedure: parseTaskStateWinner()
+//   Extracts the winner field from variant TASK_STATE payload formats.
 
 string RefuelReplace::parseTaskStateWinner(const string& spec) const
 {
@@ -603,6 +475,7 @@ string RefuelReplace::parseTaskStateWinner(const string& spec) const
 //---------------------------------------------------------
 // Procedure: normalizeTaskSpec()
 //   Task strings may use commas or '#' separators.
+//   This keeps parsing stable across slightly different publishers.
 
 string RefuelReplace::normalizeTaskSpec(const string& msg) const
 {
@@ -616,6 +489,7 @@ string RefuelReplace::normalizeTaskSpec(const string& msg) const
 
 //---------------------------------------------------------
 // Procedure: inferRequesterFromId()
+//   Falls back to requester identity encoded in the generated task id.
 
 // Infer requester plane from task id by stripping off "_rr" suffix and anything after it.
 // We do this if requester field is missing but id is present in upsertTaskInfo()
@@ -634,6 +508,7 @@ string RefuelReplace::inferRequesterFromId(const string& id) const
 
 //---------------------------------------------------------
 // Procedure: activeLockEngaged()
+//   Returns true when this vehicle currently holds an active replacement lock.
 
 bool RefuelReplace::activeLockEngaged() const
 {
@@ -642,6 +517,7 @@ bool RefuelReplace::activeLockEngaged() const
 
 //---------------------------------------------------------
 // Procedure: activeTaskUsesReturnReset()
+//   Classifies tasks that should release only after RETURN + ODOMETRY_RESET.
 
 bool RefuelReplace::activeTaskUsesReturnReset(const string& task_type,
                                               bool target_set) const
@@ -651,42 +527,208 @@ bool RefuelReplace::activeTaskUsesReturnReset(const string& task_type,
 }
 
 //---------------------------------------------------------
-// Procedure: findActiveTaskInfo()
+// Procedure: updateFuelDistanceRemaining()
+//   Publishes local remaining range from total range minus traveled odometry.
 
-RefuelReplace::ReplacementTaskInfo* RefuelReplace::findActiveTaskInfo()
+void RefuelReplace::updateFuelDistanceRemaining()
 {
-  if(!activeLockEngaged())
-    return(nullptr);
+  if(!m_got_odom || (m_total_range <= 0))
+    return;
 
-  map<string, ReplacementTaskInfo>::iterator p =
-    m_task_cache.find(m_active_lock.task_hash);
-  if(p == m_task_cache.end())
-    return(nullptr);
-
-  return(&p->second);
+  m_fuel_distance_remaining = m_total_range - m_odometry_dist;
+  if(m_fuel_distance_remaining < 0)
+    m_fuel_distance_remaining = 0;
+  Notify("FUEL_DISTANCE_REMAINING", m_fuel_distance_remaining);
 }
 
 //---------------------------------------------------------
-// Procedure: findActiveTaskInfo()
+// Procedure: maybeRelatchAfterOdometryReset()
+//   Re-arms threshold-triggered posting once odometry has dropped low again.
 
-const RefuelReplace::ReplacementTaskInfo* RefuelReplace::findActiveTaskInfo() const
+void RefuelReplace::maybeRelatchAfterOdometryReset()
+{
+  if(!m_waiting_for_odom_reset || !m_got_odom)
+    return;
+
+  const double odom_reset_clear_thresh = 50.0;
+  if(m_odometry_dist <= odom_reset_clear_thresh) {
+    m_task_sent = false;
+    m_waiting_for_odom_reset = false;
+  }
+}
+
+//---------------------------------------------------------
+// Procedure: maybeHandleImmediateDiscoveryReplacement()
+//   Services the queued discovery override that can post immediate relief only
+//   if the vehicle is already at/above threshold.
+
+void RefuelReplace::maybeHandleImmediateDiscoveryReplacement(bool have_nav, bool have_odom)
+{
+  if(m_pending_discovery_fire_id == "")
+    return;
+
+  double now = MOOSTime();
+  double age = now - m_pending_discovery_utc;
+  if((m_discovery_request_timeout > 0.0) && (age > m_discovery_request_timeout)) {
+    reportRunWarning("Dropping stale discovery request: fire_id=" +
+                     m_pending_discovery_fire_id);
+    m_pending_discovery_fire_id = "";
+    m_pending_discovery_utc = 0.0;
+    return;
+  }
+
+  const string fire_id = m_pending_discovery_fire_id;
+  bool recently_posted = false;
+  if(m_last_discovery_post_utc.count(fire_id) > 0) {
+    double dt = now - m_last_discovery_post_utc[fire_id];
+    recently_posted =
+      (m_discovery_repost_cooldown > 0.0) && (dt < m_discovery_repost_cooldown);
+  }
+
+  if(recently_posted) {
+    // Same fire can re-notify rapidly; suppress duplicate team auctions.
+    reportEvent("Skipping duplicate discovery override replacement: fire_id=" +
+                fire_id);
+    m_pending_discovery_fire_id = "";
+    m_pending_discovery_utc = 0.0;
+  }
+  else if(have_odom &&
+          ((m_refuel_threshold <= 0.0) ||
+           (m_odometry_dist < m_refuel_threshold))) {
+    // Discovery override is only intended when this vehicle is already
+    // in replacement-needed territory (same threshold semantics).
+    // postReplacementTask(..., bypass=true) skips the internal threshold
+    // gate, so this explicit check remains the policy gate.
+    reportEvent("Ignoring discovery override below threshold: fire_id=" +
+                fire_id);
+    m_pending_discovery_fire_id = "";
+    m_pending_discovery_utc = 0.0;
+  }
+  else if(!activeLockEngaged() && have_nav && have_odom) {
+    // Post only if this vehicle is not already committed to another replacement.
+    if(postReplacementTask("discovery_fire_" + fire_id, true))
+      m_last_discovery_post_utc[fire_id] = now;
+    m_pending_discovery_fire_id = "";
+    m_pending_discovery_utc = 0.0;
+  }
+}
+
+//---------------------------------------------------------
+// Procedure: maybePostThresholdReplacement()
+//   Posts the standard threshold-triggered replacement task once per reset cycle.
+
+void RefuelReplace::maybePostThresholdReplacement(bool have_nav, bool have_odom)
+{
+  if (!m_task_sent &&
+      !m_waiting_for_odom_reset &&
+      (m_refuel_threshold > 0.0) &&
+      have_nav && have_odom &&
+      (m_odometry_dist >= m_refuel_threshold))
+  {
+    // Standard threshold path remains one-shot per odometry-reset cycle.
+    postReplacementTask("threshold_refuel", false);
+  }
+}
+
+//---------------------------------------------------------
+// Procedure: maybeSendActiveHandoff()
+//   Tells the requester to return once the active target winner reaches handoff range.
+
+void RefuelReplace::maybeSendActiveHandoff(bool have_nav)
+{
+  if(!have_nav || !activeLockEngaged())
+    return;
+
+  if(m_active_lock.handoff_sent ||
+     !m_active_lock.target_set ||
+     (m_active_lock.requester == "") ||
+     (m_active_lock.requester == m_host_community)) {
+    return;
+  }
+
+  double dist = hypot(m_nav_x - m_active_lock.target_x,
+                      m_nav_y - m_active_lock.target_y);
+  if(dist <= m_handoff_radius) {
+    // Handoff completion signal for target tasks: requester is told to return.
+    notifyRequesterReturn(m_active_lock.requester, m_active_lock.task_hash);
+    m_active_lock.handoff_sent = true;
+  }
+}
+
+//---------------------------------------------------------
+// Procedure: maybeMaintainActiveLock()
+//   Refreshes, completes, or times out the one active replacement commitment.
+
+void RefuelReplace::maybeMaintainActiveLock()
 {
   if(!activeLockEngaged())
-    return(nullptr);
+    return;
 
-  map<string, ReplacementTaskInfo>::const_iterator p =
-    m_task_cache.find(m_active_lock.task_hash);
-  if(p == m_task_cache.end())
-    return(nullptr);
+  // Optional timeout guard against stale lock.
+  if((m_replacement_lock_timeout > 0.0) &&
+     ((MOOSTime() - m_active_lock.last_refresh_utc) > m_replacement_lock_timeout)) {
+    clearActiveReplacementLock("timeout");
+  }
+  else {
+    // Identify "basic-like" tasks that have no handoff target. For these tasks
+    // we hold lock for the entire return leg rather than clearing on RETURN=true.
+    const bool basic_like_task =
+      activeTaskUsesReturnReset(m_active_lock.task_type, m_active_lock.target_set);
 
-  return(&p->second);
+    // Mark that the active basic-like winner has started its return leg.
+    if(basic_like_task && m_returning_mode)
+      m_active_lock.return_started = true;
+
+    // Any task with a completed handoff can release immediately.
+    if(m_active_lock.handoff_sent) {
+      clearActiveReplacementLock("handoff_complete");
+    }
+    // Basic-like tasks only release once return completes (ODOMETRY_RESET path).
+    // This keeps REFUEL_TRANSIT_BUSY asserted while actively returning.
+    else if(basic_like_task &&
+            m_active_lock.return_started &&
+            m_active_lock.odom_reset_seen) {
+      if(m_active_lock.task_type == "refuelreplace_basic")
+        clearActiveReplacementLock("basic_return_complete");
+      else
+        clearActiveReplacementLock("unknown_basic_return_complete");
+    }
+  }
+}
+
+//---------------------------------------------------------
+// Procedure: prunePendingTasks()
+//   Drops old non-active pending-task metadata so the passive map stays small.
+
+void RefuelReplace::prunePendingTasks(double now)
+{
+  // Normal cleanup is event-driven on bid terminal states. This short TTL is
+  // only a fallback for orphaned pending entries if expected closeout mail
+  // never arrives.
+  const double prune_age = 120.0; // seconds
+
+  map<string, PendingTaskInfo>::iterator p = m_pending_tasks.begin();
+  while(p != m_pending_tasks.end()) {
+    if(activeLockEngaged() && (p->first == m_active_lock.task_hash)) {
+      ++p;
+      continue;
+    }
+
+    const double age = now - p->second.last_seen_utc;
+    if((p->second.last_seen_utc > 0.0) && (age > prune_age))
+      p = m_pending_tasks.erase(p);
+    else
+      ++p;
+  }
 }
 
 //---------------------------------------------------------
 // Procedure: upsertTaskInfo()
+//   Parses task-spec mail into the passive pending-task metadata map.
 
-// Parse a TASK_REFUEL_TARGET or TASK_REFUEL_BASIC message and update
-// the corresponding task cache entry in m_task_cache.
+// Parse a TASK_REFUEL_TARGET or TASK_REFUEL_BASIC message and update the
+// corresponding pending-task entry. If the same hash is already active,
+// copy any late-arriving metadata into the active lock as well.
 void RefuelReplace::upsertTaskInfo(const string& task_msg)
 {
   string spec = normalizeTaskSpec(task_msg);
@@ -700,8 +742,7 @@ void RefuelReplace::upsertTaskInfo(const string& task_msg)
   if(hash == "")
     return;
 
-  ReplacementTaskInfo& rec = m_task_cache[hash];
-  rec.hash = hash;
+  PendingTaskInfo& rec = m_pending_tasks[hash];
   if(id != "")
     rec.id = id;
 
@@ -723,7 +764,21 @@ void RefuelReplace::upsertTaskInfo(const string& task_msg)
     rec.target_set = true;
   }
 
-  rec.last_update_utc = MOOSTime();
+  rec.last_seen_utc = MOOSTime();
+
+  if(activeLockEngaged() && (m_active_lock.task_hash == hash)) {
+    if(rec.requester != "")
+      m_active_lock.requester = rec.requester;
+    if(rec.task_type != "")
+      m_active_lock.task_type = rec.task_type;
+    if(rec.target_set) {
+      m_active_lock.target_x = rec.target_x;
+      m_active_lock.target_y = rec.target_y;
+      m_active_lock.target_set = true;
+      if(m_active_lock.task_type == "")
+        m_active_lock.task_type = "refuelreplace_target";
+    }
+  }
 }
 
 //---------------------------------------------------------
@@ -743,8 +798,7 @@ void RefuelReplace::processTaskState(const string& state_msg,
   if(hash == "")
     return;
 
-  ReplacementTaskInfo& rec = m_task_cache[hash];
-  rec.hash = hash;
+  PendingTaskInfo& rec = m_pending_tasks[hash];
   if(id != "")
     rec.id = id;
 
@@ -759,9 +813,7 @@ void RefuelReplace::processTaskState(const string& state_msg,
   if((winner == "") && (tolower(stripBlankEnds(msg_source_app)) == "ptaskmanager"))
     winner = m_host_community;
 
-  rec.last_task_state = state;
-  rec.last_winner = winner;
-  rec.last_update_utc = MOOSTime();
+  rec.last_seen_utc = MOOSTime();
 
   if(state == "bidwon") {
     if(winner == "") {
@@ -775,19 +827,33 @@ void RefuelReplace::processTaskState(const string& state_msg,
       if(!activeLockEngaged()) {
         // First accepted win acquires the replacement lock.
         m_active_lock.task_hash = hash;
+        m_active_lock.requester = rec.requester;
         m_active_lock.task_type = rec.task_type;
+        m_active_lock.target_x = rec.target_x;
+        m_active_lock.target_y = rec.target_y;
+        m_active_lock.target_set = rec.target_set;
         // Fallback inference if task type arrives late.
         if((m_active_lock.task_type == "") && rec.target_set)
           m_active_lock.task_type = "refuelreplace_target";
+        m_active_lock.acquired_utc = MOOSTime();
         m_active_lock.last_refresh_utc = MOOSTime();
         m_active_lock.handoff_sent = false;
         m_active_lock.return_started = false;
         m_active_lock.odom_reset_seen = false;
+        m_pending_tasks.erase(hash);
       }
       else if(m_active_lock.task_hash == hash) {
         // Repeated status update for same task: refresh lock freshness.
-        m_active_lock.task_type = rec.task_type;
-        if((m_active_lock.task_type == "") && rec.target_set)
+        if((m_active_lock.requester == "") && (rec.requester != ""))
+          m_active_lock.requester = rec.requester;
+        if((m_active_lock.task_type == "") && (rec.task_type != ""))
+          m_active_lock.task_type = rec.task_type;
+        if(rec.target_set) {
+          m_active_lock.target_x = rec.target_x;
+          m_active_lock.target_y = rec.target_y;
+          m_active_lock.target_set = true;
+        }
+        if((m_active_lock.task_type == "") && m_active_lock.target_set)
           m_active_lock.task_type = "refuelreplace_target";
         m_active_lock.last_refresh_utc = MOOSTime();
       }
@@ -795,22 +861,26 @@ void RefuelReplace::processTaskState(const string& state_msg,
         // Ignore additional wins while already committed to another task.
         reportRunWarning("Concurrent bidwon while lock held. held_hash=" +
                          m_active_lock.task_hash + ", new_hash=" + hash);
+        m_pending_tasks.erase(hash);
       }
     }
     else {
       if(m_active_lock.task_hash == hash)
         clearActiveReplacementLock("task_state_bidwon_other_winner");
+      m_pending_tasks.erase(hash);
     }
   }
   else if((state == "bidlost") || (state == "abstain")) {
     // If the active task transitions out of bidwon, release commitment.
     if(m_active_lock.task_hash == hash)
       clearActiveReplacementLock("task_state_" + state);
+    m_pending_tasks.erase(hash);
   }
 }
 
 //---------------------------------------------------------
 // Procedure: clearActiveReplacementLock()
+//   Releases the active commitment state and logs the reason.
 
 void RefuelReplace::clearActiveReplacementLock(const string& reason)
 {
@@ -820,11 +890,13 @@ void RefuelReplace::clearActiveReplacementLock(const string& reason)
   // Keep reason in event log for post-run debugging of lock lifecycle.
   reportEvent("Clearing replacement lock hash=" + m_active_lock.task_hash +
               ", reason=" + reason);
+  m_pending_tasks.erase(m_active_lock.task_hash);
   m_active_lock.clear();
 }
 
 //---------------------------------------------------------
 // Procedure: sendNodeMessage()
+//   Convenience wrapper for sending a string NODE_MESSAGE_LOCAL payload.
 
 void RefuelReplace::sendNodeMessage(const string& dest_node,
                                     const string& var_name,
@@ -885,14 +957,17 @@ bool RefuelReplace::buildReport()
   table << "waiting_odom_reset"   << (m_waiting_for_odom_reset ? "true" : "false");
   table << "task_sent"            << (m_task_sent ? "true" : "false");
   table << "next_task_id_counter" << intToString(m_task_id_counter);
-  table << "tracked_tasks"         << uintToString((unsigned int)m_task_cache.size());
+  table << "pending_tasks"         << uintToString((unsigned int)m_pending_tasks.size());
   bool transit_busy = activeLockEngaged();
   table << "refuel_transit_busy"   << (transit_busy ? "true" : "false");
   table << "returning_mode"        << (m_returning_mode ? "true" : "false");
   table << "lock_hash"             << (m_active_lock.task_hash == "" ?
                                         "(none)" : m_active_lock.task_hash);
+  table << "lock_requester"        << (m_active_lock.requester == "" ?
+                                        "(none)" : m_active_lock.requester);
   table << "lock_type"             << (m_active_lock.task_type == "" ?
                                         "(none)" : m_active_lock.task_type);
+  table << "lock_target_set"       << (m_active_lock.target_set ? "true" : "false");
   table << "lock_return_started"   <<
              (m_active_lock.return_started ? "true" : "false");
   table << "lock_odom_reset_seen"  <<
