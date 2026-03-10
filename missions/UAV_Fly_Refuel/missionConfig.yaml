@@ -3,7 +3,7 @@
 # Global simulation parameters
 simulation:
   useMoosSimPid: true # Use MOOS-IvP Vechicle simulator
-  time_warp: 8
+  time_warp: 5
   number_of_drones: 7
 
   # Refuel/Replace parameters

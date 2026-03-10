@@ -200,7 +200,7 @@ nsplug meta_vehicle.moos targ_$VNAME.moos $NSFLAGS WARP=$TIME_WARP \
        COLOR=$COLOR                 XMODE=$XMODE         \
        START_POS=$START_POS         MAX_SPD=$MAX_SPD     \
        MMOD=$MMOD                   FSEAT_IP=$FSEAT_IP   \
-       AP_IP=$ARDUPILOT_IP          AP_PORT=$ARDUPILOT_PORT \   
+       AP_IP=$ARDUPILOT_IP          AP_PORT=$ARDUPILOT_PORT \
        AP_PROTOCOL=$ARDUPILOT_PROTOCOL                   \
 
 nsplug meta_vehicle.bhv targ_$VNAME.bhv $NSFLAGS  \
