@@ -13,7 +13,7 @@
 #include <cmath>
 #include <algorithm>
 #include "BHV_TaskRefuelReplaceBasic.h"
-#include "RefuelBidReservation.h"
+#include "LocalAuctionReservation.h"
 #include "MBUtils.h"
 
 using namespace std;
@@ -21,7 +21,7 @@ using namespace std;
 // Behavior summary:
 // - Participates in basic refuel replacement auctions (no explicit handoff target).
 // - Reads local fuel/return/transit-busy state from pRefuelReplace.
-// - Uses RefuelBidReservation to avoid sibling basic/target double-claims on
+// - Uses LocalAuctionReservation to avoid sibling basic/target double-claims on
 //   the same helm cycle.
 
 //-----------------------------------------------------------
@@ -147,7 +147,7 @@ IvPFunction *BHV_TaskRefuelReplaceBasic::onRunState()
 
   // Shared in-process reservation lifecycle across basic + target behaviors.
   const double now = getBufferCurrTime();
-  RefuelBidReservation::maintainForState(m_task_hash, m_task_state, now);
+  LocalAuctionReservation::maintainForState(m_task_hash, m_task_state, now);
 
   return(0);
 }
@@ -162,7 +162,7 @@ bool BHV_TaskRefuelReplaceBasic::isTaskFeasible()
 
   // If another replacement task (basic or target) on this same vehicle is
   // already bidding/won, abstain this task to avoid double-award races.
-  if(RefuelBidReservation::heldByOther(m_task_hash, now))
+  if(LocalAuctionReservation::heldByOther(m_task_hash, now))
     feasible = false;
 
   if(m_returning_mode)
@@ -181,7 +181,7 @@ bool BHV_TaskRefuelReplaceBasic::isTaskFeasible()
   // see this reservation before also placing bids for a competing replacement.
   const std::string state = tolower(stripBlankEnds(m_task_state));
   if(feasible && ((state == "bidding") || (state == "bidwon")))
-    RefuelBidReservation::claim(m_task_hash, now);
+    LocalAuctionReservation::claim(m_task_hash, now);
 
   return(feasible);
 }

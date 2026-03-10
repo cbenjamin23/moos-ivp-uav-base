@@ -1,28 +1,28 @@
-#include "RefuelBidReservation.h"
+#include "LocalAuctionReservation.h"
 
 #include <algorithm>
 #include <cctype>
 
 namespace {
-std::string g_reservation_hash = "";
-double g_reservation_time = 0.0;
+std::string g_reserved_task_hash = "";
+double g_last_refresh_time = 0.0;
 const double g_reservation_timeout = 20.0; // seconds
 
 void clearReservation()
 {
-  g_reservation_hash = "";
-  g_reservation_time = 0.0;
+  g_reserved_task_hash = "";
+  g_last_refresh_time = 0.0;
 }
 
 void expireIfStale(double now)
 {
-  if(g_reservation_hash == "")
+  if(g_reserved_task_hash == "")
     return;
-  if((now - g_reservation_time) > g_reservation_timeout)
+  if((now - g_last_refresh_time) > g_reservation_timeout)
     clearReservation();
 }
 
-std::string toLowerTrimmed(const std::string& s)
+std::string normalizeState(const std::string& s)
 {
   std::string out = s;
   out.erase(out.begin(),
@@ -37,12 +37,12 @@ std::string toLowerTrimmed(const std::string& s)
 }
 }
 
-namespace RefuelBidReservation {
+namespace LocalAuctionReservation {
 
 bool heldByOther(const std::string& task_hash, double now)
 {
   expireIfStale(now);
-  return((g_reservation_hash != "") && (g_reservation_hash != task_hash));
+  return((g_reserved_task_hash != "") && (g_reserved_task_hash != task_hash));
 }
 
 bool claim(const std::string& task_hash, double now)
@@ -51,9 +51,9 @@ bool claim(const std::string& task_hash, double now)
     return(false);
 
   expireIfStale(now);
-  if((g_reservation_hash == "") || (g_reservation_hash == task_hash)) {
-    g_reservation_hash = task_hash;
-    g_reservation_time = now;
+  if((g_reserved_task_hash == "") || (g_reserved_task_hash == task_hash)) {
+    g_reserved_task_hash = task_hash;
+    g_last_refresh_time = now;
     return(true);
   }
   return(false);
@@ -61,15 +61,15 @@ bool claim(const std::string& task_hash, double now)
 
 void release(const std::string& task_hash)
 {
-  if((task_hash != "") && (task_hash == g_reservation_hash))
+  if((task_hash != "") && (task_hash == g_reserved_task_hash))
     clearReservation();
 }
 
 void maintainForState(const std::string& task_hash,
-                      const std::string& task_state,
+                      const std::string& auction_state,
                       double now)
 {
-  const std::string state = toLowerTrimmed(task_state);
+  const std::string state = normalizeState(auction_state);
   if((state == "bidding") || (state == "bidwon")) {
     claim(task_hash, now);
   }
@@ -81,4 +81,4 @@ void maintainForState(const std::string& task_hash,
   }
 }
 
-} // namespace RefuelBidReservation
+} // namespace LocalAuctionReservation

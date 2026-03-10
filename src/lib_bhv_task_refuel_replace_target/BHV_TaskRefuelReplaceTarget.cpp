@@ -13,7 +13,7 @@
 #include <cmath>
 #include <algorithm>
 #include "BHV_TaskRefuelReplaceTarget.h"
-#include "RefuelBidReservation.h"
+#include "LocalAuctionReservation.h"
 #include "MBUtils.h"
 #include "MacroUtils.h"
 
@@ -22,7 +22,7 @@ using namespace std;
 // Behavior summary:
 // - Subscribes to local fuel/return/transit-busy state from pRefuelReplace.
 // - Participates in target-task auctions when feasible.
-// - Uses RefuelBidReservation to avoid sibling basic/target double-claims on
+// - Uses LocalAuctionReservation to avoid sibling basic/target double-claims on
 //   the same helm cycle.
 // - On bidwon transition, republishes OWN_TARGET_* so requester-side logic has
 //   consistent target ownership data even if bidwon flags race.
@@ -198,7 +198,7 @@ IvPFunction *BHV_TaskRefuelReplaceTarget::onRunState()
 
   // Shared in-process reservation lifecycle across basic + target behaviors.
   const double now = getBufferCurrTime();
-  RefuelBidReservation::maintainForState(m_task_hash, m_task_state, now);
+  LocalAuctionReservation::maintainForState(m_task_hash, m_task_state, now);
 
   // Ensure target ownership vars are posted when this behavior wins.
   // This avoids relying solely on bidwonflag macro handling.
@@ -223,7 +223,7 @@ bool BHV_TaskRefuelReplaceTarget::isTaskFeasible()
 
   // If another replacement task (basic or target) on this same vehicle is
   // already bidding/won, abstain this task to avoid double-award races.
-  if(RefuelBidReservation::heldByOther(m_task_hash, now))
+  if(LocalAuctionReservation::heldByOther(m_task_hash, now))
     feasible = false;
 
   // If we're already in returning mode, we shouldn't be bidding on targets
@@ -253,7 +253,7 @@ bool BHV_TaskRefuelReplaceTarget::isTaskFeasible()
   // see this reservation before also placing bids.
   const std::string state = tolower(stripBlankEnds(m_task_state));
   if(feasible && ((state == "bidding") || (state == "bidwon")))
-    RefuelBidReservation::claim(m_task_hash, now);
+    LocalAuctionReservation::claim(m_task_hash, now);
 
   return(feasible);
 }

@@ -1,9 +1,9 @@
-#ifndef REFUEL_BID_RESERVATION_HEADER
-#define REFUEL_BID_RESERVATION_HEADER
+#ifndef LOCAL_AUCTION_RESERVATION_HEADER
+#define LOCAL_AUCTION_RESERVATION_HEADER
 
 #include <string>
 
-namespace RefuelBidReservation {
+namespace LocalAuctionReservation {
 
 // Returns true if another task hash currently holds the reservation.
 bool heldByOther(const std::string& task_hash, double now);
@@ -19,9 +19,9 @@ void release(const std::string& task_hash);
 // - claim on bidding/bidwon
 // - release on bidlost/abstain
 void maintainForState(const std::string& task_hash,
-                      const std::string& task_state,
+                      const std::string& auction_state,
                       double now);
 
-} // namespace RefuelBidReservation
+} // namespace LocalAuctionReservation
 
 #endif
