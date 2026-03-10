@@ -64,12 +64,7 @@ RefuelReplace::RefuelReplace()
   m_waiting_for_odom_reset = false;
   m_task_sent = false;
   m_task_id_counter = 0;
-  // Empty hash means this vehicle is not committed to any replacement task.
-  m_active_replacement_hash = "";
-  m_active_replacement_type = "";
-  m_active_replacement_time = 0.0;
-  m_active_replacement_return_started = false;
-  m_active_replacement_odom_reset_seen = false;
+  m_active_lock.clear();
   // Discovery-triggered posting is queued to keep mail handling lightweight.
   m_pending_discovery_fire_id = "";
   m_pending_discovery_utc = 0.0;
@@ -152,8 +147,8 @@ bool RefuelReplace::OnNewMail(MOOSMSG_LIST &NewMail)
       if(do_reset) {
         m_waiting_for_odom_reset = true;
         // Track reset separately for active-lock completion logic.
-        if(m_active_replacement_hash != "")
-          m_active_replacement_odom_reset_seen = true;
+        if(activeLockEngaged())
+          m_active_lock.odom_reset_seen = true;
       }
     }
     else if (key == "TASK_RESET") {
@@ -219,10 +214,10 @@ bool RefuelReplace::OnNewMail(MOOSMSG_LIST &NewMail)
       }
     }
     else if (key == "TASK_REFUEL_TARGET") {
-      processTaskRefuelTarget(msg.GetString());
+      upsertTaskInfo(msg.GetString());
     }
     else if (key == "TASK_REFUEL_BASIC") {
-      processTaskRefuelTarget(msg.GetString());
+      upsertTaskInfo(msg.GetString());
     }
     else if (key == "TASK_STATE") {
       // Include source metadata; older TASK_STATE payloads may omit explicit winner.
@@ -321,7 +316,7 @@ bool RefuelReplace::Iterate()
         m_pending_discovery_fire_id = "";
         m_pending_discovery_utc = 0.0;
       }
-      else if((m_active_replacement_hash == "") && have_nav && have_odom) {
+      else if(!activeLockEngaged() && have_nav && have_odom) {
         // Post only if this vehicle is not already committed to another replacement.
         if(postReplacementTask("discovery_fire_" + fire_id, true))
           m_last_discovery_post_utc[fire_id] = now;
@@ -342,74 +337,67 @@ bool RefuelReplace::Iterate()
     postReplacementTask("threshold_refuel", false);
   }
 
-  // Check if we need to send return handoff messages for any tasks we've won but not yet sent a handoff for.
-  if(have_nav) {
-    for(auto& entry : m_task_records) {
-      const string task_hash = entry.first;
-      TaskRecord& task = entry.second;
-
-      // Enforce single active replacement: only service the currently locked task.
-      if((m_active_replacement_hash != "") && (task_hash != m_active_replacement_hash))
-        continue;
-
-      if(!task.bidwon_by_me || task.handoff_sent || !task.target_set)
-        continue;
-      if((task.requester == "") || (task.requester == m_host_community))
-        continue;
-
-      double dist = hypot(m_nav_x - task.target_x, m_nav_y - task.target_y);
+  // Check if the active target task needs a requester return handoff.
+  if(have_nav && activeLockEngaged()) {
+    ReplacementTaskInfo* active_task = findActiveTaskInfo();
+    if(active_task != nullptr &&
+       !m_active_lock.handoff_sent &&
+       active_task->target_set &&
+       (active_task->requester != "") &&
+       (active_task->requester != m_host_community)) {
+      double dist = hypot(m_nav_x - active_task->target_x,
+                          m_nav_y - active_task->target_y);
       if(dist <= m_handoff_radius) {
         // Handoff completion signal for target tasks: requester is told to return.
-        notifyRequesterReturn(task.requester, task_hash);
-        task.handoff_sent = true;
+        notifyRequesterReturn(active_task->requester, active_task->hash);
+        m_active_lock.handoff_sent = true;
       }
     }
   }
 
   // Maintain and release explicit active replacement lock.
-  if(m_active_replacement_hash != "") {
+  if(activeLockEngaged()) {
+    ReplacementTaskInfo* active = findActiveTaskInfo();
     // Optional timeout guard against stale lock.
     if((m_replacement_lock_timeout > 0.0) &&
-       ((MOOSTime() - m_active_replacement_time) > m_replacement_lock_timeout)) {
+       ((MOOSTime() - m_active_lock.last_refresh_utc) > m_replacement_lock_timeout)) {
       clearActiveReplacementLock("timeout");
     }
     // Active task disappeared from cache.
-    else if(m_task_records.count(m_active_replacement_hash) == 0) {
+    else if(active == nullptr) {
       clearActiveReplacementLock("task_record_missing");
     }
     else {
-      TaskRecord& active = m_task_records[m_active_replacement_hash];
-      if((m_active_replacement_type == "") && (active.task_type != ""))
+      if((m_active_lock.task_type == "") && (active->task_type != ""))
         // Task type may arrive after bidwon in asynchronous mail order.
-        m_active_replacement_type = active.task_type;
+        m_active_lock.task_type = active->task_type;
 
       // Identify "basic-like" tasks that have no handoff target. For these tasks
       // we hold lock for the entire return leg rather than clearing on RETURN=true.
       const bool basic_like_task =
-        (m_active_replacement_type == "refuelreplace_basic") ||
-        ((m_active_replacement_type == "") && !active.target_set);
+        activeTaskUsesReturnReset(m_active_lock.task_type, active->target_set);
 
       // Mark that the active basic-like winner has started its return leg.
       if(basic_like_task && m_returning_mode)
-        m_active_replacement_return_started = true;
+        m_active_lock.return_started = true;
 
       // Any task with a completed handoff can release immediately.
-      if(active.handoff_sent) {
+      if(m_active_lock.handoff_sent) {
         clearActiveReplacementLock("handoff_complete");
       }
       // Basic-like tasks only release once return completes (ODOMETRY_RESET path).
       // This keeps REFUEL_TRANSIT_BUSY asserted while actively returning.
       else if(basic_like_task &&
-              m_active_replacement_return_started &&
-              m_active_replacement_odom_reset_seen) {
-        if(m_active_replacement_type == "refuelreplace_basic")
+              m_active_lock.return_started &&
+              m_active_lock.odom_reset_seen) {
+        if(m_active_lock.task_type == "refuelreplace_basic")
           clearActiveReplacementLock("basic_return_complete");
         else
           clearActiveReplacementLock("unknown_basic_return_complete");
       }
     }
   }
-  bool transit_busy = (m_active_replacement_hash != "");
+  bool transit_busy = activeLockEngaged();
   Notify("REFUEL_TRANSIT_BUSY", transit_busy ? "true" : "false");
  
   AppCastingMOOSApp::PostReport();
@@ -571,7 +559,7 @@ bool RefuelReplace::postReplacementTask(const string& trigger_reason,
   nmsg.setStringVal(task_spec);
   Notify("NODE_MESSAGE_LOCAL", nmsg.getSpec());
 
-  processTaskRefuelTarget(task_spec);
+  upsertTaskInfo(task_spec);
 
   if(basic_task) {
     // Basic replacement requests immediately put requester on return leg.
@@ -630,7 +618,7 @@ string RefuelReplace::normalizeTaskSpec(const string& msg) const
 // Procedure: inferRequesterFromId()
 
 // Infer requester plane from task id by stripping off "_rr" suffix and anything after it.
-// We do this if requester field is missing but id is present in processTaskRefuelTarget()
+// We do this if requester field is missing but id is present in upsertTaskInfo()
 string RefuelReplace::inferRequesterFromId(const string& id) const
 {
   if(id == "")
@@ -645,11 +633,61 @@ string RefuelReplace::inferRequesterFromId(const string& id) const
 }
 
 //---------------------------------------------------------
-// Procedure: processTaskRefuelTarget()
+// Procedure: activeLockEngaged()
+
+bool RefuelReplace::activeLockEngaged() const
+{
+  return(m_active_lock.engaged());
+}
+
+//---------------------------------------------------------
+// Procedure: activeTaskUsesReturnReset()
+
+bool RefuelReplace::activeTaskUsesReturnReset(const string& task_type,
+                                              bool target_set) const
+{
+  return((task_type == "refuelreplace_basic") ||
+         ((task_type == "") && !target_set));
+}
+
+//---------------------------------------------------------
+// Procedure: findActiveTaskInfo()
+
+RefuelReplace::ReplacementTaskInfo* RefuelReplace::findActiveTaskInfo()
+{
+  if(!activeLockEngaged())
+    return(nullptr);
+
+  map<string, ReplacementTaskInfo>::iterator p =
+    m_task_cache.find(m_active_lock.task_hash);
+  if(p == m_task_cache.end())
+    return(nullptr);
+
+  return(&p->second);
+}
+
+//---------------------------------------------------------
+// Procedure: findActiveTaskInfo()
+
+const RefuelReplace::ReplacementTaskInfo* RefuelReplace::findActiveTaskInfo() const
+{
+  if(!activeLockEngaged())
+    return(nullptr);
+
+  map<string, ReplacementTaskInfo>::const_iterator p =
+    m_task_cache.find(m_active_lock.task_hash);
+  if(p == m_task_cache.end())
+    return(nullptr);
+
+  return(&p->second);
+}
+
+//---------------------------------------------------------
+// Procedure: upsertTaskInfo()
 
 // Parse a TASK_REFUEL_TARGET or TASK_REFUEL_BASIC message and update
-// the corresponding task record in m_task_records.
-void RefuelReplace::processTaskRefuelTarget(const string& task_msg)
+// the corresponding task cache entry in m_task_cache.
+void RefuelReplace::upsertTaskInfo(const string& task_msg)
 {
   string spec = normalizeTaskSpec(task_msg);
 
@@ -662,7 +700,8 @@ void RefuelReplace::processTaskRefuelTarget(const string& task_msg)
   if(hash == "")
     return;
 
-  TaskRecord& rec = m_task_records[hash];
+  ReplacementTaskInfo& rec = m_task_cache[hash];
+  rec.hash = hash;
   if(id != "")
     rec.id = id;
 
@@ -683,6 +722,8 @@ void RefuelReplace::processTaskRefuelTarget(const string& task_msg)
     rec.target_y = atof(sy.c_str());
     rec.target_set = true;
   }
+
+  rec.last_update_utc = MOOSTime();
 }
 
 //---------------------------------------------------------
@@ -702,7 +743,8 @@ void RefuelReplace::processTaskState(const string& state_msg,
   if(hash == "")
     return;
 
-  TaskRecord& rec = m_task_records[hash];
+  ReplacementTaskInfo& rec = m_task_cache[hash];
+  rec.hash = hash;
   if(id != "")
     rec.id = id;
 
@@ -717,53 +759,52 @@ void RefuelReplace::processTaskState(const string& state_msg,
   if((winner == "") && (tolower(stripBlankEnds(msg_source_app)) == "ptaskmanager"))
     winner = m_host_community;
 
+  rec.last_task_state = state;
+  rec.last_winner = winner;
+  rec.last_update_utc = MOOSTime();
+
   if(state == "bidwon") {
     if(winner == "") {
       // Without a winner identity we cannot safely claim this bid as ours.
-      rec.bidwon_by_me = false;
       return;
     }
 
     string winner_lc = tolower(stripBlankEnds(winner));
     string host_lc = tolower(stripBlankEnds(m_host_community));
     if((winner != "") && (winner_lc == host_lc)) {
-      if(m_active_replacement_hash == "") {
+      if(!activeLockEngaged()) {
         // First accepted win acquires the replacement lock.
-        rec.bidwon_by_me = true;
-        m_active_replacement_hash = hash;
-        m_active_replacement_type = rec.task_type;
+        m_active_lock.task_hash = hash;
+        m_active_lock.task_type = rec.task_type;
         // Fallback inference if task type arrives late.
-        if((m_active_replacement_type == "") && rec.target_set)
-          m_active_replacement_type = "refuelreplace_target";
-        m_active_replacement_time = MOOSTime();
-        m_active_replacement_return_started = false;
-        m_active_replacement_odom_reset_seen = false;
+        if((m_active_lock.task_type == "") && rec.target_set)
+          m_active_lock.task_type = "refuelreplace_target";
+        m_active_lock.last_refresh_utc = MOOSTime();
+        m_active_lock.handoff_sent = false;
+        m_active_lock.return_started = false;
+        m_active_lock.odom_reset_seen = false;
       }
-      else if(m_active_replacement_hash == hash) {
+      else if(m_active_lock.task_hash == hash) {
         // Repeated status update for same task: refresh lock freshness.
-        rec.bidwon_by_me = true;
-        m_active_replacement_type = rec.task_type;
-        if((m_active_replacement_type == "") && rec.target_set)
-          m_active_replacement_type = "refuelreplace_target";
-        m_active_replacement_time = MOOSTime();
+        m_active_lock.task_type = rec.task_type;
+        if((m_active_lock.task_type == "") && rec.target_set)
+          m_active_lock.task_type = "refuelreplace_target";
+        m_active_lock.last_refresh_utc = MOOSTime();
       }
       else {
         // Ignore additional wins while already committed to another task.
-        rec.bidwon_by_me = false;
         reportRunWarning("Concurrent bidwon while lock held. held_hash=" +
-                         m_active_replacement_hash + ", new_hash=" + hash);
+                         m_active_lock.task_hash + ", new_hash=" + hash);
       }
     }
     else {
-      rec.bidwon_by_me = false;
-      if(m_active_replacement_hash == hash)
+      if(m_active_lock.task_hash == hash)
         clearActiveReplacementLock("task_state_bidwon_other_winner");
     }
   }
   else if((state == "bidlost") || (state == "abstain")) {
     // If the active task transitions out of bidwon, release commitment.
-    rec.bidwon_by_me = false;
-    if(m_active_replacement_hash == hash)
+    if(m_active_lock.task_hash == hash)
       clearActiveReplacementLock("task_state_" + state);
   }
 }
@@ -773,17 +814,13 @@ void RefuelReplace::processTaskState(const string& state_msg,
 
 void RefuelReplace::clearActiveReplacementLock(const string& reason)
 {
-  if(m_active_replacement_hash == "")
+  if(!activeLockEngaged())
     return;
 
   // Keep reason in event log for post-run debugging of lock lifecycle.
-  reportEvent("Clearing replacement lock hash=" + m_active_replacement_hash +
+  reportEvent("Clearing replacement lock hash=" + m_active_lock.task_hash +
               ", reason=" + reason);
-  m_active_replacement_hash = "";
-  m_active_replacement_type = "";
-  m_active_replacement_time = 0.0;
-  m_active_replacement_return_started = false;
-  m_active_replacement_odom_reset_seen = false;
+  m_active_lock.clear();
 }
 
 //---------------------------------------------------------
@@ -848,18 +885,18 @@ bool RefuelReplace::buildReport()
   table << "waiting_odom_reset"   << (m_waiting_for_odom_reset ? "true" : "false");
   table << "task_sent"            << (m_task_sent ? "true" : "false");
   table << "next_task_id_counter" << intToString(m_task_id_counter);
-  table << "tracked_tasks"         << uintToString((unsigned int)m_task_records.size());
-  bool transit_busy = (m_active_replacement_hash != "");
+  table << "tracked_tasks"         << uintToString((unsigned int)m_task_cache.size());
+  bool transit_busy = activeLockEngaged();
   table << "refuel_transit_busy"   << (transit_busy ? "true" : "false");
   table << "returning_mode"        << (m_returning_mode ? "true" : "false");
-  table << "lock_hash"             << (m_active_replacement_hash == "" ?
-                                        "(none)" : m_active_replacement_hash);
-  table << "lock_type"             << (m_active_replacement_type == "" ?
-                                        "(none)" : m_active_replacement_type);
+  table << "lock_hash"             << (m_active_lock.task_hash == "" ?
+                                        "(none)" : m_active_lock.task_hash);
+  table << "lock_type"             << (m_active_lock.task_type == "" ?
+                                        "(none)" : m_active_lock.task_type);
   table << "lock_return_started"   <<
-             (m_active_replacement_return_started ? "true" : "false");
+             (m_active_lock.return_started ? "true" : "false");
   table << "lock_odom_reset_seen"  <<
-             (m_active_replacement_odom_reset_seen ? "true" : "false");
+             (m_active_lock.odom_reset_seen ? "true" : "false");
   table << "lock_timeout_s"        << doubleToStringX(m_replacement_lock_timeout, 2);
   table << "pending_discovery_fire" << (m_pending_discovery_fire_id == "" ?
                                           "(none)" : m_pending_discovery_fire_id);

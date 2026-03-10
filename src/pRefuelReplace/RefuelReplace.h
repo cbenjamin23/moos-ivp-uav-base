@@ -18,13 +18,17 @@
 // 2) Discovery-triggered: queued, deduped by fire_id, and age-limited.
 //
 // The app also enforces a single active replacement commitment per vehicle via
-// m_active_replacement_hash. While this lock is held, REFUEL_TRANSIT_BUSY is true,
+// m_active_lock. While this lock is held, REFUEL_TRANSIT_BUSY is true,
 // and sibling task behaviors on the same helm should abstain from new auctions.
 class RefuelReplace : public AppCastingMOOSApp
 {
  public:
    RefuelReplace();
    ~RefuelReplace();
+
+ protected:
+   struct ReplacementTaskInfo;
+   struct ActiveReplacementLock;
 
  protected: // Standard MOOSApp functions to overload  
    bool OnNewMail(MOOSMSG_LIST &NewMail);
@@ -37,8 +41,8 @@ class RefuelReplace : public AppCastingMOOSApp
 
  protected:
    void registerVariables();
-   // Tracks task metadata (requester/target/type) for both target/basic tasks.
-   void processTaskRefuelTarget(const std::string& task_msg);
+   // Caches task metadata (requester/target/type) for both target/basic tasks.
+   void upsertTaskInfo(const std::string& task_msg);
    // Tracks task state transitions. Source app/community are used as fallback
    // winner hints when TASK_STATE payloads omit an explicit winner key.
    void processTaskState(const std::string& state_msg,
@@ -54,23 +58,54 @@ class RefuelReplace : public AppCastingMOOSApp
    std::string parseTaskStateWinner(const std::string& spec) const;
    std::string normalizeTaskSpec(const std::string& msg) const;
    std::string inferRequesterFromId(const std::string& id) const;
+   bool activeLockEngaged() const;
+   bool activeTaskUsesReturnReset(const std::string& task_type,
+                                  bool target_set) const;
+   ReplacementTaskInfo* findActiveTaskInfo();
+   const ReplacementTaskInfo* findActiveTaskInfo() const;
    void sendNodeMessage(const std::string& dest_node,
                         const std::string& var_name,
                         const std::string& value);
    void notifyRequesterReturn(const std::string& requester,
                               const std::string& task_hash);
 
-  struct TaskRecord {
+  struct ReplacementTaskInfo {
+    std::string hash;
     std::string id;
     std::string requester;
     std::string task_type;
     double target_x = 0;
     double target_y = 0;
     bool   target_set = false;
-    // True only when this vehicle is inferred to be the actual winner.
-    bool   bidwon_by_me = false;
+    // Latest TASK_STATE snapshot seen by this app. These are informational and
+    // intentionally separate from the active lock, which owns execution state.
+    std::string last_task_state;
+    std::string last_winner;
+    double last_update_utc = 0.0;
+  };
+
+  struct ActiveReplacementLock {
+    std::string task_hash;
+    std::string task_type;
+    double      last_refresh_utc = 0.0;
     // Set after this replacement has notified requester to return.
-    bool   handoff_sent = false;
+    bool        handoff_sent = false;
+    // For basic/basic-like replacements, flips true once RETURN=true is seen.
+    bool        return_started = false;
+    // Captures ODOMETRY_RESET while the lock is held for return-reset release.
+    bool        odom_reset_seen = false;
+
+    bool engaged() const { return(task_hash != ""); }
+
+    void clear()
+    {
+      task_hash = "";
+      task_type = "";
+      last_refresh_utc = 0.0;
+      handoff_sent = false;
+      return_started = false;
+      odom_reset_seen = false;
+    }
   };
 
  private: // Configuration variables
@@ -95,7 +130,8 @@ class RefuelReplace : public AppCastingMOOSApp
 
   std::string m_host_community;
 
-  std::map<std::string, TaskRecord> m_task_records;  // keyed by task hash
+  // Passive metadata cache keyed by task hash.
+  std::map<std::string, ReplacementTaskInfo> m_task_cache;
   
  private: // State variables
   
@@ -117,18 +153,8 @@ class RefuelReplace : public AppCastingMOOSApp
   int  m_task_id_counter;        // rr0, rr1, rr2, ...
 
   // Single-active-replacement lock. Core concurrency guard:
-  // while non-empty, additional wins are ignored for execution.
-  std::string m_active_replacement_hash;
-  std::string m_active_replacement_type;
-  double      m_active_replacement_time;
-  // For basic replacements, hold lock through the whole return leg.
-  // This flips true once RETURN=true is observed for the active basic task
-  // and is cleared only when the lock itself is cleared.
-  bool        m_active_replacement_return_started;
-  // Separate from threshold relatch: captures ODOMETRY_RESET while an active
-  // replacement lock is held so basic lock release cannot be skipped by
-  // relatch flag timing.
-  bool        m_active_replacement_odom_reset_seen;
+  // while engaged, additional wins are ignored for execution.
+  ActiveReplacementLock m_active_lock;
 
   // One pending discovery-triggered request at a time. New requests overwrite
   // older pending ones to keep a bounded queue model.
