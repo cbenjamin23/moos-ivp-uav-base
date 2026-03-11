@@ -45,6 +45,7 @@ public:
   // A very small distance penalty used only as a bid tie-breaker.
   double m_distance_tiebreak_weight;
   double m_fuel_abstain_threshold;
+  std::string m_requester;
   double m_requester_x;
   double m_requester_y;
   bool   m_requester_x_set;

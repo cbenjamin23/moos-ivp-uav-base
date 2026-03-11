@@ -54,6 +54,8 @@ RefuelReplace::RefuelReplace()
   // Discovery queue guards: stale-request drop + fire-id cooldown dedupe.
   m_discovery_request_timeout = 30.0; // seconds
   m_discovery_repost_cooldown = 60.0; // seconds
+  m_unawarded_retry_delay = 1.0; // seconds
+  m_unawarded_retry_limit = 2;
 
   // Target this vehicle covers
   m_target_x = 0;
@@ -69,6 +71,8 @@ RefuelReplace::RefuelReplace()
   // Discovery override requests are queued to keep mail handling lightweight.
   m_pending_discovery_fire_id = "";
   m_pending_discovery_utc = 0.0;
+  m_pending_retry_utc = 0.0;
+  m_retry_attempts_used = 0;
 
   // Task Helper
   // This should be set to vname by param
@@ -263,6 +267,7 @@ bool RefuelReplace::Iterate()
   updateFuelDistanceRemaining();
   maybeRelatchAfterOdometryReset();
   maybeHandleImmediateDiscoveryReplacement(have_nav, have_odom);
+  maybeHandlePendingUnawardedRetry(have_nav, have_odom);
   maybePostThresholdReplacement(have_nav, have_odom);
   maybeSendActiveHandoff(have_nav);
   maybeMaintainActiveLock();
@@ -330,6 +335,12 @@ bool RefuelReplace::OnStartUp()
     else if (param == "discovery_repost_cooldown") {
       handled = setNonNegDoubleOnString(m_discovery_repost_cooldown, value);
     }
+    else if (param == "unawarded_retry_delay") {
+      handled = setNonNegDoubleOnString(m_unawarded_retry_delay, value);
+    }
+    else if (param == "unawarded_retry_limit") {
+      handled = setUIntOnString(m_unawarded_retry_limit, value);
+    }
 
     if(!handled)
       reportUnhandledConfigWarning(orig);
@@ -372,6 +383,32 @@ void RefuelReplace::registerVariables()
 bool RefuelReplace::postReplacementTask(const string& trigger_reason,
                                         bool bypass_task_latch)
 {
+  PendingTaskInfo task_info;
+  task_info.requester = m_host_community;
+  task_info.priority_weight = m_priority_weight;
+  if(m_target_set) {
+    task_info.task_type = "refuelreplace_target";
+    task_info.target_x = m_target_x;
+    task_info.target_y = m_target_y;
+    task_info.target_set = true;
+  }
+  else {
+    task_info.task_type = "refuelreplace_basic";
+  }
+
+  return(postReplacementTaskFromInfo(task_info, trigger_reason,
+                                     bypass_task_latch, true));
+}
+
+//---------------------------------------------------------
+// Procedure: postReplacementTaskFromInfo()
+//   Reposts a replacement task using supplied task metadata.
+
+bool RefuelReplace::postReplacementTaskFromInfo(const PendingTaskInfo& task_info,
+                                                const string& trigger_reason,
+                                                bool bypass_task_latch,
+                                                bool reset_retry_sequence)
+{
   if(!bypass_task_latch && m_task_sent)
     return(false);
   if(!m_got_odom || !m_got_nav_x || !m_got_nav_y)
@@ -380,7 +417,13 @@ bool RefuelReplace::postReplacementTask(const string& trigger_reason,
     return(false);
 
   string id = m_host_community + "_rr" + intToString(m_task_id_counter++);
-  bool basic_task = false;
+  const string task_type = stripBlankEnds(task_info.task_type);
+  const bool target_task =
+    (task_type == "refuelreplace_target") ||
+    ((task_type == "") && task_info.target_set);
+  const bool basic_task = !target_task;
+  const string requester =
+    (task_info.requester == "") ? m_host_community : task_info.requester;
 
   double utc = MOOSTime();
 
@@ -389,28 +432,25 @@ bool RefuelReplace::postReplacementTask(const string& trigger_reason,
   string hash = "rr_" + id + "_" + intToString((int)utc_tail);
 
   ostringstream os;
-  if(m_target_set) {
+  if(target_task) {
     os << "type=refuelreplace_target,"
        << "id=" << id << ","
        << "utc=" << doubleToStringX(utc, 2) << ","
        << "hash=" << hash << ","
-       << "exempt=" << m_host_community << ","
-       << "requester=" << m_host_community << ","
+       << "requester=" << requester << ","
        << "requester_x=" << doubleToStringX(m_nav_x, 2) << ","
        << "requester_y=" << doubleToStringX(m_nav_y, 2) << ","
-       << "target_x=" << doubleToStringX(m_target_x, 2) << ","
-       << "target_y=" << doubleToStringX(m_target_y, 2) << ","
-       << "priority_weight=" << doubleToStringX(m_priority_weight, 2) << ","
+       << "target_x=" << doubleToStringX(task_info.target_x, 2) << ","
+       << "target_y=" << doubleToStringX(task_info.target_y, 2) << ","
+       << "priority_weight=" << doubleToStringX(task_info.priority_weight, 2) << ","
        << "fuel_abstain_threshold=" << doubleToStringX(m_refuel_threshold, 2);
   }
   else {
-    basic_task = true;
     os << "type=refuelreplace_basic,"
        << "id=" << id << ","
        << "utc=" << doubleToStringX(utc, 2) << ","
        << "hash=" << hash << ","
-       << "exempt=" << m_host_community << ","
-       //<< "requester=" << m_host_community << ","
+       << "requester=" << requester << ","
        << "requester_x=" << doubleToStringX(m_nav_x, 2) << ","
        << "requester_y=" << doubleToStringX(m_nav_y, 2) << ","
        << "fuel_abstain_threshold=" << doubleToStringX(m_refuel_threshold, 2);
@@ -442,6 +482,11 @@ bool RefuelReplace::postReplacementTask(const string& trigger_reason,
   }
 
   m_task_sent = true;
+  if(reset_retry_sequence) {
+    m_pending_retry_task = PendingTaskInfo();
+    m_pending_retry_utc = 0.0;
+    m_retry_attempts_used = 0;
+  }
   reportEvent("Posted replacement task id=" + id + ", reason=" + trigger_reason);
   return(true);
 }
@@ -614,6 +659,33 @@ void RefuelReplace::maybeHandleImmediateDiscoveryReplacement(bool have_nav, bool
 }
 
 //---------------------------------------------------------
+// Procedure: maybeHandlePendingUnawardedRetry()
+//   Posts a queued retry for a locally requested replacement after a fixed delay.
+
+void RefuelReplace::maybeHandlePendingUnawardedRetry(bool have_nav, bool have_odom)
+{
+  if(m_pending_retry_utc <= 0.0)
+    return;
+  if(!have_nav || !have_odom)
+    return;
+  if(activeLockEngaged())
+    return;
+
+  const double now = MOOSTime();
+  if(now < m_pending_retry_utc)
+    return;
+
+  string reason = "unawarded_retry_" + uintToString(m_retry_attempts_used);
+  if(postReplacementTaskFromInfo(m_pending_retry_task, reason, true, false)) {
+    reportEvent("Posted unawarded retry attempt " +
+                uintToString(m_retry_attempts_used) + "/" +
+                uintToString(m_unawarded_retry_limit));
+    m_pending_retry_task = PendingTaskInfo();
+    m_pending_retry_utc = 0.0;
+  }
+}
+
+//---------------------------------------------------------
 // Procedure: maybePostThresholdReplacement()
 //   Posts the standard threshold-triggered replacement task once per reset cycle.
 
@@ -764,6 +836,10 @@ void RefuelReplace::upsertTaskInfo(const string& task_msg)
     rec.target_set = true;
   }
 
+  string pweight = stripBlankEnds(tokStringParse(spec, "priority_weight"));
+  if(isNumber(pweight))
+    rec.priority_weight = atof(pweight.c_str());
+
   rec.last_seen_utc = MOOSTime();
 
   if(activeLockEngaged() && (m_active_lock.task_hash == hash)) {
@@ -805,6 +881,10 @@ void RefuelReplace::processTaskState(const string& state_msg,
   if(rec.requester == "")
     rec.requester = inferRequesterFromId(rec.id);
 
+  const string host_lc = tolower(stripBlankEnds(m_host_community));
+  const bool own_request =
+    (tolower(stripBlankEnds(rec.requester)) == host_lc);
+
   string winner = parseTaskStateWinner(spec);
   // Fallback path for TASK_STATE payloads that only include id/hash/state.
   // In these cases source community corresponds to the local helm node.
@@ -822,7 +902,6 @@ void RefuelReplace::processTaskState(const string& state_msg,
     }
 
     string winner_lc = tolower(stripBlankEnds(winner));
-    string host_lc = tolower(stripBlankEnds(m_host_community));
     if((winner != "") && (winner_lc == host_lc)) {
       if(!activeLockEngaged()) {
         // First accepted win acquires the replacement lock.
@@ -869,11 +948,45 @@ void RefuelReplace::processTaskState(const string& state_msg,
         clearActiveReplacementLock("task_state_bidwon_other_winner");
       m_pending_tasks.erase(hash);
     }
+
+    if(own_request) {
+      m_pending_retry_task = PendingTaskInfo();
+      m_pending_retry_utc = 0.0;
+      m_retry_attempts_used = 0;
+    }
+  }
+  else if(state == "unawarded") {
+    if(m_active_lock.task_hash == hash)
+      clearActiveReplacementLock("task_state_unawarded");
+
+    if(own_request && (m_retry_attempts_used < m_unawarded_retry_limit)) {
+      m_pending_retry_task = rec;
+      if(m_pending_retry_task.requester == "")
+        m_pending_retry_task.requester = m_host_community;
+      m_retry_attempts_used++;
+      m_pending_retry_utc = MOOSTime() + m_unawarded_retry_delay;
+      reportEvent("Queued unawarded retry attempt " +
+                  uintToString(m_retry_attempts_used) + "/" +
+                  uintToString(m_unawarded_retry_limit) +
+                  " for hash=" + hash);
+    }
+    else if(own_request) {
+      m_pending_retry_task = PendingTaskInfo();
+      m_pending_retry_utc = 0.0;
+      reportRunWarning("Unawarded retry limit reached for hash=" + hash);
+    }
+
+    m_pending_tasks.erase(hash);
   }
   else if((state == "bidlost") || (state == "abstain")) {
     // If the active task transitions out of bidwon, release commitment.
     if(m_active_lock.task_hash == hash)
       clearActiveReplacementLock("task_state_" + state);
+    if(own_request) {
+      m_pending_retry_task = PendingTaskInfo();
+      m_pending_retry_utc = 0.0;
+      m_retry_attempts_used = 0;
+    }
     m_pending_tasks.erase(hash);
   }
 }
@@ -977,6 +1090,11 @@ bool RefuelReplace::buildReport()
                                           "(none)" : m_pending_discovery_fire_id);
   table << "discovery_timeout_s"    << doubleToStringX(m_discovery_request_timeout, 2);
   table << "discovery_cooldown_s"   << doubleToStringX(m_discovery_repost_cooldown, 2);
+  table << "unawarded_retry_delay_s" << doubleToStringX(m_unawarded_retry_delay, 2);
+  table << "unawarded_retry_limit"   << uintToString(m_unawarded_retry_limit);
+  table << "unawarded_retry_used"    << uintToString(m_retry_attempts_used);
+  table << "pending_retry_task"      << (m_pending_retry_task.id == "" ?
+                                          "(none)" : m_pending_retry_task.id);
 
   m_msgs << table.getFormattedString();
   return true;

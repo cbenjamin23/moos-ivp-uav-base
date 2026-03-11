@@ -56,6 +56,12 @@ class RefuelReplace : public AppCastingMOOSApp
    // threshold semantics globally.
    bool postReplacementTask(const std::string& trigger_reason,
                             bool bypass_task_latch);
+   // Reposts a replacement task using cached task metadata, typically after
+   // an unawarded auction.
+   bool postReplacementTaskFromInfo(const PendingTaskInfo& task_info,
+                                    const std::string& trigger_reason,
+                                    bool bypass_task_latch,
+                                    bool reset_retry_sequence);
    // TASK_STATE format varies by task manager version; probe known winner keys.
    std::string parseTaskStateWinner(const std::string& spec) const;
    // Normalizes task strings so comma- and hash-delimited specs parse the same way.
@@ -74,6 +80,9 @@ class RefuelReplace : public AppCastingMOOSApp
    // Handles the queued discovery override that can post immediate relief only
    // when the vehicle is already in replacement-needed territory.
    void maybeHandleImmediateDiscoveryReplacement(bool have_nav, bool have_odom);
+   // Services a queued retry for a locally requested replacement that ended
+   // unawarded.
+   void maybeHandlePendingUnawardedRetry(bool have_nav, bool have_odom);
    // Posts the standard threshold-triggered replacement task once per cycle.
    void maybePostThresholdReplacement(bool have_nav, bool have_odom);
    // Sends return handoff once the active target-task winner reaches handoff range.
@@ -97,6 +106,7 @@ class RefuelReplace : public AppCastingMOOSApp
     double target_x = 0;
     double target_y = 0;
     bool   target_set = false;
+    double priority_weight = 1.0;
     // Pending-task freshness is used only to age out stale non-active entries.
     double last_seen_utc = 0.0;
   };
@@ -147,6 +157,10 @@ class RefuelReplace : public AppCastingMOOSApp
   double m_discovery_request_timeout; // seconds; pending request expiry
   // Fire-ID based dedupe window to avoid repost storms on repeated discovery mail.
   double m_discovery_repost_cooldown; // seconds; same-fire repost guard
+  // Delay before reposting a locally requested auction that ended unawarded.
+  double m_unawarded_retry_delay; // seconds
+  // Maximum number of repost attempts after unawarded.
+  unsigned int m_unawarded_retry_limit;
 
   // The loiter target this vehicle covers
   double m_target_x;
@@ -190,6 +204,10 @@ class RefuelReplace : public AppCastingMOOSApp
   double      m_pending_discovery_utc;
   // Last post times keyed by fire_id for cooldown/dedupe.
   std::map<std::string, double> m_last_discovery_post_utc;
+  // Single queued retry for a locally requested task that ended unawarded.
+  PendingTaskInfo m_pending_retry_task;
+  double          m_pending_retry_utc;
+  unsigned int    m_retry_attempts_used;
 };
 
 #endif 

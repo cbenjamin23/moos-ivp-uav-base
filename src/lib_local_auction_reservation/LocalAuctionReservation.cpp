@@ -73,7 +73,8 @@ void maintainForState(const std::string& task_hash,
   if((state == "bidding") || (state == "bidwon")) {
     claim(task_hash, now);
   }
-  else if((state == "bidlost") || (state == "abstain")) {
+  else if((state == "bidlost") || (state == "abstain") ||
+          (state == "unawarded")) {
     release(task_hash);
   }
   else {

@@ -263,6 +263,8 @@ ProcessConfig = pRefuelReplace
   total_range       = $(REFUEL_TOTAL_RANGE)
   refuel_threshold  = $(REFUEL_THRESHOLD)
   handoff_radius    = 80
+  unawarded_retry_delay = 10
+  unawarded_retry_limit = 2
 }
 
 //--------------------------------------------------

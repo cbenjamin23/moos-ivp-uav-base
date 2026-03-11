@@ -32,6 +32,7 @@ BHV_TaskRefuelReplaceBasic::BHV_TaskRefuelReplaceBasic(IvPDomain domain) :
 {
   m_distance_tiebreak_weight = 0.001;
   m_fuel_abstain_threshold   = 0;
+  m_requester                = "";
   m_requester_x              = 0;
   m_requester_y              = 0;
   m_requester_x_set          = false;
@@ -71,6 +72,10 @@ bool BHV_TaskRefuelReplaceBasic::setParam(string param, string value)
     return(setNonNegDoubleOnString(m_distance_tiebreak_weight, value));
   else if(param == "fuel_abstain_threshold")
     return(setNonNegDoubleOnString(m_fuel_abstain_threshold, value));
+  else if(param == "requester") {
+    m_requester = value;
+    return(true);
+  }
   else if((param == "requester_x") && isNumber(value)) {
     m_requester_x = atof(value.c_str());
     m_requester_x_set = true;
@@ -163,6 +168,9 @@ bool BHV_TaskRefuelReplaceBasic::isTaskFeasible()
   // If another replacement task (basic or target) on this same vehicle is
   // already bidding/won, abstain this task to avoid double-award races.
   if(LocalAuctionReservation::heldByOther(m_task_hash, now))
+    feasible = false;
+
+  if(tolower(stripBlankEnds(m_requester)) == tolower(stripBlankEnds(m_us_name)))
     feasible = false;
 
   if(m_returning_mode)

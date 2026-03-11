@@ -226,6 +226,9 @@ bool BHV_TaskRefuelReplaceTarget::isTaskFeasible()
   if(LocalAuctionReservation::heldByOther(m_task_hash, now))
     feasible = false;
 
+  if(tolower(stripBlankEnds(m_requester)) == tolower(stripBlankEnds(m_us_name)))
+    feasible = false;
+
   // If we're already in returning mode, we shouldn't be bidding on targets
   if(m_returning_mode)
     feasible = false;
