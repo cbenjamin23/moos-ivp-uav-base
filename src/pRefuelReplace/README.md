@@ -6,7 +6,7 @@ It is not the full auction owner. The task manager and spawned task behaviors ha
 
 - posts `MISSION_TASK` replacement requests
 - keeps enough task metadata to interpret later hash-based task mail
-- watches `TASK_STATE` to see whether this vehicle won
+- watches `TASK_STATE` to see whether this vehicle won, lost, or should retry
 - holds one local execution lock while this vehicle is busy carrying out a replacement
 - publishes `REFUEL_TRANSIT_BUSY` while that lock is held
 
@@ -123,6 +123,13 @@ That function:
 - inserts the new task into `m_pending_tasks`
 - for a basic task, immediately commands the requester to return
 
+Replacement requests are posted with an explicit `requester=...` field and are
+no longer marked `exempt=<requester>`. The requester now stays in the auction
+roster so it receives a normal local `TASK_STATE` lifecycle for its own task.
+The spawned refuel task behaviors use the `requester` field to self-abstain when
+`requester == m_us_name`, which prevents self-award while still allowing the
+requester to observe terminal outcomes such as `unawarded`.
+
 Target task:
 
 - posted when this vehicle still has a target to hand off
@@ -132,6 +139,45 @@ Basic task:
 
 - posted when this vehicle no longer has a target to hand off
 - completion is based on the winning replacement vehicle finishing its return-reset cycle
+
+## Overlapping Auction Safety
+
+There are two separate protections against one vehicle taking on conflicting
+replacement work:
+
+- `LocalAuctionReservation` prevents sibling spawned task behaviors on the same
+  vehicle from placing real bids on overlapping auctions at the same time
+- `pRefuelReplace` holds one active execution lock after `bidwon` and publishes
+  `REFUEL_TRANSIT_BUSY` while that commitment is active
+
+The requester is part of this safety model. Because it now remains in the
+auction roster, it receives the same local task lifecycle as every other bidder,
+but its own refuel replacement task behavior abstains explicitly when the task's
+`requester` matches the local vehicle name.
+
+## Unawarded And Retry
+
+If a replacement auction receives no real bids, it resolves as `unawarded`.
+When that happens for a task originally requested by this vehicle,
+`pRefuelReplace` queues a repost of the same replacement request after a short
+delay, up to a configured retry limit.
+
+Retries preserve the original:
+
+- requester
+- task type
+- target coordinates and weight, if any
+
+This keeps the retry semantically identical to the original request while giving
+other vehicles a chance to bid again after a concurrent auction has already
+resolved.
+
+## Configuration
+
+The retry behavior for locally requested `unawarded` tasks is controlled by:
+
+- `unawarded_retry_delay`: seconds to wait before reposting an unawarded request
+- `unawarded_retry_limit`: maximum number of repost attempts for the same request
 
 ## Lock Acquisition And Release
 
@@ -165,6 +211,7 @@ The lock is released when any of these conditions occur:
 
 - `TASK_STATE` says `bidlost`
 - `TASK_STATE` says `abstain`
+- `TASK_STATE` says `unawarded`
 - `TASK_STATE` says `bidwon` for the same hash but some other winner
 - handoff has completed for a target task
 - return has started and `ODOMETRY_RESET` has been seen for a basic-like task
@@ -223,6 +270,7 @@ Normal cleanup happens immediately when the app sees a terminal task outcome or 
 - `bidwon`
 - `bidlost`
 - `abstain`
+- `unawarded`
 - active-lock clear
 
 That means most pending entries should disappear without waiting for the TTL path at all.
