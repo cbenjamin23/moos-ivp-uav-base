@@ -4,14 +4,14 @@
 simulation:
   useMoosSimPid: true # Use MOOS-IvP Vechicle simulator
   time_warp: 15
-  number_of_drones: 7
+  number_of_drones: 11
 
   # Refuel/Replace parameters
-  refuel_total_range: 2000       # meters total distance on full "tank"
-  refuel_threshold: 1225         # meters odometry at which to request replacement
+  refuel_total_range: 3000       # meters total distance on full "tank"
+  refuel_threshold: 1500         # meters odometry at which to request replacement
   # Vehicle roles
-  num_scout_drones: 3            # first N drones are scouts (deployed immediately)
-  num_refuel_drones: 4           # next N drones are refuel-replacements (held in reserve)
+  num_scout_drones: 5            # first N drones are scouts (deployed immediately)
+  num_refuel_drones: 6           # next N drones are refuel-replacements (held in reserve)
   # Fire weights (importance levels)
   fire_default_weight: 1.0       # default priority weight for a discovered fire
 
@@ -89,18 +89,15 @@ missionParams:
   # TOOL: https://www.keene.edu/campus/maps/tool/
   use_moos_region: false
 
-  # region_lonlat: | # Larger region
-  #   10.1356602, 63.4006697
-  #   10.1259184, 63.3971146
-  #   10.1233006, 63.3922521
-  #   10.1484919, 63.3894265
-  #   10.1663446, 63.3964228
-  #   10.1657867, 63.4000164
-  #   10.1519251, 63.4015728
+  # region_lonlat: |  # Montreal DT Triangle
+  #   -73.61011, 45.508965
+  #   -73.592568, 45.497191
+  #   -73.574411, 45.506101
 
-  region_lonlat: |  # Montreal DT Triangle
+  region_lonlat: |  # Montreal DT Square
     -73.61011, 45.508965
-    -73.592568, 45.497191
+    -73.60911, 45.495191
+    -73.594411, 45.497191
     -73.574411, 45.506101
 
   # Waypoint parameters
@@ -197,4 +194,88 @@ drones:
     start_orientaton_moos: # +x is east, +y is north [m]
       x: -100
       y: 250
+      hdg: 56 # deg
+
+  - name: "sky10"
+    color: "yellow"
+    start_orientaton_moos: # +x is east, +y is north [m]
+      x: -150
+      y: 250
+      hdg: 56 # deg
+
+  - name: "sky11"
+    color: "gray"
+    start_orientaton_moos: # +x is east, +y is north [m]
+      x: -200
+      y: 200
+      hdg: 56 # deg 
+
+  - name: "sky12"
+    color: "black"
+    start_orientaton_moos: # +x is east, +y is north [m]
+      x: 200
+      y: 250
+      hdg: 56 # deg
+
+  - name: "sky13"
+    color: "white"
+    start_orientaton_moos: # +x is east, +y is north [m]
+      x: 250
+      y: 200
+      hdg: 56 # deg
+  
+  - name: "sky14"
+    color: "lightblue"
+    start_orientaton_moos: # +x is east, +y is north [m]
+      x: 250
+      y: 250
+      hdg: 56 # deg
+
+  - name: "sky15"
+    color: "lightgreen"
+    start_orientaton_moos: # +x is east, +y is north [m]
+      x: -250
+      y: 200
+      hdg: 56 # deg
+
+  - name: "sky16"
+    color: "darkgreen"
+    start_orientaton_moos: # +x is east, +y is north [m]
+      x: -250
+      y: 250
+      hdg: 56 # deg
+
+  - name: "sky17"
+    color: "darkolivegreen"
+    start_orientaton_moos: # +x is east, +y is north [m]
+      x: -200
+      y: 250
+      hdg: 56 # deg
+
+  - name: "sky18"
+    color: "darkred"
+    start_orientaton_moos: # +x is east, +y is north [m]
+      x: -150
+      y: 300
+      hdg: 56 # deg
+
+  - name: "sky19"
+    color: "macbeige"
+    start_orientaton_moos: # +x is east, +y is north [m]
+      x: -100
+      y: 300
+      hdg: 56 # deg
+
+  - name: "sky20"
+    color: "macpurple"
+    start_orientaton_moos: # +x is east, +y is north [m]
+      x: -50
+      y: 300
+      hdg: 56 # deg
+
+  - name: "sky21"
+    color: "antiquewhite"
+    start_orientaton_moos: # +x is east, +y is north [m]
+      x: 0
+      y: 300
       hdg: 56 # deg

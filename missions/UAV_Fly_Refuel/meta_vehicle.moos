@@ -203,7 +203,8 @@ ProcessConfig = pNodeReporter
   AppTick     = 6
   CommsTick   = 6
   
-  platform_type = GLIDER
+  //platform_type = GLIDER
+  platform_type = SKYWALKER
 	platform_color = $(COLOR)
 
   platform_length    = 3        // meters.  Range [0,inf)    
