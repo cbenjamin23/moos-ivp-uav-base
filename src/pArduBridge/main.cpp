@@ -62,6 +62,11 @@ int main(int argc, char *argv[])
     cout << "pArduBridge launching as " << run_command << endl;
     cout << termColor() << endl;
 
+    // Avoid MAVSDK's default logging path during serial system discovery.
+    mavsdk::log::subscribe([](mavsdk::log::Level, const std::string&, const std::string&, int) {
+        return true;
+    });
+
     ArduBridge ArduBridge;
 
     
