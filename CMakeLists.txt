@@ -12,6 +12,10 @@ PROJECT( IVP_EXTEND )
 set (CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+OPTION(BUILD_SWARM_TOOLBOX_DERIVATIVES
+       "Build libraries/apps derived from the MOOS-IvP Swarm Toolbox"
+       ON)
+
 
 #=======================================================================
 # Set the output directories for the binary and library files
@@ -57,31 +61,33 @@ endif()
 # Add the swarm libraries to the include path
 #========================================================================
 
-# Search for the moos-ivp-swarm folder
-# find_path( MOOSIVP_SWARM_TREE_BASE
-#            NAMES rollcall_raw.txt  # is found in moos-ivp-swarm/scripts/
-#            PATHS "../moos-ivp-swarm" "../../moos-ivp-swarm" "../../moos-ivp-swarm/trunk/" "../moos-ivp-swarm/trunk/"
-#            PATH_SUFFIXES "scripts"  # Look in 'scripts/' subdirectory
-#            DOC "Base directory of the moos-ivp-swarm source tree"
-#            NO_DEFAULT_PATH
-# )
+if(BUILD_SWARM_TOOLBOX_DERIVATIVES)
+  # Search for the moos-ivp-swarm folder
+  # find_path( MOOSIVP_SWARM_TREE_BASE
+  #            NAMES rollcall_raw.txt  # is found in moos-ivp-swarm/scripts/
+  #            PATHS "../moos-ivp-swarm" "../../moos-ivp-swarm" "../../moos-ivp-swarm/trunk/" "../moos-ivp-swarm/trunk/"
+  #            PATH_SUFFIXES "scripts"  # Look in 'scripts/' subdirectory
+  #            DOC "Base directory of the moos-ivp-swarm source tree"
+  #            NO_DEFAULT_PATH
+  # )
 
-# set(MOOSIVP_SWARM_TREE_BASE "../moos-ivp-swarm" CACHE PATH "Base directory of the moos-ivp-swarm source tree")
-set(MOOSIVP_SWARM_TREE_BASE "$ENV{HOME}/moos-ivp-swarm" CACHE PATH "Base directory of the moos-ivp-swarm source tree")
+  # set(MOOSIVP_SWARM_TREE_BASE "../moos-ivp-swarm" CACHE PATH "Base directory of the moos-ivp-swarm source tree")
+  set(MOOSIVP_SWARM_TREE_BASE "$ENV{HOME}/moos-ivp-swarm" CACHE PATH "Base directory of the moos-ivp-swarm source tree")
 
-if (NOT MOOSIVP_SWARM_TREE_BASE)
-message("Please set MOOSIVP_SWARM_TREE_BASE to  ")
-message("the location of the \"moos-ivp-swarm\" folder ")
-message( FATAL_ERROR "CMake will exit." )
+  if(NOT MOOSIVP_SWARM_TREE_BASE)
+    message("Please set MOOSIVP_SWARM_TREE_BASE to  ")
+    message("the location of the \"moos-ivp-swarm\" folder ")
+    message(FATAL_ERROR "CMake will exit.")
+  endif()
+
+  message(STATUS "MOOSIVP_SWARM_TREE_BASE: ${MOOSIVP_SWARM_TREE_BASE}")
+
+  FILE(GLOB SWARM_LIBRARY_DIRS ${MOOSIVP_SWARM_TREE_BASE}/src/lib_*)
+  INCLUDE_DIRECTORIES(${SWARM_LIBRARY_DIRS})
+
+  FILE(GLOB SWARM_LIBRARY_DIRS ${MOOSIVP_SWARM_TREE_BASE}/lib )
+  LINK_DIRECTORIES(${SWARM_LIBRARY_DIRS})
 endif()
-
-message(STATUS "MOOSIVP_SWARM_TREE_BASE: ${MOOSIVP_SWARM_TREE_BASE}")
-
-FILE(GLOB SWARM_LIBRARY_DIRS ${MOOSIVP_SWARM_TREE_BASE}/src/lib_*)
-INCLUDE_DIRECTORIES(${SWARM_LIBRARY_DIRS})
-
-FILE(GLOB SWARM_LIBRARY_DIRS ${MOOSIVP_SWARM_TREE_BASE}/lib )
-LINK_DIRECTORIES(${SWARM_LIBRARY_DIRS})
 
 
 #======================================================================

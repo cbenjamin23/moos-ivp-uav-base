@@ -39,12 +39,14 @@ IF( EXISTS ${CMAKE_SOURCE_DIR}/src/lib_local_auction_reservation )
   LIST(APPEND ROBOT_APPS lib_local_auction_reservation)
 ENDIF()
 
+SET(SWARM_TOOLBOX_DERIVATIVES)
+
 IF( EXISTS ${CMAKE_SOURCE_DIR}/src/lib_bhv_task_refuel_replace_target )
-  LIST(APPEND ROBOT_APPS lib_bhv_task_refuel_replace_target)
+  LIST(APPEND SWARM_TOOLBOX_DERIVATIVES lib_bhv_task_refuel_replace_target)
 ENDIF()
 
 IF( EXISTS ${CMAKE_SOURCE_DIR}/src/lib_bhv_task_refuel_replace_basic )
-  LIST(APPEND ROBOT_APPS lib_bhv_task_refuel_replace_basic)
+  LIST(APPEND SWARM_TOOLBOX_DERIVATIVES lib_bhv_task_refuel_replace_basic)
 ENDIF()
 
 IF( EXISTS ${CMAKE_SOURCE_DIR}/src/pRefuelReplace )
@@ -60,7 +62,7 @@ IF( EXISTS ${CMAKE_SOURCE_DIR}/src/pArduBridge )
 ENDIF()
 
 IF( EXISTS ${CMAKE_SOURCE_DIR}/src/pProxonoi_uav )
-  LIST(APPEND ROBOT_APPS pProxonoi_uav)
+  LIST(APPEND SWARM_TOOLBOX_DERIVATIVES pProxonoi_uav)
 ENDIF()
 
 IF( EXISTS ${CMAKE_SOURCE_DIR}/src/pBoatTracker )
@@ -70,6 +72,10 @@ ENDIF()
 message("ROBOT_APPS:" ${ROBOT_APPS})
 
 SET(APPS_TO_BUILD ${ROBOT_APPS})
+
+IF(BUILD_SWARM_TOOLBOX_DERIVATIVES)
+  LIST(APPEND APPS_TO_BUILD ${SWARM_TOOLBOX_DERIVATIVES})
+ENDIF()
 
 
 #===============================================================
@@ -121,6 +127,7 @@ ENDIF()
 
 message("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
 message(" BUILD_BOT_CODE_ONLY: ${BUILD_BOT_CODE_ONLY}")
+message(" BUILD_SWARM_TOOLBOX_DERIVATIVES: ${BUILD_SWARM_TOOLBOX_DERIVATIVES}")
 message("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
 
 IF("${BUILD_BOT_CODE_ONLY}" STREQUAL "OFF")
