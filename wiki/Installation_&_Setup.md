@@ -145,8 +145,7 @@ If you do not need apps derived from the SWARM Toolbox, build this repository
 with those targets disabled:
 
 ```bash
-cmake -S . -B build -DBUILD_SWARM_TOOLBOX_DERIVATIVES=OFF
-cmake --build build
+./build.sh --noswarm
 ```
 
 This excludes `lib_bhv_task_refuel_replace_target`,

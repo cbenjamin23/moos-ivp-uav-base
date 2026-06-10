@@ -7,6 +7,7 @@ INVOCATION_ABS_DIR=`pwd`
 BUILD_TYPE="None"
 CMD_LINE_ARGS=""
 BUILD_BOT_CODE_ONLY="OFF"
+BUILD_SWARM_TOOLBOX_DERIVATIVES="ON"
 FORCE_FULL_RASPI_BUILD="NO"
 
 #-------------------------------------------------------------------
@@ -22,6 +23,8 @@ for ARGI; do
 	echo "    Force build full code even on RasPi     "
 	echo "  --minrobot, -m                            "
 	echo "    Only build minimal robot apps           "
+	echo "  --noswarm                                 "
+	echo "    Skip apps derived from the SWARM Toolbox"
 	echo "  --minrobotx, -mx                          "
 	echo "    Override min-robot default on Raspbian  "
 	echo "  --release, -r                             "
@@ -39,6 +42,8 @@ for ARGI; do
         BUILD_TYPE="Release"
     elif [ "${ARGI}" = "--minrobot" -o "${ARGI}" = "-m" ] ; then
         BUILD_BOT_CODE_ONLY="ON"
+    elif [ "${ARGI}" = "--noswarm" ] ; then
+        BUILD_SWARM_TOOLBOX_DERIVATIVES="OFF"
     elif [ "${ARGI}" = "--minrobotx" -o "${ARGI}" = "-mx" ]; then
         FORCE_FULL_RASPI_BUILD="yes"
     else
@@ -87,11 +92,11 @@ mkdir -p build
 cd build
 
 cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=1 \
-	  -DCMAKE_BUILD_TYPE=${BUILD_TYPE}                    \
+      -DCMAKE_BUILD_TYPE=${BUILD_TYPE}                    \
       -DCMAKE_CXX_FLAGS="${CMAKE_CXX_FLAGS}"              \
-      -DBUILD_BOT_CODE_ONLY=${BUILD_BOT_CODE_ONLY}  ../  || exit 1
+      -DBUILD_BOT_CODE_ONLY=${BUILD_BOT_CODE_ONLY}        \
+      -DBUILD_SWARM_TOOLBOX_DERIVATIVES=${BUILD_SWARM_TOOLBOX_DERIVATIVES}  ../  || exit 1
 
 make ${CMD_LINE_ARGS}
 cd ${INVOCATION_ABS_DIR}
-
 
