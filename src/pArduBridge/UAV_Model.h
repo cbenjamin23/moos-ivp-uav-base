@@ -45,10 +45,20 @@
 class UAV_Model
 {
 public:
+  enum class VehicleType
+  {
+    Plane,
+    Copter
+  };
+
   UAV_Model(std::shared_ptr<WarningSystem> ws = nullptr);
   virtual ~UAV_Model() {}
 
   void registerWarningSystem(std::shared_ptr<WarningSystem> ws) { m_warning_system_ptr = ws; }
+  void setVehicleType(VehicleType vehicle_type);
+  VehicleType getVehicleType() const { return m_vehicle_type; }
+  std::string getVehicleTypeString() const;
+  bool isCopter() const { return m_vehicle_type == VehicleType::Copter; }
   bool connectToUAV(std::string url);
   bool setUpMission(bool onlyRegisterHome = true);
 
@@ -91,7 +101,7 @@ public:
   void setNextWaypointLatLon(const XYPoint &wp) { mts_next_waypoint_coord.set(wp); }
   void setLoiterLocationLatLon(const XYPoint &wp) { mts_current_loiter_coord.set(wp); }
   void setHeadingWyptFromHeading(double heading);
-  // void setTargetAltitudeAGL(double altitude) { m_target_altitudeAGL = altitude; }
+  void setTargetAltitudeAGL(double altitude) { m_target_altitudeAGL = altitude; }
 
   // void setTargetAirSpeed(double speed) { m_target_airspeed = speed; }
 
@@ -193,6 +203,7 @@ protected:
   };
 
 protected:
+  VehicleType m_vehicle_type;
   std::shared_ptr<WarningSystem> m_warning_system_ptr;
   // Callbacks for debug messages
   std::function<void(const std::string &)> callbackMOOSTrace;

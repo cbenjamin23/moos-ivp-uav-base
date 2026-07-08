@@ -28,6 +28,7 @@ UAV_Model::UAV_Model(std::shared_ptr<WarningSystem> ws) : m_mavsdk_ptr{std::make
                                                           callbackReportRunW{nullptr},
                                                           callbackRetractRunW{nullptr},
                                                           callbackReportEvent{nullptr},
+                                                          m_vehicle_type{VehicleType::Plane},
 
                                                           m_is_hold_course_guided_set{false},
                                                           m_health_all_ok{false},
@@ -54,6 +55,23 @@ UAV_Model::UAV_Model(std::shared_ptr<WarningSystem> ws) : m_mavsdk_ptr{std::make
   // Initalize the configuration variables
 
   m_warning_system_ptr = ws;
+}
+
+void UAV_Model::setVehicleType(VehicleType vehicle_type)
+{
+  m_vehicle_type = vehicle_type;
+}
+
+std::string UAV_Model::getVehicleTypeString() const
+{
+  switch (m_vehicle_type)
+  {
+  case VehicleType::Copter:
+    return "copter";
+  case VehicleType::Plane:
+  default:
+    return "plane";
+  }
 }
 
 //------------------------------------------------------------------------
@@ -108,16 +126,19 @@ bool UAV_Model::connectToUAV(std::string url)
 
   std::cout << "Created mission_raw, action, telemetry, mavlinkPassthrough and param\n";
 
-  // Poll Cruise speed and set to target airspeed
-  auto resPair = m_action_ptr->get_target_speed();
-  if (resPair.first != mavsdk::Action::Result::Success)
+  if (!isCopter())
   {
-    std::cout << "Failed to get initial target speed\n";
-    m_warning_system_ptr->queue_monitorWarningForXseconds("Failed to get initial target speed", WARNING_DURATION);
-  }
-  else
-  {
-    m_target_airspeed = resPair.second;
+    // Poll cruise speed and set to target airspeed for fixed-wing vehicles.
+    auto resPair = m_action_ptr->get_target_speed();
+    if (resPair.first != mavsdk::Action::Result::Success)
+    {
+      std::cout << "Failed to get initial target speed\n";
+      m_warning_system_ptr->queue_monitorWarningForXseconds("Failed to get initial target speed", WARNING_DURATION);
+    }
+    else
+    {
+      m_target_airspeed = resPair.second;
+    }
   }
 
   return true;
@@ -125,6 +146,10 @@ bool UAV_Model::connectToUAV(std::string url)
 
 bool UAV_Model::setUpMission(bool onlyRegisterHome)
 {
+  if (isCopter())
+  {
+    onlyRegisterHome = true;
+  }
 
   if (!onlyRegisterHome)
   {
@@ -140,7 +165,7 @@ bool UAV_Model::setUpMission(bool onlyRegisterHome)
 
   std::vector<mavsdk::MissionRaw::MissionItem> mission_plan;
 
-  if (download_result.first != mavsdk::MissionRaw::Result::Success || mission_plan.size() == 0)
+  if (download_result.first != mavsdk::MissionRaw::Result::Success || download_result.second.size() == 0)
   {
     m_warning_system_ptr->queue_monitorWarningForXseconds("Failed to download mission", WARNING_DURATION);
     std::cout << "Failed to download mission - Using default home location\n";
@@ -231,6 +256,30 @@ bool UAV_Model::startMission() const
     return false;
   }
 
+  if (isCopter())
+  {
+    auto altitude_result = m_action_ptr->set_takeoff_altitude(m_target_altitudeAGL);
+    if (altitude_result != mavsdk::Action::Result::Success)
+    {
+      std::stringstream ss;
+      ss << "Failed to set Copter takeoff altitude: " << altitude_result;
+      m_warning_system_ptr->queue_monitorWarningForXseconds(ss.str(), WARNING_DURATION);
+      return false;
+    }
+
+    auto takeoff_result = m_action_ptr->takeoff();
+    if (takeoff_result != mavsdk::Action::Result::Success)
+    {
+      std::stringstream ss;
+      ss << "Failed to send Copter takeoff command: " << takeoff_result;
+      m_warning_system_ptr->queue_monitorWarningForXseconds(ss.str(), WARNING_DURATION);
+      return false;
+    }
+
+    MOOSTraceFromCallback("Copter takeoff command succeeded\n");
+    return true;
+  }
+
   auto start_result = m_mission_raw_ptr->start_mission();
 
   if (start_result != mavsdk::MissionRaw::Result::Success)
@@ -301,6 +350,10 @@ bool UAV_Model::subscribeToTelemetry()
 
 void UAV_Model::pollAllParametersAsync()
 {
+  if (isCopter())
+  {
+    return;
+  }
 
   getParameterAsync(Parameters::AIRSPEED_TARGET_CRUISE);
   getParameterAsync(Parameters::AIRSPEED_MAX);
@@ -432,7 +485,7 @@ bool UAV_Model::commandGuidedMode(bool alt_hold)
     return false;
   }
 
-  if (m_is_hold_course_guided_set && !alt_hold)
+  if (!isCopter() && m_is_hold_course_guided_set && !alt_hold)
   {
     mavsdk::Action::Result result = m_action_ptr->set_flight_mode_auto();
 
@@ -504,20 +557,18 @@ bool UAV_Model::commandAutoland() const
     return false;
   }
 
-  // AUTOLAND mode for ArduPilot Plane (mode 26)
-  // Use the MAVSDK Action plugin interface which handles mode conversion automatically
-  mavsdk::Action::Result result = m_action_ptr->set_flight_mode_autoland();
+  mavsdk::Action::Result result = isCopter() ? m_action_ptr->land() : m_action_ptr->set_flight_mode_autoland();
 
   if (result != mavsdk::Action::Result::Success)
   {
     std::stringstream ss;
-    ss << "AUTOLAND command error: " << result;
+    ss << (isCopter() ? "LAND" : "AUTOLAND") << " command error: " << result;
     m_warning_system_ptr->queue_monitorWarningForXseconds(ss.str(), WARNING_DURATION);
     return false;
   }
 
-  MOOSTraceFromCallback("AUTOLAND command succeeded\n");
-  reportEventFromCallback("AUTOLAND command sent to UAV");
+  MOOSTraceFromCallback(isCopter() ? "LAND command succeeded\n" : "AUTOLAND command succeeded\n");
+  reportEventFromCallback(isCopter() ? "LAND command sent to UAV" : "AUTOLAND command sent to UAV");
 
   return true;
 }
@@ -554,6 +605,17 @@ bool UAV_Model::commandLoiterAtPos(XYPoint pos, bool holdCurrentAltitude)
 
 bool UAV_Model::commandAndSetAirSpeed(double speed)
 {
+  if (isCopter())
+  {
+    if (commandGroundSpeed(speed))
+    {
+      m_target_airspeed = speed;
+      return true;
+    }
+    m_warning_system_ptr->queue_monitorWarningForXseconds("Failed to set Copter ground speed to " + doubleToString(speed), WARNING_DURATION);
+    return false;
+  }
+
   if (commandSpeed(speed, SPEED_TYPE::SPEED_TYPE_AIRSPEED))
   {
     // setParameterAsync(Parameters::AIRSPEED_TARGET_CRUISE, speed);
@@ -673,6 +735,27 @@ bool UAV_Model::commandGoToLocation(const mavsdk::Telemetry::Position &position)
 
 bool UAV_Model::commandAndSetAltitudeAGL(double altitudeAGL_m)
 {
+  if (isCopter())
+  {
+    if (altitudeAGL_m < IN_AIR_HIGHT_THRESHOLD)
+    {
+      std::stringstream ss;
+      ss << "Altitude, " << doubleToString(altitudeAGL_m) << " m, is too low. Below in air threshold: " << IN_AIR_HIGHT_THRESHOLD;
+      m_warning_system_ptr->queue_monitorWarningForXseconds(ss.str(), WARNING_DURATION);
+      return false;
+    }
+
+    m_target_altitudeAGL = altitudeAGL_m;
+    auto position = mts_position.get();
+    double terrain_altitude = position.absolute_altitude_m - position.relative_altitude_m;
+    mavsdk::Telemetry::Position target_position = {
+        position.latitude_deg,
+        position.longitude_deg,
+        static_cast<float>(terrain_altitude + altitudeAGL_m)};
+    m_last_sent_altitudeAGL = altitudeAGL_m;
+    return commandGoToLocation(target_position);
+  }
+
   if (!commandGuidedMode(true))
     return false;
 
@@ -1008,6 +1091,40 @@ bool UAV_Model::commandAndSetCourse(double heading, bool isAllowed)
   }
 
   m_target_course = heading;
+
+  if (isCopter())
+  {
+    if (!isAllowed)
+    {
+      m_warning_system_ptr->queue_monitorWarningForXseconds("Helm must be active to command heading", WARNING_DURATION);
+      return false;
+    }
+
+    heading = angle360(heading);
+    mavsdk::MavlinkPassthrough::CommandLong command_mode;
+    command_mode.command = MAV_CMD_CONDITION_YAW;
+    command_mode.target_sysid = m_system_ptr->get_system_id();
+    command_mode.target_compid = MAV_COMP_ID_AUTOPILOT1;
+    command_mode.param1 = heading;
+    command_mode.param2 = 30.0; // yaw rate deg/s
+    command_mode.param3 = 0.0;  // shortest direction
+    command_mode.param4 = 0.0;  // absolute heading
+    command_mode.param5 = 0.0;
+    command_mode.param6 = 0.0;
+    command_mode.param7 = 0.0;
+
+    auto result = m_mavPass_ptr->send_command_long(command_mode);
+    if (result != mavsdk::MavlinkPassthrough::Result::Success)
+    {
+      std::stringstream ss;
+      ss << "Copter yaw command error: " << result << " with heading " << heading;
+      m_warning_system_ptr->queue_monitorWarningForXseconds(ss.str(), WARNING_DURATION);
+      return false;
+    }
+
+    MOOSTraceFromCallback("Copter yaw command succeeded\n");
+    return true;
+  }
 
   if (/*isGuidedMode() &&*/ isAllowed)
   {

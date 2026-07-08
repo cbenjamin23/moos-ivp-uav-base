@@ -77,6 +77,8 @@ void showExampleConfigAndExit()
   blk("  ArduPilotURL/ ardupiloturl | url   = 0.0.0.0:1455                   ");    
   blk("  (or ArduPilotURL   = ttySAC0:115200 )                             ");    
   blk("  url_protocol = serial, tcp, udp                                ");    
+  blk("  vehicle_type = plane  // plane or copter                       ");
+  blk("  takeoff_altitude = 10  // Copter default if not configured     ");
   blk("  prefix   = NAV                                               ");    
   blk("                                                                ");
   blk("}                                                               ");
@@ -113,8 +115,10 @@ void showInterfaceAndExit()
   blk("  NEXT_WAYPOINT                                                              ");
   blk("                                                                ");
   blk("  DESIRED_HEADING                                                              ");
+  blk("    Plane: desired course over ground. Copter: absolute yaw heading.            ");
   blk("  DESIRED_SPEED                                                              ");
-  blk("  DESIRED_DEPTH                                                              ");
+  blk("    Plane: airspeed by default. Copter: ground speed.                          ");
+  blk("  DESIRED_ALTITUDE                                                           ");
   blk("                                                                ");
   blk("  MOOS_MANUAL_OVERIDE                                                              ");
   blk("                                                                ");
@@ -142,4 +146,3 @@ void showReleaseInfoAndExit()
   //showReleaseInfo("pArduBridge", "gpl");
   exit(0);
 }
-

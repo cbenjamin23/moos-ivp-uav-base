@@ -679,6 +679,7 @@ bool ArduBridge::OnStartUp()
 
   std::string ardupilot_url;
   std::pair<bool, std::string> url_protocol_pair{false, ""};
+  bool target_altitude_configured = false;
 
   STRING_LIST sParams;
 
@@ -724,6 +725,31 @@ bool ArduBridge::OnStartUp()
     {
       handled = setBooleanOnString(m_command_groundSpeed, value);
     }
+    else if (param == "takeoff_altitude" || param == "default_altitude" || param == "target_altitude")
+    {
+      double altitude = 0;
+      handled = setDoubleOnString(altitude, value) && altitude > 0;
+      if (handled)
+      {
+        m_uav_model.setTargetAltitudeAGL(altitude);
+        target_altitude_configured = true;
+      }
+    }
+    else if (param == "vehicle_type" || param == "vehicle")
+    {
+      std::string vehicle_type = tolower(value);
+      if (vehicle_type == "copter" || vehicle_type == "arducopter" || vehicle_type == "multicopter")
+      {
+        m_uav_model.setVehicleType(UAV_Model::VehicleType::Copter);
+        m_command_groundSpeed = true;
+        handled = true;
+      }
+      else if (vehicle_type == "plane" || vehicle_type == "arduplane" || vehicle_type == "fixedwing" || vehicle_type == "fixed_wing")
+      {
+        m_uav_model.setVehicleType(UAV_Model::VehicleType::Plane);
+        handled = true;
+      }
+    }
     else if (param == "ardupiloturl" || param == "url")
     {
       ardupilot_url = value;
@@ -757,6 +783,11 @@ bool ArduBridge::OnStartUp()
     }
     if (!handled)
       reportUnhandledConfigWarning(orig);
+  }
+
+  if (m_uav_model.isCopter() && !target_altitude_configured)
+  {
+    m_uav_model.setTargetAltitudeAGL(10.0);
   }
 
   // look for latitude, longitude global variables
@@ -905,6 +936,7 @@ bool ArduBridge::buildReport()
   m_msgs << "ArduPilot URL: " << m_cli_arg.get_path() << std::endl;
   m_msgs << "ArduPilot Port: " << m_cli_arg.get_port() << std::endl;
   m_msgs << "ArduPilot Protocol: " << protocol2str.at(m_cli_arg.get_protocol()) << std::endl;
+  m_msgs << "Vehicle Type: " << m_uav_model.getVehicleTypeString() << std::endl;
   std::string sim_mode = m_is_simulation ? "SITL" : "No Simulation";
   m_msgs << "Simulation Mode: " << sim_mode << std::endl;
 
@@ -1027,11 +1059,18 @@ void ArduBridge::sendDesiredValuesToUAV(UAV_Model &uav, bool forceSend)
   if (desired_speed.has_value())
   {
     Logger::info("Sending desired speed: " + doubleToString(desired_speed.value()));
-    uav.commandAndSetAirSpeed(desired_speed.value());
-
-    if (m_command_groundSpeed)
+    if (uav.isCopter())
     {
       uav.commandGroundSpeed(desired_speed.value());
+    }
+    else
+    {
+      uav.commandAndSetAirSpeed(desired_speed.value());
+
+      if (m_command_groundSpeed)
+      {
+        uav.commandGroundSpeed(desired_speed.value());
+      }
     }
   }
 
