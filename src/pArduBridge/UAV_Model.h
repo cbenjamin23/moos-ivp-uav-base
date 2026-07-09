@@ -86,6 +86,7 @@ public:
   bool commandReturnToLaunchAsync() const;
   bool commandAutoland() const;
   bool commandLoiterAtPos(XYPoint pos, bool holdCurrentAltitude = true);
+  bool commandPrecisionLoiter(bool enable, bool enterLoiterMode = true);
   bool commandAndSetCourse(double heading, bool isAllowed = true); // command COG if in guided mode
 
   bool commandGuidedMode(bool alt_hold = false);
@@ -234,6 +235,7 @@ protected:
 
   bool commandSpeed(double airspeed_m_s, SPEED_TYPE speed_type = SPEED_TYPE::SPEED_TYPE_GROUNDSPEED);
   bool commandArmAsync() const;
+  bool commandAuxFunction(int function, int switch_position) const;
 
   bool setParameterAsync(Parameters param_enum, double value) const;
   bool getParameterAsync(Parameters param_enum);

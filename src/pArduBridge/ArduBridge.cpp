@@ -32,11 +32,13 @@ ArduBridge::ArduBridge()
       m_do_return_to_launch{false},
       m_do_autoland{false},
       m_do_loiter_pair{false, "default"},
+      m_do_precision_loiter_pair{false, false},
       m_do_arm{false},
       m_do_helm_survey{false},
       m_do_helm_voronoi{false},
       m_is_simulation{false},
       m_command_groundSpeed{false},
+      m_precision_loiter_enter_loiter{true},
       m_warning_system_ptr{std::make_shared<WarningSystem>(
           [this](const std::string msg)
           { this->reportRunWarning(msg); },
@@ -243,6 +245,16 @@ bool ArduBridge::OnNewMail(MOOSMSG_LIST &NewMail)
       {
         std::string val = (msg.GetSource() == "pHelmIvP") ? "default" : "here";
         m_do_loiter_pair = std::make_pair(true, val);
+        handled = true;
+      }
+      else if (command == "PRECISION_LOITER" || command == "PRECISION_LOITER_ON" || command == "PRECISION_LOITER_ENABLE")
+      {
+        m_do_precision_loiter_pair = std::make_pair(true, true);
+        handled = true;
+      }
+      else if (command == "PRECISION_LOITER_OFF" || command == "PRECISION_LOITER_DISABLE")
+      {
+        m_do_precision_loiter_pair = std::make_pair(true, false);
         handled = true;
       }
       else if (command == "SURVEY")
@@ -541,6 +553,40 @@ bool ArduBridge::Iterate()
   }
 
   //////////////////////////////////////////////////////////////
+  //////  Precision Loiter   - Async w/polling
+  //////////////////////////////////////////////////////////////
+  if (m_do_precision_loiter_pair.first)
+  {
+    Logger::info("Iterate: Precision Loiter");
+    static bool running_precision_loiter = false;
+    if (!running_precision_loiter)
+    {
+      precisionLoiter_async(m_do_precision_loiter_pair.second);
+      running_precision_loiter = true;
+    }
+
+    auto result = future_poll_result(m_precision_loiter_promfut.fut);
+    if (result.has_value())
+    {
+      Logger::info("Iterate: Precision Loiter command sent with result: " + result.value().message + " success: " + boolToString(result.value().success));
+
+      if (result.value().success)
+      {
+        reportEvent(result.value().message);
+      }
+      else
+      {
+        m_warning_system_ptr->queue_monitorWarningForXseconds("FAIL: " + result.value().message, WARNING_DURATION);
+      }
+
+      running_precision_loiter = false;
+      m_do_precision_loiter_pair.first = false;
+      m_do_precision_loiter_pair.second = false;
+      m_precision_loiter_promfut.reset();
+    }
+  }
+
+  //////////////////////////////////////////////////////////////
   //////  Loiter            - Async w/polling
   //////////////////////////////////////////////////////////////
 
@@ -724,6 +770,10 @@ bool ArduBridge::OnStartUp()
     else if ((param == "command_groundspeed" || param == "cmd_gs") && isBoolean(value))
     {
       handled = setBooleanOnString(m_command_groundSpeed, value);
+    }
+    else if (param == "precision_loiter_enter_loiter" && isBoolean(value))
+    {
+      handled = setBooleanOnString(m_precision_loiter_enter_loiter, value);
     }
     else if (param == "takeoff_altitude" || param == "default_altitude" || param == "target_altitude")
     {
@@ -937,6 +987,7 @@ bool ArduBridge::buildReport()
   m_msgs << "ArduPilot Port: " << m_cli_arg.get_port() << std::endl;
   m_msgs << "ArduPilot Protocol: " << protocol2str.at(m_cli_arg.get_protocol()) << std::endl;
   m_msgs << "Vehicle Type: " << m_uav_model.getVehicleTypeString() << std::endl;
+  m_msgs << "Precision Loiter Enters Loiter: " << boolToString(m_precision_loiter_enter_loiter) << std::endl;
   std::string sim_mode = m_is_simulation ? "SITL" : "No Simulation";
   m_msgs << "Simulation Mode: " << sim_mode << std::endl;
 
@@ -1027,6 +1078,7 @@ bool ArduBridge::buildReport()
   actab.addHeaderLines();
   actab << "Do set fly waypoint:" << boolToString(m_do_fly_to_waypoint);
   actab << "Do takeoff:" << boolToString(m_do_takeoff);
+  actab << "Do precision loiter:" << boolToString(m_do_precision_loiter_pair.first);
   actab << "command groundSpeed:" << boolToString(m_command_groundSpeed);
   m_msgs << actab.getFormattedString();
 
@@ -1467,6 +1519,20 @@ void ArduBridge::autoland_async()
           ResultPair{success, success ? "" : "Failed sending AUTOLAND command"}
       );
       
+      return; });
+}
+
+void ArduBridge::precisionLoiter_async(bool enable)
+{
+  m_uav_model.pushCommand([enable, enter_loiter = m_precision_loiter_enter_loiter, this](UAV_Model &uav)
+                          {
+      bool success = uav.commandPrecisionLoiter(enable, enter_loiter);
+      std::string message = enable ? "Precision Loiter enabled" : "Precision Loiter disabled";
+
+      m_precision_loiter_promfut.prom.set_value(
+          ResultPair{success, success ? message : "Failed sending Precision Loiter command"}
+      );
+
       return; });
 }
 

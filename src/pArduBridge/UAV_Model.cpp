@@ -603,6 +603,69 @@ bool UAV_Model::commandLoiterAtPos(XYPoint pos, bool holdCurrentAltitude)
   return false;
 }
 
+bool UAV_Model::commandAuxFunction(int function, int switch_position) const
+{
+  mavsdk::MavlinkPassthrough::CommandLong command_mode;
+  command_mode.command = MAV_CMD_DO_AUX_FUNCTION_ARDUPILOT;
+  command_mode.target_sysid = m_system_ptr->get_system_id();
+  command_mode.target_compid = MAV_COMP_ID_AUTOPILOT1;
+  command_mode.param1 = function;
+  command_mode.param2 = switch_position;
+  command_mode.param3 = 0.0;
+  command_mode.param4 = 0.0;
+  command_mode.param5 = 0.0;
+  command_mode.param6 = 0.0;
+  command_mode.param7 = 0.0;
+
+  auto result = m_mavPass_ptr->send_command_long(command_mode);
+  if (result != mavsdk::MavlinkPassthrough::Result::Success)
+  {
+    std::stringstream ss;
+    ss << "Aux function command error: " << result << " function=" << function << " switch=" << switch_position;
+    m_warning_system_ptr->queue_monitorWarningForXseconds(ss.str(), WARNING_DURATION);
+    return false;
+  }
+
+  return true;
+}
+
+bool UAV_Model::commandPrecisionLoiter(bool enable, bool enterLoiterMode)
+{
+  if (!isCopter())
+  {
+    m_warning_system_ptr->queue_monitorWarningForXseconds("Precision Loiter is only supported in copter mode", WARNING_DURATION);
+    return false;
+  }
+
+  if (enable && !m_is_armed)
+  {
+    m_warning_system_ptr->queue_monitorWarningForXseconds("UAV is not armed! Cannot enable Precision Loiter", WARNING_DURATION);
+    return false;
+  }
+
+  if (enable && enterLoiterMode && mts_flight_mode.get() != mavsdk::Telemetry::FlightMode::Hold)
+  {
+    auto hold_result = m_action_ptr->hold();
+    if (hold_result != mavsdk::Action::Result::Success)
+    {
+      std::stringstream ss;
+      ss << "Failed to enter Copter Loiter before Precision Loiter: " << hold_result;
+      m_warning_system_ptr->queue_monitorWarningForXseconds(ss.str(), WARNING_DURATION);
+      return false;
+    }
+  }
+
+  int switch_position = enable ? AUX_SWITCH_HIGH : AUX_SWITCH_LOW;
+  if (!commandAuxFunction(AUX_FUNC_PRECISION_LOITER, switch_position))
+  {
+    return false;
+  }
+
+  reportEventFromCallback(enable ? "Precision Loiter enabled" : "Precision Loiter disabled");
+  MOOSTraceFromCallback(enable ? "Precision Loiter enabled\n" : "Precision Loiter disabled\n");
+  return true;
+}
+
 bool UAV_Model::commandAndSetAirSpeed(double speed)
 {
   if (isCopter())

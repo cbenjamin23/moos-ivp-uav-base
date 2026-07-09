@@ -201,6 +201,9 @@ protected: // async
   void autoland_async();
   PromiseFuture<ResultPair> m_autoland_promfut;
 
+  void precisionLoiter_async(bool enable);
+  PromiseFuture<ResultPair> m_precision_loiter_promfut;
+
 private: // State variables
   // For UAV
 
@@ -208,6 +211,7 @@ private: // State variables
   std::string m_vcolor;
   bool m_is_simulation;
   bool m_command_groundSpeed;
+  bool m_precision_loiter_enter_loiter;
 
   std::shared_ptr<WarningSystem> m_warning_system_ptr;
   UAV_Model m_uav_model;
@@ -226,6 +230,7 @@ private: // State variables
   bool m_do_helm_voronoi;
 
   std::pair<bool, std::string> m_do_loiter_pair;
+  std::pair<bool, bool> m_do_precision_loiter_pair;
 
   AutopilotHelmMode m_autopilot_mode;
 

@@ -79,6 +79,7 @@ void showExampleConfigAndExit()
   blk("  url_protocol = serial, tcp, udp                                ");    
   blk("  vehicle_type = plane  // plane or copter                       ");
   blk("  takeoff_altitude = 10  // Copter default if not configured     ");
+  blk("  precision_loiter_enter_loiter = true                           ");
   blk("  prefix   = NAV                                               ");    
   blk("                                                                ");
   blk("}                                                               ");
@@ -112,6 +113,8 @@ void showInterfaceAndExit()
   blk("  RETURN_TO_LAUNCH                                                              ");
   blk("  AUTOLAND                                                              ");
   blk("  LOITER                                                              ");
+  blk("  ARDU_COMMAND=PRECISION_LOITER // Copter only: enable aux function 39          ");
+  blk("  ARDU_COMMAND=PRECISION_LOITER_OFF // Disable Precision Loiter                 ");
   blk("  NEXT_WAYPOINT                                                              ");
   blk("                                                                ");
   blk("  DESIRED_HEADING                                                              ");
