@@ -108,7 +108,7 @@ void showInterfaceAndExit()
   blk("  FLY_WAYPOINT                                                              ");
   blk("  DO_TAKEOFF                                                              ");
   blk("  CHANGE_SPEED                                                              ");
-  blk("  ARM_UAV                                                              ");
+  blk("  ARM_UAV = true  // Arm; false disarms                                ");
   blk("  RESET_SPEED_MIN                                                              ");
   blk("  RETURN_TO_LAUNCH                                                              ");
   blk("  AUTOLAND                                                              ");

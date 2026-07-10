@@ -19,6 +19,7 @@
 
 #include <map>
 #include <functional>
+#include <optional>
 #include <utility> // for std::pair
 
 #include <future>
@@ -223,7 +224,7 @@ private: // State variables
   bool m_do_reset_speed;
   bool m_do_return_to_launch;
   bool m_do_autoland;
-  bool m_do_arm;
+  std::optional<bool> m_arm_request;
   bool m_do_takeoff;
   bool m_do_fly_to_waypoint;
   bool m_do_helm_survey;

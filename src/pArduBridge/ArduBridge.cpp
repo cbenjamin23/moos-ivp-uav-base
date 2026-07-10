@@ -33,7 +33,7 @@ ArduBridge::ArduBridge()
       m_do_autoland{false},
       m_do_loiter_pair{false, "default"},
       m_do_precision_loiter_pair{false, false},
-      m_do_arm{false},
+      m_arm_request{std::nullopt},
       m_do_helm_survey{false},
       m_do_helm_voronoi{false},
       m_is_simulation{false},
@@ -201,7 +201,15 @@ bool ArduBridge::OnNewMail(MOOSMSG_LIST &NewMail)
     }
     else if (key == "ARM_UAV")
     {
-      setBooleanOnString(m_do_arm, msg.GetString());
+      bool arm_requested;
+      if (setBooleanOnString(arm_requested, msg.GetString()))
+      {
+        m_arm_request = arm_requested;
+      }
+      else
+      {
+        m_warning_system_ptr->queue_monitorWarningForXseconds("ARM_UAV must be true or false", WARNING_DURATION);
+      }
     }
     else if (key == "DEAD_MAN_POST_INTERRUPT")
     {
@@ -433,12 +441,19 @@ bool ArduBridge::Iterate()
   }
 
   //////////////////////////////////////////////////////////////
-  //////  Arm UAV           - Async
+  //////  Arm/Disarm UAV    - Async
   //////////////////////////////////////////////////////////////
-  if (m_do_arm)
+  if (m_arm_request.has_value())
   {
-    m_uav_model.sendArmCommandIfHealthyAndNotArmed_async();
-    m_do_arm = false;
+    if (m_arm_request.value())
+    {
+      m_uav_model.sendArmCommandIfHealthyAndNotArmed_async();
+    }
+    else
+    {
+      m_uav_model.commandDisarmAsync();
+    }
+    m_arm_request.reset();
   }
 
   //////////////////////////////////////////////////////////////
