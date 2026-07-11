@@ -240,6 +240,30 @@ bool ArduBridge::OnNewMail(MOOSMSG_LIST &NewMail)
         m_do_autoland = true;
       }
     }
+    else if (key == "RETURN_TO_LAUNCH")
+    {
+      bool rtl_requested = false;
+      bool valid_request = false;
+      if (msg.IsString())
+      {
+        valid_request = setBooleanOnString(rtl_requested, msg.GetString());
+      }
+      else if (msg.IsDouble() && (msg.GetDouble() == 0.0 || msg.GetDouble() == 1.0))
+      {
+        rtl_requested = (msg.GetDouble() == 1.0);
+        valid_request = true;
+      }
+
+      if (!valid_request)
+      {
+        m_warning_system_ptr->queue_monitorWarningForXseconds(
+            "RETURN_TO_LAUNCH must be true or false", WARNING_DURATION);
+      }
+      else if (rtl_requested)
+      {
+        m_do_return_to_launch = true;
+      }
+    }
     else if (key == "DEAD_MAN_POST_INTERRUPT")
     {
       m_warning_system_ptr->queue_monitorWarningForXseconds(
@@ -542,17 +566,15 @@ bool ArduBridge::Iterate()
     {
       Logger::info("Iterate: Command sent with result: " + result.value().message + " success: " + boolToString(result.value().success));
 
-      auto goToMode = AutopilotHelmMode::HELM_INACTIVE;
       if (result.value().success)
       {
-        goToMode = isHelmOn() ? AutopilotHelmMode::HELM_RETURNING : AutopilotHelmMode::HELM_INACTIVE;
+        const auto goToMode = isHelmOn() ? AutopilotHelmMode::HELM_RETURNING : AutopilotHelmMode::HELM_INACTIVE;
+        goToHelmMode(goToMode);
       }
       else
       {
         m_warning_system_ptr->queue_monitorWarningForXseconds("FAIL: " + result.value().message, WARNING_DURATION);
       }
-
-      goToHelmMode(goToMode);
 
       running_rtl = false;
       m_do_return_to_launch = false;
@@ -1678,6 +1700,7 @@ void ArduBridge::rtl_async()
     XYPoint home = transformLatLonToXY(m_uav_model.getHomeLatLon());
     if (home == XYPoint(0, 0))
     {
+      m_uav_model.reportCommandResult("MOOS_RETURN_WAYPOINT", "REJECTED", "HOME_UNAVAILABLE");
       m_rtl_promfut.prom.set_value(ResultPair{false, "Cannot Return to launch: NAN Values at lat or long", 5});
       return;
     }
@@ -1685,17 +1708,18 @@ void ArduBridge::rtl_async()
     std::string update_str = "points=" + xypointToString(home);
     Notify("RETURN_UPDATE", update_str);
 
+    m_uav_model.reportCommandResult("MOOS_RETURN_WAYPOINT", "ACCEPTED", "RETURN_UPDATE_POSTED");
     m_rtl_promfut.prom.set_value(ResultPair{true, ""});
     return;
   }
 
   m_uav_model.pushCommand([this](UAV_Model &uav)
                           {
-
       // Helm is inactive. Send the waypoint directly to the UAV
-      uav.commandReturnToLaunchAsync();
-
-      m_rtl_promfut.prom.set_value(ResultPair{true, ""}); });
+      uav.commandReturnToLaunchAsync([this](bool success, const std::string &detail)
+                                     {
+        m_rtl_promfut.prom.set_value(
+            ResultPair{success, success ? "" : detail}); }); });
 
   return;
 }

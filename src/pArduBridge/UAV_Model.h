@@ -90,6 +90,8 @@ public:
     std::string detail;
   };
 
+  using CommandCompletion = std::function<void(bool, const std::string &)>;
+
   enum class VehicleType
   {
     Plane,
@@ -134,7 +136,7 @@ public:
   // void commandGoToLocationXY_async(const XYPoint pos, bool holdCurrentAltitudeAGL = false, std::function<void(bool)> callback = nullptr);
   // void commandGoToLocation_async(const mavsdk::Telemetry::Position &position, std::function<void(bool)> callback = nullptr);
 
-  bool commandReturnToLaunchAsync() const;
+  bool commandReturnToLaunchAsync(const CommandCompletion &completion = {}) const;
   bool commandAutoland() const;
   bool commandLoiterAtPos(XYPoint pos, bool holdCurrentAltitude = true);
   bool commandPrecisionLoiter(bool enable, bool enterLoiterMode = true);

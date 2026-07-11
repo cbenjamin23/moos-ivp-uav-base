@@ -755,25 +755,43 @@ bool UAV_Model::commandGuidedMode(bool alt_hold)
   return true;
 }
 
-bool UAV_Model::commandReturnToLaunchAsync() const
+bool UAV_Model::commandReturnToLaunchAsync(const CommandCompletion &completion) const
 {
+  if (mts_flight_mode.get() == mavsdk::Telemetry::FlightMode::ReturnToLaunch)
+  {
+    reportCommandResult("RTL", "NO_OP", "ALREADY_RTL");
+    if (completion)
+      completion(true, "ALREADY_RTL");
+    return true;
+  }
 
   if (!haveAutorythyToChangeMode())
   {
+    const std::string detail = "FLIGHT_MODE_NOT_ALLOWED";
+    reportCommandResult("RTL", "REJECTED", detail);
     std::stringstream ss;
     ss << "Cannot change mode. Do not have autorithy. Flight mode in " << mts_flight_mode;
     m_warning_system_ptr->queue_monitorWarningForXseconds(ss.str(), WARNING_DURATION);
+    if (completion)
+      completion(false, detail);
     return false;
   }
 
-  m_action_ptr->return_to_launch_async([&, this](mavsdk::Action::Result result)
+  const uint64_t command_id = reportCommandResult("RTL", "SUBMITTED", "READY");
+  m_action_ptr->return_to_launch_async([this, command_id, completion](mavsdk::Action::Result result)
                                        {
     if (result != mavsdk::Action::Result::Success) {
         std::stringstream ss;
         ss << "Return to launch failed: " << result;
+        reportCommandResult("RTL", "FAILED", ss.str(), command_id);
         m_warning_system_ptr->queue_monitorWarningForXseconds(ss.str(), WARNING_DURATION);
+        if (completion)
+          completion(false, ss.str());
         return;
-    } });
+    }
+    reportCommandResult("RTL", "ACCEPTED", "SUCCESS", command_id);
+    if (completion)
+      completion(true, "SUCCESS"); });
 
   return true;
 }
