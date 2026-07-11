@@ -18,6 +18,8 @@
 #include <cmath>
 
 #include <future> // for async and promises
+#include <algorithm>
+#include <chrono>
 #include "Logger.h"
 //------------------------------------------------------------------------
 // Constructor
@@ -32,6 +34,7 @@ UAV_Model::UAV_Model(std::shared_ptr<WarningSystem> ws) : m_mavsdk_ptr{std::make
 
                                                           m_is_hold_course_guided_set{false},
                                                           m_health_all_ok{false},
+                                                          m_health_received{false},
                                                           m_is_armed{false},
                                                           m_in_air{false},
                                                           m_target_altitudeAGL{100.0},
@@ -40,10 +43,15 @@ UAV_Model::UAV_Model(std::shared_ptr<WarningSystem> ws) : m_mavsdk_ptr{std::make
                                                           m_last_sent_altitudeAGL{double(NAN)},
                                                           m_GPS_SOG_m_s{0.0},
                                                           m_GPS_COG_deg{0.0},
+                                                          m_gps_received{false},
+                                                          m_last_gps_update_s{0.0},
                                                           mts_position{mavsdk::Telemetry::Position()},
                                                           mts_attitude_ned{mavsdk::Telemetry::EulerAngle()},
                                                           mts_velocity_ned{mavsdk::Telemetry::VelocityNed()},
                                                           mts_battery{mavsdk::Telemetry::Battery()},
+                                                          mts_health{mavsdk::Telemetry::Health()},
+                                                          mts_gps_info{mavsdk::Telemetry::GpsInfo()},
+                                                          mts_raw_gps{mavsdk::Telemetry::RawGps()},
                                                           mts_flight_mode{mavsdk::Telemetry::FlightMode::Unknown},
                                                           mts_home_coord{XYPoint(0, 0)},
                                                           mts_current_loiter_coord{XYPoint(0, 0)},
@@ -313,16 +321,29 @@ bool UAV_Model::subscribeToTelemetry()
   m_telemetry_ptr->subscribe_health_all_ok([&, this](bool is_health_all_ok)
                                            { this->m_health_all_ok = is_health_all_ok; });
 
+  m_telemetry_ptr->subscribe_health([this](mavsdk::Telemetry::Health health)
+                                    {
+                                      mts_health = health;
+                                      m_health_received = true;
+                                    });
+
   m_telemetry_ptr->subscribe_position([&](mavsdk::Telemetry::Position position)
                                       {
                                         mts_position = position;
 
                                         m_in_air = (position.relative_altitude_m >= IN_AIR_HIGHT_THRESHOLD); });
 
-  m_telemetry_ptr->subscribe_raw_gps([&](mavsdk::Telemetry::RawGps raw_gps)
+  m_telemetry_ptr->subscribe_gps_info([this](mavsdk::Telemetry::GpsInfo gps_info)
+                                      { mts_gps_info = gps_info; });
+
+  m_telemetry_ptr->subscribe_raw_gps([this](mavsdk::Telemetry::RawGps raw_gps)
                                      {
                                       m_GPS_SOG_m_s = raw_gps.velocity_m_s;
-                                      m_GPS_COG_deg = raw_gps.cog_deg; });
+                                      m_GPS_COG_deg = raw_gps.cog_deg;
+                                      mts_raw_gps = raw_gps;
+                                      m_last_gps_update_s = std::chrono::duration<double>(
+                                          std::chrono::steady_clock::now().time_since_epoch()).count();
+                                      m_gps_received = true; });
 
   m_telemetry_ptr->subscribe_attitude_euler([&](mavsdk::Telemetry::EulerAngle attitude_ned)
                                             { mts_attitude_ned = attitude_ned; });
@@ -336,12 +357,34 @@ bool UAV_Model::subscribeToTelemetry()
   m_telemetry_ptr->subscribe_flight_mode([&](mavsdk::Telemetry::FlightMode flight_mode)
                                          { mts_flight_mode = flight_mode; });
 
+  if (m_telemetry_ptr->set_rate_gps_info(5.0) != mavsdk::Telemetry::Result::Success)
+  {
+    m_warning_system_ptr->queue_monitorWarningForXseconds("Failed to request GPS telemetry", WARNING_DURATION);
+  }
+
+  if (!requestTelemetryMessageRate(MAVLINK_MSG_ID_SYS_STATUS, 1.0))
+  {
+    m_warning_system_ptr->queue_monitorWarningForXseconds("Failed to request SYS_STATUS telemetry", WARNING_DURATION);
+  }
+
   // gives wrong data
   // m_telemetry_ptr->subscribe_in_air([&](bool in_air) {
   //   m_in_air = in_air;
   // });
 
   return true;
+}
+
+double UAV_Model::getGpsTelemetryAge() const
+{
+  if (!m_gps_received)
+  {
+    return -1.0;
+  }
+
+  const double now_s = std::chrono::duration<double>(
+      std::chrono::steady_clock::now().time_since_epoch()).count();
+  return std::max(0.0, now_s - m_last_gps_update_s.load());
 }
 
 ///////////////////////////////////
@@ -627,6 +670,23 @@ bool UAV_Model::commandAuxFunction(int function, int switch_position) const
   }
 
   return true;
+}
+
+bool UAV_Model::requestTelemetryMessageRate(uint32_t message_id, double rate_hz) const
+{
+  if (!m_mavPass_ptr || !m_system_ptr || rate_hz <= 0.0)
+  {
+    return false;
+  }
+
+  mavsdk::MavlinkPassthrough::CommandLong command{};
+  command.command = MAV_CMD_SET_MESSAGE_INTERVAL;
+  command.target_sysid = m_system_ptr->get_system_id();
+  command.target_compid = MAV_COMP_ID_AUTOPILOT1;
+  command.param1 = static_cast<float>(message_id);
+  command.param2 = static_cast<float>(1e6 / rate_hz);
+
+  return m_mavPass_ptr->send_command_long(command) == mavsdk::MavlinkPassthrough::Result::Success;
 }
 
 bool UAV_Model::commandPrecisionLoiter(bool enable, bool enterLoiterMode)

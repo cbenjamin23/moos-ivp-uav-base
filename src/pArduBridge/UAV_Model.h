@@ -110,6 +110,12 @@ public:
 
   // Getters
   bool isHealthy() const { return m_health_all_ok; }
+  bool hasHealthTelemetry() const { return m_health_received; }
+  mavsdk::Telemetry::Health getHealth() const { return mts_health.get(); }
+  bool hasGpsTelemetry() const { return m_gps_received; }
+  mavsdk::Telemetry::GpsInfo getGpsInfo() const { return mts_gps_info.get(); }
+  mavsdk::Telemetry::RawGps getRawGps() const { return mts_raw_gps.get(); }
+  double getGpsTelemetryAge() const;
   bool isArmed() const { return (m_is_armed); }
   bool isInAir() const { return (m_in_air); }
   mavsdk::Telemetry::FlightMode getFlightMode() const { return (mts_flight_mode.get()); }
@@ -236,6 +242,7 @@ protected:
   bool commandSpeed(double airspeed_m_s, SPEED_TYPE speed_type = SPEED_TYPE::SPEED_TYPE_GROUNDSPEED);
   bool commandArmAsync() const;
   bool commandAuxFunction(int function, int switch_position) const;
+  bool requestTelemetryMessageRate(uint32_t message_id, double rate_hz) const;
 
   bool setParameterAsync(Parameters param_enum, double value) const;
   bool getParameterAsync(Parameters param_enum);
@@ -256,6 +263,7 @@ protected:
   std::unique_ptr<mavsdk::MavlinkPassthrough> m_mavPass_ptr;
 
   std::atomic<bool> m_health_all_ok;
+  std::atomic<bool> m_health_received;
   std::atomic<bool> m_is_armed;
   std::atomic<bool> m_in_air;
 
@@ -266,11 +274,16 @@ protected:
   // Telemetry
   std::atomic<double> m_GPS_SOG_m_s;
   std::atomic<double> m_GPS_COG_deg;
+  std::atomic<bool> m_gps_received;
+  std::atomic<double> m_last_gps_update_s;
   ThreadSafeVariable<mavsdk::Telemetry::Position> mts_position;
   ThreadSafeVariable<mavsdk::Telemetry::EulerAngle> mts_attitude_ned;
   ThreadSafeVariable<mavsdk::Telemetry::VelocityNed> mts_velocity_ned;
 
   ThreadSafeVariable<mavsdk::Telemetry::Battery> mts_battery;
+  ThreadSafeVariable<mavsdk::Telemetry::Health> mts_health;
+  ThreadSafeVariable<mavsdk::Telemetry::GpsInfo> mts_gps_info;
+  ThreadSafeVariable<mavsdk::Telemetry::RawGps> mts_raw_gps;
 
   ThreadSafeVariable<mavsdk::Telemetry::FlightMode> mts_flight_mode;
 

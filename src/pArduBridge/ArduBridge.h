@@ -44,6 +44,7 @@ protected:
 
   // Notify to DB
   void postTelemetryUpdate(const std::string &prefix);
+  void postHealthUpdate();
 
   void postSpeedUpdateToBehaviors(double speed);
   // Send command to UAV
@@ -213,6 +214,7 @@ private: // State variables
   bool m_is_simulation;
   bool m_command_groundSpeed;
   bool m_precision_loiter_enter_loiter;
+  double m_last_health_post_time;
 
   std::shared_ptr<WarningSystem> m_warning_system_ptr;
   UAV_Model m_uav_model;

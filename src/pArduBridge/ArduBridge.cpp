@@ -39,6 +39,7 @@ ArduBridge::ArduBridge()
       m_is_simulation{false},
       m_command_groundSpeed{false},
       m_precision_loiter_enter_loiter{true},
+      m_last_health_post_time{0},
       m_warning_system_ptr{std::make_shared<WarningSystem>(
           [this](const std::string msg)
           { this->reportRunWarning(msg); },
@@ -713,6 +714,7 @@ bool ArduBridge::Iterate()
   }
 
   postTelemetryUpdate(m_uav_prefix);
+  postHealthUpdate();
 
   m_warning_system_ptr->checkConditions(); // Check for warnings and remove/raise them as needed
 
@@ -1010,6 +1012,11 @@ bool ArduBridge::buildReport()
 
   auto uav_isArmed = m_uav_model.isArmed();
   auto uav_isHealthy = m_uav_model.isHealthy();
+  auto uav_hasHealth = m_uav_model.hasHealthTelemetry();
+  auto uav_health = m_uav_model.getHealth();
+  auto uav_hasGps = m_uav_model.hasGpsTelemetry();
+  auto uav_gps_info = m_uav_model.getGpsInfo();
+  auto uav_raw_gps = m_uav_model.getRawGps();
   auto uav_isInAir = m_uav_model.isInAir();
   auto uav_flightMode = m_uav_model.getFlightMode();
 
@@ -1020,8 +1027,33 @@ bool ArduBridge::buildReport()
   m_msgs << "------------------ " << std::endl;
   m_msgs << "           Is Armed: " << boolToString(uav_isArmed) << std::endl;
   m_msgs << "         Is Healthy: " << boolToString(uav_isHealthy) << std::endl;
+  m_msgs << "    Health Available: " << boolToString(uav_hasHealth) << std::endl;
   m_msgs << "             In Air: " << boolToString(uav_isInAir) << std::endl;
   m_msgs << "        Flight Mode: " << uav_flightMode << std::endl;
+
+  m_msgs << std::endl;
+  m_msgs << "Health Details: " << std::endl;
+  m_msgs << "------------------ " << std::endl;
+  m_msgs << "                Gyro: " << boolToString(uav_health.is_gyrometer_calibration_ok) << std::endl;
+  m_msgs << "               Accel: " << boolToString(uav_health.is_accelerometer_calibration_ok) << std::endl;
+  m_msgs << "                 Mag: " << boolToString(uav_health.is_magnetometer_calibration_ok) << std::endl;
+  m_msgs << "Local Position (MAVSDK): " << boolToString(uav_health.is_local_position_ok) << std::endl;
+  m_msgs << "Global Position (MAVSDK): " << boolToString(uav_health.is_global_position_ok) << std::endl;
+  m_msgs << "       Home Position: " << boolToString(uav_health.is_home_position_ok) << std::endl;
+  m_msgs << "             Armable: " << boolToString(uav_health.is_armable) << std::endl;
+
+  m_msgs << std::endl;
+  m_msgs << "GPS Details: " << std::endl;
+  m_msgs << "------------------ " << std::endl;
+  m_msgs << "           Available: " << boolToString(uav_hasGps) << std::endl;
+  if (uav_hasGps)
+  {
+    m_msgs << "             Fix Type: " << uav_gps_info.fix_type << std::endl;
+    m_msgs << "           Satellites: " << uav_gps_info.num_satellites << std::endl;
+    m_msgs << "                 HDOP: " << doubleToStringX(uav_raw_gps.hdop, sdigits) << std::endl;
+    m_msgs << "                 VDOP: " << doubleToStringX(uav_raw_gps.vdop, sdigits) << std::endl;
+    m_msgs << "        Sample Age (s): " << doubleToStringX(m_uav_model.getGpsTelemetryAge(), sdigits) << std::endl;
+  }
 
   auto guidedHold = m_uav_model.isHoldCourseGuidedSet();
   m_msgs << "    Helm On BUSY: " << boolToString(isHelmCommanding()) << std::endl;
@@ -1204,6 +1236,47 @@ void ArduBridge::postTelemetryUpdate(const std::string &prefix)
   NotifyIfNonNan(prefix + "_DEPTH", -uav_altitude_agl, m_curr_time);
 
   NotifyIfNonNan(prefix + "_HEADING", uav_COG, m_curr_time); // NAV_COURSE comes in as NAV_HEADING for pNodeReporter
+}
+
+//---------------------------------------------------------
+// Procedure: postHealthUpdate()
+
+void ArduBridge::postHealthUpdate()
+{
+  if ((m_curr_time - m_last_health_post_time) < 1.0)
+  {
+    return;
+  }
+  m_last_health_post_time = m_curr_time;
+
+  const auto health = m_uav_model.getHealth();
+  const auto postBool = [this](const std::string &key, bool value)
+  {
+    Notify(key, value ? 1.0 : 0.0, m_curr_time);
+  };
+
+  postBool("UAV_HEALTH_AVAILABLE", m_uav_model.hasHealthTelemetry());
+  postBool("UAV_HEALTH_GYRO", health.is_gyrometer_calibration_ok);
+  postBool("UAV_HEALTH_ACCEL", health.is_accelerometer_calibration_ok);
+  postBool("UAV_HEALTH_MAG", health.is_magnetometer_calibration_ok);
+  postBool("UAV_HEALTH_LOCAL_POSITION", health.is_local_position_ok);
+  postBool("UAV_HEALTH_GLOBAL_POSITION", health.is_global_position_ok);
+  postBool("UAV_HEALTH_HOME_POSITION", health.is_home_position_ok);
+  postBool("UAV_IS_ARMABLE", health.is_armable);
+  postBool("UAV_HEALTH_ALL_OK", m_uav_model.isHealthy());
+
+  const bool gps_available = m_uav_model.hasGpsTelemetry();
+  postBool("UAV_GPS_AVAILABLE", gps_available);
+  if (gps_available)
+  {
+    const auto gps_info = m_uav_model.getGpsInfo();
+    const auto raw_gps = m_uav_model.getRawGps();
+    Notify("UAV_GPS_FIX_TYPE", static_cast<double>(gps_info.fix_type), m_curr_time);
+    Notify("UAV_GPS_SATELLITES", static_cast<double>(gps_info.num_satellites), m_curr_time);
+    Notify("UAV_GPS_HDOP", static_cast<double>(raw_gps.hdop), m_curr_time);
+    Notify("UAV_GPS_VDOP", static_cast<double>(raw_gps.vdop), m_curr_time);
+    Notify("UAV_GPS_AGE", m_uav_model.getGpsTelemetryAge(), m_curr_time);
+  }
 }
 
 void ArduBridge::postSpeedUpdateToBehaviors(double speed)
