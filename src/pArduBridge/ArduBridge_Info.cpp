@@ -137,6 +137,7 @@ void showInterfaceAndExit()
   blk("  UAV_HEADING                                                              ");
   blk("  UAV_SPEED_OVER_GROUND                                                              ");
   blk("  UAV_HEALTH_AVAILABLE       // 1 after MAVSDK health telemetry is received          ");
+  blk("  UAV_IS_ARMED               // Current armed state reported by the flight controller ");
   blk("  UAV_HEALTH_GYRO            // 1 when healthy                                        ");
   blk("  UAV_HEALTH_ACCEL           // 1 when healthy                                        ");
   blk("  UAV_HEALTH_MAG             // 1 when healthy                                        ");
@@ -145,6 +146,11 @@ void showInterfaceAndExit()
   blk("  UAV_HEALTH_HOME_POSITION   // 1 when healthy                                        ");
   blk("  UAV_IS_ARMABLE             // pre-arm status reported by MAVSDK                    ");
   blk("  UAV_HEALTH_ALL_OK          // MAVSDK aggregate health                               ");
+  blk("  UAV_HEALTH_AGE             // Seconds since the last detailed health sample         ");
+  blk("  UAV_ARM_POLICY_READY       // 1 when bridge policy permits a new ARM submission      ");
+  blk("  UAV_ARM_POLICY_REASON      // Stable reason token, e.g. READY or HEALTH_STALE        ");
+  blk("  UAV_DISARM_POLICY_READY    // 1 when bridge policy permits a new DISARM submission   ");
+  blk("  UAV_DISARM_POLICY_REASON   // Stable reason token, e.g. READY or NOT_ON_GROUND       ");
   blk("  UAV_GPS_AVAILABLE          // 1 after GPS telemetry is received; fix may be invalid ");
   blk("  UAV_GPS_FIX_TYPE           // MAVSDK fix type enum: 0=None through 6=RTK fixed      ");
   blk("  UAV_GPS_SATELLITES         // Satellites used/visible                               ");

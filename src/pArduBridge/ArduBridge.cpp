@@ -448,11 +448,11 @@ bool ArduBridge::Iterate()
   {
     if (m_arm_request.value())
     {
-      m_uav_model.sendArmCommandIfHealthyAndNotArmed_async();
+      m_uav_model.requestArmAsync();
     }
     else
     {
-      m_uav_model.commandDisarmAsync();
+      m_uav_model.requestDisarmAsync();
     }
     m_arm_request.reset();
   }
@@ -1043,6 +1043,15 @@ bool ArduBridge::buildReport()
   m_msgs << "Global Position (MAVSDK): " << boolToString(uav_health.is_global_position_ok) << std::endl;
   m_msgs << "       Home Position: " << boolToString(uav_health.is_home_position_ok) << std::endl;
   m_msgs << "             Armable: " << boolToString(uav_health.is_armable) << std::endl;
+  if (uav_hasHealth)
+    m_msgs << "Health Sample Age (s): " << doubleToStringX(m_uav_model.getHealthTelemetryAge(), sdigits) << std::endl;
+
+  const auto arm_policy = m_uav_model.getArmPolicyDecision();
+  const auto disarm_policy = m_uav_model.getDisarmPolicyDecision();
+  m_msgs << "    ARM Policy Ready: " << boolToString(arm_policy.action == UAV_Model::PolicyAction::Submit) << std::endl;
+  m_msgs << "   ARM Policy Reason: " << arm_policy.reason << std::endl;
+  m_msgs << " DISARM Policy Ready: " << boolToString(disarm_policy.action == UAV_Model::PolicyAction::Submit) << std::endl;
+  m_msgs << "DISARM Policy Reason: " << disarm_policy.reason << std::endl;
 
   m_msgs << std::endl;
   m_msgs << "GPS Details: " << std::endl;
@@ -1268,6 +1277,7 @@ void ArduBridge::postHealthUpdate()
   };
 
   postBool("UAV_HEALTH_AVAILABLE", m_uav_model.hasHealthTelemetry());
+  postBool("UAV_IS_ARMED", m_uav_model.isArmed());
   postBool("UAV_HEALTH_GYRO", health.is_gyrometer_calibration_ok);
   postBool("UAV_HEALTH_ACCEL", health.is_accelerometer_calibration_ok);
   postBool("UAV_HEALTH_MAG", health.is_magnetometer_calibration_ok);
@@ -1276,6 +1286,15 @@ void ArduBridge::postHealthUpdate()
   postBool("UAV_HEALTH_HOME_POSITION", health.is_home_position_ok);
   postBool("UAV_IS_ARMABLE", health.is_armable);
   postBool("UAV_HEALTH_ALL_OK", m_uav_model.isHealthy());
+  if (m_uav_model.hasHealthTelemetry())
+    Notify("UAV_HEALTH_AGE", m_uav_model.getHealthTelemetryAge(), m_curr_time);
+
+  const auto arm_policy = m_uav_model.getArmPolicyDecision();
+  const auto disarm_policy = m_uav_model.getDisarmPolicyDecision();
+  postBool("UAV_ARM_POLICY_READY", arm_policy.action == UAV_Model::PolicyAction::Submit);
+  Notify("UAV_ARM_POLICY_REASON", arm_policy.reason, m_curr_time);
+  postBool("UAV_DISARM_POLICY_READY", disarm_policy.action == UAV_Model::PolicyAction::Submit);
+  Notify("UAV_DISARM_POLICY_REASON", disarm_policy.reason, m_curr_time);
 
   const bool gps_available = m_uav_model.hasGpsTelemetry();
   postBool("UAV_GPS_AVAILABLE", gps_available);

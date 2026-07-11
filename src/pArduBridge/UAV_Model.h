@@ -45,6 +45,34 @@
 class UAV_Model
 {
 public:
+  static constexpr double HEALTH_TELEMETRY_MAX_AGE_S = 3.0;
+  static constexpr double LANDED_STATE_TELEMETRY_MAX_AGE_S = 2.0;
+
+  enum class PolicyAction
+  {
+    Reject,
+    NoOp,
+    Submit
+  };
+
+  struct ArmDisarmPolicyInputs
+  {
+    bool armed;
+    bool health_available;
+    double health_age_s;
+    bool armable;
+    bool health_all_ok;
+    bool landed_state_available;
+    double landed_state_age_s;
+    mavsdk::Telemetry::LandedState landed_state;
+  };
+
+  struct PolicyDecision
+  {
+    PolicyAction action;
+    std::string reason;
+  };
+
   enum class VehicleType
   {
     Plane,
@@ -63,8 +91,12 @@ public:
   bool setUpMission(bool onlyRegisterHome = true);
 
   bool startMission() const;
-  // async function
-  bool sendArmCommandIfHealthyAndNotArmed_async() const;
+  bool requestArmAsync() const;
+  bool requestDisarmAsync() const;
+  PolicyDecision getArmPolicyDecision() const;
+  PolicyDecision getDisarmPolicyDecision() const;
+  static PolicyDecision evaluateArmPolicy(const ArmDisarmPolicyInputs &inputs);
+  static PolicyDecision evaluateDisarmPolicy(const ArmDisarmPolicyInputs &inputs);
 
   bool subscribeToTelemetry();
 
@@ -91,8 +123,6 @@ public:
 
   bool commandGuidedMode(bool alt_hold = false);
 
-  bool commandDisarmAsync() const;
-
   // Setters
   void setCallbackMOOSTrace(const std::function<void(const std::string &)> &callback) { callbackMOOSTrace = callback; }
   void setCallbackReportEvent(const std::function<void(const std::string &)> &callback) { callbackReportEvent = callback; }
@@ -112,10 +142,14 @@ public:
   bool isHealthy() const { return m_health_all_ok; }
   bool hasHealthTelemetry() const { return m_health_received; }
   mavsdk::Telemetry::Health getHealth() const { return mts_health.get(); }
+  double getHealthTelemetryAge() const;
   bool hasGpsTelemetry() const { return m_gps_received; }
   mavsdk::Telemetry::GpsInfo getGpsInfo() const { return mts_gps_info.get(); }
   mavsdk::Telemetry::RawGps getRawGps() const { return mts_raw_gps.get(); }
   double getGpsTelemetryAge() const;
+  // Flight-controller estimate from MAVLink EXTENDED_SYS_STATE. Treat
+  // unavailable, stale, or UNKNOWN as indeterminate. Never use it alone to
+  // force-disarm or suppress an emergency LAND command.
   bool hasLandedStateTelemetry() const { return m_landed_state_received; }
   mavsdk::Telemetry::LandedState getLandedState() const { return mts_landed_state.get(); }
   double getLandedStateTelemetryAge() const;
@@ -246,6 +280,8 @@ protected:
 
   bool commandSpeed(double airspeed_m_s, SPEED_TYPE speed_type = SPEED_TYPE::SPEED_TYPE_GROUNDSPEED);
   bool commandArmAsync() const;
+  bool commandDisarmAsync() const;
+  ArmDisarmPolicyInputs getArmDisarmPolicyInputs() const;
   bool commandAuxFunction(int function, int switch_position) const;
   bool requestTelemetryMessageRate(uint32_t message_id, double rate_hz) const;
 
@@ -269,6 +305,7 @@ protected:
 
   std::atomic<bool> m_health_all_ok;
   std::atomic<bool> m_health_received;
+  std::atomic<double> m_last_health_update_s;
   std::atomic<bool> m_is_armed;
   std::atomic<bool> m_in_air;
 

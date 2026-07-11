@@ -35,6 +35,7 @@ UAV_Model::UAV_Model(std::shared_ptr<WarningSystem> ws) : m_mavsdk_ptr{std::make
                                                           m_is_hold_course_guided_set{false},
                                                           m_health_all_ok{false},
                                                           m_health_received{false},
+                                                          m_last_health_update_s{0.0},
                                                           m_is_armed{false},
                                                           m_in_air{false},
                                                           m_target_altitudeAGL{100.0},
@@ -303,15 +304,95 @@ bool UAV_Model::startMission() const
   return true;
 }
 
-bool UAV_Model::sendArmCommandIfHealthyAndNotArmed_async() const
+UAV_Model::PolicyDecision UAV_Model::evaluateArmPolicy(const ArmDisarmPolicyInputs &inputs)
 {
-  if (m_health_all_ok && !m_is_armed)
-  {
-    commandArmAsync();
-    return true;
-  }
+  if (inputs.armed)
+    return {PolicyAction::NoOp, "ALREADY_ARMED"};
+  if (!inputs.health_available)
+    return {PolicyAction::Reject, "HEALTH_UNAVAILABLE"};
+  if (inputs.health_age_s < 0.0 || inputs.health_age_s > HEALTH_TELEMETRY_MAX_AGE_S)
+    return {PolicyAction::Reject, "HEALTH_STALE"};
+  if (!inputs.armable)
+    return {PolicyAction::Reject, "AUTOPILOT_NOT_ARMABLE"};
+  if (!inputs.health_all_ok)
+    return {PolicyAction::Reject, "HEALTH_NOT_OK"};
+  if (!inputs.landed_state_available)
+    return {PolicyAction::Reject, "LANDED_STATE_UNAVAILABLE"};
+  if (inputs.landed_state_age_s < 0.0 || inputs.landed_state_age_s > LANDED_STATE_TELEMETRY_MAX_AGE_S)
+    return {PolicyAction::Reject, "LANDED_STATE_STALE"};
+  if (inputs.landed_state == mavsdk::Telemetry::LandedState::Unknown)
+    return {PolicyAction::Reject, "LANDED_STATE_UNKNOWN"};
+  if (inputs.landed_state != mavsdk::Telemetry::LandedState::OnGround)
+    return {PolicyAction::Reject, "NOT_ON_GROUND"};
+  return {PolicyAction::Submit, "READY"};
+}
 
-  m_warning_system_ptr->queue_monitorWarningForXseconds("UAV is not healthy or is already armed", WARNING_DURATION);
+UAV_Model::PolicyDecision UAV_Model::evaluateDisarmPolicy(const ArmDisarmPolicyInputs &inputs)
+{
+  if (!inputs.armed)
+    return {PolicyAction::NoOp, "ALREADY_DISARMED"};
+  if (!inputs.landed_state_available)
+    return {PolicyAction::Reject, "LANDED_STATE_UNAVAILABLE"};
+  if (inputs.landed_state_age_s < 0.0 || inputs.landed_state_age_s > LANDED_STATE_TELEMETRY_MAX_AGE_S)
+    return {PolicyAction::Reject, "LANDED_STATE_STALE"};
+  if (inputs.landed_state == mavsdk::Telemetry::LandedState::Unknown)
+    return {PolicyAction::Reject, "LANDED_STATE_UNKNOWN"};
+  if (inputs.landed_state != mavsdk::Telemetry::LandedState::OnGround)
+    return {PolicyAction::Reject, "NOT_ON_GROUND"};
+  return {PolicyAction::Submit, "READY"};
+}
+
+UAV_Model::ArmDisarmPolicyInputs UAV_Model::getArmDisarmPolicyInputs() const
+{
+  const auto health = getHealth();
+  return {
+      isArmed(),
+      hasHealthTelemetry(),
+      getHealthTelemetryAge(),
+      health.is_armable,
+      isHealthy(),
+      hasLandedStateTelemetry(),
+      getLandedStateTelemetryAge(),
+      getLandedState()};
+}
+
+UAV_Model::PolicyDecision UAV_Model::getArmPolicyDecision() const
+{
+  return evaluateArmPolicy(getArmDisarmPolicyInputs());
+}
+
+UAV_Model::PolicyDecision UAV_Model::getDisarmPolicyDecision() const
+{
+  return evaluateDisarmPolicy(getArmDisarmPolicyInputs());
+}
+
+bool UAV_Model::requestArmAsync() const
+{
+  const auto decision = getArmPolicyDecision();
+  if (decision.action == PolicyAction::Submit)
+  {
+    return commandArmAsync();
+  }
+  if (decision.action == PolicyAction::NoOp)
+    return true;
+
+  m_warning_system_ptr->queue_monitorWarningForXseconds(
+      "ARM rejected by bridge policy: " + decision.reason, WARNING_DURATION);
+  return false;
+}
+
+bool UAV_Model::requestDisarmAsync() const
+{
+  const auto decision = getDisarmPolicyDecision();
+  if (decision.action == PolicyAction::Submit)
+  {
+    return commandDisarmAsync();
+  }
+  if (decision.action == PolicyAction::NoOp)
+    return true;
+
+  m_warning_system_ptr->queue_monitorWarningForXseconds(
+      "DISARM rejected by bridge policy: " + decision.reason, WARNING_DURATION);
   return false;
 }
 
@@ -327,6 +408,8 @@ bool UAV_Model::subscribeToTelemetry()
   m_telemetry_ptr->subscribe_health([this](mavsdk::Telemetry::Health health)
                                     {
                                       mts_health = health;
+                                      m_last_health_update_s = std::chrono::duration<double>(
+                                          std::chrono::steady_clock::now().time_since_epoch()).count();
                                       m_health_received = true;
                                     });
 
@@ -401,6 +484,18 @@ double UAV_Model::getGpsTelemetryAge() const
   const double now_s = std::chrono::duration<double>(
       std::chrono::steady_clock::now().time_since_epoch()).count();
   return std::max(0.0, now_s - m_last_gps_update_s.load());
+}
+
+double UAV_Model::getHealthTelemetryAge() const
+{
+  if (!m_health_received)
+  {
+    return -1.0;
+  }
+
+  const double now_s = std::chrono::duration<double>(
+      std::chrono::steady_clock::now().time_since_epoch()).count();
+  return std::max(0.0, now_s - m_last_health_update_s.load());
 }
 
 double UAV_Model::getLandedStateTelemetryAge() const
