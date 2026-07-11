@@ -151,6 +151,9 @@ void showInterfaceAndExit()
   blk("  UAV_GPS_HDOP               // Horizontal dilution of precision                     ");
   blk("  UAV_GPS_VDOP               // Vertical dilution of precision                       ");
   blk("  UAV_GPS_AGE                // Seconds since the last GPS sample                     ");
+  blk("  UAV_LANDED_STATE_AVAILABLE // 1 after flight-controller landed state is received    ");
+  blk("  UAV_LANDED_STATE           // ON_GROUND, IN_AIR, TAKING_OFF, LANDING, or UNKNOWN    ");
+  blk("  UAV_LANDED_STATE_AGE       // Seconds since the last landed-state sample             ");
   blk("  DEPLOY                                                              ");
   blk("                                                                ");
   exit(0);

@@ -116,7 +116,12 @@ public:
   mavsdk::Telemetry::GpsInfo getGpsInfo() const { return mts_gps_info.get(); }
   mavsdk::Telemetry::RawGps getRawGps() const { return mts_raw_gps.get(); }
   double getGpsTelemetryAge() const;
+  bool hasLandedStateTelemetry() const { return m_landed_state_received; }
+  mavsdk::Telemetry::LandedState getLandedState() const { return mts_landed_state.get(); }
+  double getLandedStateTelemetryAge() const;
+  static std::string landedStateToString(mavsdk::Telemetry::LandedState landed_state);
   bool isArmed() const { return (m_is_armed); }
+  // Altitude-threshold inference retained until the command guards are revised.
   bool isInAir() const { return (m_in_air); }
   mavsdk::Telemetry::FlightMode getFlightMode() const { return (mts_flight_mode.get()); }
   bool isGuidedMode() const { return (mts_flight_mode.get() == mavsdk::Telemetry::FlightMode::Guided); }
@@ -276,6 +281,8 @@ protected:
   std::atomic<double> m_GPS_COG_deg;
   std::atomic<bool> m_gps_received;
   std::atomic<double> m_last_gps_update_s;
+  std::atomic<bool> m_landed_state_received;
+  std::atomic<double> m_last_landed_state_update_s;
   ThreadSafeVariable<mavsdk::Telemetry::Position> mts_position;
   ThreadSafeVariable<mavsdk::Telemetry::EulerAngle> mts_attitude_ned;
   ThreadSafeVariable<mavsdk::Telemetry::VelocityNed> mts_velocity_ned;
@@ -284,6 +291,7 @@ protected:
   ThreadSafeVariable<mavsdk::Telemetry::Health> mts_health;
   ThreadSafeVariable<mavsdk::Telemetry::GpsInfo> mts_gps_info;
   ThreadSafeVariable<mavsdk::Telemetry::RawGps> mts_raw_gps;
+  ThreadSafeVariable<mavsdk::Telemetry::LandedState> mts_landed_state;
 
   ThreadSafeVariable<mavsdk::Telemetry::FlightMode> mts_flight_mode;
 

@@ -1017,6 +1017,8 @@ bool ArduBridge::buildReport()
   auto uav_hasGps = m_uav_model.hasGpsTelemetry();
   auto uav_gps_info = m_uav_model.getGpsInfo();
   auto uav_raw_gps = m_uav_model.getRawGps();
+  auto uav_hasLandedState = m_uav_model.hasLandedStateTelemetry();
+  auto uav_landedState = m_uav_model.getLandedState();
   auto uav_isInAir = m_uav_model.isInAir();
   auto uav_flightMode = m_uav_model.getFlightMode();
 
@@ -1028,7 +1030,7 @@ bool ArduBridge::buildReport()
   m_msgs << "           Is Armed: " << boolToString(uav_isArmed) << std::endl;
   m_msgs << "         Is Healthy: " << boolToString(uav_isHealthy) << std::endl;
   m_msgs << "    Health Available: " << boolToString(uav_hasHealth) << std::endl;
-  m_msgs << "             In Air: " << boolToString(uav_isInAir) << std::endl;
+  m_msgs << "In Air (altitude inferred): " << boolToString(uav_isInAir) << std::endl;
   m_msgs << "        Flight Mode: " << uav_flightMode << std::endl;
 
   m_msgs << std::endl;
@@ -1053,6 +1055,16 @@ bool ArduBridge::buildReport()
     m_msgs << "                 HDOP: " << doubleToStringX(uav_raw_gps.hdop, sdigits) << std::endl;
     m_msgs << "                 VDOP: " << doubleToStringX(uav_raw_gps.vdop, sdigits) << std::endl;
     m_msgs << "        Sample Age (s): " << doubleToStringX(m_uav_model.getGpsTelemetryAge(), sdigits) << std::endl;
+  }
+
+  m_msgs << std::endl;
+  m_msgs << "Flight Controller Landed State: " << std::endl;
+  m_msgs << "------------------ " << std::endl;
+  m_msgs << "           Available: " << boolToString(uav_hasLandedState) << std::endl;
+  if (uav_hasLandedState)
+  {
+    m_msgs << "                State: " << UAV_Model::landedStateToString(uav_landedState) << std::endl;
+    m_msgs << "       Sample Age (s): " << doubleToStringX(m_uav_model.getLandedStateTelemetryAge(), sdigits) << std::endl;
   }
 
   auto guidedHold = m_uav_model.isHoldCourseGuidedSet();
@@ -1276,6 +1288,14 @@ void ArduBridge::postHealthUpdate()
     Notify("UAV_GPS_HDOP", static_cast<double>(raw_gps.hdop), m_curr_time);
     Notify("UAV_GPS_VDOP", static_cast<double>(raw_gps.vdop), m_curr_time);
     Notify("UAV_GPS_AGE", m_uav_model.getGpsTelemetryAge(), m_curr_time);
+  }
+
+  const bool landed_state_available = m_uav_model.hasLandedStateTelemetry();
+  postBool("UAV_LANDED_STATE_AVAILABLE", landed_state_available);
+  if (landed_state_available)
+  {
+    Notify("UAV_LANDED_STATE", UAV_Model::landedStateToString(m_uav_model.getLandedState()), m_curr_time);
+    Notify("UAV_LANDED_STATE_AGE", m_uav_model.getLandedStateTelemetryAge(), m_curr_time);
   }
 }
 

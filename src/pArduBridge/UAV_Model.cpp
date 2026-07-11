@@ -45,6 +45,8 @@ UAV_Model::UAV_Model(std::shared_ptr<WarningSystem> ws) : m_mavsdk_ptr{std::make
                                                           m_GPS_COG_deg{0.0},
                                                           m_gps_received{false},
                                                           m_last_gps_update_s{0.0},
+                                                          m_landed_state_received{false},
+                                                          m_last_landed_state_update_s{0.0},
                                                           mts_position{mavsdk::Telemetry::Position()},
                                                           mts_attitude_ned{mavsdk::Telemetry::EulerAngle()},
                                                           mts_velocity_ned{mavsdk::Telemetry::VelocityNed()},
@@ -52,6 +54,7 @@ UAV_Model::UAV_Model(std::shared_ptr<WarningSystem> ws) : m_mavsdk_ptr{std::make
                                                           mts_health{mavsdk::Telemetry::Health()},
                                                           mts_gps_info{mavsdk::Telemetry::GpsInfo()},
                                                           mts_raw_gps{mavsdk::Telemetry::RawGps()},
+                                                          mts_landed_state{mavsdk::Telemetry::LandedState::Unknown},
                                                           mts_flight_mode{mavsdk::Telemetry::FlightMode::Unknown},
                                                           mts_home_coord{XYPoint(0, 0)},
                                                           mts_current_loiter_coord{XYPoint(0, 0)},
@@ -345,6 +348,14 @@ bool UAV_Model::subscribeToTelemetry()
                                           std::chrono::steady_clock::now().time_since_epoch()).count();
                                       m_gps_received = true; });
 
+  m_telemetry_ptr->subscribe_landed_state([this](mavsdk::Telemetry::LandedState landed_state)
+                                          {
+                                            mts_landed_state = landed_state;
+                                            m_last_landed_state_update_s = std::chrono::duration<double>(
+                                                std::chrono::steady_clock::now().time_since_epoch()).count();
+                                            m_landed_state_received = true;
+                                          });
+
   m_telemetry_ptr->subscribe_attitude_euler([&](mavsdk::Telemetry::EulerAngle attitude_ned)
                                             { mts_attitude_ned = attitude_ned; });
 
@@ -360,6 +371,11 @@ bool UAV_Model::subscribeToTelemetry()
   if (m_telemetry_ptr->set_rate_gps_info(5.0) != mavsdk::Telemetry::Result::Success)
   {
     m_warning_system_ptr->queue_monitorWarningForXseconds("Failed to request GPS telemetry", WARNING_DURATION);
+  }
+
+  if (m_telemetry_ptr->set_rate_landed_state(2.0) != mavsdk::Telemetry::Result::Success)
+  {
+    m_warning_system_ptr->queue_monitorWarningForXseconds("Failed to request landed-state telemetry", WARNING_DURATION);
   }
 
   if (!requestTelemetryMessageRate(MAVLINK_MSG_ID_SYS_STATUS, 1.0))
@@ -385,6 +401,36 @@ double UAV_Model::getGpsTelemetryAge() const
   const double now_s = std::chrono::duration<double>(
       std::chrono::steady_clock::now().time_since_epoch()).count();
   return std::max(0.0, now_s - m_last_gps_update_s.load());
+}
+
+double UAV_Model::getLandedStateTelemetryAge() const
+{
+  if (!m_landed_state_received)
+  {
+    return -1.0;
+  }
+
+  const double now_s = std::chrono::duration<double>(
+      std::chrono::steady_clock::now().time_since_epoch()).count();
+  return std::max(0.0, now_s - m_last_landed_state_update_s.load());
+}
+
+std::string UAV_Model::landedStateToString(mavsdk::Telemetry::LandedState landed_state)
+{
+  switch (landed_state)
+  {
+  case mavsdk::Telemetry::LandedState::OnGround:
+    return "ON_GROUND";
+  case mavsdk::Telemetry::LandedState::InAir:
+    return "IN_AIR";
+  case mavsdk::Telemetry::LandedState::TakingOff:
+    return "TAKING_OFF";
+  case mavsdk::Telemetry::LandedState::Landing:
+    return "LANDING";
+  case mavsdk::Telemetry::LandedState::Unknown:
+  default:
+    return "UNKNOWN";
+  }
 }
 
 ///////////////////////////////////
