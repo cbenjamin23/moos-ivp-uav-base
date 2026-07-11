@@ -84,6 +84,19 @@ public:
     mavsdk::Telemetry::LandedState landed_state;
   };
 
+  struct PrecisionLoiterPolicyInputs
+  {
+    bool copter;
+    bool enable;
+    bool armed;
+    bool enter_loiter_mode;
+    mavsdk::Telemetry::FlightMode flight_mode;
+    bool precland_enabled_available;
+    bool precland_enabled;
+    bool precland_type_available;
+    int32_t precland_type;
+  };
+
   struct CommandResult
   {
     uint64_t id;
@@ -120,6 +133,7 @@ public:
   static PolicyDecision evaluateArmPolicy(const ArmDisarmPolicyInputs &inputs);
   static PolicyDecision evaluateDisarmPolicy(const ArmDisarmPolicyInputs &inputs);
   static PolicyDecision evaluateLandPolicy(const LandPolicyInputs &inputs);
+  static PolicyDecision evaluatePrecisionLoiterPolicy(const PrecisionLoiterPolicyInputs &inputs);
 
   bool subscribeToTelemetry();
 
@@ -291,6 +305,7 @@ protected:
   mutable std::mutex m_mode_confirmation_mutex;
   mutable ModeConfirmationTracker m_rtl_confirmation_tracker;
   mutable ModeConfirmationTracker m_fc_loiter_confirmation_tracker;
+  mutable ModeConfirmationTracker m_precision_loiter_confirmation_tracker;
   mutable std::atomic<uint64_t> m_next_command_id{1};
 
   void MOOSTraceFromCallback(const std::string &msg) const

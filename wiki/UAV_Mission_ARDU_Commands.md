@@ -36,8 +36,8 @@ ARDU commands are special MOOS variables that control UAV behavior during missio
 | `AUTOLAND` | Automatic landing | UAV enters AUTOLAND mode (ArduPilot mode 26) and performs automatic landing based on takeoff direction. Creates landing approach waypoints automatically. **Requires ArduPilot Plane master branch** (not available in stable releases as of end of January 2026). |
 | `LOITER` | Guided coordinate hold | Keeps ArduPilot in Guided mode and sends a position target; Copter holds the target while Plane orbits it |
 | `LOITER_FC` | Native flight-controller loiter | Enters native Copter Loiter (position hold) or Plane Loiter (orbit at the current point) |
-| `PRECISION_LOITER` | Precision Loiter (Copter only) | Enters native Copter Loiter and enables ArduPilot auxiliary function 39 |
-| `PRECISION_LOITER_OFF` | Disable Precision Loiter (Copter only) | Disables ArduPilot auxiliary function 39 |
+| `PRECISION_LOITER` | Precision Loiter (Copter only) | Requires `PLND_ENABLED=1` and nonzero `PLND_TYPE`, enters native Copter Loiter, enables auxiliary function 39, and confirms Loiter from telemetry |
+| `PRECISION_LOITER_OFF` | Disable Precision Loiter (Copter only) | Disables ArduPilot auxiliary function 39; MAVLink acknowledges the command but provides no durable enabled-state telemetry |
 | `FLY_WAYPOINT` | Fly to specified waypoint | UAV navigates to a target waypoint or resumes waypoint mission |
 
 ### Mission Commands

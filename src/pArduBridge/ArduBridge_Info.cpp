@@ -79,7 +79,7 @@ void showExampleConfigAndExit()
   blk("  url_protocol = serial, tcp, udp                                ");    
   blk("  vehicle_type = plane  // plane or copter                       ");
   blk("  takeoff_altitude = 10  // Copter default if not configured     ");
-  blk("  precision_loiter_enter_loiter = true                           ");
+  blk("  precision_loiter_enter_loiter = true // false requires FC Loiter already ");
   blk("  prefix   = NAV                                               ");    
   blk("                                                                ");
   blk("}                                                               ");
@@ -113,8 +113,8 @@ void showInterfaceAndExit()
   blk("  RETURN_TO_LAUNCH = true  // Request MOOS return routing or ArduPilot RTL      ");
   blk("  AUTOLAND = true  // Request LAND through the conservative mode policy  ");
   blk("  LOITER                                                              ");
-  blk("  ARDU_COMMAND=PRECISION_LOITER // Copter only: enable aux function 39          ");
-  blk("  ARDU_COMMAND=PRECISION_LOITER_OFF // Disable Precision Loiter                 ");
+  blk("  ARDU_COMMAND=PRECISION_LOITER // Copter: FC Loiter + aux function 39          ");
+  blk("  ARDU_COMMAND=PRECISION_LOITER_OFF // Copter: disable aux function 39          ");
   blk("  ARDU_COMMAND=LOITER_FC // Native Copter hold or Plane orbit at current point  ");
   blk("  NEXT_WAYPOINT                                                              ");
   blk("                                                                ");

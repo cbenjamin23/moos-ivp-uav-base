@@ -641,6 +641,8 @@ bool ArduBridge::Iterate()
 
       if (result.value().success)
       {
+        if (m_do_precision_loiter_pair.second)
+          goToHelmMode(AutopilotHelmMode::HELM_INACTIVE);
         reportEvent(result.value().message);
       }
       else

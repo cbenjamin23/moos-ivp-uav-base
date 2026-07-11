@@ -378,6 +378,43 @@ UAV_Model::PolicyDecision UAV_Model::evaluateLandPolicy(const LandPolicyInputs &
   return {PolicyAction::Submit, "READY"};
 }
 
+UAV_Model::PolicyDecision UAV_Model::evaluatePrecisionLoiterPolicy(const PrecisionLoiterPolicyInputs &inputs)
+{
+  if (!inputs.copter)
+    return {PolicyAction::Reject, "COPTER_ONLY"};
+
+  // Disabling the auxiliary function is always safe for Copter, including
+  // after disarm or an external mode change.
+  if (!inputs.enable)
+    return {PolicyAction::Submit, "READY"};
+  if (!inputs.armed)
+    return {PolicyAction::Reject, "NOT_ARMED"};
+  if (!inputs.precland_enabled_available)
+    return {PolicyAction::Reject, "PLND_ENABLED_UNAVAILABLE"};
+  if (!inputs.precland_enabled)
+    return {PolicyAction::Reject, "PLND_DISABLED"};
+  if (!inputs.precland_type_available)
+    return {PolicyAction::Reject, "PLND_TYPE_UNAVAILABLE"};
+  if (inputs.precland_type == 0)
+    return {PolicyAction::Reject, "PLND_TYPE_NONE"};
+  if (inputs.flight_mode == mavsdk::Telemetry::FlightMode::Hold)
+    return {PolicyAction::Submit, "READY"};
+  if (!inputs.enter_loiter_mode)
+    return {PolicyAction::Reject, "FC_LOITER_REQUIRED"};
+
+  // Closed allowlist matching the bridge's normal autonomy-controlled modes.
+  switch (inputs.flight_mode)
+  {
+  case mavsdk::Telemetry::FlightMode::Guided:
+  case mavsdk::Telemetry::FlightMode::Offboard:
+  case mavsdk::Telemetry::FlightMode::Mission:
+  case mavsdk::Telemetry::FlightMode::Land:
+    return {PolicyAction::Submit, "READY"};
+  default:
+    return {PolicyAction::Reject, "FLIGHT_MODE_NOT_ALLOWED"};
+  }
+}
+
 UAV_Model::ArmDisarmPolicyInputs UAV_Model::getArmDisarmPolicyInputs() const
 {
   const auto health = getHealth();
@@ -971,17 +1008,34 @@ bool UAV_Model::requestTelemetryMessageRate(uint32_t message_id, double rate_hz)
 
 bool UAV_Model::commandPrecisionLoiter(bool enable, bool enterLoiterMode)
 {
-  if (!isCopter())
+  const std::string command = enable ? "PRECISION_LOITER" : "PRECISION_LOITER_OFF";
+  PrecisionLoiterPolicyInputs inputs{
+      isCopter(), enable, isArmed(), enterLoiterMode, mts_flight_mode.get(),
+      false, false, false, 0};
+
+  // ArduPilot acknowledges auxiliary function 39 even with no precision-
+  // landing backend configured, so verify the required parameters first.
+  if (enable && inputs.copter && inputs.armed)
   {
-    m_warning_system_ptr->queue_monitorWarningForXseconds("Precision Loiter is only supported in copter mode", WARNING_DURATION);
+    const auto enabled = m_param_ptr->get_param_int("PLND_ENABLED");
+    inputs.precland_enabled_available = enabled.first == mavsdk::Param::Result::Success;
+    inputs.precland_enabled = inputs.precland_enabled_available && enabled.second == 1;
+
+    const auto type = m_param_ptr->get_param_int("PLND_TYPE");
+    inputs.precland_type_available = type.first == mavsdk::Param::Result::Success;
+    inputs.precland_type = inputs.precland_type_available ? type.second : 0;
+  }
+
+  const auto decision = evaluatePrecisionLoiterPolicy(inputs);
+  if (decision.action != PolicyAction::Submit)
+  {
+    reportCommandResult(command, "REJECTED", decision.reason);
+    m_warning_system_ptr->queue_monitorWarningForXseconds(
+        "Precision Loiter rejected: " + decision.reason, WARNING_DURATION);
     return false;
   }
 
-  if (enable && !m_is_armed)
-  {
-    m_warning_system_ptr->queue_monitorWarningForXseconds("UAV is not armed! Cannot enable Precision Loiter", WARNING_DURATION);
-    return false;
-  }
+  const uint64_t command_id = reportCommandResult(command, "SUBMITTED", decision.reason);
 
   if (enable && enterLoiterMode && mts_flight_mode.get() != mavsdk::Telemetry::FlightMode::Hold)
   {
@@ -990,6 +1044,7 @@ bool UAV_Model::commandPrecisionLoiter(bool enable, bool enterLoiterMode)
     {
       std::stringstream ss;
       ss << "Failed to enter Copter Loiter before Precision Loiter: " << hold_result;
+      reportCommandResult(command, "FAILED", "FC_LOITER_COMMAND_FAILED", command_id);
       m_warning_system_ptr->queue_monitorWarningForXseconds(ss.str(), WARNING_DURATION);
       return false;
     }
@@ -998,7 +1053,20 @@ bool UAV_Model::commandPrecisionLoiter(bool enable, bool enterLoiterMode)
   int switch_position = enable ? AUX_SWITCH_HIGH : AUX_SWITCH_LOW;
   if (!commandAuxFunction(AUX_FUNC_PRECISION_LOITER, switch_position))
   {
+    reportCommandResult(command, "FAILED", "AUX_FUNCTION_COMMAND_FAILED", command_id);
     return false;
+  }
+
+  reportCommandResult(command, "ACCEPTED",
+                      enable ? "AUX_FUNCTION_ENABLE_ACCEPTED" : "AUX_FUNCTION_DISABLE_ACCEPTED",
+                      command_id);
+
+  if (enable)
+  {
+    // MAVLink acknowledges auxiliary function 39 but does not publish a
+    // durable enabled bit. Confirm the observable prerequisite: FC Loiter.
+    std::lock_guard<std::mutex> lock(m_mode_confirmation_mutex);
+    m_precision_loiter_confirmation_tracker.accept(command_id);
   }
 
   reportEventFromCallback(enable ? "Precision Loiter enabled" : "Precision Loiter disabled");
@@ -1049,6 +1117,7 @@ void UAV_Model::pollCommandConfirmations()
 {
   ModeConfirmationTracker::Outcome rtl_outcome;
   ModeConfirmationTracker::Outcome fc_loiter_outcome;
+  ModeConfirmationTracker::Outcome precision_loiter_outcome;
   {
     std::lock_guard<std::mutex> lock(m_mode_confirmation_mutex);
     rtl_outcome = m_rtl_confirmation_tracker.evaluate(
@@ -1056,6 +1125,10 @@ void UAV_Model::pollCommandConfirmations()
         ModeConfirmationTracker::Clock::now(),
         MODE_CONFIRMATION_TIMEOUT_S);
     fc_loiter_outcome = m_fc_loiter_confirmation_tracker.evaluate(
+        mts_flight_mode.get() == mavsdk::Telemetry::FlightMode::Hold,
+        ModeConfirmationTracker::Clock::now(),
+        MODE_CONFIRMATION_TIMEOUT_S);
+    precision_loiter_outcome = m_precision_loiter_confirmation_tracker.evaluate(
         mts_flight_mode.get() == mavsdk::Telemetry::FlightMode::Hold,
         ModeConfirmationTracker::Clock::now(),
         MODE_CONFIRMATION_TIMEOUT_S);
@@ -1070,6 +1143,11 @@ void UAV_Model::pollCommandConfirmations()
     reportCommandResult("LOITER_FC", "CONFIRMED", "FLIGHT_MODE_FC_LOITER", fc_loiter_outcome.command_id);
   else if (fc_loiter_outcome.status == ModeConfirmationTracker::OutcomeStatus::TimedOut)
     reportCommandResult("LOITER_FC", "TIMED_OUT", "FLIGHT_MODE_NOT_CONFIRMED", fc_loiter_outcome.command_id);
+
+  if (precision_loiter_outcome.status == ModeConfirmationTracker::OutcomeStatus::Confirmed)
+    reportCommandResult("PRECISION_LOITER", "CONFIRMED", "FC_LOITER_AND_AUX_COMMAND_ACCEPTED", precision_loiter_outcome.command_id);
+  else if (precision_loiter_outcome.status == ModeConfirmationTracker::OutcomeStatus::TimedOut)
+    reportCommandResult("PRECISION_LOITER", "TIMED_OUT", "FLIGHT_MODE_NOT_CONFIRMED", precision_loiter_outcome.command_id);
 }
 
 bool UAV_Model::commandArmAsync(uint64_t command_id) const

@@ -45,4 +45,51 @@ int main()
   landing.landed_state = mavsdk::Telemetry::LandedState::Landing;
   if (!expectDecision(UAV_Model::evaluateLandPolicy(landing), Action::NoOp, "ALREADY_LANDING"))
     return 9;
+
+  const auto precision = [](bool copter, bool enable, bool armed,
+                            bool enter_loiter, Mode mode,
+                            bool enabled_available = true,
+                            bool enabled = true,
+                            bool type_available = true,
+                            int32_t type = 1)
+  {
+    return UAV_Model::evaluatePrecisionLoiterPolicy(
+        {copter, enable, armed, enter_loiter, mode,
+         enabled_available, enabled, type_available, type});
+  };
+
+  if (!expectDecision(precision(true, true, true, true, Mode::Guided), Action::Submit, "READY"))
+    return 10;
+  if (!expectDecision(precision(true, true, true, true, Mode::Offboard), Action::Submit, "READY"))
+    return 11;
+  if (!expectDecision(precision(true, true, true, false, Mode::Hold), Action::Submit, "READY"))
+    return 12;
+  if (!expectDecision(precision(true, true, false, true, Mode::Guided), Action::Reject, "NOT_ARMED"))
+    return 13;
+  if (!expectDecision(precision(true, true, true, false, Mode::Guided), Action::Reject, "FC_LOITER_REQUIRED"))
+    return 14;
+  if (!expectDecision(precision(true, true, true, true, Mode::ReturnToLaunch), Action::Reject, "FLIGHT_MODE_NOT_ALLOWED"))
+    return 15;
+  if (!expectDecision(precision(false, true, true, true, Mode::Guided), Action::Reject, "COPTER_ONLY"))
+    return 16;
+  if (!expectDecision(precision(true, false, false, false, Mode::ReturnToLaunch), Action::Submit, "READY"))
+    return 17;
+  if (!expectDecision(precision(false, false, false, false, Mode::Unknown), Action::Reject, "COPTER_ONLY"))
+    return 18;
+  if (!expectDecision(precision(true, true, true, true, Mode::Guided, false), Action::Reject, "PLND_ENABLED_UNAVAILABLE"))
+    return 19;
+  if (!expectDecision(precision(true, true, true, true, Mode::Guided, true, false), Action::Reject, "PLND_DISABLED"))
+    return 20;
+  if (!expectDecision(precision(true, true, true, true, Mode::Guided, true, true, false), Action::Reject, "PLND_TYPE_UNAVAILABLE"))
+    return 21;
+  if (!expectDecision(precision(true, true, true, true, Mode::Guided, true, true, true, 0), Action::Reject, "PLND_TYPE_NONE"))
+    return 22;
+  if (!expectDecision(precision(true, true, true, true, Mode::Mission), Action::Submit, "READY"))
+    return 23;
+  if (!expectDecision(precision(true, true, true, true, Mode::Land), Action::Submit, "READY"))
+    return 24;
+  if (!expectDecision(precision(true, true, true, true, Mode::Stabilized), Action::Reject, "FLIGHT_MODE_NOT_ALLOWED"))
+    return 25;
+  if (!expectDecision(precision(true, true, true, true, Mode::Manual), Action::Reject, "FLIGHT_MODE_NOT_ALLOWED"))
+    return 26;
 }
