@@ -360,6 +360,8 @@ UAV_Model::PolicyDecision UAV_Model::evaluateLandPolicy(const LandPolicyInputs &
   switch (inputs.flight_mode)
   {
   case mavsdk::Telemetry::FlightMode::Guided:
+  // MAVSDK reports ArduCopter GUIDED telemetry as Offboard.
+  case mavsdk::Telemetry::FlightMode::Offboard:
   case mavsdk::Telemetry::FlightMode::Mission:
   case mavsdk::Telemetry::FlightMode::Hold:
     break;

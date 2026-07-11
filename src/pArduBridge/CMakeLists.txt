@@ -40,4 +40,22 @@ IF(BUILD_TESTING)
     ${CMAKE_CURRENT_SOURCE_DIR})
   ADD_TEST(NAME pArduBridge_rtl_confirmation
     COMMAND pArduBridge_rtl_confirmation_test)
+
+  ADD_EXECUTABLE(pArduBridge_uav_policy_test
+    tests/UAVPolicyTest.cpp
+    UAV_Model.cpp)
+  TARGET_INCLUDE_DIRECTORIES(pArduBridge_uav_policy_test PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR})
+  TARGET_LINK_LIBRARIES(pArduBridge_uav_policy_test
+    MAVSDK::mavsdk
+    ${MOOS_LIBRARIES}
+    ${MOOSGeodesy_LIBRARIES}
+    contacts
+    geometry
+    apputil
+    mbutil
+    m
+    pthread)
+  ADD_TEST(NAME pArduBridge_uav_policy
+    COMMAND pArduBridge_uav_policy_test)
 ENDIF()
