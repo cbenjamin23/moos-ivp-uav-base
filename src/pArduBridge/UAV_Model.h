@@ -73,6 +73,14 @@ public:
     std::string reason;
   };
 
+  struct LandPolicyInputs
+  {
+    mavsdk::Telemetry::FlightMode flight_mode;
+    bool landed_state_available;
+    double landed_state_age_s;
+    mavsdk::Telemetry::LandedState landed_state;
+  };
+
   enum class VehicleType
   {
     Plane,
@@ -95,8 +103,10 @@ public:
   bool requestDisarmAsync() const;
   PolicyDecision getArmPolicyDecision() const;
   PolicyDecision getDisarmPolicyDecision() const;
+  PolicyDecision getLandPolicyDecision() const;
   static PolicyDecision evaluateArmPolicy(const ArmDisarmPolicyInputs &inputs);
   static PolicyDecision evaluateDisarmPolicy(const ArmDisarmPolicyInputs &inputs);
+  static PolicyDecision evaluateLandPolicy(const LandPolicyInputs &inputs);
 
   bool subscribeToTelemetry();
 

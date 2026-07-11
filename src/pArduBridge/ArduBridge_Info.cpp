@@ -111,7 +111,7 @@ void showInterfaceAndExit()
   blk("  ARM_UAV = true  // Arm; false disarms                                ");
   blk("  RESET_SPEED_MIN                                                              ");
   blk("  RETURN_TO_LAUNCH                                                              ");
-  blk("  AUTOLAND                                                              ");
+  blk("  AUTOLAND = true  // Request LAND through the conservative mode policy  ");
   blk("  LOITER                                                              ");
   blk("  ARDU_COMMAND=PRECISION_LOITER // Copter only: enable aux function 39          ");
   blk("  ARDU_COMMAND=PRECISION_LOITER_OFF // Disable Precision Loiter                 ");
@@ -151,6 +151,8 @@ void showInterfaceAndExit()
   blk("  UAV_ARM_POLICY_REASON      // Stable reason token, e.g. READY or HEALTH_STALE        ");
   blk("  UAV_DISARM_POLICY_READY    // 1 when bridge policy permits a new DISARM submission   ");
   blk("  UAV_DISARM_POLICY_REASON   // Stable reason token, e.g. READY or NOT_ON_GROUND       ");
+  blk("  UAV_LAND_POLICY_READY      // 1 when mode policy permits a new LAND submission       ");
+  blk("  UAV_LAND_POLICY_REASON     // Stable reason token; all unlisted modes are denied      ");
   blk("  UAV_GPS_AVAILABLE          // 1 after GPS telemetry is received; fix may be invalid ");
   blk("  UAV_GPS_FIX_TYPE           // MAVSDK fix type enum: 0=None through 6=RTK fixed      ");
   blk("  UAV_GPS_SATELLITES         // Satellites used/visible                               ");

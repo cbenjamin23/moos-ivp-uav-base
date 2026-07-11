@@ -212,6 +212,30 @@ bool ArduBridge::OnNewMail(MOOSMSG_LIST &NewMail)
         m_warning_system_ptr->queue_monitorWarningForXseconds("ARM_UAV must be true or false", WARNING_DURATION);
       }
     }
+    else if (key == "AUTOLAND")
+    {
+      bool land_requested = false;
+      bool valid_request = false;
+      if (msg.IsString())
+      {
+        valid_request = setBooleanOnString(land_requested, msg.GetString());
+      }
+      else if (msg.IsDouble() && (msg.GetDouble() == 0.0 || msg.GetDouble() == 1.0))
+      {
+        land_requested = (msg.GetDouble() == 1.0);
+        valid_request = true;
+      }
+
+      if (!valid_request)
+      {
+        m_warning_system_ptr->queue_monitorWarningForXseconds(
+            "AUTOLAND must be true or false", WARNING_DURATION);
+      }
+      else if (land_requested)
+      {
+        m_do_autoland = true;
+      }
+    }
     else if (key == "DEAD_MAN_POST_INTERRUPT")
     {
       m_warning_system_ptr->queue_monitorWarningForXseconds(
@@ -550,17 +574,14 @@ bool ArduBridge::Iterate()
     {
       Logger::info("Iterate: Autoland command sent with result: " + result.value().message + " success: " + boolToString(result.value().success));
 
-      auto goToMode = AutopilotHelmMode::HELM_INACTIVE;
       if (result.value().success)
       {
-        goToMode = AutopilotHelmMode::HELM_INACTIVE;
+        goToHelmMode(AutopilotHelmMode::HELM_INACTIVE);
       }
       else
       {
         m_warning_system_ptr->queue_monitorWarningForXseconds("FAIL: " + result.value().message, WARNING_DURATION);
       }
-
-      goToHelmMode(goToMode);
 
       running_autoland = false;
       m_do_autoland = false;
@@ -1048,10 +1069,13 @@ bool ArduBridge::buildReport()
 
   const auto arm_policy = m_uav_model.getArmPolicyDecision();
   const auto disarm_policy = m_uav_model.getDisarmPolicyDecision();
+  const auto land_policy = m_uav_model.getLandPolicyDecision();
   m_msgs << "    ARM Policy Ready: " << boolToString(arm_policy.action == UAV_Model::PolicyAction::Submit) << std::endl;
   m_msgs << "   ARM Policy Reason: " << arm_policy.reason << std::endl;
   m_msgs << " DISARM Policy Ready: " << boolToString(disarm_policy.action == UAV_Model::PolicyAction::Submit) << std::endl;
   m_msgs << "DISARM Policy Reason: " << disarm_policy.reason << std::endl;
+  m_msgs << "   LAND Policy Ready: " << boolToString(land_policy.action == UAV_Model::PolicyAction::Submit) << std::endl;
+  m_msgs << "  LAND Policy Reason: " << land_policy.reason << std::endl;
 
   m_msgs << std::endl;
   m_msgs << "GPS Details: " << std::endl;
@@ -1291,10 +1315,13 @@ void ArduBridge::postHealthUpdate()
 
   const auto arm_policy = m_uav_model.getArmPolicyDecision();
   const auto disarm_policy = m_uav_model.getDisarmPolicyDecision();
+  const auto land_policy = m_uav_model.getLandPolicyDecision();
   postBool("UAV_ARM_POLICY_READY", arm_policy.action == UAV_Model::PolicyAction::Submit);
   Notify("UAV_ARM_POLICY_REASON", arm_policy.reason, m_curr_time);
   postBool("UAV_DISARM_POLICY_READY", disarm_policy.action == UAV_Model::PolicyAction::Submit);
   Notify("UAV_DISARM_POLICY_REASON", disarm_policy.reason, m_curr_time);
+  postBool("UAV_LAND_POLICY_READY", land_policy.action == UAV_Model::PolicyAction::Submit);
+  Notify("UAV_LAND_POLICY_REASON", land_policy.reason, m_curr_time);
 
   const bool gps_available = m_uav_model.hasGpsTelemetry();
   postBool("UAV_GPS_AVAILABLE", gps_available);

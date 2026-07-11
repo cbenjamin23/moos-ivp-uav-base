@@ -342,6 +342,40 @@ UAV_Model::PolicyDecision UAV_Model::evaluateDisarmPolicy(const ArmDisarmPolicyI
   return {PolicyAction::Submit, "READY"};
 }
 
+UAV_Model::PolicyDecision UAV_Model::evaluateLandPolicy(const LandPolicyInputs &inputs)
+{
+  const bool landed_state_fresh = inputs.landed_state_available &&
+                                  inputs.landed_state_age_s >= 0.0 &&
+                                  inputs.landed_state_age_s <= LANDED_STATE_TELEMETRY_MAX_AGE_S;
+
+  if (inputs.flight_mode == mavsdk::Telemetry::FlightMode::Land)
+    return {PolicyAction::NoOp, "ALREADY_LANDING"};
+  if (landed_state_fresh && inputs.landed_state == mavsdk::Telemetry::LandedState::OnGround)
+    return {PolicyAction::NoOp, "ALREADY_ON_GROUND"};
+  if (landed_state_fresh && inputs.landed_state == mavsdk::Telemetry::LandedState::Landing)
+    return {PolicyAction::NoOp, "ALREADY_LANDING"};
+
+  // Closed allowlist: only modes intentionally used by pArduBridge may submit
+  // routine LAND. Pilot-controlled, RTL, unknown, and future modes default-deny.
+  switch (inputs.flight_mode)
+  {
+  case mavsdk::Telemetry::FlightMode::Guided:
+  case mavsdk::Telemetry::FlightMode::Mission:
+  case mavsdk::Telemetry::FlightMode::Hold:
+    break;
+  default:
+    return {PolicyAction::Reject, "FLIGHT_MODE_NOT_ALLOWED"};
+  }
+
+  if (!inputs.landed_state_available)
+    return {PolicyAction::Submit, "READY_LANDED_STATE_UNAVAILABLE"};
+  if (!landed_state_fresh)
+    return {PolicyAction::Submit, "READY_LANDED_STATE_STALE"};
+  if (inputs.landed_state == mavsdk::Telemetry::LandedState::Unknown)
+    return {PolicyAction::Submit, "READY_LANDED_STATE_UNKNOWN"};
+  return {PolicyAction::Submit, "READY"};
+}
+
 UAV_Model::ArmDisarmPolicyInputs UAV_Model::getArmDisarmPolicyInputs() const
 {
   const auto health = getHealth();
@@ -364,6 +398,15 @@ UAV_Model::PolicyDecision UAV_Model::getArmPolicyDecision() const
 UAV_Model::PolicyDecision UAV_Model::getDisarmPolicyDecision() const
 {
   return evaluateDisarmPolicy(getArmDisarmPolicyInputs());
+}
+
+UAV_Model::PolicyDecision UAV_Model::getLandPolicyDecision() const
+{
+  return evaluateLandPolicy({
+      getFlightMode(),
+      hasLandedStateTelemetry(),
+      getLandedStateTelemetryAge(),
+      getLandedState()});
 }
 
 bool UAV_Model::requestArmAsync() const
@@ -727,18 +770,26 @@ bool UAV_Model::commandReturnToLaunchAsync() const
 
 bool UAV_Model::commandAutoland() const
 {
-  if (!haveAutorythyToChangeMode())
+  const auto decision = getLandPolicyDecision();
+  if (decision.action == PolicyAction::NoOp)
+  {
+    reportEventFromCallback("LAND not sent: " + decision.reason);
+    return true;
+  }
+  if (decision.action == PolicyAction::Reject)
   {
     std::stringstream ss;
-    ss << "Cannot change mode. Do not have autorithy. Flight mode in " << mts_flight_mode;
+    ss << "LAND rejected by bridge policy: " << decision.reason
+       << "; flight mode: " << mts_flight_mode;
     m_warning_system_ptr->queue_monitorWarningForXseconds(ss.str(), WARNING_DURATION);
     return false;
   }
 
-  if (!m_in_air)
+  if (decision.reason != "READY")
   {
-    m_warning_system_ptr->queue_monitorWarningForXseconds("UAV is not in air! Cannot send AUTOLAND command", WARNING_DURATION);
-    return false;
+    m_warning_system_ptr->queue_monitorWarningForXseconds(
+        "LAND proceeding with limited state confirmation: " + decision.reason,
+        WARNING_DURATION);
   }
 
   mavsdk::Action::Result result = isCopter() ? m_action_ptr->land() : m_action_ptr->set_flight_mode_autoland();
