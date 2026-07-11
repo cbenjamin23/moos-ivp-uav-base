@@ -34,7 +34,10 @@ ARDU commands are special MOOS variables that control UAV behavior during missio
 | `DO_TAKEOFF` | Initiate takeoff sequence | UAV arms and takes off to mission altitude (currently only works in simulation) |
 | `RETURN_TO_LAUNCH` | Return to home position | UAV flies back to starting location and lands |
 | `AUTOLAND` | Automatic landing | UAV enters AUTOLAND mode (ArduPilot mode 26) and performs automatic landing based on takeoff direction. Creates landing approach waypoints automatically. **Requires ArduPilot Plane master branch** (not available in stable releases as of end of January 2026). |
-| `LOITER` | Hold current position | UAV enters loiter mode at current location |
+| `LOITER` | Guided coordinate hold | Keeps ArduPilot in Guided mode and sends a position target; Copter holds the target while Plane orbits it |
+| `LOITER_FC` | Native flight-controller loiter | Enters native Copter Loiter (position hold) or Plane Loiter (orbit at the current point) |
+| `PRECISION_LOITER` | Precision Loiter (Copter only) | Enters native Copter Loiter and enables ArduPilot auxiliary function 39 |
+| `PRECISION_LOITER_OFF` | Disable Precision Loiter (Copter only) | Disables ArduPilot auxiliary function 39 |
 | `FLY_WAYPOINT` | Fly to specified waypoint | UAV navigates to a target waypoint or resumes waypoint mission |
 
 ### Mission Commands
@@ -67,13 +70,12 @@ These variables control behavior activation (primarily used with MOOS simulator)
 
 The `AUTOPILOT_MODE` variable indicates the current flight mode:
 
-- `HELM_INACTIVE` - System inactive
-- `HELM_INACTIVE_LOITERING` - Inactive but loitering
+- `HELM_INACTIVE` - Helm inactive; also used while the flight controller owns modes such as native loiter
+- `HELM_INACTIVE_LOITERING` - Legacy Guided coordinate hold requested by `ARDU_COMMAND=LOITER`
 - `HELM_PARKED` - On ground, disarmed
 - `HELM_TOWAYPT` - Flying to waypoint
 - `HELM_RETURNING` - Returning to launch
 - `HELM_SURVEYING` - Executing survey pattern
-- `HELM_LOITERING` - Holding position
 
 **Note:** When AUTOLAND is active, the autopilot is in ArduPilot's AUTOLAND mode (mode 26), but the helm state remains `HELM_INACTIVE` since the landing is handled entirely by ArduPilot.
 
@@ -122,6 +124,7 @@ ProcessConfig = pMarineViewer
   button_3 = TKOFF_ALL   # ARM_UAV_ALL=true # ARDU_COMMAND_ALL=DO_TAKEOFF
   button_4 = SURVEY_ALL  # ARDU_COMMAND_ALL=SURVEY  
   button_5 = LOITER_ALL  # ARDU_COMMAND_ALL=LOITER
+  button_9 = FC_LOITER_ALL # ARDU_COMMAND_ALL=LOITER_FC
   button_6 = TOWYP_ALL   # ARDU_COMMAND_ALL=FLY_WAYPOINT
   button_7 = AUTOLAND_ALL # ARDU_COMMAND_ALL=AUTOLAND
   button_8 = DO_VORONOI_ALL # ARDU_COMMAND_ALL=DO_VORONOI
@@ -145,6 +148,7 @@ ProcessConfig = pRealm
   cmd = label=TOWAYPOINT, var=ARDU_COMMAND, sval=FLY_WAYPOINT, receivers=all:$(VNAMES)
   cmd = label=RTL, var=ARDU_COMMAND, sval=RETURN_TO_LAUNCH, receivers=all:$(VNAMES)
   cmd = label=LOITER/HOLD, var=ARDU_COMMAND, sval=LOITER, receivers=all:$(VNAMES)
+  cmd = label=FC_LOITER, var=ARDU_COMMAND, sval=LOITER_FC, receivers=all:$(VNAMES)
   cmd = label=AUTOLAND, var=ARDU_COMMAND, sval=AUTOLAND, receivers=all:$(VNAMES)
   cmd = label=SPEED_TO_MIN, var=ARDU_COMMAND, sval=RESET_SPEED_MIN, receivers=all:$(VNAMES)
   cmd = label=DO_VORONOI, var=ARDU_COMMAND, sval=DO_VORONOI, receivers=all:$(VNAMES)

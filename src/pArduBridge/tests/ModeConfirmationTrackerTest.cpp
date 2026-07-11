@@ -1,14 +1,14 @@
-#include "RtlConfirmationTracker.h"
+#include "ModeConfirmationTracker.h"
 
 #include <chrono>
 
 int main()
 {
   using namespace std::chrono_literals;
-  using Status = RtlConfirmationTracker::OutcomeStatus;
+  using Status = ModeConfirmationTracker::OutcomeStatus;
 
-  const auto start = RtlConfirmationTracker::Clock::now();
-  RtlConfirmationTracker tracker;
+  const auto start = ModeConfirmationTracker::Clock::now();
+  ModeConfirmationTracker tracker;
 
   if (tracker.evaluate(false, start).status != Status::None)
     return 1;

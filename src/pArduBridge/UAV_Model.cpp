@@ -794,8 +794,54 @@ bool UAV_Model::commandReturnToLaunchAsync(const CommandCompletion &completion) 
     reportCommandResult("RTL", "ACCEPTED", "SUCCESS", command_id);
     // MAVSDK acceptance is not proof of a mode change; telemetry confirms it.
     {
-      std::lock_guard<std::mutex> lock(m_rtl_confirmation_mutex);
+      std::lock_guard<std::mutex> lock(m_mode_confirmation_mutex);
       m_rtl_confirmation_tracker.accept(command_id);
+    }
+    if (completion)
+      completion(true, "SUCCESS"); });
+
+  return true;
+}
+
+bool UAV_Model::commandFlightControllerLoiterAsync(const CommandCompletion &completion) const
+{
+  if (mts_flight_mode.get() == mavsdk::Telemetry::FlightMode::Hold)
+  {
+    reportCommandResult("LOITER_FC", "NO_OP", "ALREADY_FC_LOITER");
+    if (completion)
+      completion(true, "ALREADY_FC_LOITER");
+    return true;
+  }
+
+  if (!haveAutorythyToChangeMode())
+  {
+    const std::string detail = "FLIGHT_MODE_NOT_ALLOWED";
+    reportCommandResult("LOITER_FC", "REJECTED", detail);
+    std::stringstream ss;
+    ss << "Cannot enter flight-controller Loiter from " << mts_flight_mode;
+    m_warning_system_ptr->queue_monitorWarningForXseconds(ss.str(), WARNING_DURATION);
+    if (completion)
+      completion(false, detail);
+    return false;
+  }
+
+  const uint64_t command_id = reportCommandResult("LOITER_FC", "SUBMITTED", "READY");
+  m_action_ptr->hold_async([this, command_id, completion](mavsdk::Action::Result result)
+                           {
+    if (result != mavsdk::Action::Result::Success) {
+      std::stringstream ss;
+      ss << "Flight-controller Loiter failed: " << result;
+      reportCommandResult("LOITER_FC", "FAILED", ss.str(), command_id);
+      m_warning_system_ptr->queue_monitorWarningForXseconds(ss.str(), WARNING_DURATION);
+      if (completion)
+        completion(false, ss.str());
+      return;
+    }
+
+    reportCommandResult("LOITER_FC", "ACCEPTED", "SUCCESS", command_id);
+    {
+      std::lock_guard<std::mutex> lock(m_mode_confirmation_mutex);
+      m_fc_loiter_confirmation_tracker.accept(command_id);
     }
     if (completion)
       completion(true, "SUCCESS"); });
@@ -1001,19 +1047,29 @@ uint64_t UAV_Model::reportCommandResult(const std::string &command,
 
 void UAV_Model::pollCommandConfirmations()
 {
-  RtlConfirmationTracker::Outcome outcome;
+  ModeConfirmationTracker::Outcome rtl_outcome;
+  ModeConfirmationTracker::Outcome fc_loiter_outcome;
   {
-    std::lock_guard<std::mutex> lock(m_rtl_confirmation_mutex);
-    outcome = m_rtl_confirmation_tracker.evaluate(
+    std::lock_guard<std::mutex> lock(m_mode_confirmation_mutex);
+    rtl_outcome = m_rtl_confirmation_tracker.evaluate(
         mts_flight_mode.get() == mavsdk::Telemetry::FlightMode::ReturnToLaunch,
-        RtlConfirmationTracker::Clock::now(),
-        RTL_CONFIRMATION_TIMEOUT_S);
+        ModeConfirmationTracker::Clock::now(),
+        MODE_CONFIRMATION_TIMEOUT_S);
+    fc_loiter_outcome = m_fc_loiter_confirmation_tracker.evaluate(
+        mts_flight_mode.get() == mavsdk::Telemetry::FlightMode::Hold,
+        ModeConfirmationTracker::Clock::now(),
+        MODE_CONFIRMATION_TIMEOUT_S);
   }
 
-  if (outcome.status == RtlConfirmationTracker::OutcomeStatus::Confirmed)
-    reportCommandResult("RTL", "CONFIRMED", "FLIGHT_MODE_RTL", outcome.command_id);
-  else if (outcome.status == RtlConfirmationTracker::OutcomeStatus::TimedOut)
-    reportCommandResult("RTL", "TIMED_OUT", "FLIGHT_MODE_NOT_CONFIRMED", outcome.command_id);
+  if (rtl_outcome.status == ModeConfirmationTracker::OutcomeStatus::Confirmed)
+    reportCommandResult("RTL", "CONFIRMED", "FLIGHT_MODE_RTL", rtl_outcome.command_id);
+  else if (rtl_outcome.status == ModeConfirmationTracker::OutcomeStatus::TimedOut)
+    reportCommandResult("RTL", "TIMED_OUT", "FLIGHT_MODE_NOT_CONFIRMED", rtl_outcome.command_id);
+
+  if (fc_loiter_outcome.status == ModeConfirmationTracker::OutcomeStatus::Confirmed)
+    reportCommandResult("LOITER_FC", "CONFIRMED", "FLIGHT_MODE_FC_LOITER", fc_loiter_outcome.command_id);
+  else if (fc_loiter_outcome.status == ModeConfirmationTracker::OutcomeStatus::TimedOut)
+    reportCommandResult("LOITER_FC", "TIMED_OUT", "FLIGHT_MODE_NOT_CONFIRMED", fc_loiter_outcome.command_id);
 }
 
 bool UAV_Model::commandArmAsync(uint64_t command_id) const

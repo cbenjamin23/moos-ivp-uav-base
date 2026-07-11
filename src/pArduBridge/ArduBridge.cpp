@@ -34,6 +34,7 @@ ArduBridge::ArduBridge()
       m_do_autoland{false},
       m_do_loiter_pair{false, "default"},
       m_do_precision_loiter_pair{false, false},
+      m_do_fc_loiter{false},
       m_arm_request{std::nullopt},
       m_do_helm_survey{false},
       m_do_helm_voronoi{false},
@@ -306,6 +307,11 @@ bool ArduBridge::OnNewMail(MOOSMSG_LIST &NewMail)
       {
         std::string val = (msg.GetSource() == "pHelmIvP") ? "default" : "here";
         m_do_loiter_pair = std::make_pair(true, val);
+        handled = true;
+      }
+      else if (command == "LOITER_FC")
+      {
+        m_do_fc_loiter = true;
         handled = true;
       }
       else if (command == "PRECISION_LOITER" || command == "PRECISION_LOITER_ON" || command == "PRECISION_LOITER_ENABLE")
@@ -646,6 +652,36 @@ bool ArduBridge::Iterate()
       m_do_precision_loiter_pair.first = false;
       m_do_precision_loiter_pair.second = false;
       m_precision_loiter_promfut.reset();
+    }
+  }
+
+  //////////////////////////////////////////////////////////////
+  //////  Flight-controller Loiter - Async w/polling
+  //////////////////////////////////////////////////////////////
+  if (m_do_fc_loiter)
+  {
+    static bool running_fc_loiter = false;
+    if (!running_fc_loiter)
+    {
+      flightControllerLoiter_async();
+      running_fc_loiter = true;
+    }
+
+    auto result = future_poll_result(m_fc_loiter_promfut.fut);
+    if (result.has_value())
+    {
+      if (result.value().success)
+      {
+        goToHelmMode(AutopilotHelmMode::HELM_INACTIVE);
+      }
+      else
+      {
+        m_warning_system_ptr->queue_monitorWarningForXseconds("FAIL: " + result.value().message, WARNING_DURATION);
+      }
+
+      running_fc_loiter = false;
+      m_do_fc_loiter = false;
+      m_fc_loiter_promfut.reset();
     }
   }
 
@@ -1200,6 +1236,7 @@ bool ArduBridge::buildReport()
   actab << "Do set fly waypoint:" << boolToString(m_do_fly_to_waypoint);
   actab << "Do takeoff:" << boolToString(m_do_takeoff);
   actab << "Do precision loiter:" << boolToString(m_do_precision_loiter_pair.first);
+  actab << "Do FC loiter:" << boolToString(m_do_fc_loiter);
   actab << "command groundSpeed:" << boolToString(m_command_groundSpeed);
   m_msgs << actab.getFormattedString();
 
@@ -1751,6 +1788,16 @@ void ArduBridge::precisionLoiter_async(bool enable)
       );
 
       return; });
+}
+
+void ArduBridge::flightControllerLoiter_async()
+{
+  m_uav_model.pushCommand([this](UAV_Model &uav)
+                          {
+    uav.commandFlightControllerLoiterAsync([this](bool success, const std::string &detail)
+      {
+        m_fc_loiter_promfut.prom.set_value(
+            ResultPair{success, detail}); }); });
 }
 
 bool ArduBridge::tryloiterAtPos(const XYPoint &loiter_coord, bool holdCurrentAltitude)

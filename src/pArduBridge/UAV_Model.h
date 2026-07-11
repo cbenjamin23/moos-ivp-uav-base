@@ -29,7 +29,7 @@
 #include <cstdint>
 
 #include "WarningSystem.h"
-#include "RtlConfirmationTracker.h"
+#include "ModeConfirmationTracker.h"
 
 #include "XYPoint.h"
 
@@ -49,7 +49,7 @@ class UAV_Model
 public:
   static constexpr double HEALTH_TELEMETRY_MAX_AGE_S = 3.0;
   static constexpr double LANDED_STATE_TELEMETRY_MAX_AGE_S = 2.0;
-  static constexpr double RTL_CONFIRMATION_TIMEOUT_S = 5.0;
+  static constexpr double MODE_CONFIRMATION_TIMEOUT_S = 5.0;
 
   enum class PolicyAction
   {
@@ -139,6 +139,7 @@ public:
   // void commandGoToLocation_async(const mavsdk::Telemetry::Position &position, std::function<void(bool)> callback = nullptr);
 
   bool commandReturnToLaunchAsync(const CommandCompletion &completion = {}) const;
+  bool commandFlightControllerLoiterAsync(const CommandCompletion &completion = {}) const;
   bool commandAutoland() const;
   bool commandLoiterAtPos(XYPoint pos, bool holdCurrentAltitude = true);
   bool commandPrecisionLoiter(bool enable, bool enterLoiterMode = true);
@@ -287,8 +288,9 @@ protected:
   std::function<void(const std::string &)> callbackRetractRunW;
   std::function<void(const CommandResult &)> callbackCommandResult;
 
-  mutable std::mutex m_rtl_confirmation_mutex;
-  mutable RtlConfirmationTracker m_rtl_confirmation_tracker;
+  mutable std::mutex m_mode_confirmation_mutex;
+  mutable ModeConfirmationTracker m_rtl_confirmation_tracker;
+  mutable ModeConfirmationTracker m_fc_loiter_confirmation_tracker;
   mutable std::atomic<uint64_t> m_next_command_id{1};
 
   void MOOSTraceFromCallback(const std::string &msg) const

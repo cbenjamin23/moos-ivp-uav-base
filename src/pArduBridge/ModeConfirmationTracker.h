@@ -4,7 +4,7 @@
 #include <cstdint>
 #include <optional>
 
-class RtlConfirmationTracker
+class ModeConfirmationTracker
 {
 public:
   using Clock = std::chrono::steady_clock;
@@ -27,7 +27,7 @@ public:
     m_pending = Pending{command_id, accepted_at};
   }
 
-  Outcome evaluate(bool rtl_active,
+  Outcome evaluate(bool expected_mode_active,
                    Clock::time_point now = Clock::now(),
                    double timeout_s = 5.0)
   {
@@ -36,7 +36,7 @@ public:
 
     const uint64_t command_id = m_pending->command_id;
     // A matching observation at the deadline is stronger evidence than timeout.
-    if (rtl_active)
+    if (expected_mode_active)
     {
       m_pending.reset();
       return {OutcomeStatus::Confirmed, command_id};

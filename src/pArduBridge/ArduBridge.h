@@ -210,6 +210,9 @@ protected: // async
   void precisionLoiter_async(bool enable);
   PromiseFuture<ResultPair> m_precision_loiter_promfut;
 
+  void flightControllerLoiter_async();
+  PromiseFuture<ResultPair> m_fc_loiter_promfut;
+
 private: // State variables
   // For UAV
 
@@ -241,6 +244,7 @@ private: // State variables
 
   std::pair<bool, std::string> m_do_loiter_pair;
   std::pair<bool, bool> m_do_precision_loiter_pair;
+  bool m_do_fc_loiter;
 
   AutopilotHelmMode m_autopilot_mode;
 

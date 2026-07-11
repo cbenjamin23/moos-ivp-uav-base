@@ -34,12 +34,12 @@ TARGET_LINK_LIBRARIES(pArduBridge
   pthread)
 
 IF(BUILD_TESTING)
-  ADD_EXECUTABLE(pArduBridge_rtl_confirmation_test
-    tests/RtlConfirmationTrackerTest.cpp)
-  TARGET_INCLUDE_DIRECTORIES(pArduBridge_rtl_confirmation_test PRIVATE
+  ADD_EXECUTABLE(pArduBridge_mode_confirmation_test
+    tests/ModeConfirmationTrackerTest.cpp)
+  TARGET_INCLUDE_DIRECTORIES(pArduBridge_mode_confirmation_test PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR})
-  ADD_TEST(NAME pArduBridge_rtl_confirmation
-    COMMAND pArduBridge_rtl_confirmation_test)
+  ADD_TEST(NAME pArduBridge_mode_confirmation
+    COMMAND pArduBridge_mode_confirmation_test)
 
   ADD_EXECUTABLE(pArduBridge_uav_policy_test
     tests/UAVPolicyTest.cpp
