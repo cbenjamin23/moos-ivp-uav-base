@@ -26,6 +26,7 @@
 #include <iostream>
 
 #include <functional>
+#include <cstdint>
 
 #include "WarningSystem.h"
 
@@ -79,6 +80,14 @@ public:
     bool landed_state_available;
     double landed_state_age_s;
     mavsdk::Telemetry::LandedState landed_state;
+  };
+
+  struct CommandResult
+  {
+    uint64_t id;
+    std::string command;
+    std::string status;
+    std::string detail;
   };
 
   enum class VehicleType
@@ -138,6 +147,11 @@ public:
   void setCallbackReportEvent(const std::function<void(const std::string &)> &callback) { callbackReportEvent = callback; }
   void setCallbackReportRunW(const std::function<void(const std::string &)> &callback) { callbackReportRunW = callback; }
   void setCallbackRetractRunW(const std::function<void(const std::string &)> &callback) { callbackRetractRunW = callback; }
+  void setCallbackCommandResult(const std::function<void(const CommandResult &)> &callback) { callbackCommandResult = callback; }
+  uint64_t reportCommandResult(const std::string &command,
+                               const std::string &status,
+                               const std::string &detail,
+                               uint64_t command_id = 0) const;
 
   void setNextWaypointLatLon(const XYPoint &wp) { mts_next_waypoint_coord.set(wp); }
   void setLoiterLocationLatLon(const XYPoint &wp) { mts_current_loiter_coord.set(wp); }
@@ -266,6 +280,8 @@ protected:
   std::function<void(const std::string &)> callbackReportEvent;
   std::function<void(const std::string &)> callbackReportRunW;
   std::function<void(const std::string &)> callbackRetractRunW;
+  std::function<void(const CommandResult &)> callbackCommandResult;
+  mutable std::atomic<uint64_t> m_next_command_id{1};
 
   void MOOSTraceFromCallback(const std::string &msg) const
   {
@@ -289,8 +305,8 @@ protected:
   };
 
   bool commandSpeed(double airspeed_m_s, SPEED_TYPE speed_type = SPEED_TYPE::SPEED_TYPE_GROUNDSPEED);
-  bool commandArmAsync() const;
-  bool commandDisarmAsync() const;
+  bool commandArmAsync(uint64_t command_id) const;
+  bool commandDisarmAsync(uint64_t command_id) const;
   ArmDisarmPolicyInputs getArmDisarmPolicyInputs() const;
   bool commandAuxFunction(int function, int switch_position) const;
   bool requestTelemetryMessageRate(uint32_t message_id, double rate_hz) const;

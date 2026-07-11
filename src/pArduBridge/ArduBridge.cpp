@@ -6,6 +6,7 @@
 /************************************************************/
 
 #include <iterator>
+#include <algorithm>
 #include "MBUtils.h"
 #include "ACTable.h"
 
@@ -40,6 +41,7 @@ ArduBridge::ArduBridge()
       m_command_groundSpeed{false},
       m_precision_loiter_enter_loiter{true},
       m_last_health_post_time{0},
+      m_last_command_result{"NONE"},
       m_warning_system_ptr{std::make_shared<WarningSystem>(
           [this](const std::string msg)
           { this->reportRunWarning(msg); },
@@ -52,6 +54,8 @@ ArduBridge::ArduBridge()
                                      { this->reportEvent(msg); });
   m_uav_model.setCallbackMOOSTrace([this](const std::string msg)
                                    { MOOSTrace(msg); });
+  m_uav_model.setCallbackCommandResult([this](const UAV_Model::CommandResult &result)
+                                       { queueCommandResult(result); });
 
   m_uav_prefix = "UAV";
 
@@ -736,6 +740,7 @@ bool ArduBridge::Iterate()
 
   postTelemetryUpdate(m_uav_prefix);
   postHealthUpdate();
+  postCommandResult();
 
   m_warning_system_ptr->checkConditions(); // Check for warnings and remove/raise them as needed
 
@@ -1076,6 +1081,7 @@ bool ArduBridge::buildReport()
   m_msgs << "DISARM Policy Reason: " << disarm_policy.reason << std::endl;
   m_msgs << "   LAND Policy Ready: " << boolToString(land_policy.action == UAV_Model::PolicyAction::Submit) << std::endl;
   m_msgs << "  LAND Policy Reason: " << land_policy.reason << std::endl;
+  m_msgs << " Last Command Result: " << m_last_command_result << std::endl;
 
   m_msgs << std::endl;
   m_msgs << "GPS Details: " << std::endl;
@@ -1343,6 +1349,38 @@ void ArduBridge::postHealthUpdate()
     Notify("UAV_LANDED_STATE", UAV_Model::landedStateToString(m_uav_model.getLandedState()), m_curr_time);
     Notify("UAV_LANDED_STATE_AGE", m_uav_model.getLandedStateTelemetryAge(), m_curr_time);
   }
+}
+
+//---------------------------------------------------------
+// Procedure: queueCommandResult()
+
+void ArduBridge::queueCommandResult(const UAV_Model::CommandResult &result)
+{
+  std::lock_guard<std::mutex> lock(m_command_results_mutex);
+  m_command_results.push_back(result);
+}
+
+//---------------------------------------------------------
+// Procedure: postCommandResult()
+
+void ArduBridge::postCommandResult()
+{
+  UAV_Model::CommandResult result;
+  {
+    std::lock_guard<std::mutex> lock(m_command_results_mutex);
+    if (m_command_results.empty())
+      return;
+    result = m_command_results.front();
+    m_command_results.pop_front();
+  }
+
+  std::string detail = result.detail;
+  std::replace(detail.begin(), detail.end(), ',', ';');
+  m_last_command_result = "id=" + std::to_string(result.id) +
+                          ",command=" + result.command +
+                          ",status=" + result.status +
+                          ",detail=" + detail;
+  Notify("UAV_COMMAND_RESULT", m_last_command_result, m_curr_time);
 }
 
 void ArduBridge::postSpeedUpdateToBehaviors(double speed)

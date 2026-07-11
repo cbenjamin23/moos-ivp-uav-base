@@ -23,6 +23,8 @@
 #include <utility> // for std::pair
 
 #include <future>
+#include <deque>
+#include <mutex>
 
 class ArduBridge : public AppCastingMOOSApp
 {
@@ -45,6 +47,8 @@ protected:
   // Notify to DB
   void postTelemetryUpdate(const std::string &prefix);
   void postHealthUpdate();
+  void postCommandResult();
+  void queueCommandResult(const UAV_Model::CommandResult &result);
 
   void postSpeedUpdateToBehaviors(double speed);
   // Send command to UAV
@@ -215,6 +219,9 @@ private: // State variables
   bool m_command_groundSpeed;
   bool m_precision_loiter_enter_loiter;
   double m_last_health_post_time;
+  std::deque<UAV_Model::CommandResult> m_command_results;
+  std::mutex m_command_results_mutex;
+  std::string m_last_command_result;
 
   std::shared_ptr<WarningSystem> m_warning_system_ptr;
   UAV_Model m_uav_model;

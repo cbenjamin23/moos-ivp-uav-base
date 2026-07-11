@@ -414,11 +414,16 @@ bool UAV_Model::requestArmAsync() const
   const auto decision = getArmPolicyDecision();
   if (decision.action == PolicyAction::Submit)
   {
-    return commandArmAsync();
+    const uint64_t command_id = reportCommandResult("ARM", "SUBMITTED", decision.reason);
+    return commandArmAsync(command_id);
   }
   if (decision.action == PolicyAction::NoOp)
+  {
+    reportCommandResult("ARM", "NO_OP", decision.reason);
     return true;
+  }
 
+  reportCommandResult("ARM", "REJECTED", decision.reason);
   m_warning_system_ptr->queue_monitorWarningForXseconds(
       "ARM rejected by bridge policy: " + decision.reason, WARNING_DURATION);
   return false;
@@ -429,11 +434,16 @@ bool UAV_Model::requestDisarmAsync() const
   const auto decision = getDisarmPolicyDecision();
   if (decision.action == PolicyAction::Submit)
   {
-    return commandDisarmAsync();
+    const uint64_t command_id = reportCommandResult("DISARM", "SUBMITTED", decision.reason);
+    return commandDisarmAsync(command_id);
   }
   if (decision.action == PolicyAction::NoOp)
+  {
+    reportCommandResult("DISARM", "NO_OP", decision.reason);
     return true;
+  }
 
+  reportCommandResult("DISARM", "REJECTED", decision.reason);
   m_warning_system_ptr->queue_monitorWarningForXseconds(
       "DISARM rejected by bridge policy: " + decision.reason, WARNING_DURATION);
   return false;
@@ -773,11 +783,13 @@ bool UAV_Model::commandAutoland() const
   const auto decision = getLandPolicyDecision();
   if (decision.action == PolicyAction::NoOp)
   {
+    reportCommandResult("LAND", "NO_OP", decision.reason);
     reportEventFromCallback("LAND not sent: " + decision.reason);
     return true;
   }
   if (decision.action == PolicyAction::Reject)
   {
+    reportCommandResult("LAND", "REJECTED", decision.reason);
     std::stringstream ss;
     ss << "LAND rejected by bridge policy: " << decision.reason
        << "; flight mode: " << mts_flight_mode;
@@ -792,15 +804,20 @@ bool UAV_Model::commandAutoland() const
         WARNING_DURATION);
   }
 
+  const uint64_t command_id = reportCommandResult("LAND", "SUBMITTED", decision.reason);
+
   mavsdk::Action::Result result = isCopter() ? m_action_ptr->land() : m_action_ptr->set_flight_mode_autoland();
 
   if (result != mavsdk::Action::Result::Success)
   {
     std::stringstream ss;
     ss << (isCopter() ? "LAND" : "AUTOLAND") << " command error: " << result;
+    reportCommandResult("LAND", "FAILED", ss.str(), command_id);
     m_warning_system_ptr->queue_monitorWarningForXseconds(ss.str(), WARNING_DURATION);
     return false;
   }
+
+  reportCommandResult("LAND", "ACCEPTED", "SUCCESS", command_id);
 
   MOOSTraceFromCallback(isCopter() ? "LAND command succeeded\n" : "AUTOLAND command succeeded\n");
   reportEventFromCallback(isCopter() ? "LAND command sent to UAV" : "AUTOLAND command sent to UAV");
@@ -941,34 +958,54 @@ bool UAV_Model::commandAndSetAirSpeed(double speed)
   return false;
 }
 
-bool UAV_Model::commandArmAsync() const
+uint64_t UAV_Model::reportCommandResult(const std::string &command,
+                                        const std::string &status,
+                                        const std::string &detail,
+                                        uint64_t command_id) const
+{
+  if (command_id == 0)
+  {
+    command_id = m_next_command_id.fetch_add(1);
+  }
+  if (callbackCommandResult)
+  {
+    callbackCommandResult(CommandResult{command_id, command, status, detail});
+  }
+  return command_id;
+}
+
+bool UAV_Model::commandArmAsync(uint64_t command_id) const
 {
 
-  m_action_ptr->arm_async([&, this](mavsdk::Action::Result result)
+  m_action_ptr->arm_async([this, command_id](mavsdk::Action::Result result)
                           {
-    // MOOSTrace("Arming result: %d\n", result);
     if (result != mavsdk::Action::Result::Success) {
         std::stringstream ss;
-        ss << "Arming failed: " << result << '\n';
+        ss << "Arming failed: " << result;
+        reportCommandResult("ARM", "FAILED", ss.str(), command_id);
         std::cout << ss.str();
         m_warning_system_ptr->queue_monitorWarningForXseconds(ss.str(), WARNING_DURATION);
-    } });
+        return;
+    }
+    reportCommandResult("ARM", "ACCEPTED", "SUCCESS", command_id); });
 
   return true;
 }
 
-bool UAV_Model::commandDisarmAsync() const
+bool UAV_Model::commandDisarmAsync(uint64_t command_id) const
 {
 
-  m_action_ptr->disarm_async([&, this](mavsdk::Action::Result result)
+  m_action_ptr->disarm_async([this, command_id](mavsdk::Action::Result result)
                              {
-      // MOOSTrace("Disarming result: %d\n", result);
       if (result != mavsdk::Action::Result::Success) {
           std::stringstream ss;
-          ss << "Disarming failed: " << result << '\n';
+          ss << "Disarming failed: " << result;
+          reportCommandResult("DISARM", "FAILED", ss.str(), command_id);
           std::cout << ss.str();
           m_warning_system_ptr->queue_monitorWarningForXseconds(ss.str(), WARNING_DURATION);
-      } });
+          return;
+      }
+      reportCommandResult("DISARM", "ACCEPTED", "SUCCESS", command_id); });
 
   return true;
 }
