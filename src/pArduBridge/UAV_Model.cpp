@@ -790,6 +790,11 @@ bool UAV_Model::commandReturnToLaunchAsync(const CommandCompletion &completion) 
         return;
     }
     reportCommandResult("RTL", "ACCEPTED", "SUCCESS", command_id);
+    // MAVSDK acceptance is not proof of a mode change; telemetry confirms it.
+    {
+      std::lock_guard<std::mutex> lock(m_rtl_confirmation_mutex);
+      m_rtl_confirmation_tracker.accept(command_id);
+    }
     if (completion)
       completion(true, "SUCCESS"); });
 
@@ -990,6 +995,23 @@ uint64_t UAV_Model::reportCommandResult(const std::string &command,
     callbackCommandResult(CommandResult{command_id, command, status, detail});
   }
   return command_id;
+}
+
+void UAV_Model::pollCommandConfirmations()
+{
+  RtlConfirmationTracker::Outcome outcome;
+  {
+    std::lock_guard<std::mutex> lock(m_rtl_confirmation_mutex);
+    outcome = m_rtl_confirmation_tracker.evaluate(
+        mts_flight_mode.get() == mavsdk::Telemetry::FlightMode::ReturnToLaunch,
+        RtlConfirmationTracker::Clock::now(),
+        RTL_CONFIRMATION_TIMEOUT_S);
+  }
+
+  if (outcome.status == RtlConfirmationTracker::OutcomeStatus::Confirmed)
+    reportCommandResult("RTL", "CONFIRMED", "FLIGHT_MODE_RTL", outcome.command_id);
+  else if (outcome.status == RtlConfirmationTracker::OutcomeStatus::TimedOut)
+    reportCommandResult("RTL", "TIMED_OUT", "FLIGHT_MODE_NOT_CONFIRMED", outcome.command_id);
 }
 
 bool UAV_Model::commandArmAsync(uint64_t command_id) const

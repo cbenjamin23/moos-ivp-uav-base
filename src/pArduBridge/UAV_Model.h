@@ -29,6 +29,7 @@
 #include <cstdint>
 
 #include "WarningSystem.h"
+#include "RtlConfirmationTracker.h"
 
 #include "XYPoint.h"
 
@@ -48,6 +49,7 @@ class UAV_Model
 public:
   static constexpr double HEALTH_TELEMETRY_MAX_AGE_S = 3.0;
   static constexpr double LANDED_STATE_TELEMETRY_MAX_AGE_S = 2.0;
+  static constexpr double RTL_CONFIRMATION_TIMEOUT_S = 5.0;
 
   enum class PolicyAction
   {
@@ -154,6 +156,7 @@ public:
                                const std::string &status,
                                const std::string &detail,
                                uint64_t command_id = 0) const;
+  void pollCommandConfirmations();
 
   void setNextWaypointLatLon(const XYPoint &wp) { mts_next_waypoint_coord.set(wp); }
   void setLoiterLocationLatLon(const XYPoint &wp) { mts_current_loiter_coord.set(wp); }
@@ -283,6 +286,9 @@ protected:
   std::function<void(const std::string &)> callbackReportRunW;
   std::function<void(const std::string &)> callbackRetractRunW;
   std::function<void(const CommandResult &)> callbackCommandResult;
+
+  mutable std::mutex m_rtl_confirmation_mutex;
+  mutable RtlConfirmationTracker m_rtl_confirmation_tracker;
   mutable std::atomic<uint64_t> m_next_command_id{1};
 
   void MOOSTraceFromCallback(const std::string &msg) const

@@ -762,6 +762,7 @@ bool ArduBridge::Iterate()
 
   postTelemetryUpdate(m_uav_prefix);
   postHealthUpdate();
+  m_uav_model.pollCommandConfirmations();
   postCommandResult();
 
   m_warning_system_ptr->checkConditions(); // Check for warnings and remove/raise them as needed

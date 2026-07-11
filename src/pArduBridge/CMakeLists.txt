@@ -33,3 +33,11 @@ TARGET_LINK_LIBRARIES(pArduBridge
   m
   pthread)
 
+IF(BUILD_TESTING)
+  ADD_EXECUTABLE(pArduBridge_rtl_confirmation_test
+    tests/RtlConfirmationTrackerTest.cpp)
+  TARGET_INCLUDE_DIRECTORIES(pArduBridge_rtl_confirmation_test PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR})
+  ADD_TEST(NAME pArduBridge_rtl_confirmation
+    COMMAND pArduBridge_rtl_confirmation_test)
+ENDIF()
