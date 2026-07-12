@@ -8,10 +8,10 @@ See the [canonical pArduBridge reference](pArduBridge/README.md) for configurati
 
 | Command | Plane | Copter | Control/result |
 |---|---|---|---|
-| `DO_TAKEOFF` | Starts the current bridge/SITL mission; vehicle must already be armed. | MAVSDK takeoff to configured altitude; vehicle must already be armed. | No `UAV_COMMAND_RESULT` lifecycle yet; use events and FC telemetry. |
-| `FLY_WAYPOINT` | Guided reposition to `NEXT_WAYPOINT`, or MOOS `TOWAYPT_UPDATE` with Helm active. | Same position-target path. | No lifecycle yet; verify Guided, `DO_REPOSITION`, target, and movement. |
+| `DO_TAKEOFF` | Starts the current bridge/SITL mission; vehicle must already be armed. | MAVSDK takeoff to configured altitude; vehicle must be armed with fresh `ON_GROUND` telemetry. | Plane confirms Mission/Takeoff mode. Copter reports `SUBMITTED → ACCEPTED → CONFIRMED → COMPLETED` at target altitude. |
+| `FLY_WAYPOINT` | Guided reposition to `NEXT_WAYPOINT`, or MOOS `TOWAYPT_UPDATE` with Helm active. | Same position-target path. | Reports rejection, submission, and target acceptance/failure. Arrival still requires navigation telemetry. |
 | `RETURN_TO_LAUNCH`, `RETURN` | Native RTL with Helm inactive; MOOS return waypoint with Helm active. | Same split. | Native RTL is telemetry-confirmed; MOOS return reports `MOOS_RETURN_WAYPOINT`. |
-| `LOITER` | Guided orbit around the chosen coordinate. | Guided move-to/hold at the chosen coordinate. | Legacy path; bridge state `HELM_INACTIVE_LOITERING`. |
+| `LOITER` | Guided orbit around the chosen coordinate. | Guided move-to/hold at the chosen coordinate. | Reports Guided-target acceptance/failure; bridge state `HELM_INACTIVE_LOITERING`. |
 | `LOITER_FC` | Native ArduPlane Loiter orbit at current point. | Native ArduCopter Loiter position hold. | `SUBMITTED → ACCEPTED → CONFIRMED`; repeat is `NO_OP`. |
 | `PRECISION_LOITER` | Rejected `COPTER_ONLY`. | Native Loiter plus ArduPilot auxiliary function 39. | Requires armed, `PLND_ENABLED=1`, nonzero `PLND_TYPE`; Loiter telemetry confirmed. |
 | `PRECISION_LOITER_OFF` | Rejected `COPTER_ONLY`. | Disables auxiliary function 39. | `SUBMITTED → ACCEPTED`; no durable FC enabled-state bit is available. |
@@ -101,13 +101,16 @@ id=13,command=RTL,status=CONFIRMED,detail=FLIGHT_MODE_RTL
 
 - `SUBMITTED`: bridge policy allowed the command.
 - `ACCEPTED`: MAVSDK/ArduPilot acknowledged it.
-- `CONFIRMED`: expected mode telemetry arrived within five seconds.
-- `TIMED_OUT`: expected mode telemetry did not arrive.
+- `CONFIRMED`: expected FC telemetry arrived, such as RTL, native Loiter, or takeoff activation.
+- `TIMED_OUT`: expected activation or completion evidence did not arrive by its deadline.
 - `REJECTED`: bridge policy prevented submission.
 - `FAILED`: MAVSDK/MAVLink reported a failure after submission.
 - `NO_OP`: requested terminal state was already active.
+- `COMPLETED`: a defined motion objective was reached; currently Copter takeoff altitude.
 
 Do not collapse `ACCEPTED` and `CONFIRMED`. Keep the command ID when logging a lifecycle.
+
+Every recognized `ARDU_COMMAND` produces a result. MOOS-only or visualization commands terminate at `ACCEPTED`/`REJECTED`; they never claim an FC state that cannot be observed. Unknown tokens are `REJECTED,UNHANDLED_COMMAND`.
 
 ## Shoreside bridging
 

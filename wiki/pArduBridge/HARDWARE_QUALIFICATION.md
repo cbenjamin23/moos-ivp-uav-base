@@ -138,6 +138,7 @@ Keep each armed state brief and return to DISARM between groups when practical.
 |---|---|---|
 | ARM | Same ID reaches `SUBMITTED → ACCEPTED`; armed bit true. | FC arms with no bypassed checks. |
 | DISARM on ground | `SUBMITTED → ACCEPTED`; armed bit false. | FC disarms. |
+| Autonomous takeoff, flight test only | `SUBMITTED → ACCEPTED → CONFIRMED → COMPLETED` with one ID. | FC reports takeoff/in-air and settles within 0.5 m of configured altitude. |
 | Airborne DISARM request, simulated only or during separately controlled flight | `REJECTED,NOT_ON_GROUND`. | FC remains armed. |
 | Guided waypoint | Vehicle receives the `NEXT_WAYPOINT` position target. | Guided plus accepted `DO_REPOSITION`; target coordinates/altitude correct. |
 | Legacy `LOITER` | `HELM_INACTIVE_LOITERING`. | Guided coordinate hold; Plane orbits target, Copter holds target. |

@@ -63,6 +63,8 @@ Platform distinction:
 
 The tracker stores a command ID and acceptance time. RTL, `LOITER_FC`, and Precision Loiter wait up to five seconds for matching telemetry. A matching mode at the deadline is treated as confirmation rather than timeout.
 
+`TakeoffConfirmationTracker` preserves the same ID through activation and completion. Copter activation is confirmed from FC Takeoff or landed-state telemetry; completion additionally requires `IN_AIR` and configured relative altitude within 0.5 m. Plane stops at Mission/Takeoff-mode confirmation because mission items, rather than the bridge target, define completion.
+
 ## Authority model
 
 The bridge and flight controller are separate gatekeepers:
@@ -121,6 +123,19 @@ ARDU_COMMAND
   → ACCEPTED
   → ModeConfirmationTracker
   → CONFIRMED or TIMED_OUT
+```
+
+### Copter takeoff
+
+```text
+DO_TAKEOFF
+  → armed + fresh ON_GROUND policy
+  → SUBMITTED
+  → configure altitude + MAVSDK takeoff
+  → ACCEPTED
+  → FC Takeoff/TAKING_OFF/IN_AIR telemetry → CONFIRMED
+  → IN_AIR at target altitude tolerance   → COMPLETED
+  → activation or completion timeout      → TIMED_OUT
 ```
 
 ### Precision Loiter

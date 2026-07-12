@@ -304,6 +304,72 @@ bool UAV_Model::startMission() const
   return true;
 }
 
+bool UAV_Model::requestTakeoff() const
+{
+  if (!m_is_armed)
+  {
+    reportCommandResult("TAKEOFF", "REJECTED", "NOT_ARMED");
+    m_warning_system_ptr->queue_monitorWarningForXseconds(
+        "TAKEOFF rejected by bridge policy: NOT_ARMED", WARNING_DURATION);
+    return false;
+  }
+
+  {
+    std::lock_guard<std::mutex> lock(m_mode_confirmation_mutex);
+    if (m_takeoff_confirmation_tracker.hasPending())
+    {
+      reportCommandResult("TAKEOFF", "NO_OP", "TAKEOFF_ALREADY_ACTIVE");
+      return true;
+    }
+  }
+
+  if (isCopter())
+  {
+    if (!m_landed_state_received)
+    {
+      reportCommandResult("TAKEOFF", "REJECTED", "LANDED_STATE_UNAVAILABLE");
+      return false;
+    }
+    if (getLandedStateTelemetryAge() > LANDED_STATE_TELEMETRY_MAX_AGE_S)
+    {
+      reportCommandResult("TAKEOFF", "REJECTED", "LANDED_STATE_STALE");
+      return false;
+    }
+
+    const auto landed_state = mts_landed_state.get();
+    if (landed_state == mavsdk::Telemetry::LandedState::TakingOff ||
+        landed_state == mavsdk::Telemetry::LandedState::InAir)
+    {
+      reportCommandResult("TAKEOFF", "NO_OP", "ALREADY_AIRBORNE");
+      return true;
+    }
+    if (landed_state != mavsdk::Telemetry::LandedState::OnGround)
+    {
+      reportCommandResult("TAKEOFF", "REJECTED", "NOT_ON_GROUND");
+      return false;
+    }
+  }
+
+  const uint64_t command_id = reportCommandResult(
+      "TAKEOFF", "SUBMITTED", isCopter() ? "READY" : "MISSION_START_READY");
+  if (!startMission())
+  {
+    reportCommandResult("TAKEOFF", "FAILED",
+                        isCopter() ? "TAKEOFF_COMMAND_FAILED" : "MISSION_START_FAILED",
+                        command_id);
+    return false;
+  }
+
+  {
+    std::lock_guard<std::mutex> lock(m_mode_confirmation_mutex);
+    m_takeoff_confirmation_tracker.accept(
+        command_id, m_target_altitudeAGL, isCopter());
+  }
+  reportCommandResult("TAKEOFF", "ACCEPTED", isCopter() ? "SUCCESS" : "MISSION_STARTED",
+                      command_id);
+  return true;
+}
+
 UAV_Model::PolicyDecision UAV_Model::evaluateArmPolicy(const ArmDisarmPolicyInputs &inputs)
 {
   if (inputs.armed)
@@ -1118,6 +1184,7 @@ void UAV_Model::pollCommandConfirmations()
   ModeConfirmationTracker::Outcome rtl_outcome;
   ModeConfirmationTracker::Outcome fc_loiter_outcome;
   ModeConfirmationTracker::Outcome precision_loiter_outcome;
+  TakeoffConfirmationTracker::Outcome takeoff_outcome;
   {
     std::lock_guard<std::mutex> lock(m_mode_confirmation_mutex);
     rtl_outcome = m_rtl_confirmation_tracker.evaluate(
@@ -1132,6 +1199,27 @@ void UAV_Model::pollCommandConfirmations()
         mts_flight_mode.get() == mavsdk::Telemetry::FlightMode::Hold,
         ModeConfirmationTracker::Clock::now(),
         MODE_CONFIRMATION_TIMEOUT_S);
+
+    const auto flight_mode = mts_flight_mode.get();
+    const auto landed_state = mts_landed_state.get();
+    const bool takeoff_active = isCopter()
+                                    ? (flight_mode == mavsdk::Telemetry::FlightMode::Takeoff ||
+                                       landed_state == mavsdk::Telemetry::LandedState::TakingOff ||
+                                       landed_state == mavsdk::Telemetry::LandedState::InAir)
+                                    : (flight_mode == mavsdk::Telemetry::FlightMode::Mission ||
+                                       flight_mode == mavsdk::Telemetry::FlightMode::Takeoff);
+    const double takeoff_target_m = m_takeoff_confirmation_tracker.targetAltitudeM();
+    const bool takeoff_target_reached =
+        isCopter() && landed_state == mavsdk::Telemetry::LandedState::InAir &&
+        mts_position.get().relative_altitude_m >=
+            takeoff_target_m - TAKEOFF_ALTITUDE_TOLERANCE_M;
+    const bool takeoff_aborted =
+        !m_is_armed || flight_mode == mavsdk::Telemetry::FlightMode::Land ||
+        landed_state == mavsdk::Telemetry::LandedState::Landing;
+    takeoff_outcome = m_takeoff_confirmation_tracker.evaluate(
+        takeoff_active, takeoff_target_reached, takeoff_aborted,
+        TakeoffConfirmationTracker::Clock::now(),
+        MODE_CONFIRMATION_TIMEOUT_S, TAKEOFF_COMPLETION_TIMEOUT_S);
   }
 
   if (rtl_outcome.status == ModeConfirmationTracker::OutcomeStatus::Confirmed)
@@ -1148,6 +1236,23 @@ void UAV_Model::pollCommandConfirmations()
     reportCommandResult("PRECISION_LOITER", "CONFIRMED", "FC_LOITER_AND_AUX_COMMAND_ACCEPTED", precision_loiter_outcome.command_id);
   else if (precision_loiter_outcome.status == ModeConfirmationTracker::OutcomeStatus::TimedOut)
     reportCommandResult("PRECISION_LOITER", "TIMED_OUT", "FLIGHT_MODE_NOT_CONFIRMED", precision_loiter_outcome.command_id);
+
+  if (takeoff_outcome.confirmed)
+    reportCommandResult("TAKEOFF", "CONFIRMED",
+                        isCopter() ? "TAKEOFF_ACTIVE" : "FLIGHT_MODE_MISSION",
+                        takeoff_outcome.command_id);
+  if (takeoff_outcome.completed)
+    reportCommandResult("TAKEOFF", "COMPLETED", "TARGET_ALTITUDE_REACHED",
+                        takeoff_outcome.command_id);
+  if (takeoff_outcome.aborted)
+    reportCommandResult("TAKEOFF", "FAILED", "TAKEOFF_ABORTED",
+                        takeoff_outcome.command_id);
+  if (takeoff_outcome.timeout_phase == TakeoffConfirmationTracker::TimeoutPhase::Activation)
+    reportCommandResult("TAKEOFF", "TIMED_OUT", "TAKEOFF_NOT_CONFIRMED",
+                        takeoff_outcome.command_id);
+  else if (takeoff_outcome.timeout_phase == TakeoffConfirmationTracker::TimeoutPhase::Completion)
+    reportCommandResult("TAKEOFF", "TIMED_OUT", "TARGET_ALTITUDE_NOT_REACHED",
+                        takeoff_outcome.command_id);
 }
 
 bool UAV_Model::commandArmAsync(uint64_t command_id) const

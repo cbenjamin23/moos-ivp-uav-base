@@ -120,6 +120,9 @@ MOOS variables are uppercase by convention.
 uPokeDB alpha.moos ARM_UAV=true
 uPokeDB alpha.moos ARM_UAV=false
 
+# After ARM is accepted, start configured autonomous takeoff
+uPokeDB alpha.moos ARDU_COMMAND=DO_TAKEOFF
+
 # Define and fly a Guided waypoint
 uPokeDB alpha.moos \
   NEXT_WAYPOINT='lat=42.35855,lon=-71.08750,x=8,y=10,vname=alpha'
@@ -142,7 +145,7 @@ uPokeDB alpha.moos ARDU_COMMAND=PRECISION_LOITER_OFF
 uPokeDB alpha.moos ARDU_COMMAND=AUTOLAND
 ```
 
-Watch `UAV_COMMAND_RESULT`. An `ACCEPTED` mode command is not equivalent to `CONFIRMED`; native RTL and Loiter confirmation arrives as a later result with the same command ID.
+Watch `UAV_COMMAND_RESULT`. An `ACCEPTED` command is not equivalent to `CONFIRMED`. Copter takeoff adds `CONFIRMED` when activation appears and `COMPLETED` at configured altitude; native RTL and Loiter confirmation likewise arrives later with the same command ID.
 
 ## 7. Control-path distinctions
 

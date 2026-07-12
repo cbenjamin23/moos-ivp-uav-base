@@ -135,10 +135,10 @@ Because Copter interprets `DESIRED_HEADING` as yaw, a rich MOOS `BHV_Loiter` pat
 
 | `ARDU_COMMAND` value | Result |
 |---|---|
-| `DO_TAKEOFF` | Requires an already-armed vehicle. Copter invokes MAVSDK takeoff at `takeoff_altitude`; Plane starts its current bridge/SITL mission. |
-| `FLY_WAYPOINT` | Uses `NEXT_WAYPOINT`. With Helm inactive, enters Guided and sends a position target. With Helm active, publishes `TOWAYPT_UPDATE` for MOOS behavior control. |
+| `DO_TAKEOFF` | Requires an already-armed vehicle. Copter requires fresh `ON_GROUND` telemetry, invokes MAVSDK takeoff at `takeoff_altitude`, confirms takeoff telemetry, and completes at the target altitude. Plane starts its current bridge/SITL mission and confirms Mission/Takeoff mode. |
+| `FLY_WAYPOINT` | Uses `NEXT_WAYPOINT`. With Helm inactive, enters Guided and sends a position target. With Helm active, publishes `TOWAYPT_UPDATE` for MOOS behavior control. Reports rejection, submission, and acceptance/failure; arrival is not yet a lifecycle state. |
 | `RETURN_TO_LAUNCH` or `RETURN` | With Helm inactive, requests native FC RTL and confirms RTL telemetry. With Helm active, publishes the home point to `RETURN_UPDATE`. |
-| `LOITER` | Legacy Guided coordinate hold. Copter moves to and holds the target; Plane orbits the target in Guided. |
+| `LOITER` | Legacy Guided coordinate hold. Copter moves to and holds the target; Plane orbits the target in Guided. Reports submission and FC target acceptance/failure. |
 | `LOITER_FC` | Requests native FC Loiter: Copter position hold or Plane orbit at the current point. Confirms `Hold` telemetry. |
 | `PRECISION_LOITER`, `PRECISION_LOITER_ON`, `PRECISION_LOITER_ENABLE` | Copter only. Requires armed state, `PLND_ENABLED=1`, nonzero `PLND_TYPE`, and an allowed autonomy-controlled mode. Enters native Loiter unless configured not to, then enables ArduPilot auxiliary function 39. |
 | `PRECISION_LOITER_OFF`, `PRECISION_LOITER_DISABLE` | Copter only. Disables auxiliary function 39. Allowed even when disarmed or after an external mode change. |
@@ -189,15 +189,18 @@ Statuses:
 
 | Status | Meaning |
 |---|---|
-| `SUBMITTED` | The bridge policy passed and the MAVLink/MAVSDK command was sent. |
+| `SUBMITTED` | Bridge policy passed and command submission is beginning. |
 | `ACCEPTED` | MAVSDK or ArduPilot acknowledged the command. This alone is not mode confirmation. |
-| `CONFIRMED` | FC telemetry reported the expected RTL or native Loiter mode within 5 seconds. |
-| `TIMED_OUT` | The expected mode was not observed within 5 seconds. |
+| `CONFIRMED` | FC telemetry reported the expected command state, such as RTL, native Loiter, or takeoff activation. |
+| `TIMED_OUT` | The expected activation or completion evidence was not observed by its deadline. |
 | `REJECTED` | The bridge policy blocked submission. |
 | `FAILED` | Submission occurred but MAVSDK/MAVLink reported failure. |
 | `NO_OP` | The requested terminal state was already active. |
+| `COMPLETED` | A motion command with a defined completion condition reached it. Currently used when Copter takeoff reaches its configured altitude. |
 
-The same command ID is retained across `SUBMITTED → ACCEPTED → CONFIRMED/TIMED_OUT`. Lifecycle reporting currently covers ARM, DISARM, LAND, native RTL, `LOITER_FC`, Precision Loiter, and MOOS return routing. Legacy `LOITER`, `FLY_WAYPOINT`, takeoff, survey, and setpoint changes still rely on warnings/events and independent telemetry.
+The same command ID is retained across a multi-stage lifecycle. Copter takeoff uses `SUBMITTED → ACCEPTED → CONFIRMED → COMPLETED`; activation must be observed within 5 seconds and target altitude within 60 seconds. Completion requires FC `IN_AIR` telemetry and relative altitude at least `takeoff_altitude - 0.5 m`. Plane takeoff confirms Mission/Takeoff mode but does not claim altitude completion because its uploaded mission owns that definition.
+
+Every recognized `ARDU_COMMAND` now produces `UAV_COMMAND_RESULT`. Commands that only update MOOS or visualization state report an honest terminal `ACCEPTED`/`REJECTED`; they do not claim FC confirmation. `FLY_WAYPOINT` and legacy `LOITER` report whether the Guided target was accepted, not physical arrival. Unknown command tokens report `REJECTED,UNHANDLED_COMMAND`.
 
 Precision Loiter `CONFIRMED` means the PLND parameters were configured, auxiliary function 39 was accepted, and FC Loiter telemetry was observed. It does not prove that a landing target is presently acquired; MAVLink exposes no durable auxiliary-function state through this implementation.
 

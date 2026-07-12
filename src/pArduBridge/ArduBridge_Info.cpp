@@ -146,7 +146,7 @@ void showInterfaceAndExit()
   blk("  UAV_DISARM_POLICY_REASON   // Stable reason token, e.g. READY or NOT_ON_GROUND       ");
   blk("  UAV_LAND_POLICY_READY      // 1 when mode policy permits a new LAND submission       ");
   blk("  UAV_LAND_POLICY_REASON     // Stable reason token; all unlisted modes are denied      ");
-  blk("  UAV_COMMAND_RESULT         // Lifecycle; confirmed mode changes add CONFIRMED/TIMED_OUT ");
+  blk("  UAV_COMMAND_RESULT         // Every ARDU_COMMAND reports an outcome; takeoff adds COMPLETED ");
   blk("  UAV_GPS_AVAILABLE          // 1 after GPS telemetry is received; fix may be invalid ");
   blk("  UAV_GPS_FIX_TYPE           // 0=No GPS,1=No Fix,2=2D,3=3D,...6=RTK fixed          ");
   blk("  UAV_GPS_SATELLITES         // Satellites used/visible                               ");

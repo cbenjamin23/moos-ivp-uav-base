@@ -30,6 +30,7 @@
 
 #include "WarningSystem.h"
 #include "ModeConfirmationTracker.h"
+#include "TakeoffConfirmationTracker.h"
 
 #include "XYPoint.h"
 
@@ -50,6 +51,8 @@ public:
   static constexpr double HEALTH_TELEMETRY_MAX_AGE_S = 3.0;
   static constexpr double LANDED_STATE_TELEMETRY_MAX_AGE_S = 2.0;
   static constexpr double MODE_CONFIRMATION_TIMEOUT_S = 5.0;
+  static constexpr double TAKEOFF_COMPLETION_TIMEOUT_S = 60.0;
+  static constexpr double TAKEOFF_ALTITUDE_TOLERANCE_M = 0.5;
 
   enum class PolicyAction
   {
@@ -125,6 +128,7 @@ public:
   bool setUpMission(bool onlyRegisterHome = true);
 
   bool startMission() const;
+  bool requestTakeoff() const;
   bool requestArmAsync() const;
   bool requestDisarmAsync() const;
   PolicyDecision getArmPolicyDecision() const;
@@ -306,6 +310,7 @@ protected:
   mutable ModeConfirmationTracker m_rtl_confirmation_tracker;
   mutable ModeConfirmationTracker m_fc_loiter_confirmation_tracker;
   mutable ModeConfirmationTracker m_precision_loiter_confirmation_tracker;
+  mutable TakeoffConfirmationTracker m_takeoff_confirmation_tracker;
   mutable std::atomic<uint64_t> m_next_command_id{1};
 
   void MOOSTraceFromCallback(const std::string &msg) const

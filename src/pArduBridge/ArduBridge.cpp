@@ -281,6 +281,7 @@ bool ArduBridge::OnNewMail(MOOSMSG_LIST &NewMail)
       if (command == "VIZ_HOME")
       {
         visualizeHomeLocation();
+        m_uav_model.reportCommandResult("VIZ_HOME", "ACCEPTED", "HOME_VISUALIZED");
         handled = true;
       }
       else if (command == "FLY_WAYPOINT")
@@ -342,6 +343,7 @@ bool ArduBridge::OnNewMail(MOOSMSG_LIST &NewMail)
 
       if (!handled)
       {
+        m_uav_model.reportCommandResult("UNKNOWN", "REJECTED", "UNHANDLED_COMMAND");
         Logger::warning("Unhandled ARDU Command: " + command);
         m_warning_system_ptr->queue_monitorWarningForXseconds("Unhandled ARDU Command: " + command, WARNING_DURATION);
       }
@@ -468,7 +470,10 @@ bool ArduBridge::Iterate()
   if (m_do_reset_speed)
   {
     auto min_speed = m_uav_model.getMinAirSpeed();
-    if (m_uav_model.commandAndSetAirSpeed(min_speed))
+    const uint64_t command_id =
+        m_uav_model.reportCommandResult("RESET_SPEED_MIN", "SUBMITTED", "READY");
+    bool success = m_uav_model.commandAndSetAirSpeed(min_speed);
+    if (success)
     {
       postSpeedUpdateToBehaviors(min_speed);
       reportEvent("Changed speed to " + doubleToString(min_speed));
@@ -476,8 +481,11 @@ bool ArduBridge::Iterate()
 
     if (m_command_groundSpeed)
     {
-      m_uav_model.commandGroundSpeed(m_uav_model.getMinAirSpeed());
+      success = m_uav_model.commandGroundSpeed(m_uav_model.getMinAirSpeed()) && success;
     }
+    m_uav_model.reportCommandResult(
+        "RESET_SPEED_MIN", success ? "ACCEPTED" : "FAILED",
+        success ? "MINIMUM_SPEED_SET" : "SPEED_COMMAND_FAILED", command_id);
     m_do_reset_speed = false;
   }
 
@@ -750,25 +758,26 @@ bool ArduBridge::Iterate()
     // Handled by pGridSearchPlanner
     // Notify("SURVEY_UPDATE", generateMissionPathSpec(m_waypointsXY_mission));
 
-    bool sendCommand=true;
-
-    if (!isHelmOn()){
+    if (!isHelmOn())
+    {
+      m_uav_model.reportCommandResult("SURVEY", "REJECTED", "HELM_INACTIVE");
       m_warning_system_ptr->queue_monitorWarningForXseconds("Helm is not active, Cannot do survey", WARNING_DURATION);
-      sendCommand=false;
     }
-    else if(!m_uav_model.commandGuidedMode())
+    else
     {
-      m_warning_system_ptr->queue_monitorWarningForXseconds("Failed to enter guided mode", WARNING_DURATION);
-      sendCommand=false;
+      const uint64_t command_id =
+          m_uav_model.reportCommandResult("SURVEY", "SUBMITTED", "READY");
+      if (!m_uav_model.commandGuidedMode())
+      {
+        m_uav_model.reportCommandResult("SURVEY", "FAILED", "GUIDED_MODE_FAILED", command_id);
+        m_warning_system_ptr->queue_monitorWarningForXseconds("Failed to enter guided mode", WARNING_DURATION);
+      }
+      else
+      {
+        goToHelmMode(AutopilotHelmMode::HELM_SURVEYING);
+        m_uav_model.reportCommandResult("SURVEY", "ACCEPTED", "HELM_SURVEYING", command_id);
+      }
     }
-   
-    if (sendCommand)
-    {
-      m_uav_model.commandGuidedMode();
-      goToHelmMode(AutopilotHelmMode::HELM_SURVEYING);
-    }
-
-
 
     m_do_helm_survey = false;
   }
@@ -779,21 +788,25 @@ bool ArduBridge::Iterate()
 
   if (m_do_helm_voronoi)
   {
-   
-    bool sendCommand=true;
     if (!isHelmOn())
     {
+      m_uav_model.reportCommandResult("DO_VORONOI", "REJECTED", "HELM_INACTIVE");
       m_warning_system_ptr->queue_monitorWarningForXseconds("Helm is not active, Cannot do Voronoi", WARNING_DURATION);
-      sendCommand=false;
     }
-    else if (!m_uav_model.commandGuidedMode())
+    else
     {
-      m_warning_system_ptr->queue_monitorWarningForXseconds("Failed to enter guided mode", WARNING_DURATION);
-      sendCommand=false;
-    }   
-    if (sendCommand)
-    {
-      goToHelmMode(AutopilotHelmMode::HELM_VORONOI);
+      const uint64_t command_id =
+          m_uav_model.reportCommandResult("DO_VORONOI", "SUBMITTED", "READY");
+      if (!m_uav_model.commandGuidedMode())
+      {
+        m_uav_model.reportCommandResult("DO_VORONOI", "FAILED", "GUIDED_MODE_FAILED", command_id);
+        m_warning_system_ptr->queue_monitorWarningForXseconds("Failed to enter guided mode", WARNING_DURATION);
+      }
+      else
+      {
+        goToHelmMode(AutopilotHelmMode::HELM_VORONOI);
+        m_uav_model.reportCommandResult("DO_VORONOI", "ACCEPTED", "HELM_VORONOI", command_id);
+      }
     }
     m_do_helm_voronoi = false;
   }
@@ -1617,12 +1630,13 @@ bool ArduBridge::tryDoTakeoff()
 {
   if (isHelmOn())
   {
+    m_uav_model.reportCommandResult("TAKEOFF", "REJECTED", "HELM_ACTIVE");
     m_warning_system_ptr->queue_monitorWarningForXseconds("HELM is active when trying to give control to UAV Ardupilot Start mission", WARNING_DURATION);
   }
   else
   {
     // send the takeoff command
-    return m_uav_model.startMission();
+    return m_uav_model.requestTakeoff();
   }
   return false;
 }
@@ -1664,10 +1678,13 @@ void ArduBridge::flyToWaypoint_async()
   XYPoint wp = m_uav_model.getNextWaypointLatLon();
   if (wp == XYPoint(0, 0))
   {
-    // m_warning_system_ptr->queue_monitorWarningForXseconds("No waypoint set", WARNING_DURATION);
+    m_uav_model.reportCommandResult("FLY_WAYPOINT", "REJECTED", "WAYPOINT_UNAVAILABLE");
     m_fly_to_waypoint_promfut.prom.set_value(ResultPair{false, "No waypoint set"});
     return;
   }
+
+  const uint64_t command_id = m_uav_model.reportCommandResult(
+      "FLY_WAYPOINT", "SUBMITTED", isHelmOn() ? "MOOS_GUIDANCE" : "FC_GUIDANCE");
 
   if (isHelmOn())
   {
@@ -1685,13 +1702,15 @@ void ArduBridge::flyToWaypoint_async()
     Notify("TOWAYPT_UPDATE", update_str);
 
     m_uav_model.setLoiterLocationLatLon(wp); // set the waypoint
+    m_uav_model.reportCommandResult("FLY_WAYPOINT", "ACCEPTED",
+                                    "TOWAYPT_UPDATE_POSTED", command_id);
     m_fly_to_waypoint_promfut.prom.set_value(ResultPair{true, ""});
     return;
   }
 
   // Helm is Park from here:
 
-  m_uav_model.pushCommand([wp, this](UAV_Model &uav)
+  m_uav_model.pushCommand([wp, command_id, this](UAV_Model &uav)
                           {
 
       // Helm is inactive. Send the waypoint directly to the UAV
@@ -1699,6 +1718,11 @@ void ArduBridge::flyToWaypoint_async()
       if(success){
         uav.setLoiterLocationLatLon(wp); // clear the waypoint
         Logger::info("UAV_Model THREAD: Successfully sent waypoint to UAV");  
+        uav.reportCommandResult("FLY_WAYPOINT", "ACCEPTED", "GUIDED_TARGET_SENT", command_id);
+      }
+      else
+      {
+        uav.reportCommandResult("FLY_WAYPOINT", "FAILED", "GUIDED_TARGET_FAILED", command_id);
       }
       
       m_fly_to_waypoint_promfut.prom.set_value(
@@ -1839,7 +1863,11 @@ bool ArduBridge::tryloiterAtPos(const XYPoint &loiter_coord, bool holdCurrentAlt
 void ArduBridge::loiterAtPos_async(const XYPoint &loiter_coord, bool holdCurrentAltitude)
 {
 
-  m_uav_model.pushCommand([loiter_coord, holdCurrentAltitude, ap_mode = m_autopilot_mode, this](UAV_Model &uav)
+  const uint64_t command_id =
+      m_uav_model.reportCommandResult("LOITER", "SUBMITTED", "FC_GUIDANCE");
+
+  m_uav_model.pushCommand([loiter_coord, holdCurrentAltitude, ap_mode = m_autopilot_mode,
+                           command_id, this](UAV_Model &uav)
                           {
 
       XYPoint loiter_latlon = loiter_coord;
@@ -1858,6 +1886,7 @@ void ArduBridge::loiterAtPos_async(const XYPoint &loiter_coord, bool holdCurrent
 
       if (!uav.commandLoiterAtPos(loiter_latlon, holdCurrentAltitude))
       {
+        uav.reportCommandResult("LOITER", "FAILED", "GUIDED_HOLD_FAILED", command_id);
         m_loiter_at_pos_promfut.prom.set_value(ResultPair{false, "Failed sending command"});
         return;
       }
@@ -1867,6 +1896,7 @@ void ArduBridge::loiterAtPos_async(const XYPoint &loiter_coord, bool holdCurrent
         uav.setNextWaypointLatLon(XYPoint(0, 0));
       }
 
+      uav.reportCommandResult("LOITER", "ACCEPTED", "GUIDED_HOLD_TARGET_SENT", command_id);
       m_loiter_at_pos_promfut.prom.set_value(ResultPair{true, ""}); });
 }
 
