@@ -1,499 +1,143 @@
-# UAV ArduPilot Commands Reference
+# UAV ArduPilot Command Reference
 
-This guide documents the ArduPilot (ARDU) commands used in UAV missions and how to implement them in MOOS configuration files.
+`ARDU_COMMAND` is pArduBridge's main explicit-command variable. Commands may be posted locally, bridged from shoreside, emitted by a behavior flag, or exposed as a pMarineViewer/pRealm control.
 
-## Table of Contents
-- [Overview](#overview)
-- [ARDU Command List](#ardu-command-list)
-- [Using Commands in .moos Files](#using-commands-in-moos-files)
-- [Examples](#examples)
+See the [canonical pArduBridge reference](pArduBridge/README.md) for configuration, policies, telemetry, and lifecycle details.
 
----
+## Command summary
 
-## Overview
+| Command | Plane | Copter | Control/result |
+|---|---|---|---|
+| `DO_TAKEOFF` | Starts the current bridge/SITL mission; vehicle must already be armed. | MAVSDK takeoff to configured altitude; vehicle must already be armed. | No `UAV_COMMAND_RESULT` lifecycle yet; use events and FC telemetry. |
+| `FLY_WAYPOINT` | Guided reposition to `NEXT_WAYPOINT`, or MOOS `TOWAYPT_UPDATE` with Helm active. | Same position-target path. | No lifecycle yet; verify Guided, `DO_REPOSITION`, target, and movement. |
+| `RETURN_TO_LAUNCH`, `RETURN` | Native RTL with Helm inactive; MOOS return waypoint with Helm active. | Same split. | Native RTL is telemetry-confirmed; MOOS return reports `MOOS_RETURN_WAYPOINT`. |
+| `LOITER` | Guided orbit around the chosen coordinate. | Guided move-to/hold at the chosen coordinate. | Legacy path; bridge state `HELM_INACTIVE_LOITERING`. |
+| `LOITER_FC` | Native ArduPlane Loiter orbit at current point. | Native ArduCopter Loiter position hold. | `SUBMITTED → ACCEPTED → CONFIRMED`; repeat is `NO_OP`. |
+| `PRECISION_LOITER` | Rejected `COPTER_ONLY`. | Native Loiter plus ArduPilot auxiliary function 39. | Requires armed, `PLND_ENABLED=1`, nonzero `PLND_TYPE`; Loiter telemetry confirmed. |
+| `PRECISION_LOITER_OFF` | Rejected `COPTER_ONLY`. | Disables auxiliary function 39. | `SUBMITTED → ACCEPTED`; no durable FC enabled-state bit is available. |
+| `AUTOLAND` | Native Plane AUTOLAND. | Native Copter LAND. | Conservative LAND policy; submission/acceptance reported. |
+| `RESET_SPEED_MIN` | Commands polled minimum airspeed and optional groundspeed. | Commands minimum groundspeed. | Warning/event reporting. |
+| `SURVEY` | Requires Helm active; enters Guided and bridge survey state. | Same. | MOOS/Helm-owned behavior. |
+| `DO_VORONOI` | Requires Helm active; enters Guided and bridge Voronoi state. | Same. | MOOS/Helm-owned behavior. |
+| `VIZ_HOME` | Republishes home marker. | Same. | No FC command. |
 
-ARDU commands are special MOOS variables that control UAV behavior during missions. They are typically:
-- Sent from the shoreside/GCS to vehicles via `pShare` and `uFldShoreBroker`
-- Processed by behaviors defined in `.bhv` files
-- Triggered by buttons in `pMarineViewer` or through `pRealm` commands
+Accepted aliases are `PRECISION_LOITER_ON`, `PRECISION_LOITER_ENABLE`, and `PRECISION_LOITER_DISABLE`.
 
-**Key MOOS Variables:**
-- `ARDU_COMMAND` - Main command variable for UAV control
-- `DEPLOY`, `RETURN`, `DO_SURVEY`, `LOITER` - Behavior activation flags (used with MOOS simulator)
-- `ARM_UAV` - Arm/disarm the UAV
-- `AUTOPILOT_MODE` - Current mode of the autopilot
+## The three loiter operations
 
----
+These names are intentionally distinct:
 
-## ARDU Command List
+| Operation | FC mode | MAVLink behavior | Intended use |
+|---|---|---|---|
+| MOOS behavior loiter | Guided while Helm commands | Helm setpoints/behavior updates | Flexible MOOS pattern, subject to platform-control semantics. |
+| `ARDU_COMMAND=LOITER` | Guided | Position target at current/stored coordinate | Legacy coordinate handoff; Plane orbits, Copter holds. |
+| `ARDU_COMMAND=LOITER_FC` | Native Loiter | MAVSDK Hold/Loiter mode | Stable FC-owned hold/orbit independent of MOOS yaw commands. |
 
-### Core Flight Commands
+For Copter, `DESIRED_HEADING` is yaw. Yaw plus groundspeed does not itself describe an XY circle; a rich Copter MOOS loiter pattern needs appropriate horizontal position or velocity guidance.
 
-| Command | Description | Effect |
-|---------|-------------|--------|
-| `DO_TAKEOFF` | Initiate takeoff sequence | UAV arms and takes off to mission altitude (currently only works in simulation) |
-| `RETURN_TO_LAUNCH` | Return to home position | UAV flies back to starting location and lands |
-| `AUTOLAND` | Automatic landing | UAV enters AUTOLAND mode (ArduPilot mode 26) and performs automatic landing based on takeoff direction. Creates landing approach waypoints automatically. **Requires ArduPilot Plane master branch** (not available in stable releases as of end of January 2026). |
-| `LOITER` | Guided coordinate hold | Keeps ArduPilot in Guided mode and sends a position target; Copter holds the target while Plane orbits it |
-| `LOITER_FC` | Native flight-controller loiter | Enters native Copter Loiter (position hold) or Plane Loiter (orbit at the current point) |
-| `PRECISION_LOITER` | Precision Loiter (Copter only) | Requires `PLND_ENABLED=1` and nonzero `PLND_TYPE`, enters native Copter Loiter, enables auxiliary function 39, and confirms Loiter from telemetry |
-| `PRECISION_LOITER_OFF` | Disable Precision Loiter (Copter only) | Disables ArduPilot auxiliary function 39; MAVLink acknowledges the command but provides no durable enabled-state telemetry |
-| `FLY_WAYPOINT` | Fly to specified waypoint | UAV navigates to a target waypoint or resumes waypoint mission |
+Precision Loiter first establishes native Copter Loiter unless `precision_loiter_enter_loiter=false`, in which case the FC must already be in Loiter. It then sends auxiliary function 39. `CONFIRMED` proves the configured backend, accepted auxiliary command, and Loiter mode—not live target acquisition.
 
-### Mission Commands
+## Return routing
 
-| Command | Description | Effect |
-|---------|-------------|--------|
-| `DO_VORONOI` | Start Voronoi search pattern | Activates Voronoi-based area coverage algorithm |
-| `SURVEY` | Start survey pattern | Activates predefined survey behavior |
-| `RESET_SPEED_MIN` | Reset speed to minimum | Sets UAV speed to configured minimum |
+The same request has two deliberately different paths:
 
-### Visualization Commands
+```text
+Helm active
+  RETURN_TO_LAUNCH
+    → publish home point to RETURN_UPDATE
+    → MOOS behavior returns the vehicle
+    → result command=MOOS_RETURN_WAYPOINT
 
-| Command | Description | Effect |
-|---------|-------------|--------|
-| `VIZ_HOME` | Visualize home position | Displays home location marker in viewer |
-
-### Behavior Control Variables
-
-These variables control behavior activation (primarily used with MOOS simulator):
-
-| Variable | Type | Description |
-|----------|------|-------------|
-| `DEPLOY` | Boolean | Activates main mission behaviors |
-| `RETURN` | Boolean | Activates return-to-home behavior |
-| `DO_SURVEY` | Boolean | Activates survey pattern |
-| `LOITER` | Boolean | Activates loiter/hold behavior |
-| `MOOS_MANUAL_OVERRIDE` | Boolean | Manual control override flag |
-
-### Autopilot Mode States
-
-The `AUTOPILOT_MODE` variable indicates the current flight mode:
-
-- `HELM_INACTIVE` - Helm inactive; also used while the flight controller owns modes such as native loiter
-- `HELM_INACTIVE_LOITERING` - Legacy Guided coordinate hold requested by `ARDU_COMMAND=LOITER`
-- `HELM_PARKED` - On ground, disarmed
-- `HELM_TOWAYPT` - Flying to waypoint
-- `HELM_RETURNING` - Returning to launch
-- `HELM_SURVEYING` - Executing survey pattern
-
-**Note:** When AUTOLAND is active, the autopilot is in ArduPilot's AUTOLAND mode (mode 26), but the helm state remains `HELM_INACTIVE` since the landing is handled entirely by ArduPilot.
-
----
-
-## Using Commands in .moos Files
-
-### 1. Bridging Commands to Vehicles (Shoreside)
-
-In `meta_shoreside.moos`, use `uFldShoreBroker` to bridge commands:
-
-```moos
-ProcessConfig = uFldShoreBroker
-{
-  // Quick-bridge: broadcasts these variables to all vehicles
-  qbridge = ARDU_COMMAND, DEPLOY, RETURN, DO_SURVEY, LOITER
-  qbridge = PROX_POLY_VIEW
-  
-  // Individual bridges with aliases (if needed)
-  // bridge = src=RETURN_ALL, alias=RETURN
-  // bridge = src=RETURN_$V, alias=RETURN
-}
+Helm inactive
+  RETURN_TO_LAUNCH
+    → ArduPilot native RTL
+    → confirm FC RTL telemetry
+    → result command=RTL
 ```
 
-**Explanation:**
-- `qbridge` - Quick bridge, sets up the bridge similar to the individual procedure (but is a shorthand)
-- Variables sent as `VAR_ALL` are automatically broadcast to all vehicles
-- `$V` is replaced with vehicle name for individual targeting
+Use MOOS return when the mission should retain behavior-level routing and collision/planning logic. Use native RTL as an FC-owned return/failsafe path.
 
-### 2. Defining Buttons (Shoreside)
+## Waypoint format
 
-In `pMarineViewer` configuration, buttons send commands when clicked:
+Set the waypoint before issuing `FLY_WAYPOINT`:
 
-```moos
-ProcessConfig = pMarineViewer
-{
-  // Button format: button_N = LABEL # VAR1=value # VAR2=value # ...
-  
-  button_1 = DEPLOY  # DEPLOY_ALL=true # MOOS_MANUAL_OVERRIDE_ALL=false # RETURN_ALL=false
-  button_2 = RETURN  # RETURN_ALL=true # DEPLOY_ALL=false
-  button_3 = SURVEY  # DO_SURVEY_ALL=true # DEPLOY_ALL=false # RETURN_ALL=false
-  button_4 = LOITER  # LOITER_ALL=true # DEPLOY_ALL=false # RETURN_ALL=false
-  
-  // UAV-specific buttons
-  button_1 = RTL_ALL     # ARDU_COMMAND_ALL=RETURN_TO_LAUNCH 
-  button_3 = TKOFF_ALL   # ARM_UAV_ALL=true # ARDU_COMMAND_ALL=DO_TAKEOFF
-  button_4 = SURVEY_ALL  # ARDU_COMMAND_ALL=SURVEY  
-  button_5 = LOITER_ALL  # ARDU_COMMAND_ALL=LOITER
-  button_9 = FC_LOITER_ALL # ARDU_COMMAND_ALL=LOITER_FC
-  button_6 = TOWYP_ALL   # ARDU_COMMAND_ALL=FLY_WAYPOINT
-  button_7 = AUTOLAND_ALL # ARDU_COMMAND_ALL=AUTOLAND
-  button_8 = DO_VORONOI_ALL # ARDU_COMMAND_ALL=DO_VORONOI
-}
-```
-
-**Naming Convention:**
-- `VAR_ALL` broadcasts to all vehicles
-- `VAR_<VNAME>` targets specific vehicle (e.g., `DEPLOY_skywalker`)
-
-### 3. Defining pRealm Commands (Shoreside)
-
-`pRealm` allows sending commands from the command line or scripts:
-
-```moos
-ProcessConfig = pRealm
-{
-  // Command format: cmd = label=NAME, var=VARIABLE, sval=VALUE, receivers=targets
-  
-  cmd = label=TAKEOFF, var=ARDU_COMMAND, sval=DO_TAKEOFF, receivers=all:$(VNAMES)
-  cmd = label=TOWAYPOINT, var=ARDU_COMMAND, sval=FLY_WAYPOINT, receivers=all:$(VNAMES)
-  cmd = label=RTL, var=ARDU_COMMAND, sval=RETURN_TO_LAUNCH, receivers=all:$(VNAMES)
-  cmd = label=LOITER/HOLD, var=ARDU_COMMAND, sval=LOITER, receivers=all:$(VNAMES)
-  cmd = label=FC_LOITER, var=ARDU_COMMAND, sval=LOITER_FC, receivers=all:$(VNAMES)
-  cmd = label=AUTOLAND, var=ARDU_COMMAND, sval=AUTOLAND, receivers=all:$(VNAMES)
-  cmd = label=SPEED_TO_MIN, var=ARDU_COMMAND, sval=RESET_SPEED_MIN, receivers=all:$(VNAMES)
-  cmd = label=DO_VORONOI, var=ARDU_COMMAND, sval=DO_VORONOI, receivers=all:$(VNAMES)
-  cmd = label=SURVEY, var=ARDU_COMMAND, sval=SURVEY, receivers=all:$(VNAMES)
-}
-```
-
-**Usage:** Send commands via uPokeDB or command line:
 ```bash
-uPokeDB targ_shoreside.moos REALM_CMD="cmd=TAKEOFF"
+uPokeDB alpha.moos \
+  NEXT_WAYPOINT='lat=42.35855,lon=-71.08750,x=8,y=10,vname=alpha'
+uPokeDB alpha.moos ARDU_COMMAND=FLY_WAYPOINT
 ```
 
-### 4. Processing Commands in Behaviors (Vehicle)
+All five keys are parsed. `vname` must match the configured lowercase vehicle name or be `all`. Latitude/longitude are sent to ArduPilot; X/Y are used for MOOS behavior updates and visualization.
 
-In `.bhv` files, behaviors respond to these commands through conditions:
+## ARM, DISARM, and LAND
+
+ARM/DISARM use `ARM_UAV`, not `ARDU_COMMAND`:
+
+```bash
+uPokeDB alpha.moos ARM_UAV=true
+uPokeDB alpha.moos ARM_UAV=false
+```
+
+ARM requires fresh health, armable/aggregate-health OK, and fresh `ON_GROUND` telemetry. DISARM requires fresh `ON_GROUND` telemetry. The bridge never treats altitude alone as authorization to disarm.
+
+LAND may be requested through either interface:
+
+```bash
+uPokeDB alpha.moos AUTOLAND=true
+uPokeDB alpha.moos ARDU_COMMAND=AUTOLAND
+```
+
+Routine LAND/AUTOLAND is allowed from Guided, Copter Guided-as-Offboard, Mission, and native Loiter/Hold. Pilot-controlled, RTL, unknown, and unlisted modes default-deny. A request on the ground or during an existing landing is a `NO_OP`.
+
+## Command-result interpretation
+
+Example:
+
+```text
+id=13,command=RTL,status=SUBMITTED,detail=READY
+id=13,command=RTL,status=ACCEPTED,detail=SUCCESS
+id=13,command=RTL,status=CONFIRMED,detail=FLIGHT_MODE_RTL
+```
+
+- `SUBMITTED`: bridge policy allowed the command.
+- `ACCEPTED`: MAVSDK/ArduPilot acknowledged it.
+- `CONFIRMED`: expected mode telemetry arrived within five seconds.
+- `TIMED_OUT`: expected mode telemetry did not arrive.
+- `REJECTED`: bridge policy prevented submission.
+- `FAILED`: MAVSDK/MAVLink reported a failure after submission.
+- `NO_OP`: requested terminal state was already active.
+
+Do not collapse `ACCEPTED` and `CONFIRMED`. Keep the command ID when logging a lifecycle.
+
+## Shoreside bridging
+
+Bridge operator inputs to each vehicle using the mission's established `uFldShoreBroker`/`pShare` pattern. At minimum, expose the variables actually used:
 
 ```moos
-//-------- Behavior Mode Definitions --------
-
-initialize DEPLOY = false
-initialize RETURN = false
-initialize DO_SURVEY = false
-initialize LOITER = false
-
-// Define when to activate behaviors
-set BHV_MODE = INACTIVE {
-  DEPLOY != true
-  RETURN != true
-  DO_SURVEY != true
-  LOITER != true
-} ACTIVE
-
-set BHV_MODE = SURVEY {
-  BHV_MODE = ACTIVE
-  DO_SURVEY = true
-  DEPLOY != true
-  RETURN != true
-} 
-
-set BHV_MODE = VORONOI {
-  BHV_MODE = ACTIVE
-  DEPLOY = true
-  RETURN != true
-  DO_SURVEY != true
-} 
-
-set BHV_MODE = TOWAYPT {
-  BHV_MODE = ACTIVE
-  RETURN = true
-  DEPLOY != true
-} 
-
-set BHV_MODE = RETURN {
-  BHV_MODE = ACTIVE
-  AUTOPILOT_MODE = HELM_RETURNING
-}
+qbridge = ARDU_COMMAND, ARM_UAV, NEXT_WAYPOINT
+qbridge = RETURN_TO_LAUNCH, AUTOLAND
 ```
 
-### 5. ARDU Command Processing (Vehicle)
+If the shoreside convention appends `_ALL` or `_<VNAME>`, confirm that the broker aliases the received value back to the vehicle-local variable name.
 
-When using ArduPilot integration, behaviors can trigger ARDU commands:
+Example pMarineViewer controls:
 
 ```moos
-//-------- Behavior: Waypoint --------
-Behavior = BHV_Waypoint
-{
-  name      = waypt_survey
-  pwt       = 100
-  condition = BHV_MODE = SURVEY
-  endflag   = ARDU_COMMAND=LOITER    // Send command when behavior completes
-  
-  // Behavior parameters...
-}
-
-//-------- Behavior: Return to Launch --------
-Behavior = BHV_Waypoint
-{
-  name      = waypt_return
-  pwt       = 100
-  condition = BHV_MODE = RETURN
-  endflag   = ARDU_COMMAND=RETURN_TO_LAUNCH  // Trigger RTL in autopilot
-  
-  speed     = 12
-  radius    = 8.0
-  points    = $(START_POS)
-}
-
-//-------- Behavior: Survey Mission (with AUTOLAND on completion) --------
-Behavior = BHV_Waypoint
-{
-  name      = waypt_survey
-  pwt       = 100
-  condition = BHV_MODE = SURVEY
-  endflag   = ARDU_COMMAND=AUTOLAND  // Trigger AUTOLAND when survey completes
-  
-  speed     = 12
-  radius    = 8.0
-  points    = $(SURVEY_POINTS)
-}
+button_1 = ARM_ALL      # ARM_UAV_ALL=true
+button_2 = DISARM_ALL   # ARM_UAV_ALL=false
+button_3 = FC_LOITER    # ARDU_COMMAND_ALL=LOITER_FC
+button_4 = RTL_ALL      # ARDU_COMMAND_ALL=RETURN_TO_LAUNCH
+button_5 = LAND_ALL     # ARDU_COMMAND_ALL=AUTOLAND
 ```
 
----
-
-## Examples
-
-### Example 1: Complete Shoreside Configuration
+Example pRealm commands:
 
 ```moos
-//-------- meta_shoreside.moos --------
-
-ProcessConfig = uFldShoreBroker
-{
-  // Bridge commands to all vehicles
-  qbridge = ARDU_COMMAND, PROX_POLY_VIEW
-  qbridge = DEPLOY, RETURN, DO_SURVEY, LOITER
-}
-
-ProcessConfig = pMarineViewer
-{
-  // Deployment buttons
-  button_1 = DEPLOY  # DEPLOY_ALL=true # MOOS_MANUAL_OVERRIDE_ALL=false
-  button_2 = RETURN  # RETURN_ALL=true # DEPLOY_ALL=false
-  
-  // UAV-specific buttons
-  button_3 = TAKEOFF # ARM_UAV_ALL=true # ARDU_COMMAND_ALL=DO_TAKEOFF
-  button_4 = RTL     # ARDU_COMMAND_ALL=RETURN_TO_LAUNCH
-  button_5 = SURVEY  # ARDU_COMMAND_ALL=SURVEY
-}
-
-ProcessConfig = pRealm
-{
-  cmd = label=RTL, var=ARDU_COMMAND, sval=RETURN_TO_LAUNCH, receivers=all:$(VNAMES)
-  cmd = label=TAKEOFF, var=ARDU_COMMAND, sval=DO_TAKEOFF, receivers=all:$(VNAMES)
-}
+cmd = label=FC_LOITER, var=ARDU_COMMAND, sval=LOITER_FC, receivers=all:$(VNAMES)
+cmd = label=RTL,       var=ARDU_COMMAND, sval=RETURN_TO_LAUNCH, receivers=all:$(VNAMES)
+cmd = label=LAND,      var=ARDU_COMMAND, sval=AUTOLAND, receivers=all:$(VNAMES)
 ```
 
-### Example 2: Vehicle Behavior Response
+## Qualification
 
-```moos
-//-------- meta_vehicle.bhv --------
-
-initialize DEPLOY = false
-initialize RETURN = false
-
-// Inactive when not deployed or returning
-set BHV_MODE = INACTIVE {
-  DEPLOY != true
-  RETURN != true
-} ACTIVE
-
-// Active mission mode
-set BHV_MODE = VORONOI {
-  BHV_MODE = ACTIVE
-  DEPLOY = true
-  RETURN != true
-} 
-
-// Return mode
-set BHV_MODE = RETURN {
-  BHV_MODE = ACTIVE
-  RETURN = true
-}
-
-Behavior = BHV_Waypoint
-{
-  name      = waypt_return
-  condition = BHV_MODE = RETURN
-  endflag   = ARDU_COMMAND=AUTOLAND  // Use AUTOLAND instead of RTL for automatic landing
-  
-  speed     = 12
-  radius    = 8.0
-  points    = $(RETURN_POS)
-}
-```
-
-### Example 3: Mission Completion Triggers
-
-```moos
-ProcessConfig = pMissionOperator
-{
-  // Automatically trigger AUTOLAND at mission end
-  finish_flag = ARDU_COMMAND_ALL=AUTOLAND
-  finish_flag = DEPLOY_ALL=false
-  finish_flag = RETURN_ALL=false
-}
-```
-
-**Note:** AUTOLAND is now the default landing mode for mission completion. It provides automatic landing based on takeoff direction, eliminating the need for pre-programmed landing sequences.
-
----
-
-## Command Flow Diagram
-
-```
-┌─────────────────────────────────────────────────────┐
-│ Ground Control Station (Shoreside)                  │
-│                                                     │
-│  User Input:                                        │
-│  ├─ pMarineViewer buttons → VAR_ALL=value          │
-│  ├─ pRealm commands → VAR=value                    │
-│  └─ uPokeDB commands → VAR=value                   │
-│                                                     │
-│  ▼                                                  │
-│  uFldShoreBroker (qbridge) ───────────────┐         │
-└───────────────────────────────────────────│─────────┘
-                                            │
-                    Network (pShare)        │
-                                            ▼
-┌─────────────────────────────────────────────────────┐
-│ Vehicle (UAV)                                       │
-│                                                     │
-│  uFldNodeBroker ─► MOOSDB ─► pHelmIvP              │
-│                                  │                  │
-│                                  ▼                  │
-│                          Read .bhv conditions       │
-│                          (DEPLOY, RETURN, etc.)     │
-│                                  │                  │
-│                                  ▼                  │
-│                          Activate Behaviors         │
-│                          (endflag triggers)         │
-│                                  │                  │
-│                                  ▼                  │
-│                          Output ARDU_COMMAND         │
-│                          (e.g., ARDU_COMMAND=AUTOLAND)│
-│                                  │                  │
-│                                  ▼                  │
-│                          pArduBridge                │
-│                          (ArduBridge::OnNewMail)    │
-│                                  │                  │
-│                                  ▼                  │
-│                          UAV_Model                  │
-│                          (commandAutoland)           │
-│                                  │                  │
-│                                  ▼                  │
-│                          MAVSDK Action Plugin        │
-│                          (set_flight_mode_autoland) │
-│                                  │                  │
-│                                  ▼                  │
-│                          SystemImpl                 │
-│                          (FlightMode::Land →        │
-│                           PlaneMode::Autoland)      │
-│                                  │                  │
-│                                  ▼                  │
-│                          MAVLink Command            │
-│                          (MAV_CMD_DO_SET_MODE,       │
-│                           mode=26)                   │
-│                                  │                  │
-│                                  ▼                  │
-│                          ArduPilot                  │
-│                          (ModeAutoLand execution)   │
-└─────────────────────────────────────────────────────┘
-```
-
-## AUTOLAND Command Flow
-
-The AUTOLAND command follows this specific flow:
-
-1. **User Interface**: Button click in pMarineViewer or pRealm command
-   - Publishes `ARDU_COMMAND_ALL=AUTOLAND` to MOOS DB
-
-2. **Command Reception**: ArduBridge receives command
-   - `ArduBridge::OnNewMail()` processes `ARDU_COMMAND=AUTOLAND`
-   - Sets flag `m_do_autoland = true`
-
-3. **Command Processing**: ArduBridge iterate loop
-   - `ArduBridge::Iterate()` checks `m_do_autoland` flag
-   - Calls `autoland_async()` which queues command in UAV_Model thread
-
-4. **UAV Model Execution**: Command sent to ArduPilot
-   - `UAV_Model::commandAutoland()` validates authority and in-air status
-   - Calls `m_action_ptr->set_flight_mode_autoland()`
-
-5. **MAVSDK Action Plugin**: Mode conversion
-   - `ActionImpl::set_flight_mode_autoland()` converts to `FlightMode::Land`
-   - Calls `SystemImpl::set_flight_mode(FlightMode::Land)`
-
-6. **System Implementation**: ArduPilot mode mapping
-   - `SystemImpl::make_command_ardupilot_mode()` converts `FlightMode::Land` → `ardupilot::PlaneMode::Autoland` (mode 26)
-   - Constructs MAVLink `MAV_CMD_DO_SET_MODE` command with param2 = 26
-
-7. **ArduPilot Execution**: Automatic landing
-   - ArduPilot receives mode change command
-   - Enters `ModeAutoLand` (mode 26)
-   - Sets up landing waypoints based on captured takeoff direction
-   - Executes automatic landing sequence
-
-### AUTOLAND Requirements
-
-- **Takeoff Direction**: AUTOLAND requires that takeoff direction was captured. This happens automatically when taking off in:
-  - TAKEOFF, FBWA, MANUAL, TRAINING, ACRO, STABILIZE modes
-  - During NAV_TAKEOFF in AUTO mode
-- **In Air**: UAV must be flying (not on ground)
-- **ArduPilot Version**: **Requires ArduPilot Plane master branch** (as of end of January 2026, AUTOLAND is only available in the master branch, not in stable releases like 4.6.x or 4.7.x)
-- **Not for QuadPlanes**: AUTOLAND is not available for QuadPlanes
-
----
-
-## Technical Details: AUTOLAND Implementation
-
-### How AUTOLAND Works
-
-AUTOLAND is implemented using the MAVSDK flight mode system with automatic mode conversion:
-
-1. **Command Reception**: `ARDU_COMMAND=AUTOLAND` is received by `ArduBridge::OnNewMail()` (line 258 in `ArduBridge.cpp`)
-
-2. **Async Processing**: `ArduBridge::Iterate()` processes the command asynchronously (line 510), calling `autoland_async()` (line 1420)
-
-3. **UAV Model Execution**: `UAV_Model::commandAutoland()` (line 491) validates the command and calls the MAVSDK Action plugin
-
-4. **MAVSDK Action Plugin**: `ActionImpl::set_flight_mode_autoland()` (line 568 in `action_impl.cpp`) converts to `FlightMode::Land`
-
-5. **Mode Conversion**: `SystemImpl::flight_mode_to_ardupilot_plane_mode()` (line 928 in `system_impl.cpp`) maps `FlightMode::Land` → `ardupilot::PlaneMode::Autoland` (mode 26)
-
-6. **MAVLink Command**: `MAV_CMD_DO_SET_MODE` is constructed with:
-   - `param1` = mode flags (CUSTOM_MODE_ENABLED | SAFETY_ARMED if armed)
-   - `param2` = 26 (AUTOLAND mode number)
-
-7. **ArduPilot Execution**: ArduPilot receives the command and enters `ModeAutoLand`, which:
-   - Validates takeoff direction is captured
-   - Creates landing approach waypoints based on takeoff direction
-   - Executes automatic landing sequence
-
-### Mode Mapping
-
-The implementation uses a smart mapping strategy:
-- **MAVSDK Level**: `FlightMode::Land` (generic landing mode)
-- **ArduPilot Level**: `ardupilot::PlaneMode::Autoland` (mode 26)
-
-This allows the same `Land` flight mode to work for:
-- Multicopters: Uses standard Land mode
-- Fixed-wing (Plane): Uses AUTOLAND mode (26)
-
-### Key Implementation Files
-
-- **Command Handling**: `src/pArduBridge/ArduBridge.cpp` (lines 258-262, 510-541, 1420-1432)
-- **UAV Interface**: `src/pArduBridge/UAV_Model.cpp` (lines 491-522)
-- **MAVSDK Action**: `MAVSDK/src/mavsdk/plugins/action/action_impl.cpp` (lines 568-575)
-- **Mode Conversion**: `MAVSDK/src/mavsdk/core/system_impl.cpp` (lines 754-765, 793-865, 928-955)
-- **Mode Definitions**: `MAVSDK/src/mavsdk/core/ardupilot_custom_mode.h` (line 79: `Autoland = 26`)
-
----
-
-## Related Documentation
-
-- [UAV Mission Configuration Guide](UAV_Mission_Configuration.md) - YAML configuration details
-- [Launch Scripts Guide](UAV_Mission_Launch_Scripts.md) - Launch script usage
-- [System Launch Guide](System_Launch_Guide.md) - Complete launch procedures
-- [pArduBridge Architecture](pArduBridge/ARCHITECTURE.md) - Detailed architecture and command flow
+SITL has exercised Plane and Copter command routing, but hardware results depend on the real firmware, serial path, RC/GPS/failsafe configuration, and sensors. Use the [bench and outdoor checklist](pArduBridge/HARDWARE_QUALIFICATION.md) before flight.

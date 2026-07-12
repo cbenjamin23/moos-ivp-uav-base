@@ -1,370 +1,251 @@
-# pArduBridge - ArduPilot to MOOS-IVP Interface
+# pArduBridge Reference
 
-> **Note:** pArduBridge is used to interface between MOOS-IVP and ArduPilot (`useMoosSimPid: false`). This is required when working with physical hardware or ArduPilot SITL. Gazebo is optional - ArduPilot SITL can run with or without Gazebo. If you're using the lightweight MOOS-IvP Simulator (`useMoosSimPid: true`), you don't need pArduBridge. See [Installation & Setup](../Installation_&_Setup.md) for more information.
+`pArduBridge` connects one MOOS community to one ArduPilot autopilot through MAVSDK/MAVLink. It translates IvP Helm setpoints and explicit MOOS commands, publishes navigation and flight-controller telemetry, and reports safety-policy and command-lifecycle results.
 
-## Overview
+It supports ArduPlane and ArduCopter. It is not Pixhawk-specific: any ArduPilot controller that provides the required MAVLink messages and commands may work. Firmware, board, port, and parameter differences must still be qualified on the actual vehicle.
 
-`pArduBridge` is a MOOS application that interfaces between the MOOS-IVP autonomy system and ArduPilot autopilot software running on UAVs (Unmanned Aerial Vehicles). It acts as a bridge, translating MOOS commands into MAVLink commands for the autopilot and publishing telemetry data from the UAV back to the MOOS community.
+Use `pArduBridge` for hardware or ArduPilot SITL. It is normally omitted when a mission uses only the lightweight MOOS vehicle simulator.
 
-## Purpose
+## Documentation map
 
-The primary purposes of pArduBridge are:
-
-1. **Command Translation**: Convert high-level MOOS autonomy commands into low-level ArduPilot commands
-2. **Telemetry Publishing**: Provide UAV state information to the MOOS community
-3. **State Management**: Manage the UAV's autopilot and helm states
-4. **Safety Monitoring**: Monitor UAV health and provide warnings when issues arise
-
-## Key Features
-
-- **MAVLink Communication**: Uses the MAVSDK library to communicate with ArduPilot via MAVLink protocol
-- **Multi-threaded Architecture**: Separate threads for command processing and main MOOS loop
-- **Flexible Connectivity**: Supports TCP, UDP, and Serial connections to the autopilot
-- **Helm Integration**: Integrates with MOOS-IVP helm for autonomous mission execution
-- **Warning System**: Built-in warning and error reporting system
-- **Setpoint Management**: Thread-safe management of desired speed, course, and altitude
-
----
+- [Quick start](QUICKSTART.md)
+- [Command reference](../UAV_Mission_ARDU_Commands.md)
+- [Architecture](ARCHITECTURE.md)
+- [Bench and outdoor qualification](HARDWARE_QUALIFICATION.md)
 
 ## Configuration
 
-### MOOS Configuration Block
+`LatOrigin` and `LongOrigin` must exist at global mission-file scope for latitude/longitude to local-X/Y conversion.
 
-```
+```moos
+LatOrigin  = 42.358456
+LongOrigin = -71.087589
+
 ProcessConfig = pArduBridge
 {
-  AppTick   = 4                                   // Application tick rate (Hz)
-  CommsTick = 4                                   // Communication tick rate (Hz)
-  
-  // Connection Configuration
-  ArduPilotURL = 0.0.0.0:14550                    // Connection string to autopilot
-  url_protocol = udp                              // Protocol: udp, tcp, or serial
-  
-  // Vehicle Configuration
-  prefix = NAV                                    // Prefix for published MOOS variables
-  vname = ALPHA                                   // Vehicle name
-  vcolor = yellow                                 // Vehicle color for visualization
-  
-  // Operational Configuration
-  is_simulation = false                           // Set to true when running in simulation
-  command_groundSpeed = false                     // If true, command ground speed instead of airspeed
+  AppTick   = 10
+  CommsTick = 10
+
+  url          = ttyACM0:115200
+  url_protocol = serial
+  vehicle_type = copter
+
+  vname  = alpha
+  vcolor = yellow
+  prefix = UAV
+
+  takeoff_altitude = 10
+  precision_loiter_enter_loiter = true
+  command_groundspeed = true
+  is_sim = false
+  logger = false
 }
 ```
 
-### Configuration Parameters
+### Parameters
 
-| Parameter | Type | Description | Example |
-|-----------|------|-------------|---------|
-| `ArduPilotURL` / `ardupiloturl` / `url` | string | Connection address for autopilot | `0.0.0.0:14550` or `ttySAC0:115200` |
-| `url_protocol` | string | Connection protocol: `udp`, `tcp`, or `serial` | `udp` |
-| `prefix` | string | Prefix for all published telemetry variables | `NAV` |
-| `vname` | string | Vehicle name identifier | `ALPHA` |
-| `vcolor` | string | Color for vehicle visualization | `yellow` |
-| `is_simulation` | boolean | Flag indicating simulation mode | `false` |
-| `command_groundSpeed` | boolean | Command ground speed vs airspeed | `false` |
+| Parameter | Accepted values | Meaning |
+|---|---|---|
+| `url` or `ardupiloturl` | connection address | Required MAVLink endpoint without the protocol prefix. |
+| `url_protocol` | `serial`, `udp`, `tcp` | Required. For serial, `pArduBridge` prepends `serial:///dev/`; use `ttyACM0:115200`, not `/dev/ttyACM0:115200`. |
+| `vehicle_type` or `vehicle` | Plane aliases: `plane`, `arduplane`, `fixedwing`, `fixed_wing`; Copter aliases: `copter`, `arducopter`, `multicopter` | Selects platform-specific behavior. The compatibility default is Plane; configure this explicitly. |
+| `vname` | nonempty string | Required vehicle/community identifier; normalized to lowercase. |
+| `vcolor` | color string | Marker color used for visualization. |
+| `prefix` | MOOS-variable prefix | Prefix for navigation publications such as `UAV_X`. |
+| `takeoff_altitude`, `default_altitude`, or `target_altitude` | positive meters AGL | Copter takeoff altitude and the default target altitude. Copter defaults to 10 m when omitted. |
+| `command_groundspeed` or `cmd_gs` | boolean | Also command groundspeed. Copter forces this true; Plane normally commands airspeed. |
+| `precision_loiter_enter_loiter` | boolean | Default true. If false, `PRECISION_LOITER` requires the FC to already be in native Loiter. |
+| `is_sim` | boolean | For Plane SITL, false means retain the FC mission and register its home; true replaces it with the bridge's built-in simulation mission. Copter always retains the FC mission. |
+| `logger` | `true` or `false` | Enables the app's auxiliary text logger. This is separate from MOOS `pLogger`. |
 
-### Connection Examples
+Common endpoints:
 
-**UDP Connection (default for SITL):**
-```
-ArduPilotURL = 0.0.0.0:14550
+```moos
+// SITL UDP
+url          = 0.0.0.0:14550
 url_protocol = udp
-```
 
-**Serial Connection:**
-```
-ArduPilotURL = ttySAC0:115200
+// Direct serial on Linux/Pi
+url          = ttyACM0:115200
 url_protocol = serial
-```
 
-**TCP Connection:**
-```
-ArduPilotURL = 192.168.1.100:5760
+// TCP
+url          = 127.0.0.1:5760
 url_protocol = tcp
 ```
 
----
+## Control ownership
 
-## MOOS Variables
+There are two independent authorities:
 
-### Subscriptions (Input Variables)
+1. `pArduBridge` decides whether its policy permits a command.
+2. ArduPilot independently accepts or rejects the MAVLink command and enforces its pre-arm, mode, EKF, GPS, RC, fence, and failsafe rules.
 
-pArduBridge subscribes to the following MOOS variables to receive commands:
+```text
+MOOS request → bridge policy → MAVLink/MAVSDK result → FC telemetry confirmation
+```
 
-#### Helm Commands (from pHelmIvp)
-| Variable | Type | Description |
-|----------|------|-------------|
-| `DESIRED_HEADING` | double | Desired course/heading in degrees (0-360) |
-| `DESIRED_SPEED` | double | Desired speed in m/s |
-| `DESIRED_ALTITUDE` | double | Desired altitude AGL in meters |
+`AUTOPILOT_MODE` is the bridge's Helm/control state. It is not the raw ArduPilot flight mode. Use `UAV_COMMAND_RESULT`, the AppCast flight-mode field, and an independent MAVLink observer when qualifying actual FC behavior.
 
-#### Direct Commands
-| Variable | Type | Description |
-|----------|------|-------------|
-| `FLY_WAYPOINT` | string | Command to fly to a specific waypoint |
-| `DO_TAKEOFF` | string | Command to initiate takeoff sequence |
-| `ARM_UAV` | string | Arm/disarm the UAV (`on` or `off`) |
-| `RETURN_TO_LAUNCH` | string | Command UAV to return to launch location |
-| `AUTOLAND` | string | Command UAV to enter AUTOLAND mode for automatic landing (ArduPilot Plane mode 26). **Requires ArduPilot Plane master branch** (not available in stable releases as of end of January 2026). |
-| `LOITER` | string | Command UAV to loiter at position (`here` or `default`) |
-| `CHANGE_SPEED` | double | Increment/decrement speed by value |
-| `CHANGE_COURSE` | double | Increment/decrement course by value (degrees) |
-| `CHANGE_ALTITUDE` | double | Increment/decrement altitude by value (meters) |
-| `RESET_SPEED_MIN` | string | Reset speed to minimum airspeed |
+### Helm states
 
-#### Waypoint and State Management
-| Variable | Type | Description |
-|----------|------|-------------|
-| `NEXT_WAYPOINT` | string | Set next waypoint (format: `lat=X,lon=Y,x=X,y=Y,vname=NAME`) |
-| `HELM_STATUS` | string | Helm status (`on` or `off`) |
-| `AUTOPILOT_MODE` | string | Desired autopilot mode |
-| `MOOS_MANUAL_OVERRIDE` | string | Manual override flag (`true` or `false`) |
+| State | Meaning |
+|---|---|
+| `HELM_PARKED` | Bridge starts parked; Helm is not controlling the vehicle. |
+| `HELM_INACTIVE` | Helm is inactive and the FC owns the current operation, such as native Loiter, RTL, or LAND. |
+| `HELM_INACTIVE_LOITERING` | Legacy Guided coordinate hold requested by `ARDU_COMMAND=LOITER`. |
+| `HELM_ACTIVE` | Helm enabled with no specialized bridge task. |
+| `HELM_TOWAYPT` | Helm-directed waypoint behavior. |
+| `HELM_RETURNING` | Helm-directed return behavior. |
+| `HELM_SURVEYING` | Helm-directed survey. |
+| `HELM_VORONOI` | Helm-directed Voronoi behavior. |
 
-#### Ground Control Station Commands
-| Variable | Type | Description |
-|----------|------|-------------|
-| `ARDU_COMMAND` | string | Direct commands from ground control station. Supported values: `DO_TAKEOFF`, `RETURN_TO_LAUNCH`, `AUTOLAND`, `LOITER`, `FLY_WAYPOINT`, `SURVEY`, `DO_VORONOI`, `RESET_SPEED_MIN`, `VIZ_HOME` |
+## MOOS inputs
 
-#### Survey Missions
-| Variable | Type | Description |
-|----------|------|-------------|
-| `SURVEY` | string | Survey mission commands |
+### Helm setpoints
 
-#### Visualization
-| Variable | Type | Description |
-|----------|------|-------------|
-| `VIZ_HOME` | string | Visualization commands for home location |
+| Variable | Type | Plane | Copter |
+|---|---|---|---|
+| `DESIRED_HEADING` | double, degrees | Course-over-ground request in Guided. | Absolute yaw request. It does not by itself command horizontal direction of travel. |
+| `DESIRED_SPEED` | double, m/s | Airspeed; optionally groundspeed too. | Groundspeed. |
+| `DESIRED_ALTITUDE` | double, m AGL | Guided altitude request. | Guided altitude request. |
 
-### Publications (Output Variables)
+Because Copter interprets `DESIRED_HEADING` as yaw, a rich MOOS `BHV_Loiter` path is not automatically reproduced by yaw plus groundspeed. Copter horizontal pattern following requires position or velocity guidance appropriate to that behavior. Explicit Guided waypoints do use position targets and have been exercised in SITL.
 
-pArduBridge publishes telemetry and status information with a configurable prefix (default: `UAV`):
+### Direct inputs
 
-#### Position and Navigation
-| Variable | Type | Description |
-|----------|------|-------------|
-| `<PREFIX>_LAT` | double | Current latitude (degrees) |
-| `<PREFIX>_LON` | double | Current longitude (degrees) |
-| `<PREFIX>_X` | double | Local X coordinate (meters) |
-| `<PREFIX>_Y` | double | Local Y coordinate (meters) |
-| `<PREFIX>_HEADING` | double | Current heading/course over ground (degrees) |
-| `<PREFIX>_SPEED` | double | Speed over ground (m/s) |
-| `<PREFIX>_ALTITUDE` | double | Altitude above ground level (meters) |
-| `<PREFIX>_DEPTH` | double | Negative altitude (for compatibility) |
+| Variable | Format | Behavior |
+|---|---|---|
+| `ARM_UAV` | boolean | Requests ARM when true and DISARM when false. |
+| `RETURN_TO_LAUNCH` | boolean | When true, selects MOOS return routing if the Helm is active; otherwise requests native FC RTL. |
+| `AUTOLAND` | boolean | When true, requests Copter LAND or Plane AUTOLAND through the LAND policy. |
+| `ARDU_COMMAND` | command string | Main explicit-command interface; see the command reference. |
+| `NEXT_WAYPOINT` | `lat=...,lon=...,x=...,y=...,vname=<name|all>` | Defines the target used by `ARDU_COMMAND=FLY_WAYPOINT`. |
+| `HELM_STATUS` | boolean | Enables or disables Helm ownership. Turning it off requests legacy Guided hold at the current position. |
+| `AUTOPILOT_MODE` | bridge state string | Requests a bridge-state transition; intended for mission coordination, not raw FC mode selection. |
+| `MOOS_MANUAL_OVERRIDE` | string boolean | `true` parks the Helm and initiates the return path. |
+| `CHANGE_SPEED` | double | Adds a speed increment to the current target. |
+| `CHANGE_COURSE` | double | Adds a course increment. |
+| `CHANGE_ALTITUDE` | double | Adds an altitude increment and publishes `CONST_ALTITUDE_UPDATE`. |
+| `DEAD_MAN_POST_INTERRUPT` | any | Reports a dead-man warning and initiates the return path. |
 
-#### Additional Telemetry
-| Variable | Type | Description |
-|----------|------|-------------|
-| `DEPLOY` | string | Deployment status |
+`FLY_WAYPOINT`, `DO_TAKEOFF`, `LOITER`, `SURVEY`, `RESET_SPEED_MIN`, and `VIZ_HOME` are registered for compatibility, but their implemented command path is `ARDU_COMMAND=<value>`. Do not rely on posting those variable names directly.
 
-**Note**: Replace `<PREFIX>` with the configured prefix (e.g., if `prefix = NAV`, variables become `NAV_LAT`, `NAV_LON`, etc.)
+## Explicit commands
 
----
+| `ARDU_COMMAND` value | Result |
+|---|---|
+| `DO_TAKEOFF` | Requires an already-armed vehicle. Copter invokes MAVSDK takeoff at `takeoff_altitude`; Plane starts its current bridge/SITL mission. |
+| `FLY_WAYPOINT` | Uses `NEXT_WAYPOINT`. With Helm inactive, enters Guided and sends a position target. With Helm active, publishes `TOWAYPT_UPDATE` for MOOS behavior control. |
+| `RETURN_TO_LAUNCH` or `RETURN` | With Helm inactive, requests native FC RTL and confirms RTL telemetry. With Helm active, publishes the home point to `RETURN_UPDATE`. |
+| `LOITER` | Legacy Guided coordinate hold. Copter moves to and holds the target; Plane orbits the target in Guided. |
+| `LOITER_FC` | Requests native FC Loiter: Copter position hold or Plane orbit at the current point. Confirms `Hold` telemetry. |
+| `PRECISION_LOITER`, `PRECISION_LOITER_ON`, `PRECISION_LOITER_ENABLE` | Copter only. Requires armed state, `PLND_ENABLED=1`, nonzero `PLND_TYPE`, and an allowed autonomy-controlled mode. Enters native Loiter unless configured not to, then enables ArduPilot auxiliary function 39. |
+| `PRECISION_LOITER_OFF`, `PRECISION_LOITER_DISABLE` | Copter only. Disables auxiliary function 39. Allowed even when disarmed or after an external mode change. |
+| `AUTOLAND` | Copter invokes LAND; Plane invokes native AUTOLAND. Uses the conservative LAND policy below. |
+| `RESET_SPEED_MIN` | Commands the polled minimum speed. |
+| `SURVEY` | Requires Helm ownership; enters Guided and sets `HELM_SURVEYING`. |
+| `DO_VORONOI` | Requires Helm ownership; enters Guided and sets `HELM_VORONOI`. |
+| `VIZ_HOME` | Republishes the home marker; it sends no flight command. |
 
-## Usage Instructions
+See [UAV ArduPilot Commands](../UAV_Mission_ARDU_Commands.md) for examples and operational distinctions.
 
-### 1. Basic Startup
+## Safety policies
 
-1. **Configure the mission file**: Create or edit your `.moos` file with the pArduBridge configuration block
-2. **Ensure ArduPilot is running**: Start your ArduPilot SITL or connect to hardware autopilot
-3. **Launch pArduBridge**: 
-   ```bash
-   pArduBridge mission.moos
-   ```
+### ARM
 
-### 2. Command-Line Options
+ARM is submitted only when all of the following are true:
+
+- detailed health telemetry is available and no more than 3 seconds old;
+- MAVSDK reports `is_armable` and aggregate health OK;
+- landed-state telemetry is available and no more than 2 seconds old;
+- landed state is `ON_GROUND`.
+
+ArduPilot may still reject ARM. Repeating ARM while already armed returns `NO_OP`.
+
+### DISARM
+
+DISARM is submitted only with fresh landed-state telemetry reporting `ON_GROUND`. Airborne, taking-off, landing, unknown, unavailable, and stale states are rejected. Repeating DISARM while already disarmed returns `NO_OP`.
+
+### LAND/AUTOLAND
+
+Routine LAND is allowed only from MAVSDK `Guided`, `Offboard` (ArduCopter Guided), `Mission`, or `Hold` (native Loiter). Pilot-controlled, RTL, unknown, and future unlisted modes default-deny. Already-on-ground or already-landing requests return `NO_OP`.
+
+Unlike DISARM, LAND may proceed when landed-state telemetry is unavailable, stale, or unknown because suppressing a requested landing can be less safe. The result detail begins with `READY_...` and a warning is raised when proceeding with limited confirmation.
+
+### Mode-changing autonomy commands
+
+Native RTL and `LOITER_FC` use the bridge's closed autonomy-mode allowlist: Mission, Hold, Land, Guided, and Offboard. Manual/Stabilized, RTL-to-Loiter, unknown, and unlisted modes are rejected unless the operation is already active and returns `NO_OP`.
+
+## Command lifecycle
+
+`UAV_COMMAND_RESULT` has this stable comma-separated format:
+
+```text
+id=<integer>,command=<token>,status=<token>,detail=<token-or-message>
+```
+
+Statuses:
+
+| Status | Meaning |
+|---|---|
+| `SUBMITTED` | The bridge policy passed and the MAVLink/MAVSDK command was sent. |
+| `ACCEPTED` | MAVSDK or ArduPilot acknowledged the command. This alone is not mode confirmation. |
+| `CONFIRMED` | FC telemetry reported the expected RTL or native Loiter mode within 5 seconds. |
+| `TIMED_OUT` | The expected mode was not observed within 5 seconds. |
+| `REJECTED` | The bridge policy blocked submission. |
+| `FAILED` | Submission occurred but MAVSDK/MAVLink reported failure. |
+| `NO_OP` | The requested terminal state was already active. |
+
+The same command ID is retained across `SUBMITTED → ACCEPTED → CONFIRMED/TIMED_OUT`. Lifecycle reporting currently covers ARM, DISARM, LAND, native RTL, `LOITER_FC`, Precision Loiter, and MOOS return routing. Legacy `LOITER`, `FLY_WAYPOINT`, takeoff, survey, and setpoint changes still rely on warnings/events and independent telemetry.
+
+Precision Loiter `CONFIRMED` means the PLND parameters were configured, auxiliary function 39 was accepted, and FC Loiter telemetry was observed. It does not prove that a landing target is presently acquired; MAVLink exposes no durable auxiliary-function state through this implementation.
+
+## Publications
+
+### Prefixed navigation variables
+
+If `prefix=UAV`, the app publishes:
+
+| Variable | Meaning |
+|---|---|
+| `UAV_LAT`, `UAV_LON` | WGS84 position in degrees. |
+| `UAV_X`, `UAV_Y` | Local-grid position in meters using `LatOrigin`/`LongOrigin`. |
+| `UAV_HEADING` | GPS course over ground in degrees. |
+| `UAV_SPEED` | GPS speed over ground in m/s. |
+| `UAV_ALTITUDE` | Relative altitude in meters. |
+| `UAV_DEPTH` | Negative relative altitude for MOOS compatibility. |
+
+### Unprefixed health, GPS, and policy variables
+
+| Variable family | Variables |
+|---|---|
+| Health | `UAV_HEALTH_AVAILABLE`, `UAV_HEALTH_GYRO`, `UAV_HEALTH_ACCEL`, `UAV_HEALTH_MAG`, `UAV_HEALTH_LOCAL_POSITION`, `UAV_HEALTH_GLOBAL_POSITION`, `UAV_HEALTH_HOME_POSITION`, `UAV_IS_ARMABLE`, `UAV_HEALTH_ALL_OK`, `UAV_HEALTH_AGE` |
+| Vehicle state | `UAV_IS_ARMED`, `UAV_LANDED_STATE_AVAILABLE`, `UAV_LANDED_STATE`, `UAV_LANDED_STATE_AGE` |
+| GPS | `UAV_GPS_AVAILABLE`, `UAV_GPS_FIX_TYPE`, `UAV_GPS_SATELLITES`, `UAV_GPS_HDOP`, `UAV_GPS_VDOP`, `UAV_GPS_AGE` |
+| Policy | `UAV_ARM_POLICY_READY`, `UAV_ARM_POLICY_REASON`, `UAV_DISARM_POLICY_READY`, `UAV_DISARM_POLICY_REASON`, `UAV_LAND_POLICY_READY`, `UAV_LAND_POLICY_REASON` |
+| Command | `UAV_COMMAND_RESULT` |
+
+GPS fix types use the MAVSDK enum: 0 No GPS, 1 No Fix, 2 Fix 2D, 3 Fix 3D, 4 DGPS, 5 RTK float, and 6 RTK fixed. Health position flags are estimator-health flags; they are not a substitute for checking GPS fix, satellites, DOP, and freshness.
+
+Landed states are `UNKNOWN`, `ON_GROUND`, `IN_AIR`, `TAKING_OFF`, and `LANDING`. They come from FC `EXTENDED_SYS_STATE` through MAVSDK and are authoritative for bridge ARM/DISARM policy, subject to availability and freshness.
+
+### Coordination and visualization
+
+The app also publishes `AUTOPILOT_MODE`, `MOOS_MANUAL_OVERRIDE`, `RETURN_UPDATE`, `TOWAYPT_UPDATE`, `SURVEY_UPDATE`, `CONST_ALTITUDE_UPDATE`, and `VIEW_*` markers/vectors.
+
+## Verification status
+
+The current Plane/Copter implementation has completed a one-time logged SITL regression covering health and stale telemetry, landed-state transitions, ARM/DISARM, LAND policy, command lifecycles, MOOS return versus native RTL, Guided versus native Loiter, Precision Loiter readiness, Copter waypoint movement, Plane mission takeoff, and Plane AUTOLAND. No permanent SITL harness or CTest targets are kept in the app directory.
+
+SITL does not qualify the real serial path, controller firmware, RC/GPS configuration, propulsion wiring, PLND sensor, or target acquisition. Follow the [hardware qualification checklist](HARDWARE_QUALIFICATION.md) before flight.
+
+## Command-line inspection
 
 ```bash
-pArduBridge mission.moos [OPTIONS]
+pArduBridge --help
+pArduBridge --example
+pArduBridge --interface
 ```
 
-| Option | Description |
-|--------|-------------|
-| `--alias=<name>` | Launch with custom process name |
-| `--example` / `-e` | Display example configuration |
-| `--help` / `-h` | Display help message |
-| `--interface` / `-i` | Display MOOS interface (subscriptions/publications) |
-| `--version` / `-v` | Display version information |
-
-### 3. Operational Workflow
-
-#### Initial Setup
-1. Connect to ArduPilot autopilot
-2. Wait for telemetry subscription
-3. Poll autopilot parameters
-4. Register home location
-5. Start command sender thread
-
-#### During Operation
-1. **Helm Active Mode**: pArduBridge receives `DESIRED_HEADING`, `DESIRED_SPEED`, `DESIRED_ALTITUDE` from helm and sends to autopilot
-2. **Manual Commands**: Direct commands like `FLY_WAYPOINT`, `LOITER`, `RETURN_TO_LAUNCH` can be issued
-3. **Telemetry Publishing**: UAV state continuously published to MOOS community
-
-#### Autopilot Helm Modes
-
-pArduBridge manages several helm states:
-
-| Mode | Description |
-|------|-------------|
-| `HELM_PARKED` | Helm is parked, vehicle inactive |
-| `HELM_INACTIVE` | Helm not in control, manual override active |
-| `HELM_INACTIVE_LOITERING` | Loitering with helm inactive |
-| `HELM_ACTIVE` | Helm active but no specific behavior running |
-| `HELM_TOWAYPT` | Actively navigating to waypoint |
-| `HELM_RETURNING` | Returning to launch location |
-| `HELM_SURVEYING` | Executing survey pattern |
-| `HELM_VORONOI` | Executing Voronoi pattern |
-
-### 4. Common Operations
-
-#### Arming the UAV
-```
-// From pMarineViewer or another MOOS app
-Notify("ARM_UAV", "on");
-```
-
-#### Flying to a Waypoint
-```
-Notify("FLY_WAYPOINT", "true");
-```
-
-#### Loitering at Current Position
-```
-Notify("LOITER", "here");
-```
-
-#### Return to Launch
-```
-Notify("RETURN_TO_LAUNCH", "true");
-```
-
-#### Automatic Landing (AUTOLAND)
-```
-Notify("ARDU_COMMAND", "AUTOLAND");
-// Or via pMarineViewer button or pRealm command
-```
-
-**Note:** AUTOLAND requires:
-- UAV must be in air
-- Takeoff direction must have been captured (automatic in supported takeoff modes)
-- **ArduPilot Plane master branch** (as of end of January 2026, AUTOLAND is only available in the master branch, not in stable releases)
-- Not available for QuadPlanes
-
-AUTOLAND automatically creates landing approach waypoints based on the takeoff direction and executes a fully automatic landing sequence.
-
-#### Adjusting Speed
-```
-// Increase speed by 2 m/s
-Notify("CHANGE_SPEED", 2.0);
-
-// Decrease speed by 1 m/s
-Notify("CHANGE_SPEED", -1.0);
-```
-
----
-
-## Architecture Overview
-
-For detailed architectural information, see [ARCHITECTURE.md](ARCHITECTURE.md).
-
-### Main Components
-
-1. **ArduBridge (Main Application)**
-   - Inherits from `AppCastingMOOSApp`
-   - Handles MOOS communication
-   - Manages autopilot helm state machine
-   - Coordinates between helm and autopilot
-
-2. **UAV_Model**
-   - Manages MAVLink connection via MAVSDK
-   - Runs command sender thread
-   - Handles telemetry subscription
-   - Executes commands on autopilot
-
-3. **SetpointManager**
-   - Thread-safe storage of desired values
-   - Tracks changes in setpoints
-   - Provides polling interface
-
-4. **WarningSystem**
-   - Monitors conditions and raises warnings
-   - Reports warnings to MOOS community
-   - Manages time-based warnings
-
-### Threading Model
-
-- **Main Thread (MOOS Loop)**: Handles MOOS communication, state management, processes incoming mail
-- **UAV_Model Command Sender Thread**: Processes command queue, sends commands to autopilot, manages telemetry
-
----
-
-## Safety Considerations
-
-1. **Warning System**: pArduBridge includes a comprehensive warning system that monitors for:
-   - Connection loss
-   - Unhealthy UAV state
-   - Command failures
-   - Timeout conditions
-
-2. **Health Checks**: Before arming, the system verifies:
-   - UAV health status
-   - Connection status
-   - GPS fix quality
-
-3. **Manual Override**: The `MOOS_MANUAL_OVERRIDE` variable allows immediate manual control
-
----
-
-## Troubleshooting
-
-### Connection Issues
-
-**Problem**: Cannot connect to autopilot
-- Verify ArduPilot is running
-- Check connection string and protocol
-- Ensure firewall allows connection
-- For serial: check device permissions
-
-**Problem**: Telemetry not updating
-- Check AppTick and CommsTick rates
-- Verify MOOS community is reachable
-- Check for warning messages
-
-### Command Issues
-
-**Problem**: Commands not being executed
-- Verify UAV is armed and healthy
-- Check autopilot mode (must be in GUIDED for many commands)
-- Review warning messages for details
-
-**Problem**: Helm not controlling UAV
-- Ensure `HELM_STATUS = on`
-- Verify `MOOS_MANUAL_OVERRIDE` is false
-- Check that desired values are being published by helm
-
----
-
-## Development and Updates
-
-This documentation should be updated as pArduBridge evolves. Key areas that may change:
-
-- Additional MAVLink commands and telemetry
-- New helm modes and state transitions
-- Enhanced safety features
-- Performance optimizations
-
----
-
-## See Also
-
-- [ARCHITECTURE.md](ARCHITECTURE.md) - Detailed architecture and design
-- [ArduPilot Documentation](https://ardupilot.org/)
-- [MOOS-IVP Documentation](https://oceanai.mit.edu/moos-ivp/)
-- [MAVSDK Documentation](https://mavsdk.mavlink.io/)
-
----
-
-## Credits
-
-**Author**: Steve Carter Feujo Nomeny  
-**Organization**: NTNU, MIT  
-**Email**: scnomeny@mit.edu
+Build from the repository root with `./build.sh`, or configure/build the existing CMake project according to the repository setup documentation.

@@ -1,328 +1,157 @@
-# pArduBridge Quick Start Guide
+# pArduBridge Quick Start
 
-> **Note:** pArduBridge is used to interface between MOOS-IVP and ArduPilot (`useMoosSimPid: false`). This is required when working with physical hardware or ArduPilot SITL. Gazebo is optional - ArduPilot SITL can run with or without Gazebo for enhanced physics simulation. If you're using the MOOS-IvP Simulator, you don't need pArduBridge.
+This guide brings up one pArduBridge instance against ArduPilot SITL or a directly attached flight controller. Read the [full reference](README.md) before commanding hardware and use the [hardware qualification checklist](HARDWARE_QUALIFICATION.md) for the Pi/Pixhawk bench.
 
-This guide will help you get pArduBridge up and running quickly.
+## 1. Build
 
----
-
-## Prerequisites
-
-1. **MOOS-IVP** installed and configured
-2. **ArduPilot** SITL or hardware autopilot running
-3. **MAVSDK** library installed (should be built with the project)
-4. **Mission file** with proper LatOrigin and LongOrigin configured
-
----
-
-## Step-by-Step Setup
-
-### 1. Start ArduPilot
-
-#### For SITL (Software In The Loop):
 ```bash
-# Navigate to ArduPilot directory
-cd ~/ardupilot/ArduPlane
-# Start SITL
-sim_vehicle.py -v ArduPlane --console --map
+cd ~/moos-ivp-uav-base
+./build.sh
+which pArduBridge
+pArduBridge --help
+pArduBridge --example
+pArduBridge --interface
 ```
 
-SITL typically listens on UDP port 14550.
+Ensure the repository `bin` directory is on `PATH` if `which` cannot find the app.
 
-#### For Hardware:
-Connect your flight controller via USB or telemetry radio. Note the connection details (e.g., `/dev/ttyUSB0:57600`).
+## 2. Choose one MAVLink endpoint
 
----
+SITL UDP:
 
-### 2. Configure Your Mission File
-
-Create or edit your `.moos` mission file:
-
+```moos
+url          = 0.0.0.0:14550
+url_protocol = udp
 ```
-// Mission file example: alpha.moos
 
+Linux/Pi serial:
+
+```moos
+url          = ttyACM0:115200
+url_protocol = serial
+```
+
+For serial, omit `/dev/`; pArduBridge adds it. Confirm the real device with `ls -l /dev/serial/by-id /dev/ttyACM* /dev/ttyUSB*` and ensure no other process owns it.
+
+## 3. Add the MOOS block
+
+```moos
 ServerHost = localhost
-ServerPort = 9000
+ServerPort = 9001
 Community  = alpha
 
-LatOrigin  = 42.358456      // Your operation area latitude
-LongOrigin = -71.087589     // Your operation area longitude
-
-//------------------------------------------
-// pArduBridge Configuration
+LatOrigin  = 42.358456
+LongOrigin = -71.087589
 
 ProcessConfig = pArduBridge
 {
-  AppTick   = 4
-  CommsTick = 4
+  AppTick   = 10
+  CommsTick = 10
 
-  // For SITL
-  ArduPilotURL = 0.0.0.0:14550
+  url          = 0.0.0.0:14550
   url_protocol = udp
-  
-  // For Hardware (example)
-  // ArduPilotURL = ttyUSB0:57600
-  // url_protocol = serial
+  vehicle_type = copter
 
-  prefix = NAV
   vname  = alpha
   vcolor = yellow
-  
-  is_simulation = true
-  command_groundSpeed = false
-}
+  prefix = UAV
 
-//------------------------------------------
-// Other required processes...
-
-ProcessConfig = pHelmIvp
-{
-  // ... helm configuration
-}
-
-ProcessConfig = pMarineViewer
-{
-  // ... viewer configuration
+  takeoff_altitude = 10
+  precision_loiter_enter_loiter = true
+  is_sim = true
+  logger = false
 }
 ```
 
----
+For hardware, set the serial endpoint and `is_sim=false`. Configure `vehicle_type=plane` for ArduPlane. Always set `vehicle_type` explicitly.
 
-### 3. Build pArduBridge
+## 4. Start ArduPilot first
+
+Example SITL commands:
 
 ```bash
-# Navigate to repository root
-cd ~/moos-ivp-uav-base
-
-# Build
-./build.sh
-
-# The executable will be in build/bin/
+cd ~/ardupilot
+sim_vehicle.py -v ArduCopter --console --out=udp:127.0.0.1:14550
 ```
 
----
-
-### 4. Launch the Mission
-
-#### Option A: Using pAntler (recommended)
+or:
 
 ```bash
-# Launch entire mission
+sim_vehicle.py -v ArduPlane --model plane --console --out=udp:127.0.0.1:14550
+```
+
+Then launch the MOOS community normally:
+
+```bash
 pAntler alpha.moos
 ```
 
-#### Option B: Launch pArduBridge separately
+## 5. Verify telemetry before commands
+
+Use AppCast/uMAC or query the MOOSDB:
 
 ```bash
-# In separate terminals:
-MOOSDB alpha.moos
-pArduBridge alpha.moos
-pHelmIvp alpha.moos
-pMarineViewer alpha.moos
-# ... other processes
+uQueryDB alpha.moos \
+  --wait=20 \
+  --condition='UAV_HEALTH_AVAILABLE=1' \
+  --condition='UAV_GPS_AVAILABLE=1' \
+  --condition='UAV_LANDED_STATE_AVAILABLE=1'
 ```
 
----
+Inspect the current values:
 
-### 5. Verify Connection
-
-Once running, check the pArduBridge console output:
-
-```
-✓ Connected to ArduPilot
-✓ Telemetry subscribed
-✓ Home location registered
-✓ Command sender thread started
-```
-
-In pMarineViewer, you should see:
-- Vehicle marker at current position
-- Telemetry updates (NAV_X, NAV_Y, NAV_HEADING, etc.)
-- Home location marker
-
----
-
-## Basic Operations
-
-### Arming the UAV
-
-From pMarineViewer or uPokeDB:
-```
-Notify("ARM_UAV", "on");
-```
-
-Watch for health checks to pass before the UAV arms.
-
-### Enabling the Helm
-
-```
-Notify("HELM_STATUS", "on");
-```
-
-This allows the helm to send desired speed, course, and altitude to the UAV.
-
-### Manual Commands
-
-#### Takeoff (if implemented)
-```
-Notify("DO_TAKEOFF", "true");
-```
-
-#### Fly to Waypoint
-```
-Notify("FLY_WAYPOINT", "true");
-```
-
-#### Loiter at Current Position
-```
-Notify("LOITER", "here");
-```
-
-#### Return to Launch
-```
-Notify("RETURN_TO_LAUNCH", "true");
-```
-
-#### Adjust Speed
-```
-# Increase by 2 m/s
-Notify("CHANGE_SPEED", 2.0);
-
-# Decrease by 2 m/s
-Notify("CHANGE_SPEED", -2.0);
-```
-
-#### Adjust Altitude
-```
-# Increase by 10 meters
-Notify("CHANGE_ALTITUDE", 10.0);
-
-# Decrease by 10 meters
-Notify("CHANGE_ALTITUDE", -10.0);
-```
-
----
-
-## Common Issues and Solutions
-
-### Issue: "Failed to connect to ArduPilot"
-
-**Solutions:**
-1. Verify ArduPilot is running
-2. Check the connection string in your .moos file
-3. For UDP: ensure port 14550 is not blocked by firewall
-4. For serial: ensure user has permission to access device
-   ```bash
-   sudo usermod -a -G dialout $USER
-   # Then log out and back in
-   ```
-
-### Issue: "No telemetry updates"
-
-**Solutions:**
-1. Check AppTick and CommsTick are set (typically 4 Hz)
-2. Verify MOOSDB is running
-3. Check for error messages in pArduBridge console
-4. Ensure ArduPilot is streaming telemetry
-
-### Issue: "UAV not responding to helm commands"
-
-**Solutions:**
-1. Verify HELM_STATUS is "on"
-   ```
-   Notify("HELM_STATUS", "on");
-   ```
-2. Check that MOOS_MANUAL_OVERRIDE is false
-3. Ensure UAV is armed and healthy
-4. Verify helm is publishing DESIRED_HEADING, DESIRED_SPEED, DESIRED_ALTITUDE
-
-### Issue: "Commands not executing"
-
-**Solutions:**
-1. Check autopilot mode (use AppCast)
-2. Verify UAV is armed
-3. Some commands require GUIDED mode - pArduBridge will attempt to switch automatically
-4. Check warning messages in AppCast output
-
----
-
-## Monitoring Status
-
-### Using AppCast
-
-pArduBridge provides detailed status via AppCast. In pMarineViewer:
-
-1. Right-click on the vehicle
-2. Select "AppCast" → "pArduBridge"
-
-You'll see:
-- Current helm autonomy mode
-- Position (Lat/Lon and X/Y)
-- Altitude MSL and AGL
-- Speed, heading, and course
-- Comparison of measured values, helm desired values, and UAV targets
-- Waypoint information
-- Debug flags and command status
-
-### Using uPokeDB
-
-Monitor specific variables:
 ```bash
-uPokeDB alpha.moos
-# Then type variable names to see their values
-NAV_X
-NAV_Y
-NAV_HEADING
-NAV_SPEED
-AUTOPILOT_MODE
+uXMS alpha.moos \
+  UAV_HEALTH_ALL_OK UAV_IS_ARMABLE UAV_HEALTH_AGE \
+  UAV_GPS_FIX_TYPE UAV_GPS_SATELLITES UAV_GPS_HDOP UAV_GPS_AGE \
+  UAV_LANDED_STATE UAV_LANDED_STATE_AGE \
+  UAV_ARM_POLICY_READY UAV_ARM_POLICY_REASON \
+  UAV_COMMAND_RESULT AUTOPILOT_MODE
 ```
 
----
+Do not interpret `UAV_HEALTH_GLOBAL_POSITION=1` alone as a GPS lock. Check fix type, satellite count, DOP, and age.
 
-## Next Steps
+## 6. Safe command examples
 
-Once you have basic operation working:
+MOOS variables are uppercase by convention.
 
-1. **Configure Behaviors**: Set up MOOS-IVP behaviors for waypoint following, loitering, etc.
-2. **Tune Parameters**: Adjust autopilot parameters for your UAV platform
-3. **Add Safety Features**: Configure geofences and return-to-launch conditions
-4. **Integrate Sensors**: Add camera, lidar, or other sensor processing applications
+```bash
+# Arm or disarm through bridge policy
+uPokeDB alpha.moos ARM_UAV=true
+uPokeDB alpha.moos ARM_UAV=false
 
----
+# Define and fly a Guided waypoint
+uPokeDB alpha.moos \
+  NEXT_WAYPOINT='lat=42.35855,lon=-71.08750,x=8,y=10,vname=alpha'
+uPokeDB alpha.moos ARDU_COMMAND=FLY_WAYPOINT
 
-## Further Reading
+# Legacy Guided coordinate hold
+uPokeDB alpha.moos ARDU_COMMAND=LOITER
 
-- [README.md](README.md) - Comprehensive pArduBridge documentation
-- [ARCHITECTURE.md](ARCHITECTURE.md) - Detailed architecture and design
-- [MOOS-IVP Documentation](https://oceanai.mit.edu/moos-ivp/)
-- [ArduPilot Documentation](https://ardupilot.org/)
+# Native FC Loiter: Copter hold or Plane orbit
+uPokeDB alpha.moos ARDU_COMMAND=LOITER_FC
 
----
+# Native RTL when Helm is inactive; MOOS return routing when active
+uPokeDB alpha.moos ARDU_COMMAND=RETURN_TO_LAUNCH
 
-## Getting Help
+# Copter Precision Loiter
+uPokeDB alpha.moos ARDU_COMMAND=PRECISION_LOITER
+uPokeDB alpha.moos ARDU_COMMAND=PRECISION_LOITER_OFF
 
-If you encounter issues:
-
-1. Check the console output for error messages
-2. Review the AppCast for detailed status
-3. Verify your configuration matches the examples
-4. Check that all prerequisites are installed and running
-5. Review the log file: `~/moos-ivp-uav-base/missions/pArduBrigeLog_<vname>.log`
-
----
-
-## Example Mission Files
-
-Example mission files are typically located in:
-```
-~/moos-ivp-uav-base/missions/
+# Copter LAND or Plane AUTOLAND
+uPokeDB alpha.moos ARDU_COMMAND=AUTOLAND
 ```
 
-These provide working examples you can adapt for your use case.
+Watch `UAV_COMMAND_RESULT`. An `ACCEPTED` mode command is not equivalent to `CONFIRMED`; native RTL and Loiter confirmation arrives as a later result with the same command ID.
 
----
+## 7. Control-path distinctions
 
-**Happy Flying!**
+- `ARDU_COMMAND=LOITER` is Guided coordinate hold.
+- `ARDU_COMMAND=LOITER_FC` is native ArduPilot Loiter.
+- `PRECISION_LOITER` is Copter-only native Loiter plus auxiliary function 39.
+- Return with Helm active publishes a MOOS return waypoint; return with Helm inactive requests native FC RTL.
+- `AUTOPILOT_MODE` describes bridge/Helm ownership, not the raw ArduPilot mode.
 
-For updates and contributions, visit the repository:
-https://github.com/cbenjamin23/moos-ivp-uav-base
+## 8. Before hardware flight
+
+Do not jump from a successful SITL launch directly to powered flight. Complete the [bench and outdoor qualification](HARDWARE_QUALIFICATION.md), first with props removed and propulsion isolated, then outdoors with RC/GPS, and only then conduct a separately authorized flight test.

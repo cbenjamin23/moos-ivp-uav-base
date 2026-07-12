@@ -5,9 +5,9 @@
 
 ## Version Compatibility
 
-This project was tested with **ArduPilot Plane version 4.6.3**, but should be forward-compatible. The specific parameter list for Plane-4.6.3 can be found [here](https://ardupilot.org/plane/docs/parameters-Plane-stable-V4.6.3.html) (web) or [here](https://autotest.ardupilot.org/Parameters/ArduPlane/apm.pdef.xml) (xml).
+The original project was tested with **ArduPilot Plane 4.6.3**. The current Plane/Copter pArduBridge paths have also completed a one-time SITL regression against **ArduPilot 4.7.0-dev**. This does not replace qualification against the exact firmware installed on a real controller. The Plane 4.6.3 parameter list is available [here](https://ardupilot.org/plane/docs/parameters-Plane-stable-V4.6.3.html) (web) or [here](https://autotest.ardupilot.org/Parameters/ArduPlane/apm.pdef.xml) (XML).
 
-**Important Note for AUTOLAND:** The AUTOLAND feature requires the **ArduPilot Plane master branch** (as of end of January 2026). AUTOLAND is not available in stable releases like 4.6.x or 4.7.x. If you need AUTOLAND functionality, you must use the master branch of ArduPilot.
+**AUTOLAND:** Native Plane AUTOLAND is documented for 4.7 dev/latest and later. Availability and behavior must be checked on the installed firmware; the takeoff/landing direction prerequisites and QuadPlane exclusion are described in the official [AUTOLAND mode documentation](https://ardupilot.org/plane/docs/mode_autoland.html). pArduBridge successfully exercised AUTOLAND through touchdown and auto-disarm in 4.7.0-dev SITL.
 
 **Important Note:** Some parameter names can and have changed from version to version. Before using a different plane version, verify that the following required parameters are available and have the same names:
 

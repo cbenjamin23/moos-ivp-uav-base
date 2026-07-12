@@ -17,6 +17,9 @@ This documentation provides guidance on setting up and running the MOOS-IVP UAV 
 ### Key Components
 - **[MAVSDK Setup & Usage.md](MAVSDK_Setup_&_Usage.md)** - MAVSDK installation and building custom applications
 - **[ArduPilot & MavProx.md](ArduPilot_&_MavProx.md)** - ArduPilot configuration, parameters, Mission Planner setup, and swarm capabilities
+- **[pArduBridge Reference](pArduBridge/README.md)** - Plane/Copter configuration, MOOS interface, policies, telemetry, and command lifecycle
+- **[pArduBridge Quick Start](pArduBridge/QUICKSTART.md)** - Minimal SITL or hardware connection workflow
+- **[Hardware Qualification](pArduBridge/HARDWARE_QUALIFICATION.md)** - Indoor Pi/flight-controller bench and outdoor verification checklist
 - **[System Launch Guide.md](System_Launch_Guide.md)** - How to launch missions and ground stations
 - **[Gazebo Plugin Configuration.md](Gazebo_Plugin_Configuration.md)** - Gazebo plugin details and version information
 
