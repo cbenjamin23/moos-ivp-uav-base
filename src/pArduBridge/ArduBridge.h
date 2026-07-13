@@ -133,7 +133,7 @@ private:
   const double MARKER_WIDTH = 10.0;
   const double COURSE_POINT_SIZE = 5;
 
-  void visualizeHomeLocation();
+  bool visualizeHomeLocation();
   void visualizeLoiterLocation(const XYPoint &loiter_coord, bool visualize = true);
   void visualizeCourseWaypoint(const XYPoint &course_coord, bool visualize = true);
   void visualizeCourseVector(double x, double y, double magnitude, double angle, bool visualize = true);

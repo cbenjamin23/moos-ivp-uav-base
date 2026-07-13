@@ -280,8 +280,10 @@ bool ArduBridge::OnNewMail(MOOSMSG_LIST &NewMail)
       bool handled = false;
       if (command == "VIZ_HOME")
       {
-        visualizeHomeLocation();
-        m_uav_model.reportCommandResult("VIZ_HOME", "ACCEPTED", "HOME_VISUALIZED");
+        const bool visualized = visualizeHomeLocation();
+        m_uav_model.reportCommandResult(
+            "VIZ_HOME", visualized ? "ACCEPTED" : "REJECTED",
+            visualized ? "HOME_VISUALIZED" : "HOME_UNAVAILABLE");
         handled = true;
       }
       else if (command == "FLY_WAYPOINT")
@@ -1467,7 +1469,7 @@ void ArduBridge::postSpeedUpdateToBehaviors(double speed)
   Notify("RETURN_UPDATE", update_str);
 }
 
-void ArduBridge::visualizeHomeLocation()
+bool ArduBridge::visualizeHomeLocation()
 {
   auto home_latlon = m_uav_model.getHomeLatLon();
   double lat = home_latlon.x();
@@ -1476,7 +1478,7 @@ void ArduBridge::visualizeHomeLocation()
   if (!lat || !lon)
   {
     m_warning_system_ptr->queue_monitorWarningForXseconds("Cannot Visualize Home: NAN Values at lat or long", 5);
-    return;
+    return false;
   }
 
   auto XY = transformLatLonToXY({lat, lon});
@@ -1489,6 +1491,7 @@ void ArduBridge::visualizeHomeLocation()
   Notify("VIEW_MARKER", spec);
 
   reportEvent("Set marker at home location: " + spec);
+  return true;
 }
 
 void ArduBridge::visualizeLoiterLocation(const XYPoint &loiter_coord, bool visualize)
