@@ -51,6 +51,7 @@ public:
   static constexpr double HEALTH_TELEMETRY_MAX_AGE_S = 3.0;
   static constexpr double LANDED_STATE_TELEMETRY_MAX_AGE_S = 2.0;
   static constexpr double MODE_CONFIRMATION_TIMEOUT_S = 5.0;
+  static constexpr double MODE_CONFIRMATION_DWELL_S = 0.5;
   static constexpr double TAKEOFF_COMPLETION_TIMEOUT_S = 60.0;
   static constexpr double TAKEOFF_ALTITUDE_TOLERANCE_M = 0.5;
 

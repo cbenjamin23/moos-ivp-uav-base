@@ -862,6 +862,15 @@ bool UAV_Model::commandGuidedMode(bool alt_hold)
 
 bool UAV_Model::commandReturnToLaunchAsync(const CommandCompletion &completion) const
 {
+  if (!m_is_armed)
+  {
+    const std::string detail = "NOT_ARMED";
+    reportCommandResult("RTL", "REJECTED", detail);
+    if (completion)
+      completion(false, detail);
+    return false;
+  }
+
   if (mts_flight_mode.get() == mavsdk::Telemetry::FlightMode::ReturnToLaunch)
   {
     reportCommandResult("RTL", "NO_OP", "ALREADY_RTL");
@@ -908,7 +917,8 @@ bool UAV_Model::commandReturnToLaunchAsync(const CommandCompletion &completion) 
 
 bool UAV_Model::commandFlightControllerLoiterAsync(const CommandCompletion &completion) const
 {
-  if (mts_flight_mode.get() == mavsdk::Telemetry::FlightMode::Hold)
+  const auto flight_mode = mts_flight_mode.get();
+  if (flight_mode == mavsdk::Telemetry::FlightMode::Hold)
   {
     reportCommandResult("LOITER_FC", "NO_OP", "ALREADY_FC_LOITER");
     if (completion)
@@ -916,9 +926,24 @@ bool UAV_Model::commandFlightControllerLoiterAsync(const CommandCompletion &comp
     return true;
   }
 
-  if (!haveAutorythyToChangeMode())
+  bool rtl_override_ready = false;
+  if (flight_mode == mavsdk::Telemetry::FlightMode::ReturnToLaunch && m_is_armed)
   {
-    const std::string detail = "FLIGHT_MODE_NOT_ALLOWED";
+    const auto health = getHealth();
+    rtl_override_ready = hasHealthTelemetry() &&
+                         getHealthTelemetryAge() <= HEALTH_TELEMETRY_MAX_AGE_S &&
+                         isHealthy() &&
+                         health.is_local_position_ok &&
+                         health.is_global_position_ok &&
+                         health.is_home_position_ok;
+  }
+
+  if (!haveAutorythyToChangeMode() && !rtl_override_ready)
+  {
+    const std::string detail =
+        flight_mode == mavsdk::Telemetry::FlightMode::ReturnToLaunch
+            ? (!m_is_armed ? "NOT_ARMED" : "POSITION_HEALTH_NOT_OK")
+            : "FLIGHT_MODE_NOT_ALLOWED";
     reportCommandResult("LOITER_FC", "REJECTED", detail);
     std::stringstream ss;
     ss << "Cannot enter flight-controller Loiter from " << mts_flight_mode;
@@ -1190,15 +1215,18 @@ void UAV_Model::pollCommandConfirmations()
     rtl_outcome = m_rtl_confirmation_tracker.evaluate(
         mts_flight_mode.get() == mavsdk::Telemetry::FlightMode::ReturnToLaunch,
         ModeConfirmationTracker::Clock::now(),
-        MODE_CONFIRMATION_TIMEOUT_S);
+        MODE_CONFIRMATION_TIMEOUT_S,
+        MODE_CONFIRMATION_DWELL_S);
     fc_loiter_outcome = m_fc_loiter_confirmation_tracker.evaluate(
         mts_flight_mode.get() == mavsdk::Telemetry::FlightMode::Hold,
         ModeConfirmationTracker::Clock::now(),
-        MODE_CONFIRMATION_TIMEOUT_S);
+        MODE_CONFIRMATION_TIMEOUT_S,
+        MODE_CONFIRMATION_DWELL_S);
     precision_loiter_outcome = m_precision_loiter_confirmation_tracker.evaluate(
         mts_flight_mode.get() == mavsdk::Telemetry::FlightMode::Hold,
         ModeConfirmationTracker::Clock::now(),
-        MODE_CONFIRMATION_TIMEOUT_S);
+        MODE_CONFIRMATION_TIMEOUT_S,
+        MODE_CONFIRMATION_DWELL_S);
 
     const auto flight_mode = mts_flight_mode.get();
     const auto landed_state = mts_landed_state.get();
