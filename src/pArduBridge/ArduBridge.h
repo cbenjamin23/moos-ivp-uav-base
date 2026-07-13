@@ -47,6 +47,7 @@ protected:
   // Notify to DB
   void postTelemetryUpdate(const std::string &prefix);
   void postHealthUpdate();
+  void postLandingTargetUpdate();
   void postCommandResult();
   void queueCommandResult(const UAV_Model::CommandResult &result);
 

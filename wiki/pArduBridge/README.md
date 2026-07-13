@@ -137,7 +137,7 @@ Because Copter interprets `DESIRED_HEADING` as yaw, a rich MOOS `BHV_Loiter` pat
 |---|---|
 | `DO_TAKEOFF` | Requires an already-armed vehicle. Copter requires fresh `ON_GROUND` telemetry, invokes MAVSDK takeoff at `takeoff_altitude`, confirms takeoff telemetry, and completes at the target altitude. Plane starts its current bridge/SITL mission and confirms Mission/Takeoff mode. |
 | `FLY_WAYPOINT` | Uses `NEXT_WAYPOINT`. With Helm inactive, enters Guided and sends a position target. With Helm active, publishes `TOWAYPT_UPDATE` for MOOS behavior control. Reports rejection, submission, and acceptance/failure; arrival is not yet a lifecycle state. |
-| `RETURN_TO_LAUNCH` or `RETURN` | With Helm inactive, requests native FC RTL and confirms RTL telemetry. With Helm active, publishes the home point to `RETURN_UPDATE`. |
+| `RETURN_TO_LAUNCH` or `RETURN` | With Helm inactive and the vehicle armed, requests native FC RTL and confirms stable RTL telemetry. With Helm active, publishes the home point to `RETURN_UPDATE`. |
 | `LOITER` | Legacy Guided coordinate hold. Copter moves to and holds the target; Plane orbits the target in Guided. Reports submission and FC target acceptance/failure. |
 | `LOITER_FC` | Requests native FC Loiter: Copter position hold or Plane orbit at the current point. Confirms `Hold` telemetry. |
 | `PRECISION_LOITER`, `PRECISION_LOITER_ON`, `PRECISION_LOITER_ENABLE` | Copter only. Requires armed state, `PLND_ENABLED=1`, nonzero `PLND_TYPE`, and an allowed autonomy-controlled mode. Enters native Loiter unless configured not to, then enables ArduPilot auxiliary function 39. |
@@ -146,7 +146,7 @@ Because Copter interprets `DESIRED_HEADING` as yaw, a rich MOOS `BHV_Loiter` pat
 | `RESET_SPEED_MIN` | Commands the polled minimum speed. |
 | `SURVEY` | Requires Helm ownership; enters Guided and sets `HELM_SURVEYING`. |
 | `DO_VORONOI` | Requires Helm ownership; enters Guided and sets `HELM_VORONOI`. |
-| `VIZ_HOME` | Republishes the home marker; it sends no flight command. |
+| `VIZ_HOME` | Republishes a valid home marker and reports `REJECTED,HOME_UNAVAILABLE` when no marker can be posted; it sends no flight command. |
 
 See [UAV ArduPilot Commands](../UAV_Mission_ARDU_Commands.md) for examples and operational distinctions.
 
@@ -175,7 +175,7 @@ Unlike DISARM, LAND may proceed when landed-state telemetry is unavailable, stal
 
 ### Mode-changing autonomy commands
 
-Native RTL and `LOITER_FC` use the bridge's closed autonomy-mode allowlist: Mission, Hold, Land, Guided, and Offboard. Manual/Stabilized, RTL-to-Loiter, unknown, and unlisted modes are rejected unless the operation is already active and returns `NO_OP`.
+Native RTL and `LOITER_FC` use the bridge's closed autonomy-mode allowlist: Mission, Hold, Land, Guided, and Offboard. RTL additionally requires the vehicle to be armed. An explicit `LOITER_FC` may override RTL only while armed with fresh, healthy local/global/home position telemetry. Manual/Stabilized, unknown, and unlisted modes remain rejected unless the operation is already active and returns `NO_OP`.
 
 ## Command lifecycle
 
@@ -191,7 +191,7 @@ Statuses:
 |---|---|
 | `SUBMITTED` | Bridge policy passed and command submission is beginning. |
 | `ACCEPTED` | MAVSDK or ArduPilot acknowledged the command. This alone is not mode confirmation. |
-| `CONFIRMED` | FC telemetry reported the expected command state, such as RTL, native Loiter, or takeoff activation. |
+| `CONFIRMED` | FC telemetry continuously reported the expected mode for 0.5 seconds, or reported the command-specific takeoff activation state. |
 | `TIMED_OUT` | The expected activation or completion evidence was not observed by its deadline. |
 | `REJECTED` | The bridge policy blocked submission. |
 | `FAILED` | Submission occurred but MAVSDK/MAVLink reported failure. |
@@ -202,7 +202,7 @@ The same command ID is retained across a multi-stage lifecycle. Copter takeoff u
 
 Every recognized `ARDU_COMMAND` now produces `UAV_COMMAND_RESULT`. Commands that only update MOOS or visualization state report an honest terminal `ACCEPTED`/`REJECTED`; they do not claim FC confirmation. `FLY_WAYPOINT` and legacy `LOITER` report whether the Guided target was accepted, not physical arrival. Unknown command tokens report `REJECTED,UNHANDLED_COMMAND`.
 
-Precision Loiter `CONFIRMED` means the PLND parameters were configured, auxiliary function 39 was accepted, and FC Loiter telemetry was observed. It does not prove that a landing target is presently acquired; MAVLink exposes no durable auxiliary-function state through this implementation.
+Precision Loiter `CONFIRMED` means the PLND parameters were configured, auxiliary function 39 was accepted, and FC Loiter telemetry was observed. It does not prove target acquisition; use the separately observed `UAV_LANDING_TARGET_*` freshness and pose publications for that evidence.
 
 ## Publications
 
@@ -226,6 +226,7 @@ If `prefix=UAV`, the app publishes:
 | Health | `UAV_HEALTH_AVAILABLE`, `UAV_HEALTH_GYRO`, `UAV_HEALTH_ACCEL`, `UAV_HEALTH_MAG`, `UAV_HEALTH_LOCAL_POSITION`, `UAV_HEALTH_GLOBAL_POSITION`, `UAV_HEALTH_HOME_POSITION`, `UAV_IS_ARMABLE`, `UAV_HEALTH_ALL_OK`, `UAV_HEALTH_AGE` |
 | Vehicle state | `UAV_IS_ARMED`, `UAV_LANDED_STATE_AVAILABLE`, `UAV_LANDED_STATE`, `UAV_LANDED_STATE_AGE` |
 | GPS | `UAV_GPS_AVAILABLE`, `UAV_GPS_FIX_TYPE`, `UAV_GPS_SATELLITES`, `UAV_GPS_HDOP`, `UAV_GPS_VDOP`, `UAV_GPS_AGE` |
+| Landing target | `UAV_LANDING_TARGET_AVAILABLE`, `UAV_LANDING_TARGET_AGE`, source system/component IDs, target number/frame/type, position-valid flag, angles, distance, and X/Y/Z |
 | Policy | `UAV_ARM_POLICY_READY`, `UAV_ARM_POLICY_REASON`, `UAV_DISARM_POLICY_READY`, `UAV_DISARM_POLICY_REASON`, `UAV_LAND_POLICY_READY`, `UAV_LAND_POLICY_REASON` |
 | Command | `UAV_COMMAND_RESULT` |
 
@@ -233,13 +234,15 @@ GPS fix types use the MAVSDK enum: 0 No GPS, 1 No Fix, 2 Fix 2D, 3 Fix 3D, 4 DGP
 
 Landed states are `UNKNOWN`, `ON_GROUND`, `IN_AIR`, `TAKING_OFF`, and `LANDING`. They come from FC `EXTENDED_SYS_STATE` through MAVSDK and are authoritative for bridge ARM/DISARM policy, subject to availability and freshness.
 
+`UAV_LANDING_TARGET_AVAILABLE=1` means a `LANDING_TARGET` message from the vehicle's MAVLink system was received within the last 0.5 seconds. It becomes zero when traffic goes stale. Distance and X/Y/Z are reported exactly as supplied; inspect `UAV_LANDING_TARGET_POSITION_VALID` before treating the position fields as valid. These variables are observational and do not automatically change Precision Loiter policy or flight mode.
+
 ### Coordination and visualization
 
 The app also publishes `AUTOPILOT_MODE`, `MOOS_MANUAL_OVERRIDE`, `RETURN_UPDATE`, `TOWAYPT_UPDATE`, `SURVEY_UPDATE`, `CONST_ALTITUDE_UPDATE`, and `VIEW_*` markers/vectors.
 
 ## Verification status
 
-The current Plane/Copter implementation has completed a one-time logged SITL regression covering health and stale telemetry, landed-state transitions, ARM/DISARM, LAND policy, command lifecycles, MOOS return versus native RTL, Guided versus native Loiter, Precision Loiter readiness, Copter waypoint movement, Plane mission takeoff, and Plane AUTOLAND. No permanent SITL harness or CTest targets are kept in the app directory.
+The current Plane/Copter implementation has completed a one-time logged SITL regression covering health and stale telemetry, landed-state transitions, ARM/DISARM, LAND policy, command lifecycles, MOOS return versus native RTL, Guided versus native Loiter, Precision Loiter readiness, routed `LANDING_TARGET` freshness/pose telemetry, Copter waypoint movement, Plane mission takeoff, and Plane AUTOLAND. No permanent SITL harness or CTest targets are kept in the app directory.
 
 SITL does not qualify the real serial path, controller firmware, RC/GPS configuration, propulsion wiring, PLND sensor, or target acquisition. Follow the [hardware qualification checklist](HARDWARE_QUALIFICATION.md) before flight.
 

@@ -54,6 +54,7 @@ public:
   static constexpr double MODE_CONFIRMATION_DWELL_S = 0.5;
   static constexpr double TAKEOFF_COMPLETION_TIMEOUT_S = 60.0;
   static constexpr double TAKEOFF_ALTITUDE_TOLERANCE_M = 0.5;
+  static constexpr double LANDING_TARGET_MAX_AGE_S = 0.5;
 
   enum class PolicyAction
   {
@@ -107,6 +108,22 @@ public:
     std::string command;
     std::string status;
     std::string detail;
+  };
+
+  struct LandingTargetTelemetry
+  {
+    uint8_t source_system = 0;
+    uint8_t source_component = 0;
+    uint8_t target_num = 0;
+    uint8_t frame = 0;
+    uint8_t target_type = 0;
+    bool position_valid = false;
+    float angle_x_rad = 0.0f;
+    float angle_y_rad = 0.0f;
+    float distance_m = 0.0f;
+    float x_m = 0.0f;
+    float y_m = 0.0f;
+    float z_m = 0.0f;
   };
 
   using CommandCompletion = std::function<void(bool, const std::string &)>;
@@ -202,6 +219,10 @@ public:
   bool hasLandedStateTelemetry() const { return m_landed_state_received; }
   mavsdk::Telemetry::LandedState getLandedState() const { return mts_landed_state.get(); }
   double getLandedStateTelemetryAge() const;
+  bool hasLandingTargetTelemetry() const { return m_landing_target_received; }
+  bool hasFreshLandingTargetTelemetry() const;
+  LandingTargetTelemetry getLandingTargetTelemetry() const { return mts_landing_target.get(); }
+  double getLandingTargetTelemetryAge() const;
   static std::string landedStateToString(mavsdk::Telemetry::LandedState landed_state);
   bool isArmed() const { return (m_is_armed); }
   // Altitude-threshold inference retained until the command guards are revised.
@@ -377,6 +398,8 @@ protected:
   std::atomic<double> m_last_gps_update_s;
   std::atomic<bool> m_landed_state_received;
   std::atomic<double> m_last_landed_state_update_s;
+  std::atomic<bool> m_landing_target_received;
+  std::atomic<double> m_last_landing_target_update_s;
   ThreadSafeVariable<mavsdk::Telemetry::Position> mts_position;
   ThreadSafeVariable<mavsdk::Telemetry::EulerAngle> mts_attitude_ned;
   ThreadSafeVariable<mavsdk::Telemetry::VelocityNed> mts_velocity_ned;
@@ -386,6 +409,7 @@ protected:
   ThreadSafeVariable<mavsdk::Telemetry::GpsInfo> mts_gps_info;
   ThreadSafeVariable<mavsdk::Telemetry::RawGps> mts_raw_gps;
   ThreadSafeVariable<mavsdk::Telemetry::LandedState> mts_landed_state;
+  ThreadSafeVariable<LandingTargetTelemetry> mts_landing_target;
 
   ThreadSafeVariable<mavsdk::Telemetry::FlightMode> mts_flight_mode;
 

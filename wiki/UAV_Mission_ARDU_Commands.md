@@ -10,7 +10,7 @@ See the [canonical pArduBridge reference](pArduBridge/README.md) for configurati
 |---|---|---|---|
 | `DO_TAKEOFF` | Starts the current bridge/SITL mission; vehicle must already be armed. | MAVSDK takeoff to configured altitude; vehicle must be armed with fresh `ON_GROUND` telemetry. | Plane confirms Mission/Takeoff mode. Copter reports `SUBMITTED → ACCEPTED → CONFIRMED → COMPLETED` at target altitude. |
 | `FLY_WAYPOINT` | Guided reposition to `NEXT_WAYPOINT`, or MOOS `TOWAYPT_UPDATE` with Helm active. | Same position-target path. | Reports rejection, submission, and target acceptance/failure. Arrival still requires navigation telemetry. |
-| `RETURN_TO_LAUNCH`, `RETURN` | Native RTL with Helm inactive; MOOS return waypoint with Helm active. | Same split. | Native RTL is telemetry-confirmed; MOOS return reports `MOOS_RETURN_WAYPOINT`. |
+| `RETURN_TO_LAUNCH`, `RETURN` | Native RTL with Helm inactive; MOOS return waypoint with Helm active. | Same split. | Native RTL requires armed state and 0.5 s stable RTL telemetry; MOOS return reports `MOOS_RETURN_WAYPOINT`. |
 | `LOITER` | Guided orbit around the chosen coordinate. | Guided move-to/hold at the chosen coordinate. | Reports Guided-target acceptance/failure; bridge state `HELM_INACTIVE_LOITERING`. |
 | `LOITER_FC` | Native ArduPlane Loiter orbit at current point. | Native ArduCopter Loiter position hold. | `SUBMITTED → ACCEPTED → CONFIRMED`; repeat is `NO_OP`. |
 | `PRECISION_LOITER` | Rejected `COPTER_ONLY`. | Native Loiter plus ArduPilot auxiliary function 39. | Requires armed, `PLND_ENABLED=1`, nonzero `PLND_TYPE`; Loiter telemetry confirmed. |
@@ -19,7 +19,7 @@ See the [canonical pArduBridge reference](pArduBridge/README.md) for configurati
 | `RESET_SPEED_MIN` | Commands polled minimum airspeed and optional groundspeed. | Commands minimum groundspeed. | Warning/event reporting. |
 | `SURVEY` | Requires Helm active; enters Guided and bridge survey state. | Same. | MOOS/Helm-owned behavior. |
 | `DO_VORONOI` | Requires Helm active; enters Guided and bridge Voronoi state. | Same. | MOOS/Helm-owned behavior. |
-| `VIZ_HOME` | Republishes home marker. | Same. | No FC command. |
+| `VIZ_HOME` | Republishes a valid home marker. | Same. | No FC command; unavailable home is explicitly rejected. |
 
 Accepted aliases are `PRECISION_LOITER_ON`, `PRECISION_LOITER_ENABLE`, and `PRECISION_LOITER_DISABLE`.
 
@@ -35,7 +35,7 @@ These names are intentionally distinct:
 
 For Copter, `DESIRED_HEADING` is yaw. Yaw plus groundspeed does not itself describe an XY circle; a rich Copter MOOS loiter pattern needs appropriate horizontal position or velocity guidance.
 
-Precision Loiter first establishes native Copter Loiter unless `precision_loiter_enter_loiter=false`, in which case the FC must already be in Loiter. It then sends auxiliary function 39. `CONFIRMED` proves the configured backend, accepted auxiliary command, and Loiter mode—not live target acquisition.
+Precision Loiter first establishes native Copter Loiter unless `precision_loiter_enter_loiter=false`, in which case the FC must already be in Loiter. It then sends auxiliary function 39. `CONFIRMED` proves the configured backend, accepted auxiliary command, and Loiter mode—not live target acquisition. Use `UAV_LANDING_TARGET_AVAILABLE`, age, source component, validity, distance, and pose as separate acquisition evidence.
 
 ## Return routing
 
@@ -101,7 +101,7 @@ id=13,command=RTL,status=CONFIRMED,detail=FLIGHT_MODE_RTL
 
 - `SUBMITTED`: bridge policy allowed the command.
 - `ACCEPTED`: MAVSDK/ArduPilot acknowledged it.
-- `CONFIRMED`: expected FC telemetry arrived, such as RTL, native Loiter, or takeoff activation.
+- `CONFIRMED`: expected FC mode telemetry persisted for 0.5 seconds, or command-specific takeoff activation evidence arrived.
 - `TIMED_OUT`: expected activation or completion evidence did not arrive by its deadline.
 - `REJECTED`: bridge policy prevented submission.
 - `FAILED`: MAVSDK/MAVLink reported a failure after submission.

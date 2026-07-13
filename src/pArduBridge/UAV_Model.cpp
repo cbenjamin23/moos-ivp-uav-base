@@ -48,6 +48,8 @@ UAV_Model::UAV_Model(std::shared_ptr<WarningSystem> ws) : m_mavsdk_ptr{std::make
                                                           m_last_gps_update_s{0.0},
                                                           m_landed_state_received{false},
                                                           m_last_landed_state_update_s{0.0},
+                                                          m_landing_target_received{false},
+                                                          m_last_landing_target_update_s{0.0},
                                                           mts_position{mavsdk::Telemetry::Position()},
                                                           mts_attitude_ned{mavsdk::Telemetry::EulerAngle()},
                                                           mts_velocity_ned{mavsdk::Telemetry::VelocityNed()},
@@ -56,6 +58,7 @@ UAV_Model::UAV_Model(std::shared_ptr<WarningSystem> ws) : m_mavsdk_ptr{std::make
                                                           mts_gps_info{mavsdk::Telemetry::GpsInfo()},
                                                           mts_raw_gps{mavsdk::Telemetry::RawGps()},
                                                           mts_landed_state{mavsdk::Telemetry::LandedState::Unknown},
+                                                          mts_landing_target{LandingTargetTelemetry()},
                                                           mts_flight_mode{mavsdk::Telemetry::FlightMode::Unknown},
                                                           mts_home_coord{XYPoint(0, 0)},
                                                           mts_current_loiter_coord{XYPoint(0, 0)},
@@ -609,6 +612,32 @@ bool UAV_Model::subscribeToTelemetry()
   m_telemetry_ptr->subscribe_flight_mode([&](mavsdk::Telemetry::FlightMode flight_mode)
                                          { mts_flight_mode = flight_mode; });
 
+  m_mavPass_ptr->subscribe_message(
+      MAVLINK_MSG_ID_LANDING_TARGET,
+      [this](const mavlink_message_t &message)
+      {
+        mavlink_landing_target_t raw_target{};
+        mavlink_msg_landing_target_decode(&message, &raw_target);
+
+        LandingTargetTelemetry target;
+        target.source_system = message.sysid;
+        target.source_component = message.compid;
+        target.target_num = raw_target.target_num;
+        target.frame = raw_target.frame;
+        target.target_type = raw_target.type;
+        target.position_valid = raw_target.position_valid != 0;
+        target.angle_x_rad = raw_target.angle_x;
+        target.angle_y_rad = raw_target.angle_y;
+        target.distance_m = raw_target.distance;
+        target.x_m = raw_target.x;
+        target.y_m = raw_target.y;
+        target.z_m = raw_target.z;
+        mts_landing_target.set(target);
+        m_last_landing_target_update_s = std::chrono::duration<double>(
+            std::chrono::steady_clock::now().time_since_epoch()).count();
+        m_landing_target_received = true;
+      });
+
   if (m_telemetry_ptr->set_rate_gps_info(5.0) != mavsdk::Telemetry::Result::Success)
   {
     m_warning_system_ptr->queue_monitorWarningForXseconds("Failed to request GPS telemetry", WARNING_DURATION);
@@ -666,6 +695,22 @@ double UAV_Model::getLandedStateTelemetryAge() const
   const double now_s = std::chrono::duration<double>(
       std::chrono::steady_clock::now().time_since_epoch()).count();
   return std::max(0.0, now_s - m_last_landed_state_update_s.load());
+}
+
+double UAV_Model::getLandingTargetTelemetryAge() const
+{
+  if (!m_landing_target_received)
+    return -1.0;
+
+  const double now_s = std::chrono::duration<double>(
+      std::chrono::steady_clock::now().time_since_epoch()).count();
+  return std::max(0.0, now_s - m_last_landing_target_update_s.load());
+}
+
+bool UAV_Model::hasFreshLandingTargetTelemetry() const
+{
+  const double age_s = getLandingTargetTelemetryAge();
+  return age_s >= 0.0 && age_s <= LANDING_TARGET_MAX_AGE_S;
 }
 
 std::string UAV_Model::landedStateToString(mavsdk::Telemetry::LandedState landed_state)

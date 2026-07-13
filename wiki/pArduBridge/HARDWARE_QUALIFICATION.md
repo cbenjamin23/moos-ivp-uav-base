@@ -73,6 +73,7 @@ Launch the ordinary vehicle MOOS community with `vehicle_type`, serial endpoint,
 | Landed state | Available, fresh, and `ON_GROUND`. |
 | Arm policy | Usually blocked indoors if ArduPilot is not armable; reason must match observed health. |
 | AppCast | Configured vehicle type and connection endpoint are correct. |
+| Landmark | `UAV_LANDING_TARGET_AVAILABLE=1` only while the target is detected; source component, distance/pose, and age agree with raw MAVLink. |
 
 ### Parameter inspection
 
@@ -87,7 +88,7 @@ Save parameters before changing anything. Inspect at minimum:
 - `PLND_ENABLED`, `PLND_TYPE`, orientation, camera/sensor position, limits, and timeout;
 - motor interlock and idle-spin behavior before any armed test.
 
-`PRECISION_LOITER` requires `PLND_ENABLED=1` and nonzero `PLND_TYPE`. That only proves backend configuration. Separately verify live `LANDING_TARGET` messages and actual target acquisition.
+`PRECISION_LOITER` requires `PLND_ENABLED=1` and nonzero `PLND_TYPE`. That only proves backend configuration. Separately verify `UAV_LANDING_TARGET_AVAILABLE`, age, source component, position validity, pose/distance changes, stale transition, and raw MAVLink traffic while moving or covering the target.
 
 ### Indoor command matrix
 
@@ -100,7 +101,8 @@ Remain disarmed unless ArduPilot naturally reports the vehicle armable and the o
 | ARM with failed prerequisites | `ARM,REJECTED,<reason>` or FC `FAILED` | `STATUSTEXT` explains the native blocker. |
 | `PRECISION_LOITER` while disarmed | `REJECTED,NOT_ARMED` | No auxiliary/mode activation. |
 | Precision Loiter with disabled PLND | `REJECTED,PLND_DISABLED` or `PLND_TYPE_NONE` | Parameters agree. |
-| `LOITER_FC` in an eligible disarmed mode | `SUBMITTED → ACCEPTED → CONFIRMED`, if ArduPilot permits the mode | FC custom mode becomes native Loiter. |
+| Native RTL while disarmed | `REJECTED,NOT_ARMED`. | FC mode does not change. |
+| `LOITER_FC` while RTL | Allowed only when armed with fresh healthy local/global/home position telemetry. | FC settles in native Loiter for at least 0.5 s. |
 | Repeat `LOITER_FC` | `NO_OP,ALREADY_FC_LOITER` | FC remains in native Loiter. |
 | `LOITER` | Bridge enters `HELM_INACTIVE_LOITERING` | FC is Guided and acknowledges reposition, not native Loiter. |
 

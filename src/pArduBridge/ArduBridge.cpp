@@ -815,6 +815,7 @@ bool ArduBridge::Iterate()
 
   postTelemetryUpdate(m_uav_prefix);
   postHealthUpdate();
+  postLandingTargetUpdate();
   m_uav_model.pollCommandConfirmations();
   postCommandResult();
 
@@ -1121,6 +1122,9 @@ bool ArduBridge::buildReport()
   auto uav_raw_gps = m_uav_model.getRawGps();
   auto uav_hasLandedState = m_uav_model.hasLandedStateTelemetry();
   auto uav_landedState = m_uav_model.getLandedState();
+  auto uav_hasLandingTarget = m_uav_model.hasLandingTargetTelemetry();
+  auto uav_hasFreshLandingTarget = m_uav_model.hasFreshLandingTargetTelemetry();
+  auto uav_landingTarget = m_uav_model.getLandingTargetTelemetry();
   auto uav_isInAir = m_uav_model.isInAir();
   auto uav_flightMode = m_uav_model.getFlightMode();
 
@@ -1180,6 +1184,26 @@ bool ArduBridge::buildReport()
   {
     m_msgs << "                State: " << UAV_Model::landedStateToString(uav_landedState) << std::endl;
     m_msgs << "       Sample Age (s): " << doubleToStringX(m_uav_model.getLandedStateTelemetryAge(), sdigits) << std::endl;
+  }
+
+  m_msgs << std::endl;
+  m_msgs << "MAVLink Landing Target: " << std::endl;
+  m_msgs << "------------------ " << std::endl;
+  m_msgs << "            Received: " << boolToString(uav_hasLandingTarget) << std::endl;
+  m_msgs << "               Fresh: " << boolToString(uav_hasFreshLandingTarget) << std::endl;
+  if (uav_hasLandingTarget)
+  {
+    m_msgs << "      Source Sys/Comp: "
+           << static_cast<unsigned int>(uav_landingTarget.source_system) << "/"
+           << static_cast<unsigned int>(uav_landingTarget.source_component) << std::endl;
+    m_msgs << "      Position Valid: " << boolToString(uav_landingTarget.position_valid) << std::endl;
+    m_msgs << "        Distance (m): " << doubleToStringX(uav_landingTarget.distance_m, sdigits) << std::endl;
+    m_msgs << "          X/Y/Z (m): "
+           << doubleToStringX(uav_landingTarget.x_m, sdigits) << "/"
+           << doubleToStringX(uav_landingTarget.y_m, sdigits) << "/"
+           << doubleToStringX(uav_landingTarget.z_m, sdigits) << std::endl;
+    m_msgs << "       Sample Age (s): "
+           << doubleToStringX(m_uav_model.getLandingTargetTelemetryAge(), sdigits) << std::endl;
   }
 
   auto guidedHold = m_uav_model.isHoldCourseGuidedSet();
@@ -1426,6 +1450,34 @@ void ArduBridge::postHealthUpdate()
     Notify("UAV_LANDED_STATE", UAV_Model::landedStateToString(m_uav_model.getLandedState()), m_curr_time);
     Notify("UAV_LANDED_STATE_AGE", m_uav_model.getLandedStateTelemetryAge(), m_curr_time);
   }
+}
+
+//---------------------------------------------------------
+// Procedure: postLandingTargetUpdate()
+
+void ArduBridge::postLandingTargetUpdate()
+{
+  const bool received = m_uav_model.hasLandingTargetTelemetry();
+  Notify("UAV_LANDING_TARGET_AVAILABLE",
+         m_uav_model.hasFreshLandingTargetTelemetry() ? 1.0 : 0.0,
+         m_curr_time);
+  if (!received)
+    return;
+
+  const auto target = m_uav_model.getLandingTargetTelemetry();
+  Notify("UAV_LANDING_TARGET_AGE", m_uav_model.getLandingTargetTelemetryAge(), m_curr_time);
+  Notify("UAV_LANDING_TARGET_SYSTEM_ID", static_cast<double>(target.source_system), m_curr_time);
+  Notify("UAV_LANDING_TARGET_COMPONENT_ID", static_cast<double>(target.source_component), m_curr_time);
+  Notify("UAV_LANDING_TARGET_TARGET_NUM", static_cast<double>(target.target_num), m_curr_time);
+  Notify("UAV_LANDING_TARGET_FRAME", static_cast<double>(target.frame), m_curr_time);
+  Notify("UAV_LANDING_TARGET_TYPE", static_cast<double>(target.target_type), m_curr_time);
+  Notify("UAV_LANDING_TARGET_POSITION_VALID", target.position_valid ? 1.0 : 0.0, m_curr_time);
+  Notify("UAV_LANDING_TARGET_ANGLE_X", static_cast<double>(target.angle_x_rad), m_curr_time);
+  Notify("UAV_LANDING_TARGET_ANGLE_Y", static_cast<double>(target.angle_y_rad), m_curr_time);
+  Notify("UAV_LANDING_TARGET_DISTANCE", static_cast<double>(target.distance_m), m_curr_time);
+  Notify("UAV_LANDING_TARGET_X", static_cast<double>(target.x_m), m_curr_time);
+  Notify("UAV_LANDING_TARGET_Y", static_cast<double>(target.y_m), m_curr_time);
+  Notify("UAV_LANDING_TARGET_Z", static_cast<double>(target.z_m), m_curr_time);
 }
 
 //---------------------------------------------------------

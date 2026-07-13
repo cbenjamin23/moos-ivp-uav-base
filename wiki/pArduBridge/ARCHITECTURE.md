@@ -61,9 +61,13 @@ Platform distinction:
 
 ### `ModeConfirmationTracker`
 
-The tracker stores a command ID and acceptance time. RTL, `LOITER_FC`, and Precision Loiter wait up to five seconds for matching telemetry. A matching mode at the deadline is treated as confirmation rather than timeout.
+The tracker stores a command ID and acceptance time. RTL, `LOITER_FC`, and Precision Loiter wait up to five seconds for matching telemetry and require it to remain continuously matched for 0.5 seconds. This dwell filters transient intermediate modes before `CONFIRMED`; an interrupted match restarts the dwell.
 
 `TakeoffConfirmationTracker` preserves the same ID through activation and completion. Copter activation is confirmed from FC Takeoff or landed-state telemetry; completion additionally requires `IN_AIR` and configured relative altitude within 0.5 m. Plane stops at Mission/Takeoff-mode confirmation because mission items, rather than the bridge target, define completion.
+
+### Landing-target observation
+
+`MavlinkPassthrough` subscribes to `LANDING_TARGET` for the connected vehicle system. The model retains source system/component, target metadata, angles, distance, position-valid, and X/Y/Z with a monotonic receive timestamp. `ArduBridge::Iterate()` publishes the observation at AppTick; availability is true only while age is at most 0.5 seconds. This is deliberately observational: target traffic does not itself enable Precision Loiter or change flight mode.
 
 ## Authority model
 
