@@ -1364,9 +1364,9 @@ void ArduBridge::postTelemetryUpdate(const std::string &prefix)
   double lat = m_uav_model.getLatitude();
   double lon = m_uav_model.getLongitude();
 
-  if (!lat || !lon)
+  if (!std::isfinite(lat) || !std::isfinite(lon))
   {
-    m_warning_system_ptr->queue_monitorWarningForXseconds("NAN Values at lat or long", 5);
+    m_warning_system_ptr->queue_monitorWarningForXseconds("Non-finite latitude or longitude telemetry", 5);
     return;
   }
 
