@@ -167,6 +167,7 @@ public:
   // Actions and commands , blocking functions
   bool commandAndSetAirSpeed(double speed);
   bool commandGroundSpeed(double speed) { return (commandSpeed(speed, SPEED_TYPE::SPEED_TYPE_GROUNDSPEED)); }
+  bool commandCopterHelmSetpoint(double course_deg, double speed_m_s, double altitude_agl_m);
   bool commandAndSetAltitudeAGL(double altitudeAGL_m); // requires guided mode
   bool commandGoToLocationXY(const XYPoint pos, bool holdCurrentAltitudeAGL = false);
   bool commandGoToLocation(const mavsdk::Telemetry::Position &position);
@@ -228,7 +229,13 @@ public:
   // Altitude-threshold inference retained until the command guards are revised.
   bool isInAir() const { return (m_in_air); }
   mavsdk::Telemetry::FlightMode getFlightMode() const { return (mts_flight_mode.get()); }
-  bool isGuidedMode() const { return (mts_flight_mode.get() == mavsdk::Telemetry::FlightMode::Guided); }
+  bool isGuidedMode() const
+  {
+    const auto mode = mts_flight_mode.get();
+    // MAVSDK maps ArduCopter GUIDED telemetry to Offboard.
+    return mode == mavsdk::Telemetry::FlightMode::Guided ||
+           (isCopter() && mode == mavsdk::Telemetry::FlightMode::Offboard);
+  }
   bool isHoldCourseGuidedSet() const { return (m_is_hold_course_guided_set); }
 
   XYPoint getNextWaypointLatLon() const { return (mts_next_waypoint_coord.get()); }

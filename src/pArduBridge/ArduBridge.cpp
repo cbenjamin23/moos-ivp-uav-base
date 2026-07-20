@@ -1290,6 +1290,18 @@ bool ArduBridge::buildReport()
 void ArduBridge::sendDesiredValuesToUAV(UAV_Model &uav, bool forceSend)
 {
 
+  if (uav.isCopter())
+  {
+    // ArduCopter Guided mode needs a streamed velocity target. Plane-style
+    // speed and yaw commands merely change limits/heading and do not produce
+    // horizontal Copter motion.
+    const double desired_course = m_helm_desiredValues->readDesiredCourse();
+    const double desired_speed = m_helm_desiredValues->readDesiredSpeed();
+    const double desired_altitude_agl = m_helm_desiredValues->readDesiredAltitudeAGL();
+    uav.commandCopterHelmSetpoint(desired_course, desired_speed, desired_altitude_agl);
+    return;
+  }
+
   auto desired_course = m_helm_desiredValues->getDesiredCourse();
   auto desired_speed = m_helm_desiredValues->getDesiredSpeed();
   auto desired_altitude_agl = m_helm_desiredValues->getDesiredAltitude();
@@ -1310,18 +1322,11 @@ void ArduBridge::sendDesiredValuesToUAV(UAV_Model &uav, bool forceSend)
   if (desired_speed.has_value())
   {
     Logger::info("Sending desired speed: " + doubleToString(desired_speed.value()));
-    if (uav.isCopter())
+    uav.commandAndSetAirSpeed(desired_speed.value());
+
+    if (m_command_groundSpeed)
     {
       uav.commandGroundSpeed(desired_speed.value());
-    }
-    else
-    {
-      uav.commandAndSetAirSpeed(desired_speed.value());
-
-      if (m_command_groundSpeed)
-      {
-        uav.commandGroundSpeed(desired_speed.value());
-      }
     }
   }
 

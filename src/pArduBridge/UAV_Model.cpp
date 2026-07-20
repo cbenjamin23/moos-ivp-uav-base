@@ -1233,6 +1233,92 @@ bool UAV_Model::commandAndSetAirSpeed(double speed)
   return false;
 }
 
+bool UAV_Model::commandCopterHelmSetpoint(double course_deg,
+                                          double speed_m_s,
+                                          double altitude_agl_m)
+{
+  if (!isCopter() || !m_in_air)
+  {
+    m_warning_system_ptr->queue_monitorWarningForXseconds(
+        "Copter Helm setpoint requires an airborne Copter", WARNING_DURATION);
+    return false;
+  }
+
+  // Entering Guided is a discrete mission command (for example,
+  // FLY_WAYPOINT). The streaming sender must never reclaim control from an
+  // FC-owned mode such as Land or Loiter with a late Helm setpoint.
+  if (!isGuidedMode())
+  {
+    return false;
+  }
+
+  course_deg = angle360(course_deg);
+  speed_m_s = std::max(0.0, speed_m_s);
+
+  const double course_rad = course_deg * M_PI / 180.0;
+  const float velocity_north_m_s = static_cast<float>(speed_m_s * std::cos(course_rad));
+  const float velocity_east_m_s = static_cast<float>(speed_m_s * std::sin(course_rad));
+
+  // NED vertical velocity is positive downward. A small proportional term
+  // holds the Helm altitude without replacing the horizontal velocity target.
+  const double altitude_error_m = altitude_agl_m - getAltitudeAGL();
+  const float velocity_down_m_s = static_cast<float>(
+      std::clamp(-0.5 * altitude_error_m, -1.0, 1.0));
+
+  constexpr uint16_t IGNORE_POSITION = (1U << 0) | (1U << 1) | (1U << 2);
+  constexpr uint16_t IGNORE_ACCELERATION = (1U << 6) | (1U << 7) | (1U << 8);
+  constexpr uint16_t IGNORE_YAW_RATE = (1U << 11);
+  constexpr uint16_t TYPE_MASK = IGNORE_POSITION | IGNORE_ACCELERATION | IGNORE_YAW_RATE;
+
+  const uint8_t target_system = m_system_ptr->get_system_id();
+  const uint8_t target_component = MAV_COMP_ID_AUTOPILOT1;
+  const uint32_t time_boot_ms = static_cast<uint32_t>(
+      std::chrono::duration_cast<std::chrono::milliseconds>(
+          std::chrono::steady_clock::now().time_since_epoch())
+          .count());
+
+  const auto result = m_mavPass_ptr->queue_message(
+      [=](MavlinkAddress mavlink_address, uint8_t channel)
+      {
+        mavlink_message_t message;
+        mavlink_msg_set_position_target_local_ned_pack_chan(
+            mavlink_address.system_id,
+            mavlink_address.component_id,
+            channel,
+            &message,
+            time_boot_ms,
+            target_system,
+            target_component,
+            MAV_FRAME_LOCAL_NED,
+            TYPE_MASK,
+            0.0f,
+            0.0f,
+            0.0f,
+            velocity_north_m_s,
+            velocity_east_m_s,
+            velocity_down_m_s,
+            0.0f,
+            0.0f,
+            0.0f,
+            static_cast<float>(course_rad),
+            0.0f);
+        return message;
+      });
+
+  if (result != mavsdk::MavlinkPassthrough::Result::Success)
+  {
+    m_warning_system_ptr->queue_monitorWarningForXseconds(
+        "Failed to queue Copter Helm velocity setpoint", WARNING_DURATION);
+    return false;
+  }
+
+  m_target_course = course_deg;
+  m_target_airspeed = speed_m_s;
+  m_target_altitudeAGL = altitude_agl_m;
+  m_last_sent_altitudeAGL = altitude_agl_m;
+  return true;
+}
+
 uint64_t UAV_Model::reportCommandResult(const std::string &command,
                                         const std::string &status,
                                         const std::string &detail,
