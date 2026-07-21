@@ -114,6 +114,7 @@ void showInterfaceAndExit()
   blk("  AUTOLAND = true|false                                        ");
   blk("  NEXT_WAYPOINT = lat=...,lon=...,x=...,y=...,vname=...        ");
   blk("  HELM_STATUS, AUTOPILOT_MODE, MOOS_MANUAL_OVERRIDE            ");
+  blk("  LEG_REQUEST, LEG_ACTIVE // Copter Helm handoff monitoring     ");
   blk("  CHANGE_SPEED, CHANGE_COURSE, CHANGE_ALTITUDE, DEAD_MAN_POST_INTERRUPT ");
   blk("  Compatibility registrations: FLY_WAYPOINT, DO_TAKEOFF, LOITER, ");
   blk("    SURVEY, RESET_SPEED_MIN, VIZ_HOME (use ARDU_COMMAND path)   ");
@@ -164,6 +165,7 @@ void showInterfaceAndExit()
   blk("  UAV_LANDING_TARGET_ANGLE_X, UAV_LANDING_TARGET_ANGLE_Y                                 ");
   blk("  UAV_LANDING_TARGET_X, UAV_LANDING_TARGET_Y, UAV_LANDING_TARGET_Z                       ");
   blk("  AUTOPILOT_MODE             // pArduBridge helm state, not raw FC mode ");
+  blk("  CONTROL_AUTHORITY          // FC/manual or MOOS Helm ownership summary ");
   blk("  MOOS_MANUAL_OVERRIDE, RETURN_UPDATE, TOWAYPT_UPDATE          ");
   blk("  SURVEY_UPDATE, CONST_ALTITUDE_UPDATE, VIEW_*                  ");
   blk("                                                                ");

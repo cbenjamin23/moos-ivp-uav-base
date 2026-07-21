@@ -114,6 +114,8 @@ private: // Autopilot Helm states
     return "HELM_UNKOWN";
   }
 
+  std::string controlAuthorityToString(AutopilotHelmMode state) const;
+
   AutopilotHelmMode stringToHelmMode(const std::string &stateStr) const
   {
     for (const auto &[stateEnum, stateStrVal] : stateStringPairs)
@@ -129,6 +131,7 @@ private: // Autopilot Helm states
   using StateTransition = std::pair<AutopilotHelmMode, AutopilotHelmMode>;
   std::map<StateTransition, std::function<void()>> m_statetransition_functions;
   void initializeStateTransitionFunctions();
+  void updateControlAuthorityMonitoring();
 
 private:
   const double MARKER_WIDTH = 10.0;
@@ -226,6 +229,12 @@ private: // State variables
   std::deque<UAV_Model::CommandResult> m_command_results;
   std::mutex m_command_results_mutex;
   std::string m_last_command_result;
+
+  bool m_leg_request_pending;
+  double m_leg_request_time;
+  bool m_leg_active;
+  bool m_parked_expected;
+  double m_guided_parked_since;
 
   std::shared_ptr<WarningSystem> m_warning_system_ptr;
   UAV_Model m_uav_model;

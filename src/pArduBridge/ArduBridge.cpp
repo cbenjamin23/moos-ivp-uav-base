@@ -43,6 +43,11 @@ ArduBridge::ArduBridge()
       m_precision_loiter_enter_loiter{true},
       m_last_health_post_time{0},
       m_last_command_result{"NONE"},
+      m_leg_request_pending{false},
+      m_leg_request_time{0},
+      m_leg_active{false},
+      m_parked_expected{true},
+      m_guided_parked_since{-1},
       m_warning_system_ptr{std::make_shared<WarningSystem>(
           [this](const std::string msg)
           { this->reportRunWarning(msg); },
@@ -150,10 +155,14 @@ bool ArduBridge::OnNewMail(MOOSMSG_LIST &NewMail)
     }
     else if (key == "HELM_STATUS")
     {
-      static bool helm_status_on = false;
+      bool helm_status_on = false;
       Logger::info("OnNewMail HELM_STATUS: " + msg.GetString());
-      
-      setBooleanOnString(helm_status_on, msg.GetString());
+
+      if (!msg.IsString() || !setBooleanOnString(helm_status_on, msg.GetString()))
+      {
+        m_warning_system_ptr->queue_monitorWarningForXseconds("HELM_STATUS must be true or false", WARNING_DURATION);
+        continue;
+      }
 
       if (!helm_status_on && m_autopilot_mode != AutopilotHelmMode::HELM_INACTIVE_LOITERING)
       {
@@ -163,18 +172,61 @@ bool ArduBridge::OnNewMail(MOOSMSG_LIST &NewMail)
         m_do_loiter_pair = std::make_pair(true, "here");
         goToHelmMode(AutopilotHelmMode::HELM_INACTIVE);
       }
-      else if (helm_status_on && !isHelmOn())
+      else if (helm_status_on)
       {
-        // m_autopilot_mode = AutopilotHelmState::HELM_ACTIVE;
-        goToHelmMode(AutopilotHelmMode::HELM_ACTIVE);
+        if (!isHelmOn())
+          goToHelmMode(AutopilotHelmMode::HELM_ACTIVE);
+        m_leg_request_pending = false;
+        m_parked_expected = false;
       }
+    }
+    else if (key == "LEG_REQUEST")
+    {
+      bool leg_requested = false;
+      bool valid = false;
+      if (msg.IsString())
+        valid = setBooleanOnString(leg_requested, msg.GetString());
+      else if (msg.IsDouble() && (msg.GetDouble() == 0.0 || msg.GetDouble() == 1.0))
+      {
+        leg_requested = (msg.GetDouble() == 1.0);
+        valid = true;
+      }
+      if (!valid)
+      {
+        m_warning_system_ptr->queue_monitorWarningForXseconds("LEG_REQUEST must be true or false", WARNING_DURATION);
+        continue;
+      }
+
+      if (leg_requested && m_uav_model.isCopter())
+      {
+        m_leg_request_pending = (m_autopilot_mode == AutopilotHelmMode::HELM_PARKED);
+        m_leg_request_time = m_curr_time;
+        m_parked_expected = false;
+      }
+    }
+    else if (key == "LEG_ACTIVE")
+    {
+      bool leg_active = false;
+      bool valid = false;
+      if (msg.IsString())
+        valid = setBooleanOnString(leg_active, msg.GetString());
+      else if (msg.IsDouble() && (msg.GetDouble() == 0.0 || msg.GetDouble() == 1.0))
+      {
+        leg_active = (msg.GetDouble() == 1.0);
+        valid = true;
+      }
+      if (!valid)
+      {
+        m_warning_system_ptr->queue_monitorWarningForXseconds("LEG_ACTIVE must be true or false", WARNING_DURATION);
+        continue;
+      }
+      m_leg_active = leg_active;
     }
     else if (key == "MOOS_MANUAL_OVERRIDE")
     {
       Logger::info("OnNewMail MOOS_MANUAL_OVERRIDE: " + msg.GetString() + " from " + msg.GetSource());
       if (msg.GetString() == "true")
       {
-        m_warning_system_ptr->queue_monitorWarningForXseconds("Helm is parked. Will return to launch", WARNING_DURATION);
         m_do_return_to_launch = true;
         goToHelmMode(AutopilotHelmMode::HELM_PARKED, true);
       }
@@ -368,10 +420,20 @@ bool ArduBridge::OnConnectToServer()
 {
   registerVariables();
 
-  m_warning_system_ptr->queue_monitorCondition("Helm is set in Park Mode", [this]()
-                                               { return (m_autopilot_mode == AutopilotHelmMode::HELM_PARKED); });
+  m_warning_system_ptr->queue_monitorCondition("Copter leg request did not activate the Helm", [this]()
+                                               { return m_uav_model.isCopter() && m_leg_request_pending &&
+                                                        (m_autopilot_mode == AutopilotHelmMode::HELM_PARKED) &&
+                                                        ((m_curr_time - m_leg_request_time) > 2.0); });
+  m_warning_system_ptr->queue_monitorCondition("Copter leg is active while the Helm is unexpectedly parked", [this]()
+                                               { return m_uav_model.isCopter() && m_leg_active && !m_parked_expected &&
+                                                        (m_autopilot_mode == AutopilotHelmMode::HELM_PARKED); });
+  m_warning_system_ptr->queue_monitorCondition("Copter is in Guided while the Helm is parked", [this]()
+                                               { return m_uav_model.isCopter() && m_guided_parked_since >= 0 &&
+                                                        ((m_curr_time - m_guided_parked_since) > 2.0); });
 
   Notify("AUTOPILOT_MODE", helmModeToString(m_autopilot_mode), m_curr_time);
+  Notify("CONTROL_AUTHORITY", controlAuthorityToString(m_autopilot_mode), m_curr_time);
+  reportEvent("Control authority: " + controlAuthorityToString(m_autopilot_mode));
   return (true);
 }
 
@@ -819,6 +881,7 @@ bool ArduBridge::Iterate()
   m_uav_model.pollCommandConfirmations();
   postCommandResult();
 
+  updateControlAuthorityMonitoring();
   m_warning_system_ptr->checkConditions(); // Check for warnings and remove/raise them as needed
 
   AppCastingMOOSApp::PostReport();
@@ -1073,6 +1136,8 @@ void ArduBridge::registerVariables()
 
   Register("ARM_UAV", 0);     // on,off
   Register("HELM_STATUS", 0); // on,off
+  Register("LEG_REQUEST", 0);
+  Register("LEG_ACTIVE", 0);
 
   Register("CHANGE_SPEED", 0);
   Register("CHANGE_COURSE", 0);
@@ -1110,6 +1175,13 @@ bool ArduBridge::buildReport()
   m_msgs << "Precision Loiter Enters Loiter: " << boolToString(m_precision_loiter_enter_loiter) << std::endl;
   std::string sim_mode = m_is_simulation ? "SITL" : "No Simulation";
   m_msgs << "Simulation Mode: " << sim_mode << std::endl;
+  m_msgs << "Control Authority: " << controlAuthorityToString(m_autopilot_mode) << std::endl;
+  m_msgs << "Helm Mode: " << helmModeToString(m_autopilot_mode) << std::endl;
+  if (m_uav_model.isCopter())
+  {
+    m_msgs << "Leg Request Pending: " << boolToString(m_leg_request_pending) << std::endl;
+    m_msgs << "Leg Active: " << boolToString(m_leg_active) << std::endl;
+  }
 
   m_msgs << "-------------------------------------------" << std::endl;
 
@@ -1972,7 +2044,25 @@ void ArduBridge::goToHelmMode(AutopilotHelmMode to_state, bool fromGCS)
 
   Notify("AUTOPILOT_MODE", helmModeToString(to_state));
   auto from_state = m_autopilot_mode;
+
+  if (to_state == AutopilotHelmMode::HELM_PARKED)
+  {
+    if (isHelmCommanding() && !fromGCS)
+      m_warning_system_ptr->queue_monitorWarningForXseconds("Helm parked unexpectedly while commanding", WARNING_DURATION);
+    m_parked_expected = fromGCS;
+  }
+  else if (from_state == AutopilotHelmMode::HELM_PARKED)
+  {
+    m_leg_request_pending = false;
+    m_parked_expected = false;
+    m_guided_parked_since = -1;
+  }
+
   m_autopilot_mode = to_state;
+  Notify("CONTROL_AUTHORITY", controlAuthorityToString(to_state));
+
+  if (from_state == AutopilotHelmMode::HELM_PARKED || to_state == AutopilotHelmMode::HELM_PARKED)
+    reportEvent("Control authority changed: " + controlAuthorityToString(to_state));
 
   auto transition = std::make_pair(from_state, to_state);
   if (m_statetransition_functions.find(transition) != m_statetransition_functions.end())
@@ -2007,6 +2097,42 @@ void ArduBridge::goToHelmMode(AutopilotHelmMode to_state, bool fromGCS)
 
   default:
     break;
+  }
+}
+
+std::string ArduBridge::controlAuthorityToString(AutopilotHelmMode state) const
+{
+  switch (state)
+  {
+  case AutopilotHelmMode::HELM_PARKED:
+    return "FC/manual - Helm parked";
+  case AutopilotHelmMode::HELM_INACTIVE:
+  case AutopilotHelmMode::HELM_INACTIVE_LOITERING:
+    return "Flight controller - Helm inactive";
+  case AutopilotHelmMode::HELM_ACTIVE:
+    return "MOOS Helm - active/idle";
+  case AutopilotHelmMode::HELM_TOWAYPT:
+  case AutopilotHelmMode::HELM_RETURNING:
+  case AutopilotHelmMode::HELM_SURVEYING:
+  case AutopilotHelmMode::HELM_VORONOI:
+    return "MOOS Helm - " + helmModeToString(state);
+  default:
+    return "Unknown";
+  }
+}
+
+void ArduBridge::updateControlAuthorityMonitoring()
+{
+  const bool guided_while_parked = m_uav_model.isCopter() && m_uav_model.isGuidedMode() &&
+                                   (m_autopilot_mode == AutopilotHelmMode::HELM_PARKED);
+  if (guided_while_parked)
+  {
+    if (m_guided_parked_since < 0)
+      m_guided_parked_since = m_curr_time;
+  }
+  else
+  {
+    m_guided_parked_since = -1;
   }
 }
 
