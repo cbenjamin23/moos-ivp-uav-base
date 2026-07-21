@@ -77,6 +77,9 @@ void showExampleConfigAndExit()
   blk("  url_protocol = udp             // udp, tcp, or serial          ");
   blk("  vehicle_type = copter          // copter or plane              ");
   blk("  takeoff_altitude = 10          // meters AGL; Copter default   ");
+  blk("  telemetry_position_hz = 5      // defaults apply to all vehicles");
+  blk("  telemetry_attitude_hz = 5      // override per mission if needed");
+  blk("  telemetry_velocity_hz = 5      // must be greater than zero     ");
   blk("  precision_loiter_enter_loiter = true // false requires FC Loiter already ");
   blk("  command_groundspeed = true     // forced true for Copter       ");
   blk("  is_sim = false                 // Plane SITL mission setup only");

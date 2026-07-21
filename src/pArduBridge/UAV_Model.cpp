@@ -638,17 +638,17 @@ bool UAV_Model::subscribeToTelemetry()
         m_landing_target_received = true;
       });
 
-  if (m_telemetry_ptr->set_rate_position(10.0) != mavsdk::Telemetry::Result::Success)
+  if (m_telemetry_ptr->set_rate_position(m_telemetry_rates.position_hz) != mavsdk::Telemetry::Result::Success)
   {
     m_warning_system_ptr->queue_monitorWarningForXseconds("Failed to request position telemetry", WARNING_DURATION);
   }
 
-  if (m_telemetry_ptr->set_rate_attitude_euler(10.0) != mavsdk::Telemetry::Result::Success)
+  if (m_telemetry_ptr->set_rate_attitude_euler(m_telemetry_rates.attitude_hz) != mavsdk::Telemetry::Result::Success)
   {
     m_warning_system_ptr->queue_monitorWarningForXseconds("Failed to request attitude telemetry", WARNING_DURATION);
   }
 
-  if (m_telemetry_ptr->set_rate_velocity_ned(10.0) != mavsdk::Telemetry::Result::Success)
+  if (m_telemetry_ptr->set_rate_velocity_ned(m_telemetry_rates.velocity_hz) != mavsdk::Telemetry::Result::Success)
   {
     m_warning_system_ptr->queue_monitorWarningForXseconds("Failed to request velocity telemetry", WARNING_DURATION);
   }

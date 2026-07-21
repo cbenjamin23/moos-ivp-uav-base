@@ -134,6 +134,15 @@ public:
     Copter
   };
 
+  static constexpr double DEFAULT_TELEMETRY_RATE_HZ = 5.0;
+
+  struct TelemetryRates
+  {
+    double position_hz{DEFAULT_TELEMETRY_RATE_HZ};
+    double attitude_hz{DEFAULT_TELEMETRY_RATE_HZ};
+    double velocity_hz{DEFAULT_TELEMETRY_RATE_HZ};
+  };
+
   UAV_Model(std::shared_ptr<WarningSystem> ws = nullptr);
   virtual ~UAV_Model() {}
 
@@ -200,6 +209,7 @@ public:
   void setLoiterLocationLatLon(const XYPoint &wp) { mts_current_loiter_coord.set(wp); }
   void setHeadingWyptFromHeading(double heading);
   void setTargetAltitudeAGL(double altitude) { m_target_altitudeAGL = altitude; }
+  void setTelemetryRates(const TelemetryRates &rates) { m_telemetry_rates = rates; }
 
   // void setTargetAirSpeed(double speed) { m_target_airspeed = speed; }
 
@@ -260,6 +270,7 @@ public:
   double getLastSentTargetAltitudeAGL() const { return (m_last_sent_altitudeAGL); }
 
   double getTargetCourse() const { return (m_target_course); }
+  TelemetryRates getTelemetryRates() const { return m_telemetry_rates; }
 
   double getRoll() const { return (mts_attitude_ned.get().roll_deg); }
   double getPitch() const { return (mts_attitude_ned.get().pitch_deg); }
@@ -327,6 +338,7 @@ protected:
 
 protected:
   VehicleType m_vehicle_type;
+  TelemetryRates m_telemetry_rates;
   std::shared_ptr<WarningSystem> m_warning_system_ptr;
   // Callbacks for debug messages
   std::function<void(const std::string &)> callbackMOOSTrace;

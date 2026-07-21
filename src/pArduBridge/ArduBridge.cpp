@@ -7,6 +7,7 @@
 
 #include <iterator>
 #include <algorithm>
+#include <cmath>
 #include "MBUtils.h"
 #include "ACTable.h"
 
@@ -909,6 +910,15 @@ bool ArduBridge::OnStartUp()
   std::string ardupilot_url;
   std::pair<bool, std::string> url_protocol_pair{false, ""};
   bool target_altitude_configured = false;
+  auto telemetry_rates = m_uav_model.getTelemetryRates();
+  const auto set_telemetry_rate = [](double &rate_hz, const std::string &value)
+  {
+    double parsed_rate_hz = 0;
+    if (!setDoubleOnString(parsed_rate_hz, value) || !std::isfinite(parsed_rate_hz) || parsed_rate_hz <= 0)
+      return false;
+    rate_hz = parsed_rate_hz;
+    return true;
+  };
 
   STRING_LIST sParams;
 
@@ -957,6 +967,24 @@ bool ArduBridge::OnStartUp()
     else if (param == "precision_loiter_enter_loiter" && isBoolean(value))
     {
       handled = setBooleanOnString(m_precision_loiter_enter_loiter, value);
+    }
+    else if (param == "telemetry_position_hz")
+    {
+      handled = true;
+      if (!set_telemetry_rate(telemetry_rates.position_hz, value))
+        reportConfigWarning("telemetry_position_hz must be greater than zero");
+    }
+    else if (param == "telemetry_attitude_hz")
+    {
+      handled = true;
+      if (!set_telemetry_rate(telemetry_rates.attitude_hz, value))
+        reportConfigWarning("telemetry_attitude_hz must be greater than zero");
+    }
+    else if (param == "telemetry_velocity_hz")
+    {
+      handled = true;
+      if (!set_telemetry_rate(telemetry_rates.velocity_hz, value))
+        reportConfigWarning("telemetry_velocity_hz must be greater than zero");
     }
     else if (param == "takeoff_altitude" || param == "default_altitude" || param == "target_altitude")
     {
@@ -1017,6 +1045,8 @@ bool ArduBridge::OnStartUp()
     if (!handled)
       reportUnhandledConfigWarning(orig);
   }
+
+  m_uav_model.setTelemetryRates(telemetry_rates);
 
   if (m_uav_model.isCopter() && !target_altitude_configured)
   {
@@ -1172,6 +1202,10 @@ bool ArduBridge::buildReport()
   m_msgs << "ArduPilot Port: " << m_cli_arg.get_port() << std::endl;
   m_msgs << "ArduPilot Protocol: " << protocol2str.at(m_cli_arg.get_protocol()) << std::endl;
   m_msgs << "Vehicle Type: " << m_uav_model.getVehicleTypeString() << std::endl;
+  const auto telemetry_rates = m_uav_model.getTelemetryRates();
+  m_msgs << "Telemetry Position Rate: " << telemetry_rates.position_hz << " Hz" << std::endl;
+  m_msgs << "Telemetry Attitude Rate: " << telemetry_rates.attitude_hz << " Hz" << std::endl;
+  m_msgs << "Telemetry Velocity Rate: " << telemetry_rates.velocity_hz << " Hz" << std::endl;
   m_msgs << "Precision Loiter Enters Loiter: " << boolToString(m_precision_loiter_enter_loiter) << std::endl;
   std::string sim_mode = m_is_simulation ? "SITL" : "No Simulation";
   m_msgs << "Simulation Mode: " << sim_mode << std::endl;
