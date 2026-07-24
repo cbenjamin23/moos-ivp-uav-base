@@ -25,6 +25,7 @@
 
 ArduBridge::ArduBridge()
     : m_do_fly_to_waypoint{false},
+      m_fly_command_name{"FLY_WAYPOINT"},
       m_do_takeoff{false},
       m_cli_arg{},
       m_do_change_speed_pair{std::make_pair(false, 0)},
@@ -32,8 +33,10 @@ ArduBridge::ArduBridge()
       m_do_change_altitude_pair{std::make_pair(false, 0)},
       m_do_reset_speed{false},
       m_do_return_to_launch{false},
+      m_force_native_rtl{false},
       m_do_autoland{false},
       m_do_loiter_pair{false, "default"},
+      m_loiter_command_name{"LOITER"},
       m_do_precision_loiter_pair{false, false},
       m_do_fc_loiter{false},
       m_arm_request{std::nullopt},
@@ -44,10 +47,6 @@ ArduBridge::ArduBridge()
       m_precision_loiter_enter_loiter{true},
       m_last_health_post_time{0},
       m_last_command_result{"NONE"},
-      m_leg_request_pending{false},
-      m_leg_request_time{0},
-      m_leg_active{false},
-      m_parked_expected{true},
       m_guided_parked_since{-1},
       m_last_guided_hold_refresh_time{-1},
       m_warning_system_ptr{std::make_shared<WarningSystem>(
@@ -172,86 +171,13 @@ bool ArduBridge::OnNewMail(MOOSMSG_LIST &NewMail)
         reportEvent("Helm is set to OFF");
         m_warning_system_ptr->queue_monitorWarningForXseconds("Helm is turned off. Will loiter at current position", WARNING_DURATION);
         m_do_loiter_pair = std::make_pair(true, "here");
+        m_loiter_command_name = "LOITER";
         goToHelmMode(AutopilotHelmMode::HELM_INACTIVE);
       }
       else if (helm_status_on)
       {
         if (!isHelmOn())
           goToHelmMode(AutopilotHelmMode::HELM_ACTIVE);
-        m_leg_request_pending = false;
-        m_parked_expected = false;
-      }
-    }
-    else if (key == "LEG_REQUEST")
-    {
-      bool leg_requested = false;
-      bool valid = false;
-      if (msg.IsString())
-        valid = setBooleanOnString(leg_requested, msg.GetString());
-      else if (msg.IsDouble() && (msg.GetDouble() == 0.0 || msg.GetDouble() == 1.0))
-      {
-        leg_requested = (msg.GetDouble() == 1.0);
-        valid = true;
-      }
-      if (!valid)
-      {
-        m_warning_system_ptr->queue_monitorWarningForXseconds("LEG_REQUEST must be true or false", WARNING_DURATION);
-        continue;
-      }
-
-      if (leg_requested && m_uav_model.isCopter())
-      {
-        // A completed or cleared Copter route is held by the flight
-        // controller in HELM_INACTIVE_LOITERING. Accept the next operator
-        // route from any state where the Helm is not already commanding.
-        m_leg_request_pending = !isHelmCommanding();
-        m_leg_request_time = m_curr_time;
-        m_parked_expected = false;
-      }
-    }
-    else if (key == "LEG_ACTIVE")
-    {
-      bool leg_active = false;
-      bool valid = false;
-      if (msg.IsString())
-        valid = setBooleanOnString(leg_active, msg.GetString());
-      else if (msg.IsDouble() && (msg.GetDouble() == 0.0 || msg.GetDouble() == 1.0))
-      {
-        leg_active = (msg.GetDouble() == 1.0);
-        valid = true;
-      }
-      if (!valid)
-      {
-        m_warning_system_ptr->queue_monitorWarningForXseconds("LEG_ACTIVE must be true or false", WARNING_DURATION);
-        continue;
-      }
-      m_leg_active = leg_active;
-    }
-    else if (key == "STATION_KEEP")
-    {
-      bool station_keep = false;
-      bool valid = false;
-      if (msg.IsString())
-        valid = setBooleanOnString(station_keep, msg.GetString());
-      else if (msg.IsDouble() && (msg.GetDouble() == 0.0 || msg.GetDouble() == 1.0))
-      {
-        station_keep = (msg.GetDouble() == 1.0);
-        valid = true;
-      }
-
-      if (!valid)
-      {
-        m_warning_system_ptr->queue_monitorWarningForXseconds(
-            "STATION_KEEP must be true or false", WARNING_DURATION);
-        continue;
-      }
-
-      if (station_keep && m_uav_model.isCopter() &&
-          m_autopilot_mode != AutopilotHelmMode::HELM_INACTIVE_LOITERING &&
-          !m_do_loiter_pair.first)
-      {
-        reportEvent("StationKeep requested: transferring endpoint hold to ArduCopter Guided");
-        m_do_loiter_pair = std::make_pair(true, "here");
       }
     }
     else if (key == "MOOS_MANUAL_OVERRIDE")
@@ -262,7 +188,10 @@ bool ArduBridge::OnNewMail(MOOSMSG_LIST &NewMail)
         // A self-post is how the bridge mirrors its parked Helm state. Only
         // an external manual-override request carries the legacy RTL policy.
         if (msg.GetSource() != GetAppName())
+        {
+          m_force_native_rtl = false;
           m_do_return_to_launch = true;
+        }
         goToHelmMode(AutopilotHelmMode::HELM_PARKED, true);
       }
     }
@@ -349,15 +278,27 @@ bool ArduBridge::OnNewMail(MOOSMSG_LIST &NewMail)
       }
       else if (rtl_requested)
       {
+        m_force_native_rtl = false;
         m_do_return_to_launch = true;
       }
     }
     else if (key == "DEAD_MAN_POST_INTERRUPT")
     {
-      m_warning_system_ptr->queue_monitorWarningForXseconds(
-          "No heartbeats from GCS. Returning to launch", WARNING_DURATION);
-      reportEvent("No heartbeats from GCS. Returning to launch");
-      m_do_return_to_launch = true;
+      if (m_do_autoland ||
+          m_uav_model.getFlightMode() == mavsdk::Telemetry::FlightMode::Land)
+      {
+        m_uav_model.reportCommandResult(
+            "DEAD_MAN_RTL", "NO_OP", "LAND_IN_PROGRESS");
+        reportEvent("No GCS heartbeat while landing; LAND remains in control");
+      }
+      else
+      {
+        m_warning_system_ptr->queue_monitorWarningForXseconds(
+            "No heartbeats from GCS. Requesting native FC RTL", WARNING_DURATION);
+        reportEvent("No heartbeats from GCS. Requesting native FC RTL");
+        m_force_native_rtl = true;
+        m_do_return_to_launch = true;
+      }
     }
     else if (key == "ARDU_COMMAND")
     {
@@ -376,6 +317,13 @@ bool ArduBridge::OnNewMail(MOOSMSG_LIST &NewMail)
       else if (command == "FLY_WAYPOINT")
       {
         m_do_fly_to_waypoint = true;
+        m_fly_command_name = "FLY_WAYPOINT";
+        handled = true;
+      }
+      else if (command == "HELM_GUIDANCE")
+      {
+        m_do_fly_to_waypoint = true;
+        m_fly_command_name = "HELM_GUIDANCE";
         handled = true;
       }
       else if (command == "DO_TAKEOFF")
@@ -390,6 +338,7 @@ bool ArduBridge::OnNewMail(MOOSMSG_LIST &NewMail)
       }
       else if (command == "RETURN_TO_LAUNCH" || command == "RETURN")
       {
+        m_force_native_rtl = false;
         m_do_return_to_launch = true;
         handled = true;
       }
@@ -397,6 +346,34 @@ bool ArduBridge::OnNewMail(MOOSMSG_LIST &NewMail)
       {
         std::string val = (msg.GetSource() == "pHelmIvP") ? "default" : "here";
         m_do_loiter_pair = std::make_pair(true, val);
+        m_loiter_command_name = "LOITER";
+        handled = true;
+      }
+      else if (command == "HOLD_POSITION")
+      {
+        const auto flight_mode = m_uav_model.getFlightMode();
+        if (!m_uav_model.isCopter())
+        {
+          m_uav_model.reportCommandResult(
+              "HOLD_POSITION", "REJECTED", "COPTER_ONLY");
+        }
+        else if (m_do_autoland ||
+                 flight_mode == mavsdk::Telemetry::FlightMode::Land)
+        {
+          m_uav_model.reportCommandResult(
+              "HOLD_POSITION", "REJECTED", "LAND_IN_PROGRESS");
+        }
+        else if (m_do_return_to_launch ||
+                 flight_mode == mavsdk::Telemetry::FlightMode::ReturnToLaunch)
+        {
+          m_uav_model.reportCommandResult(
+              "HOLD_POSITION", "REJECTED", "RTL_IN_PROGRESS");
+        }
+        else
+        {
+          m_do_loiter_pair = std::make_pair(true, "here");
+          m_loiter_command_name = "HOLD_POSITION";
+        }
         handled = true;
       }
       else if (command == "LOITER_FC")
@@ -455,13 +432,6 @@ bool ArduBridge::OnConnectToServer()
 {
   registerVariables();
 
-  m_warning_system_ptr->queue_monitorCondition("Copter leg request did not activate the Helm", [this]()
-                                               { return m_uav_model.isCopter() && m_leg_request_pending &&
-                                                        !isHelmCommanding() &&
-                                                        ((m_curr_time - m_leg_request_time) > 2.0); });
-  m_warning_system_ptr->queue_monitorCondition("Copter leg is active while the Helm is unexpectedly parked", [this]()
-                                               { return m_uav_model.isCopter() && m_leg_active && !m_parked_expected &&
-                                                        (m_autopilot_mode == AutopilotHelmMode::HELM_PARKED); });
   m_warning_system_ptr->queue_monitorCondition("Copter is in Guided while the Helm is parked", [this]()
                                                { return m_uav_model.isCopter() && m_guided_parked_since >= 0 &&
                                                         ((m_curr_time - m_guided_parked_since) > 2.0); });
@@ -657,6 +627,7 @@ bool ArduBridge::Iterate()
 
       running_ftw = false;
       m_do_fly_to_waypoint = false;
+      m_fly_command_name = "FLY_WAYPOINT";
       m_fly_to_waypoint_promfut.reset();
     }
   }
@@ -670,7 +641,7 @@ bool ArduBridge::Iterate()
     static bool running_rtl = false;
     if (!running_rtl)
     {
-      rtl_async();
+      rtl_async(m_force_native_rtl);
       running_rtl = true;
     }
 
@@ -681,7 +652,10 @@ bool ArduBridge::Iterate()
 
       if (result.value().success)
       {
-        const auto goToMode = isHelmOn() ? AutopilotHelmMode::HELM_RETURNING : AutopilotHelmMode::HELM_INACTIVE;
+        const auto goToMode =
+            (!m_force_native_rtl && isHelmOn())
+                ? AutopilotHelmMode::HELM_RETURNING
+                : AutopilotHelmMode::HELM_INACTIVE;
         goToHelmMode(goToMode);
       }
       else
@@ -691,6 +665,7 @@ bool ArduBridge::Iterate()
 
       running_rtl = false;
       m_do_return_to_launch = false;
+      m_force_native_rtl = false;
       m_rtl_promfut.reset();
     }
   }
@@ -803,7 +778,14 @@ bool ArduBridge::Iterate()
 
   static int loiter_tries = 0;
   // pos is >100 awai from lotiter, send again
-  if (m_autopilot_mode == AutopilotHelmMode::HELM_INACTIVE_LOITERING && !m_do_loiter_pair.first)
+  const auto flight_mode = m_uav_model.getFlightMode();
+  const bool fc_preempts_hold =
+      m_do_autoland || m_do_return_to_launch ||
+      flight_mode == mavsdk::Telemetry::FlightMode::Land ||
+      flight_mode == mavsdk::Telemetry::FlightMode::ReturnToLaunch;
+
+  if (m_autopilot_mode == AutopilotHelmMode::HELM_INACTIVE_LOITERING &&
+      !m_do_loiter_pair.first && !fc_preempts_hold)
   {
     if (m_uav_model.isCopter() &&
         (m_last_guided_hold_refresh_time < 0 ||
@@ -834,32 +816,51 @@ bool ArduBridge::Iterate()
   if (m_do_loiter_pair.first)
   {
     static bool running_loiter = false;
-    if (!running_loiter)
+    if (fc_preempts_hold && !running_loiter)
+    {
+      m_uav_model.reportCommandResult(
+          m_loiter_command_name, "CANCELED",
+          flight_mode == mavsdk::Telemetry::FlightMode::Land || m_do_autoland
+              ? "LAND_PREEMPTED"
+              : "RTL_PREEMPTED");
+      m_do_loiter_pair = std::make_pair(false, "default");
+      m_loiter_command_name = "LOITER";
+    }
+    else if (!running_loiter)
     {
       // Will report warning if command fails
       auto curr_loiter = XYPoint(m_uav_model.getLatitude(), m_uav_model.getLongitude());
       auto location = (m_do_loiter_pair.second == "here") ? curr_loiter : XYPoint(0, 0);
-      loiterAtPos_async(location);
+      loiterAtPos_async(location, false, m_loiter_command_name);
       running_loiter = true;
     }
 
     auto result = future_poll_result(m_loiter_at_pos_promfut.fut);
     if (result.has_value())
     {
-      if (result.value().success)
+      if (result.value().success && !fc_preempts_hold)
       {
         goToHelmMode(AutopilotHelmMode::HELM_INACTIVE_LOITERING);
         visualizeLoiterLocation(m_uav_model.getCurrentLoiterLatLon());
         loiter_tries = 0;
       }
-      else
+      else if (!result.value().success)
       {
         goToHelmMode(AutopilotHelmMode::HELM_INACTIVE);
         m_warning_system_ptr->queue_monitorWarningForXseconds("FAIL: " + result.value().message, WARNING_DURATION);
       }
+      else
+      {
+        m_uav_model.reportCommandResult(
+            m_loiter_command_name, "CANCELED",
+            flight_mode == mavsdk::Telemetry::FlightMode::Land || m_do_autoland
+                ? "LAND_PREEMPTED"
+                : "RTL_PREEMPTED");
+      }
       running_loiter = false;
       m_do_loiter_pair.first = false;
       m_do_loiter_pair.second = "default";
+      m_loiter_command_name = "LOITER";
       m_loiter_at_pos_promfut.reset();
     }
   }
@@ -1216,10 +1217,6 @@ void ArduBridge::registerVariables()
 
   Register("ARM_UAV", 0);     // on,off
   Register("HELM_STATUS", 0); // on,off
-  Register("LEG_REQUEST", 0);
-  Register("LEG_ACTIVE", 0);
-  Register("STATION_KEEP", 0);
-
   Register("CHANGE_SPEED", 0);
   Register("CHANGE_COURSE", 0);
   Register("CHANGE_ALTITUDE", 0);
@@ -1262,12 +1259,6 @@ bool ArduBridge::buildReport()
   m_msgs << "Simulation Mode: " << sim_mode << std::endl;
   m_msgs << "Control Authority: " << controlAuthorityToString(m_autopilot_mode) << std::endl;
   m_msgs << "Helm Mode: " << helmModeToString(m_autopilot_mode) << std::endl;
-  if (m_uav_model.isCopter())
-  {
-    m_msgs << "Leg Request Pending: " << boolToString(m_leg_request_pending) << std::endl;
-    m_msgs << "Leg Active: " << boolToString(m_leg_active) << std::endl;
-  }
-
   m_msgs << "-------------------------------------------" << std::endl;
 
   auto uav_isArmed = m_uav_model.isArmed();
@@ -1897,6 +1888,34 @@ bool ArduBridge::tryFlyToWaypoint()
 
 void ArduBridge::flyToWaypoint_async()
 {
+  if (m_fly_command_name == "HELM_GUIDANCE")
+  {
+    if (!isHelmOn())
+    {
+      m_uav_model.reportCommandResult(
+          "HELM_GUIDANCE", "REJECTED", "HELM_INACTIVE");
+      m_fly_to_waypoint_promfut.prom.set_value(
+          ResultPair{false, "Helm is not active"});
+      return;
+    }
+
+    const uint64_t command_id = m_uav_model.reportCommandResult(
+        "HELM_GUIDANCE", "SUBMITTED", "MOOS_GUIDANCE");
+    if (!m_uav_model.isGuidedMode())
+    {
+      m_uav_model.pushCommand([this](UAV_Model &uav)
+                              {
+        m_warning_system_ptr->queue_monitorWarningForXseconds(
+            "Commanding Flight Mode Guided to UAV...", 3);
+        uav.commandGuidedMode(); });
+    }
+
+    m_uav_model.reportCommandResult(
+        "HELM_GUIDANCE", "ACCEPTED", "GUIDED_MODE_REQUESTED", command_id);
+    m_fly_to_waypoint_promfut.prom.set_value(ResultPair{true, ""});
+    return;
+  }
+
   XYPoint wp = m_uav_model.getNextWaypointLatLon();
   if (wp == XYPoint(0, 0))
   {
@@ -1910,7 +1929,6 @@ void ArduBridge::flyToWaypoint_async()
 
   if (isHelmOn())
   {
-
     if (!m_uav_model.isGuidedMode())
     {
       m_uav_model.pushCommand([this](UAV_Model &uav)
@@ -1923,7 +1941,7 @@ void ArduBridge::flyToWaypoint_async()
     std::string update_str = "points=" + xypointToString(m_tonext_waypointXY);
     Notify("TOWAYPT_UPDATE", update_str);
 
-    m_uav_model.setLoiterLocationLatLon(wp); // set the waypoint
+    m_uav_model.setLoiterLocationLatLon(wp);
     m_uav_model.reportCommandResult("FLY_WAYPOINT", "ACCEPTED",
                                     "TOWAYPT_UPDATE_POSTED", command_id);
     m_fly_to_waypoint_promfut.prom.set_value(ResultPair{true, ""});
@@ -1978,10 +1996,10 @@ bool ArduBridge::tryRTL()
   return true;
 }
 
-void ArduBridge::rtl_async()
+void ArduBridge::rtl_async(bool force_native_rtl)
 {
 
-  if (isHelmOn())
+  if (!force_native_rtl && isHelmOn())
   {
     XYPoint home = transformLatLonToXY(m_uav_model.getHomeLatLon());
     if (home == XYPoint(0, 0))
@@ -2082,14 +2100,16 @@ bool ArduBridge::tryloiterAtPos(const XYPoint &loiter_coord, bool holdCurrentAlt
   return true;
 }
 
-void ArduBridge::loiterAtPos_async(const XYPoint &loiter_coord, bool holdCurrentAltitude)
+void ArduBridge::loiterAtPos_async(const XYPoint &loiter_coord,
+                                   bool holdCurrentAltitude,
+                                   const std::string &command_name)
 {
 
   const uint64_t command_id =
-      m_uav_model.reportCommandResult("LOITER", "SUBMITTED", "FC_GUIDANCE");
+      m_uav_model.reportCommandResult(command_name, "SUBMITTED", "FC_GUIDANCE");
 
   m_uav_model.pushCommand([loiter_coord, holdCurrentAltitude, ap_mode = m_autopilot_mode,
-                           command_id, this](UAV_Model &uav)
+                           command_id, command_name, this](UAV_Model &uav)
                           {
 
       XYPoint loiter_latlon = loiter_coord;
@@ -2108,7 +2128,7 @@ void ArduBridge::loiterAtPos_async(const XYPoint &loiter_coord, bool holdCurrent
 
       if (!uav.commandLoiterAtPos(loiter_latlon, holdCurrentAltitude))
       {
-        uav.reportCommandResult("LOITER", "FAILED", "GUIDED_HOLD_FAILED", command_id);
+        uav.reportCommandResult(command_name, "FAILED", "GUIDED_HOLD_FAILED", command_id);
         m_loiter_at_pos_promfut.prom.set_value(ResultPair{false, "Failed sending command"});
         return;
       }
@@ -2118,7 +2138,7 @@ void ArduBridge::loiterAtPos_async(const XYPoint &loiter_coord, bool holdCurrent
         uav.setNextWaypointLatLon(XYPoint(0, 0));
       }
 
-      uav.reportCommandResult("LOITER", "ACCEPTED", "GUIDED_HOLD_TARGET_SENT", command_id);
+      uav.reportCommandResult(command_name, "ACCEPTED", "GUIDED_HOLD_TARGET_SENT", command_id);
       m_loiter_at_pos_promfut.prom.set_value(ResultPair{true, ""}); });
 }
 
@@ -2139,12 +2159,9 @@ void ArduBridge::goToHelmMode(AutopilotHelmMode to_state, bool fromGCS)
   {
     if (isHelmCommanding() && !fromGCS)
       m_warning_system_ptr->queue_monitorWarningForXseconds("Helm parked unexpectedly while commanding", WARNING_DURATION);
-    m_parked_expected = fromGCS;
   }
   else if (from_state == AutopilotHelmMode::HELM_PARKED)
   {
-    m_leg_request_pending = false;
-    m_parked_expected = false;
     m_guided_parked_since = -1;
   }
 
@@ -2173,12 +2190,8 @@ void ArduBridge::goToHelmMode(AutopilotHelmMode to_state, bool fromGCS)
     break;
 
   case AutopilotHelmMode::HELM_TOWAYPT:
-  {
     Notify("MOOS_MANUAL_OVERRIDE", "false");
-    std::string update_str = "points=" + xypointToString(m_tonext_waypointXY);
-    Notify("TOWAYPT_UPDATE", update_str);
-  }
-  break;
+    break;
   case AutopilotHelmMode::HELM_ACTIVE:
   case AutopilotHelmMode::HELM_RETURNING:
   case AutopilotHelmMode::HELM_SURVEYING:

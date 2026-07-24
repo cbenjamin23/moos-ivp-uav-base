@@ -202,10 +202,12 @@ protected: // async
   void flyToWaypoint_async();
   PromiseFuture<ResultPair> m_fly_to_waypoint_promfut;
 
-  void loiterAtPos_async(const XYPoint &loiter_coord = XYPoint(0, 0), bool holdCurrentAltitude = false);
+  void loiterAtPos_async(const XYPoint &loiter_coord = XYPoint(0, 0),
+                         bool holdCurrentAltitude = false,
+                         const std::string &command_name = "LOITER");
   PromiseFuture<ResultPair> m_loiter_at_pos_promfut;
 
-  void rtl_async();
+  void rtl_async(bool force_native_rtl = false);
   PromiseFuture<ResultPair> m_rtl_promfut;
 
   void autoland_async();
@@ -230,10 +232,6 @@ private: // State variables
   std::mutex m_command_results_mutex;
   std::string m_last_command_result;
 
-  bool m_leg_request_pending;
-  double m_leg_request_time;
-  bool m_leg_active;
-  bool m_parked_expected;
   double m_guided_parked_since;
   double m_last_guided_hold_refresh_time;
 
@@ -246,14 +244,17 @@ private: // State variables
   std::pair<bool, double> m_do_change_altitude_pair;
   bool m_do_reset_speed;
   bool m_do_return_to_launch;
+  bool m_force_native_rtl;
   bool m_do_autoland;
   std::optional<bool> m_arm_request;
   bool m_do_takeoff;
   bool m_do_fly_to_waypoint;
+  std::string m_fly_command_name;
   bool m_do_helm_survey;
   bool m_do_helm_voronoi;
 
   std::pair<bool, std::string> m_do_loiter_pair;
+  std::string m_loiter_command_name;
   std::pair<bool, bool> m_do_precision_loiter_pair;
   bool m_do_fc_loiter;
 

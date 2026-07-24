@@ -108,8 +108,10 @@ void showInterfaceAndExit()
   blk("                                                                ");
   blk("SUBSCRIPTIONS:                                                  ");
   blk("------------------------------------                            ");
-  blk("  ARDU_COMMAND = FLY_WAYPOINT | DO_TAKEOFF | RESET_SPEED_MIN   ");
-  blk("                 RETURN_TO_LAUNCH | LOITER | LOITER_FC         ");
+  blk("  ARDU_COMMAND = HELM_GUIDANCE | FLY_WAYPOINT | DO_TAKEOFF     ");
+  blk("                 RESET_SPEED_MIN                               ");
+  blk("                 RETURN_TO_LAUNCH | HOLD_POSITION | LOITER     ");
+  blk("                 LOITER_FC                                     ");
   blk("                 PRECISION_LOITER | PRECISION_LOITER_OFF        ");
   blk("                 AUTOLAND | SURVEY | DO_VORONOI | VIZ_HOME      ");
   blk("  ARM_UAV = true|false                                         ");
@@ -117,8 +119,6 @@ void showInterfaceAndExit()
   blk("  AUTOLAND = true|false                                        ");
   blk("  NEXT_WAYPOINT = lat=...,lon=...,x=...,y=...,vname=...        ");
   blk("  HELM_STATUS, AUTOPILOT_MODE, MOOS_MANUAL_OVERRIDE            ");
-  blk("  LEG_REQUEST, LEG_ACTIVE // Copter Helm handoff monitoring     ");
-  blk("  STATION_KEEP = true|false // true requests Copter Guided XYZ hold ");
   blk("  CHANGE_SPEED, CHANGE_COURSE, CHANGE_ALTITUDE, DEAD_MAN_POST_INTERRUPT ");
   blk("  Compatibility registrations: FLY_WAYPOINT, DO_TAKEOFF, LOITER, ");
   blk("    SURVEY, RESET_SPEED_MIN, VIZ_HOME (use ARDU_COMMAND path)   ");
