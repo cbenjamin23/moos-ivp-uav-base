@@ -108,8 +108,7 @@ void showInterfaceAndExit()
   blk("                                                                ");
   blk("SUBSCRIPTIONS:                                                  ");
   blk("------------------------------------                            ");
-  blk("  ARDU_COMMAND = HELM_GUIDANCE | FLY_WAYPOINT | DO_TAKEOFF     ");
-  blk("                 RESET_SPEED_MIN                               ");
+  blk("  ARDU_COMMAND = FLY_WAYPOINT | DO_TAKEOFF | RESET_SPEED_MIN   ");
   blk("                 RETURN_TO_LAUNCH | HOLD_POSITION | LOITER     ");
   blk("                 LOITER_FC                                     ");
   blk("                 PRECISION_LOITER | PRECISION_LOITER_OFF        ");

@@ -93,7 +93,7 @@ MOOS request → bridge policy → MAVLink/MAVSDK result → FC telemetry confir
 |---|---|
 | `HELM_PARKED` | Bridge starts parked; Helm is not controlling the vehicle. |
 | `HELM_INACTIVE` | Helm is inactive and the FC owns the current operation, such as native Loiter, RTL, or LAND. |
-| `HELM_INACTIVE_LOITERING` | Guided coordinate hold requested by `ARDU_COMMAND=LOITER` or Copter `STATION_KEEP=true`. |
+| `HELM_INACTIVE_LOITERING` | Guided coordinate hold requested by `ARDU_COMMAND=LOITER` or `ARDU_COMMAND=HOLD_POSITION`. |
 | `HELM_ACTIVE` | Helm enabled with no specialized bridge task. |
 | `HELM_TOWAYPT` | Helm-directed waypoint behavior. |
 | `HELM_RETURNING` | Helm-directed return behavior. |
@@ -120,7 +120,7 @@ Because Copter interprets `DESIRED_HEADING` as yaw, a rich MOOS `BHV_Loiter` pat
 | `RETURN_TO_LAUNCH` | boolean | When true, selects MOOS return routing if the Helm is active; otherwise requests native FC RTL. |
 | `AUTOLAND` | boolean | When true, requests Copter LAND or Plane AUTOLAND through the LAND policy. |
 | `ARDU_COMMAND` | command string | Main explicit-command interface; see the command reference. |
-| `NEXT_WAYPOINT` | `lat=...,lon=...,x=...,y=...,vname=<name|all>` | Defines the target used by `ARDU_COMMAND=FLY_WAYPOINT`. |
+| `NEXT_WAYPOINT` | `lat=...,lon=...,x=...,y=...,vname=<name|all>` | Defines the direct FC target used by `ARDU_COMMAND=FLY_WAYPOINT` when the Helm is inactive. |
 | `HELM_STATUS` | boolean | Enables or disables Helm ownership. Turning it off requests legacy Guided hold at the current position. |
 | `AUTOPILOT_MODE` | bridge state string | Requests a bridge-state transition; intended for mission coordination, not raw FC mode selection. |
 | `MOOS_MANUAL_OVERRIDE` | string boolean | `true` parks the Helm and initiates the return path. |
@@ -128,7 +128,6 @@ Because Copter interprets `DESIRED_HEADING` as yaw, a rich MOOS `BHV_Loiter` pat
 | `CHANGE_COURSE` | double | Adds a course increment. |
 | `CHANGE_ALTITUDE` | double | Adds an altitude increment and publishes `CONST_ALTITUDE_UPDATE`. |
 | `DEAD_MAN_POST_INTERRUPT` | any | Reports a dead-man warning and initiates the return path. |
-| `STATION_KEEP` | boolean | On Copter, `true` transfers the current endpoint to an FC-owned Guided XYZ hold at the configured target altitude. The bridge refreshes the captured XYZ/yaw target at 1 Hz while the hold owns control. |
 
 `FLY_WAYPOINT`, `DO_TAKEOFF`, `LOITER`, `SURVEY`, `RESET_SPEED_MIN`, and `VIZ_HOME` are registered for compatibility, but their implemented command path is `ARDU_COMMAND=<value>`. Do not rely on posting those variable names directly.
 
@@ -137,7 +136,7 @@ Because Copter interprets `DESIRED_HEADING` as yaw, a rich MOOS `BHV_Loiter` pat
 | `ARDU_COMMAND` value | Result |
 |---|---|
 | `DO_TAKEOFF` | Requires an already-armed vehicle. Copter requires fresh `ON_GROUND` telemetry, invokes MAVSDK takeoff at `takeoff_altitude`, confirms takeoff telemetry, and completes at the target altitude. Plane starts its current bridge/SITL mission and confirms Mission/Takeoff mode. |
-| `FLY_WAYPOINT` | Uses `NEXT_WAYPOINT`. With Helm inactive, enters Guided and sends a position target. With Helm active, publishes `TOWAYPT_UPDATE` for MOOS behavior control. Reports rejection, submission, and acceptance/failure; arrival is not yet a lifecycle state. |
+| `FLY_WAYPOINT` | With Helm active, requests Guided mode and enters `HELM_TOWAYPT` without requiring or duplicating a waypoint; the active Helm behavior owns its route. With Helm inactive, requires `NEXT_WAYPOINT` and sends that position target directly to the FC. Reports rejection, submission, and acceptance/failure; arrival is not yet a lifecycle state. |
 | `RETURN_TO_LAUNCH` or `RETURN` | With Helm inactive and the vehicle armed, requests native FC RTL and confirms stable RTL telemetry. With Helm active, publishes the home point to `RETURN_UPDATE`. |
 | `LOITER` | Legacy Guided coordinate hold. Copter moves to and holds the target; Plane orbits the target in Guided. Reports submission and FC target acceptance/failure. |
 | `LOITER_FC` | Requests native FC Loiter: Copter position hold or Plane orbit at the current point. Confirms `Hold` telemetry. |

@@ -249,7 +249,6 @@ private: // State variables
   std::optional<bool> m_arm_request;
   bool m_do_takeoff;
   bool m_do_fly_to_waypoint;
-  std::string m_fly_command_name;
   bool m_do_helm_survey;
   bool m_do_helm_voronoi;
 

@@ -25,7 +25,6 @@
 
 ArduBridge::ArduBridge()
     : m_do_fly_to_waypoint{false},
-      m_fly_command_name{"FLY_WAYPOINT"},
       m_do_takeoff{false},
       m_cli_arg{},
       m_do_change_speed_pair{std::make_pair(false, 0)},
@@ -317,13 +316,6 @@ bool ArduBridge::OnNewMail(MOOSMSG_LIST &NewMail)
       else if (command == "FLY_WAYPOINT")
       {
         m_do_fly_to_waypoint = true;
-        m_fly_command_name = "FLY_WAYPOINT";
-        handled = true;
-      }
-      else if (command == "HELM_GUIDANCE")
-      {
-        m_do_fly_to_waypoint = true;
-        m_fly_command_name = "HELM_GUIDANCE";
         handled = true;
       }
       else if (command == "DO_TAKEOFF")
@@ -627,7 +619,6 @@ bool ArduBridge::Iterate()
 
       running_ftw = false;
       m_do_fly_to_waypoint = false;
-      m_fly_command_name = "FLY_WAYPOINT";
       m_fly_to_waypoint_promfut.reset();
     }
   }
@@ -1888,19 +1879,10 @@ bool ArduBridge::tryFlyToWaypoint()
 
 void ArduBridge::flyToWaypoint_async()
 {
-  if (m_fly_command_name == "HELM_GUIDANCE")
+  if (isHelmOn())
   {
-    if (!isHelmOn())
-    {
-      m_uav_model.reportCommandResult(
-          "HELM_GUIDANCE", "REJECTED", "HELM_INACTIVE");
-      m_fly_to_waypoint_promfut.prom.set_value(
-          ResultPair{false, "Helm is not active"});
-      return;
-    }
-
     const uint64_t command_id = m_uav_model.reportCommandResult(
-        "HELM_GUIDANCE", "SUBMITTED", "MOOS_GUIDANCE");
+        "FLY_WAYPOINT", "SUBMITTED", "MOOS_GUIDANCE");
     if (!m_uav_model.isGuidedMode())
     {
       m_uav_model.pushCommand([this](UAV_Model &uav)
@@ -1911,7 +1893,7 @@ void ArduBridge::flyToWaypoint_async()
     }
 
     m_uav_model.reportCommandResult(
-        "HELM_GUIDANCE", "ACCEPTED", "GUIDED_MODE_REQUESTED", command_id);
+        "FLY_WAYPOINT", "ACCEPTED", "HELM_TOWAYPT_REQUESTED", command_id);
     m_fly_to_waypoint_promfut.prom.set_value(ResultPair{true, ""});
     return;
   }
@@ -1925,30 +1907,9 @@ void ArduBridge::flyToWaypoint_async()
   }
 
   const uint64_t command_id = m_uav_model.reportCommandResult(
-      "FLY_WAYPOINT", "SUBMITTED", isHelmOn() ? "MOOS_GUIDANCE" : "FC_GUIDANCE");
+      "FLY_WAYPOINT", "SUBMITTED", "FC_GUIDANCE");
 
-  if (isHelmOn())
-  {
-    if (!m_uav_model.isGuidedMode())
-    {
-      m_uav_model.pushCommand([this](UAV_Model &uav)
-                              {
-        
-        m_warning_system_ptr->queue_monitorWarningForXseconds("Commanding Flight Mode Guided to UAV...", 3);
-        uav.commandGuidedMode(); });
-    }
-
-    std::string update_str = "points=" + xypointToString(m_tonext_waypointXY);
-    Notify("TOWAYPT_UPDATE", update_str);
-
-    m_uav_model.setLoiterLocationLatLon(wp);
-    m_uav_model.reportCommandResult("FLY_WAYPOINT", "ACCEPTED",
-                                    "TOWAYPT_UPDATE_POSTED", command_id);
-    m_fly_to_waypoint_promfut.prom.set_value(ResultPair{true, ""});
-    return;
-  }
-
-  // Helm is Park from here:
+  // Helm is inactive from here.
 
   m_uav_model.pushCommand([wp, command_id, this](UAV_Model &uav)
                           {
