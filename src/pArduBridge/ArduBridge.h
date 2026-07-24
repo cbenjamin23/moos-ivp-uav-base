@@ -235,6 +235,7 @@ private: // State variables
   bool m_leg_active;
   bool m_parked_expected;
   double m_guided_parked_since;
+  double m_last_guided_hold_refresh_time;
 
   std::shared_ptr<WarningSystem> m_warning_system_ptr;
   UAV_Model m_uav_model;

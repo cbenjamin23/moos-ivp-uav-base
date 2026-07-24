@@ -1090,6 +1090,8 @@ bool UAV_Model::commandLoiterAtPos(XYPoint pos, bool holdCurrentAltitude)
   if (!commandGuidedMode())
     return false;
 
+  const double hold_heading_deg = getHeading();
+
   // lat lon 0 0  should not be possible
   if (pos == XYPoint(0, 0))
   {
@@ -1103,6 +1105,20 @@ bool UAV_Model::commandLoiterAtPos(XYPoint pos, bool holdCurrentAltitude)
 
   if (commandGoToLocationXY(mts_current_loiter_coord, holdCurrentAltitude))
   {
+    if (isCopter())
+    {
+      // SET_POSITION_TARGET is queued asynchronously. Let it establish the
+      // XYZ target before switching AutoYaw from the setpoint's timed
+      // ANGLE_RATE state to a persistent fixed heading.
+      std::this_thread::sleep_for(std::chrono::milliseconds(100));
+      if (!commandAndSetCourse(hold_heading_deg, true))
+      {
+        m_warning_system_ptr->queue_monitorWarningForXseconds(
+            "Guided position hold accepted, but fixed-yaw hold failed",
+            WARNING_DURATION);
+      }
+    }
+
     auto m_coord = mts_current_loiter_coord.get();
     std::stringstream ss;
     ss << "Loitering at (Lat/Long): " << m_coord.x() << "/" << m_coord.y() << "\n";
@@ -1112,6 +1128,24 @@ bool UAV_Model::commandLoiterAtPos(XYPoint pos, bool holdCurrentAltitude)
 
   m_warning_system_ptr->queue_monitorWarningForXseconds("Loitering failed", WARNING_DURATION);
   return false;
+}
+
+bool UAV_Model::refreshCopterGuidedHold()
+{
+  if (!isCopter() || !isGuidedMode())
+    return false;
+
+  const auto current_position = mts_position.get();
+  const double terrain_altitude_m =
+      current_position.absolute_altitude_m -
+      current_position.relative_altitude_m;
+  const XYPoint hold_coord = mts_current_loiter_coord.get();
+  const mavsdk::Telemetry::Position hold_position = {
+      hold_coord.x(),
+      hold_coord.y(),
+      static_cast<float>(terrain_altitude_m + m_last_sent_altitudeAGL.load())};
+
+  return commandGoToLocation(hold_position, m_target_course.load());
 }
 
 bool UAV_Model::commandAuxFunction(int function, int switch_position) const
@@ -1282,8 +1316,11 @@ bool UAV_Model::commandCopterHelmSetpoint(double course_deg,
 
   constexpr uint16_t IGNORE_POSITION = (1U << 0) | (1U << 1) | (1U << 2);
   constexpr uint16_t IGNORE_ACCELERATION = (1U << 6) | (1U << 7) | (1U << 8);
+  constexpr uint16_t IGNORE_YAW = (1U << 10);
   constexpr uint16_t IGNORE_YAW_RATE = (1U << 11);
-  constexpr uint16_t TYPE_MASK = IGNORE_POSITION | IGNORE_ACCELERATION | IGNORE_YAW_RATE;
+  uint16_t type_mask = IGNORE_POSITION | IGNORE_ACCELERATION | IGNORE_YAW_RATE;
+  if (speed_m_s <= 0.05)
+    type_mask |= IGNORE_YAW;
 
   const uint8_t target_system = m_system_ptr->get_system_id();
   const uint8_t target_component = MAV_COMP_ID_AUTOPILOT1;
@@ -1305,7 +1342,7 @@ bool UAV_Model::commandCopterHelmSetpoint(double course_deg,
             target_system,
             target_component,
             MAV_FRAME_LOCAL_NED,
-            TYPE_MASK,
+            type_mask,
             0.0f,
             0.0f,
             0.0f,
@@ -1485,7 +1522,8 @@ bool UAV_Model::commandGoToLocationXY(const XYPoint pos, bool holdCurrentAltitud
   return commandGoToLocation(wpt);
 }
 
-bool UAV_Model::commandGoToLocation(const mavsdk::Telemetry::Position &position)
+bool UAV_Model::commandGoToLocation(const mavsdk::Telemetry::Position &position,
+                                    double copterYawDeg)
 {
 
   if (!commandGuidedMode())
@@ -1499,10 +1537,82 @@ bool UAV_Model::commandGoToLocation(const mavsdk::Telemetry::Position &position)
     return false;
   }
 
-  double loiter_direction = 0; // 0 for clockwise, 1 for counter clockwise
+  if (isCopter())
+  {
+    const auto current_position = mts_position.get();
+    const float terrain_altitude_m =
+        current_position.absolute_altitude_m -
+        current_position.relative_altitude_m;
+    const float target_altitude_agl_m =
+        position.absolute_altitude_m - terrain_altitude_m;
+    const double target_yaw_deg =
+        std::isfinite(copterYawDeg) ? angle360(copterYawDeg) : getHeading();
+    const float target_yaw_rad =
+        static_cast<float>(target_yaw_deg * M_PI / 180.0);
+
+    constexpr uint16_t IGNORE_VELOCITY =
+        (1U << 3) | (1U << 4) | (1U << 5);
+    constexpr uint16_t IGNORE_ACCELERATION =
+        (1U << 6) | (1U << 7) | (1U << 8);
+    constexpr uint16_t IGNORE_YAW_RATE = (1U << 11);
+    const uint16_t type_mask =
+        IGNORE_VELOCITY | IGNORE_ACCELERATION | IGNORE_YAW_RATE;
+    const uint8_t target_system = m_system_ptr->get_system_id();
+    const uint8_t target_component = MAV_COMP_ID_AUTOPILOT1;
+    const uint32_t time_boot_ms = static_cast<uint32_t>(
+        std::chrono::duration_cast<std::chrono::milliseconds>(
+            std::chrono::steady_clock::now().time_since_epoch())
+            .count());
+    const int32_t latitude_int =
+        static_cast<int32_t>(std::llround(position.latitude_deg * 1e7));
+    const int32_t longitude_int =
+        static_cast<int32_t>(std::llround(position.longitude_deg * 1e7));
+
+    const auto result = m_mavPass_ptr->queue_message(
+        [=](MavlinkAddress mavlink_address, uint8_t channel)
+        {
+          mavlink_message_t message;
+          mavlink_msg_set_position_target_global_int_pack_chan(
+              mavlink_address.system_id,
+              mavlink_address.component_id,
+              channel,
+              &message,
+              time_boot_ms,
+              target_system,
+              target_component,
+              MAV_FRAME_GLOBAL_RELATIVE_ALT_INT,
+              type_mask,
+              latitude_int,
+              longitude_int,
+              target_altitude_agl_m,
+              0.0f,
+              0.0f,
+              0.0f,
+              0.0f,
+              0.0f,
+              0.0f,
+              target_yaw_rad,
+              0.0f);
+          return message;
+        });
+
+    if (result != mavsdk::MavlinkPassthrough::Result::Success)
+    {
+      m_warning_system_ptr->queue_monitorWarningForXseconds(
+          "Failed to queue Copter Guided position hold", WARNING_DURATION);
+      return false;
+    }
+
+    Logger::info("UAV_Model: Copter Guided position hold queued");
+    return true;
+  }
 
   // blocking //TODO modify so it is non
-  auto res = m_action_ptr->goto_location(position.latitude_deg, position.longitude_deg, position.absolute_altitude_m, loiter_direction);
+  auto res = m_action_ptr->goto_location(
+      position.latitude_deg,
+      position.longitude_deg,
+      position.absolute_altitude_m,
+      0.0f);
 
   if (res != mavsdk::Action::Result::Success)
   {

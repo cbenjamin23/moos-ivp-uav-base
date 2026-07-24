@@ -49,6 +49,7 @@ ArduBridge::ArduBridge()
       m_leg_active{false},
       m_parked_expected{true},
       m_guided_parked_since{-1},
+      m_last_guided_hold_refresh_time{-1},
       m_warning_system_ptr{std::make_shared<WarningSystem>(
           [this](const std::string msg)
           { this->reportRunWarning(msg); },
@@ -200,7 +201,10 @@ bool ArduBridge::OnNewMail(MOOSMSG_LIST &NewMail)
 
       if (leg_requested && m_uav_model.isCopter())
       {
-        m_leg_request_pending = (m_autopilot_mode == AutopilotHelmMode::HELM_PARKED);
+        // A completed or cleared Copter route is held by the flight
+        // controller in HELM_INACTIVE_LOITERING. Accept the next operator
+        // route from any state where the Helm is not already commanding.
+        m_leg_request_pending = !isHelmCommanding();
         m_leg_request_time = m_curr_time;
         m_parked_expected = false;
       }
@@ -223,12 +227,42 @@ bool ArduBridge::OnNewMail(MOOSMSG_LIST &NewMail)
       }
       m_leg_active = leg_active;
     }
+    else if (key == "STATION_KEEP")
+    {
+      bool station_keep = false;
+      bool valid = false;
+      if (msg.IsString())
+        valid = setBooleanOnString(station_keep, msg.GetString());
+      else if (msg.IsDouble() && (msg.GetDouble() == 0.0 || msg.GetDouble() == 1.0))
+      {
+        station_keep = (msg.GetDouble() == 1.0);
+        valid = true;
+      }
+
+      if (!valid)
+      {
+        m_warning_system_ptr->queue_monitorWarningForXseconds(
+            "STATION_KEEP must be true or false", WARNING_DURATION);
+        continue;
+      }
+
+      if (station_keep && m_uav_model.isCopter() &&
+          m_autopilot_mode != AutopilotHelmMode::HELM_INACTIVE_LOITERING &&
+          !m_do_loiter_pair.first)
+      {
+        reportEvent("StationKeep requested: transferring endpoint hold to ArduCopter Guided");
+        m_do_loiter_pair = std::make_pair(true, "here");
+      }
+    }
     else if (key == "MOOS_MANUAL_OVERRIDE")
     {
       Logger::info("OnNewMail MOOS_MANUAL_OVERRIDE: " + msg.GetString() + " from " + msg.GetSource());
       if (msg.GetString() == "true")
       {
-        m_do_return_to_launch = true;
+        // A self-post is how the bridge mirrors its parked Helm state. Only
+        // an external manual-override request carries the legacy RTL policy.
+        if (msg.GetSource() != GetAppName())
+          m_do_return_to_launch = true;
         goToHelmMode(AutopilotHelmMode::HELM_PARKED, true);
       }
     }
@@ -423,7 +457,7 @@ bool ArduBridge::OnConnectToServer()
 
   m_warning_system_ptr->queue_monitorCondition("Copter leg request did not activate the Helm", [this]()
                                                { return m_uav_model.isCopter() && m_leg_request_pending &&
-                                                        (m_autopilot_mode == AutopilotHelmMode::HELM_PARKED) &&
+                                                        !isHelmCommanding() &&
                                                         ((m_curr_time - m_leg_request_time) > 2.0); });
   m_warning_system_ptr->queue_monitorCondition("Copter leg is active while the Helm is unexpectedly parked", [this]()
                                                { return m_uav_model.isCopter() && m_leg_active && !m_parked_expected &&
@@ -681,7 +715,10 @@ bool ArduBridge::Iterate()
 
       if (result.value().success)
       {
-        goToHelmMode(AutopilotHelmMode::HELM_INACTIVE);
+        // Park pHelm after LAND is accepted, but mark this as an internal
+        // GCS-command transition so the resulting self-posted manual
+        // override is not interpreted as an RTL request.
+        goToHelmMode(AutopilotHelmMode::HELM_PARKED, true);
       }
       else
       {
@@ -768,6 +805,15 @@ bool ArduBridge::Iterate()
   // pos is >100 awai from lotiter, send again
   if (m_autopilot_mode == AutopilotHelmMode::HELM_INACTIVE_LOITERING && !m_do_loiter_pair.first)
   {
+    if (m_uav_model.isCopter() &&
+        (m_last_guided_hold_refresh_time < 0 ||
+         (m_curr_time - m_last_guided_hold_refresh_time) >= 1.0))
+    {
+      m_uav_model.pushCommand([](UAV_Model &uav)
+                              { uav.refreshCopterGuidedHold(); });
+      m_last_guided_hold_refresh_time = m_curr_time;
+    }
+
     auto pos = transformLatLonToXY({m_uav_model.getLatitude(), m_uav_model.getLongitude()});
     auto loiterCoord = transformLatLonToXY(m_uav_model.getCurrentLoiterLatLon());
     auto dist = hypot(pos.get_vx() - loiterCoord.get_vx(), pos.get_vy() - loiterCoord.get_vy());
@@ -779,6 +825,10 @@ bool ArduBridge::Iterate()
       m_uav_model.pushCommand([this](UAV_Model &uav)
                               { uav.commandLoiterAtPos(uav.getCurrentLoiterLatLon()); });
     }
+  }
+  else
+  {
+    m_last_guided_hold_refresh_time = -1;
   }
 
   if (m_do_loiter_pair.first)
@@ -1168,6 +1218,7 @@ void ArduBridge::registerVariables()
   Register("HELM_STATUS", 0); // on,off
   Register("LEG_REQUEST", 0);
   Register("LEG_ACTIVE", 0);
+  Register("STATION_KEEP", 0);
 
   Register("CHANGE_SPEED", 0);
   Register("CHANGE_COURSE", 0);
@@ -1398,6 +1449,11 @@ void ArduBridge::sendDesiredValuesToUAV(UAV_Model &uav, bool forceSend)
 
   if (uav.isCopter())
   {
+    // Once control has transferred to a native Guided position hold, do not
+    // overwrite that XYZ target with the Helm's last velocity setpoint.
+    if (!isHelmCommanding())
+      return;
+
     // ArduCopter Guided mode needs a streamed velocity target. Plane-style
     // speed and yaw commands merely change limits/heading and do not produce
     // horizontal Copter motion.

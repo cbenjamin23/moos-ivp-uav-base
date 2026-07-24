@@ -179,7 +179,8 @@ public:
   bool commandCopterHelmSetpoint(double course_deg, double speed_m_s, double altitude_agl_m);
   bool commandAndSetAltitudeAGL(double altitudeAGL_m); // requires guided mode
   bool commandGoToLocationXY(const XYPoint pos, bool holdCurrentAltitudeAGL = false);
-  bool commandGoToLocation(const mavsdk::Telemetry::Position &position);
+  bool commandGoToLocation(const mavsdk::Telemetry::Position &position,
+                           double copterYawDeg = NAN);
 
   // void commandGoToLocationXY_async(const XYPoint pos, bool holdCurrentAltitudeAGL = false, std::function<void(bool)> callback = nullptr);
   // void commandGoToLocation_async(const mavsdk::Telemetry::Position &position, std::function<void(bool)> callback = nullptr);
@@ -188,6 +189,7 @@ public:
   bool commandFlightControllerLoiterAsync(const CommandCompletion &completion = {}) const;
   bool commandAutoland() const;
   bool commandLoiterAtPos(XYPoint pos, bool holdCurrentAltitude = true);
+  bool refreshCopterGuidedHold();
   bool commandPrecisionLoiter(bool enable, bool enterLoiterMode = true);
   bool commandAndSetCourse(double heading, bool isAllowed = true); // command COG if in guided mode
 

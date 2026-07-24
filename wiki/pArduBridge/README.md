@@ -93,7 +93,7 @@ MOOS request → bridge policy → MAVLink/MAVSDK result → FC telemetry confir
 |---|---|
 | `HELM_PARKED` | Bridge starts parked; Helm is not controlling the vehicle. |
 | `HELM_INACTIVE` | Helm is inactive and the FC owns the current operation, such as native Loiter, RTL, or LAND. |
-| `HELM_INACTIVE_LOITERING` | Legacy Guided coordinate hold requested by `ARDU_COMMAND=LOITER`. |
+| `HELM_INACTIVE_LOITERING` | Guided coordinate hold requested by `ARDU_COMMAND=LOITER` or Copter `STATION_KEEP=true`. |
 | `HELM_ACTIVE` | Helm enabled with no specialized bridge task. |
 | `HELM_TOWAYPT` | Helm-directed waypoint behavior. |
 | `HELM_RETURNING` | Helm-directed return behavior. |
@@ -128,6 +128,7 @@ Because Copter interprets `DESIRED_HEADING` as yaw, a rich MOOS `BHV_Loiter` pat
 | `CHANGE_COURSE` | double | Adds a course increment. |
 | `CHANGE_ALTITUDE` | double | Adds an altitude increment and publishes `CONST_ALTITUDE_UPDATE`. |
 | `DEAD_MAN_POST_INTERRUPT` | any | Reports a dead-man warning and initiates the return path. |
+| `STATION_KEEP` | boolean | On Copter, `true` transfers the current endpoint to an FC-owned Guided XYZ hold at the configured target altitude. The bridge refreshes the captured XYZ/yaw target at 1 Hz while the hold owns control. |
 
 `FLY_WAYPOINT`, `DO_TAKEOFF`, `LOITER`, `SURVEY`, `RESET_SPEED_MIN`, and `VIZ_HOME` are registered for compatibility, but their implemented command path is `ARDU_COMMAND=<value>`. Do not rely on posting those variable names directly.
 
