@@ -36,6 +36,7 @@ ArduBridge::ArduBridge()
       m_do_autoland{false},
       m_do_loiter_pair{false, "default"},
       m_loiter_command_name{"LOITER"},
+      m_loiter_hold_current_altitude{false},
       m_do_precision_loiter_pair{false, false},
       m_do_fc_loiter{false},
       m_arm_request{std::nullopt},
@@ -44,10 +45,15 @@ ArduBridge::ArduBridge()
       m_is_simulation{false},
       m_command_groundSpeed{false},
       m_precision_loiter_enter_loiter{true},
+      m_helm_setpoint_timeout{2.0},
       m_last_health_post_time{0},
+      m_last_helm_setpoint_status_post_time{0},
       m_last_command_result{"NONE"},
       m_guided_parked_since{-1},
       m_last_guided_hold_refresh_time{-1},
+      m_helm_setpoint_timeout_detected{false},
+      m_helm_setpoint_timeout_latched{false},
+      m_guided_handoff_waiting{false},
       m_warning_system_ptr{std::make_shared<WarningSystem>(
           [this](const std::string msg)
           { this->reportRunWarning(msg); },
@@ -365,6 +371,7 @@ bool ArduBridge::OnNewMail(MOOSMSG_LIST &NewMail)
         {
           m_do_loiter_pair = std::make_pair(true, "here");
           m_loiter_command_name = "HOLD_POSITION";
+          m_loiter_hold_current_altitude = true;
         }
         handled = true;
       }
@@ -568,6 +575,8 @@ bool ArduBridge::Iterate()
     sendValEnabled = false;
   }
 
+  handleHelmSetpointTimeout();
+
   //////////////////////////////////////////////////////////////
   //////  Arm/Disarm UAV    - Async
   //////////////////////////////////////////////////////////////
@@ -596,6 +605,7 @@ bool ArduBridge::Iterate()
       running_ftw = true;
     }
 
+    pollGuidedHandoffConfirmation();
     auto result = future_poll_result(m_fly_to_waypoint_promfut.fut);
     if (result.has_value())
     {
@@ -816,13 +826,15 @@ bool ArduBridge::Iterate()
               : "RTL_PREEMPTED");
       m_do_loiter_pair = std::make_pair(false, "default");
       m_loiter_command_name = "LOITER";
+      m_loiter_hold_current_altitude = false;
     }
     else if (!running_loiter)
     {
       // Will report warning if command fails
       auto curr_loiter = XYPoint(m_uav_model.getLatitude(), m_uav_model.getLongitude());
       auto location = (m_do_loiter_pair.second == "here") ? curr_loiter : XYPoint(0, 0);
-      loiterAtPos_async(location, false, m_loiter_command_name);
+      loiterAtPos_async(location, m_loiter_hold_current_altitude,
+                       m_loiter_command_name);
       running_loiter = true;
     }
 
@@ -852,6 +864,7 @@ bool ArduBridge::Iterate()
       m_do_loiter_pair.first = false;
       m_do_loiter_pair.second = "default";
       m_loiter_command_name = "LOITER";
+      m_loiter_hold_current_altitude = false;
       m_loiter_at_pos_promfut.reset();
     }
   }
@@ -920,6 +933,7 @@ bool ArduBridge::Iterate()
 
   postTelemetryUpdate(m_uav_prefix);
   postHealthUpdate();
+  postHelmSetpointStatus();
   postLandingTargetUpdate();
   m_uav_model.pollCommandConfirmations();
   postCommandResult();
@@ -1009,6 +1023,16 @@ bool ArduBridge::OnStartUp()
     else if (param == "precision_loiter_enter_loiter" && isBoolean(value))
     {
       handled = setBooleanOnString(m_precision_loiter_enter_loiter, value);
+    }
+    else if (param == "helm_setpoint_timeout")
+    {
+      double timeout = 0;
+      handled = setDoubleOnString(timeout, value) &&
+                std::isfinite(timeout) && timeout > 0;
+      if (handled)
+        m_helm_setpoint_timeout = timeout;
+      else
+        reportConfigWarning("helm_setpoint_timeout must be greater than zero");
     }
     else if (param == "telemetry_position_hz")
     {
@@ -1246,6 +1270,7 @@ bool ArduBridge::buildReport()
   m_msgs << "Telemetry Attitude Rate: " << telemetry_rates.attitude_hz << " Hz" << std::endl;
   m_msgs << "Telemetry Velocity Rate: " << telemetry_rates.velocity_hz << " Hz" << std::endl;
   m_msgs << "Precision Loiter Enters Loiter: " << boolToString(m_precision_loiter_enter_loiter) << std::endl;
+  m_msgs << "Helm Setpoint Timeout: " << m_helm_setpoint_timeout << " s" << std::endl;
   std::string sim_mode = m_is_simulation ? "SITL" : "No Simulation";
   m_msgs << "Simulation Mode: " << sim_mode << std::endl;
   m_msgs << "Control Authority: " << controlAuthorityToString(m_autopilot_mode) << std::endl;
@@ -1348,6 +1373,11 @@ bool ArduBridge::buildReport()
   auto guidedHold = m_uav_model.isHoldCourseGuidedSet();
   m_msgs << "    Helm On BUSY: " << boolToString(isHelmCommanding()) << std::endl;
   m_msgs << "   Helm GUIDED HOLD: " << boolToString(guidedHold) << std::endl;
+  m_msgs << " Helm Setpoints Fresh: "
+         << boolToString(m_helm_desiredValues->setpointsFresh(m_helm_setpoint_timeout))
+         << std::endl;
+  m_msgs << "Setpoint Timeout Latched: "
+         << boolToString(m_helm_setpoint_timeout_latched.load()) << std::endl;
   // m_msgs << "do_loiter_pair.second: " << m_do_loiter_pair.second << std::endl;
   m_msgs << std::endl;
 
@@ -1426,6 +1456,95 @@ bool ArduBridge::buildReport()
 //---------------------------------------------------------
 // Procedure: sendSetPointsToUAV()
 
+void ArduBridge::handleHelmSetpointTimeout()
+{
+  if (!m_helm_setpoint_timeout_detected.exchange(false) ||
+      !m_uav_model.isCopter() || !isHelmCommanding())
+    return;
+
+  const auto flight_mode = m_uav_model.getFlightMode();
+  if (m_do_autoland || m_do_return_to_launch ||
+      flight_mode == mavsdk::Telemetry::FlightMode::Land ||
+      flight_mode == mavsdk::Telemetry::FlightMode::ReturnToLaunch)
+    return;
+
+  m_helm_setpoint_timeout_latched = true;
+  m_uav_model.enableSendDesiredValues(false);
+  m_uav_model.reportCommandResult(
+      "HELM_SETPOINT_WATCHDOG", "TRIGGERED", "SETPOINTS_STALE");
+  reportEvent("Copter Helm setpoints stale; entering current-position Guided hold");
+  m_warning_system_ptr->queue_monitorWarningForXseconds(
+      "Copter Helm setpoints stale; entering Guided hold", WARNING_DURATION);
+
+  goToHelmMode(AutopilotHelmMode::HELM_INACTIVE);
+  m_do_loiter_pair = std::make_pair(true, "here");
+  m_loiter_command_name = "HELM_SETPOINT_WATCHDOG";
+  m_loiter_hold_current_altitude = true;
+}
+
+void ArduBridge::postHelmSetpointStatus()
+{
+  if ((m_curr_time - m_last_helm_setpoint_status_post_time) < 1.0)
+    return;
+  m_last_helm_setpoint_status_post_time = m_curr_time;
+
+  const bool all_received = m_helm_desiredValues->allSetpointsReceived();
+  const double age_s = m_helm_desiredValues->oldestSetpointAgeSeconds();
+  const bool fresh = m_helm_desiredValues->setpointsFresh(m_helm_setpoint_timeout);
+
+  Notify("HELM_SETPOINT_FRESH", fresh ? 1.0 : 0.0, m_curr_time);
+  Notify("HELM_SETPOINT_AGE", all_received ? age_s : -1.0, m_curr_time);
+  Notify("HELM_SETPOINT_TIMEOUT_LATCHED",
+         m_helm_setpoint_timeout_latched.load() ? 1.0 : 0.0, m_curr_time);
+}
+
+void ArduBridge::pollGuidedHandoffConfirmation()
+{
+  if (!m_guided_handoff_waiting.load())
+    return;
+
+  ModeConfirmationTracker::Outcome outcome;
+  {
+    std::lock_guard<std::mutex> lock(m_guided_handoff_mutex);
+    outcome = m_guided_handoff_tracker.evaluate(
+        m_uav_model.isGuidedMode(),
+        ModeConfirmationTracker::Clock::now(),
+        UAV_Model::MODE_CONFIRMATION_TIMEOUT_S,
+        UAV_Model::MODE_CONFIRMATION_DWELL_S);
+  }
+
+  if (outcome.status == ModeConfirmationTracker::OutcomeStatus::None)
+    return;
+
+  m_guided_handoff_waiting = false;
+  if (outcome.status == ModeConfirmationTracker::OutcomeStatus::TimedOut)
+  {
+    m_uav_model.reportCommandResult(
+        "FLY_WAYPOINT", "TIMED_OUT", "GUIDED_MODE_NOT_CONFIRMED",
+        outcome.command_id);
+    m_fly_to_waypoint_promfut.prom.set_value(
+        ResultPair{false, "Guided mode was not confirmed"});
+    return;
+  }
+
+  if (m_uav_model.isCopter() &&
+      !m_helm_desiredValues->setpointsFresh(m_helm_setpoint_timeout))
+  {
+    m_uav_model.reportCommandResult(
+        "FLY_WAYPOINT", "FAILED", "HELM_SETPOINTS_STALE",
+        outcome.command_id);
+    m_fly_to_waypoint_promfut.prom.set_value(
+        ResultPair{false, "Helm setpoints are stale"});
+    return;
+  }
+
+  m_helm_setpoint_timeout_latched = false;
+  m_uav_model.reportCommandResult(
+      "FLY_WAYPOINT", "CONFIRMED", "GUIDED_MODE_CONFIRMED",
+      outcome.command_id);
+  m_fly_to_waypoint_promfut.prom.set_value(ResultPair{true, ""});
+}
+
 void ArduBridge::sendDesiredValuesToUAV(UAV_Model &uav, bool forceSend)
 {
 
@@ -1435,6 +1554,15 @@ void ArduBridge::sendDesiredValuesToUAV(UAV_Model &uav, bool forceSend)
     // overwrite that XYZ target with the Helm's last velocity setpoint.
     if (!isHelmCommanding())
       return;
+
+    if (m_helm_setpoint_timeout_latched.load())
+      return;
+
+    if (!m_helm_desiredValues->setpointsFresh(m_helm_setpoint_timeout))
+    {
+      m_helm_setpoint_timeout_detected = true;
+      return;
+    }
 
     // ArduCopter Guided mode needs a streamed velocity target. Plane-style
     // speed and yaw commands merely change limits/heading and do not produce
@@ -1883,18 +2011,27 @@ void ArduBridge::flyToWaypoint_async()
   {
     const uint64_t command_id = m_uav_model.reportCommandResult(
         "FLY_WAYPOINT", "SUBMITTED", "MOOS_GUIDANCE");
-    if (!m_uav_model.isGuidedMode())
-    {
-      m_uav_model.pushCommand([this](UAV_Model &uav)
-                              {
-        m_warning_system_ptr->queue_monitorWarningForXseconds(
-            "Commanding Flight Mode Guided to UAV...", 3);
-        uav.commandGuidedMode(); });
-    }
+    m_uav_model.pushCommand([command_id, this](UAV_Model &uav)
+                            {
+      m_warning_system_ptr->queue_monitorWarningForXseconds(
+          "Commanding Flight Mode Guided to UAV...", 3);
+      if (!uav.commandGuidedMode())
+      {
+        uav.reportCommandResult(
+            "FLY_WAYPOINT", "FAILED", "GUIDED_MODE_REJECTED", command_id);
+        m_fly_to_waypoint_promfut.prom.set_value(
+            ResultPair{false, "Guided mode request failed"});
+        return;
+      }
 
-    m_uav_model.reportCommandResult(
-        "FLY_WAYPOINT", "ACCEPTED", "HELM_TOWAYPT_REQUESTED", command_id);
-    m_fly_to_waypoint_promfut.prom.set_value(ResultPair{true, ""});
+      uav.reportCommandResult(
+          "FLY_WAYPOINT", "ACCEPTED", "GUIDED_MODE_REQUEST_ACCEPTED",
+          command_id);
+      {
+        std::lock_guard<std::mutex> lock(m_guided_handoff_mutex);
+        m_guided_handoff_tracker.accept(command_id);
+      }
+      m_guided_handoff_waiting = true; });
     return;
   }
 

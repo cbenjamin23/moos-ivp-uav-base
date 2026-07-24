@@ -1,11 +1,16 @@
 #pragma once
 
+#include <algorithm>
+#include <chrono>
 #include <iostream>
+#include <limits>
 #include <optional> // C++17 for optional return type
 
 class SetpointManager
 {
 private:
+    using Clock = std::chrono::steady_clock;
+
     double desiredSpeed;
     double desiredCourse;
     double desiredAltitude;
@@ -14,9 +19,21 @@ private:
     double prevCourse;
     double prevAltitude;
 
+    std::optional<Clock::time_point> speedUpdatedAt;
+    std::optional<Clock::time_point> courseUpdatedAt;
+    std::optional<Clock::time_point> altitudeUpdatedAt;
+
     bool hasChanged(double prevValue, double newValue)
     {
         return prevValue != newValue;
+    }
+
+    double ageSeconds(const std::optional<Clock::time_point>& updatedAt,
+                      Clock::time_point now) const
+    {
+        if (!updatedAt)
+            return std::numeric_limits<double>::infinity();
+        return std::chrono::duration<double>(now - *updatedAt).count();
     }
 
 public:
@@ -28,14 +45,17 @@ public:
     void updateDesiredSpeed(double newSpeed)
     {
         desiredSpeed = newSpeed;
+        speedUpdatedAt = Clock::now();
     }
     void updateDesiredCourse(double newHeading)
     {
         desiredCourse = newHeading;
+        courseUpdatedAt = Clock::now();
     }
     void updateDesiredAltitude(double newAltitude)
     {
         desiredAltitude = newAltitude;
+        altitudeUpdatedAt = Clock::now();
     }
 
     // Polling function for desired values. Returns std::optional to indicate if value changed.
@@ -71,6 +91,28 @@ public:
     double readDesiredSpeed() const { return desiredSpeed; }
     double readDesiredCourse() const { return desiredCourse; }
     double readDesiredAltitudeAGL() const { return desiredAltitude; }
+
+    bool allSetpointsReceived() const
+    {
+        return speedUpdatedAt.has_value() &&
+               courseUpdatedAt.has_value() &&
+               altitudeUpdatedAt.has_value();
+    }
+
+    double oldestSetpointAgeSeconds() const
+    {
+        const auto now = Clock::now();
+        return std::max({
+            ageSeconds(speedUpdatedAt, now),
+            ageSeconds(courseUpdatedAt, now),
+            ageSeconds(altitudeUpdatedAt, now)});
+    }
+
+    bool setpointsFresh(double timeoutSeconds) const
+    {
+        return allSetpointsReceived() &&
+               oldestSetpointAgeSeconds() <= timeoutSeconds;
+    }
 
     bool isValid() const
     {

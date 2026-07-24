@@ -80,6 +80,7 @@ void showExampleConfigAndExit()
   blk("  telemetry_position_hz = 5      // defaults apply to all vehicles");
   blk("  telemetry_attitude_hz = 5      // override per mission if needed");
   blk("  telemetry_velocity_hz = 5      // must be greater than zero     ");
+  blk("  helm_setpoint_timeout = 2      // Copter stale-setpoint hold (s)");
   blk("  precision_loiter_enter_loiter = true // false requires FC Loiter already ");
   blk("  command_groundspeed = true     // forced true for Copter       ");
   blk("  is_sim = false                 // Plane SITL mission setup only");
@@ -169,6 +170,9 @@ void showInterfaceAndExit()
   blk("  UAV_LANDING_TARGET_X, UAV_LANDING_TARGET_Y, UAV_LANDING_TARGET_Z                       ");
   blk("  AUTOPILOT_MODE             // pArduBridge helm state, not raw FC mode ");
   blk("  CONTROL_AUTHORITY          // FC/manual or MOOS Helm ownership summary ");
+  blk("  HELM_SETPOINT_FRESH        // 1 when all Helm setpoints are within timeout ");
+  blk("  HELM_SETPOINT_AGE          // Age of oldest Helm setpoint; -1 until complete ");
+  blk("  HELM_SETPOINT_TIMEOUT_LATCHED // 1 until a fresh confirmed route handoff ");
   blk("  MOOS_MANUAL_OVERRIDE, RETURN_UPDATE, TOWAYPT_UPDATE          ");
   blk("  SURVEY_UPDATE, CONST_ALTITUDE_UPDATE, VIEW_*                  ");
   blk("                                                                ");

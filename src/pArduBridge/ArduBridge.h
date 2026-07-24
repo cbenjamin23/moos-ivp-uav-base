@@ -23,6 +23,7 @@
 #include <utility> // for std::pair
 
 #include <future>
+#include <atomic>
 #include <deque>
 #include <mutex>
 
@@ -54,6 +55,9 @@ protected:
   void postSpeedUpdateToBehaviors(double speed);
   // Send command to UAV
   void sendDesiredValuesToUAV(UAV_Model &uav, bool forceSend = false);
+  void handleHelmSetpointTimeout();
+  void postHelmSetpointStatus();
+  void pollGuidedHandoffConfirmation();
 
 private: // Configuration variables
   std::string m_uav_prefix;
@@ -227,13 +231,20 @@ private: // State variables
   bool m_is_simulation;
   bool m_command_groundSpeed;
   bool m_precision_loiter_enter_loiter;
+  double m_helm_setpoint_timeout;
   double m_last_health_post_time;
+  double m_last_helm_setpoint_status_post_time;
   std::deque<UAV_Model::CommandResult> m_command_results;
   std::mutex m_command_results_mutex;
   std::string m_last_command_result;
 
   double m_guided_parked_since;
   double m_last_guided_hold_refresh_time;
+  std::atomic<bool> m_helm_setpoint_timeout_detected;
+  std::atomic<bool> m_helm_setpoint_timeout_latched;
+  std::atomic<bool> m_guided_handoff_waiting;
+  ModeConfirmationTracker m_guided_handoff_tracker;
+  std::mutex m_guided_handoff_mutex;
 
   std::shared_ptr<WarningSystem> m_warning_system_ptr;
   UAV_Model m_uav_model;
@@ -254,6 +265,7 @@ private: // State variables
 
   std::pair<bool, std::string> m_do_loiter_pair;
   std::string m_loiter_command_name;
+  bool m_loiter_hold_current_altitude;
   std::pair<bool, bool> m_do_precision_loiter_pair;
   bool m_do_fc_loiter;
 
