@@ -652,11 +652,10 @@ bool ArduBridge::Iterate()
 
       if (result.value().success)
       {
-        const auto goToMode =
-            (!m_force_native_rtl && isHelmOn())
-                ? AutopilotHelmMode::HELM_RETURNING
-                : AutopilotHelmMode::HELM_INACTIVE;
-        goToHelmMode(goToMode);
+        if (!m_force_native_rtl && isHelmOn())
+          goToHelmMode(AutopilotHelmMode::HELM_RETURNING);
+        else
+          goToHelmMode(AutopilotHelmMode::HELM_PARKED, true);
       }
       else
       {
@@ -781,6 +780,7 @@ bool ArduBridge::Iterate()
   const auto flight_mode = m_uav_model.getFlightMode();
   const bool fc_preempts_hold =
       m_do_autoland || m_do_return_to_launch ||
+      m_autopilot_mode == AutopilotHelmMode::HELM_PARKED ||
       flight_mode == mavsdk::Telemetry::FlightMode::Land ||
       flight_mode == mavsdk::Telemetry::FlightMode::ReturnToLaunch;
 
